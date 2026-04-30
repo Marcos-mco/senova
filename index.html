@@ -700,7 +700,7 @@ async function callAPI(messages, systemPrompt, maxTokens){
   maxTokens=maxTokens||4000;
   var key=getApiKey();
   if(!key){ openApiModal(); throw new Error('API key nao configurada'); }
-  var body={model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:messages};
+  var body={model:'claude-sonnet-4-5',max_tokens:maxTokens,messages:messages};
   if(systemPrompt) body.system=systemPrompt;
   var res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
