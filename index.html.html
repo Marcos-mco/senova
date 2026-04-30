@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senova Suite — Recolocação Executiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --navy: #1A3A5C;
+  --gold: #C9A84C;
+  --action: #2E6DA4;
+  --bg: #F7F5F0;
+  --bg2: #ffffff;
+  --bg3: #F0EDE6;
+  --bg4: #E8E4DB;
+  --border: #DDD9CF;
+  --border2: #C8C3B6;
+  --text: #1A1A16;
+  --text2: #4A4740;
+  --text3: #8A8680;
+  --green: #1A7A4A;
+  --green-bg: #EAF7EF;
+  --amber: #B8670A;
+  --amber-bg: #FFF8EC;
+  --red: #C0281E;
+  --red-bg: #FEF0EF;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font: 'DM Sans', -apple-system, sans-serif;
+  --shadow: 0 1px 3px rgba(26,58,92,0.07), 0 1px 2px rgba(26,58,92,0.04);
+  --shadow-md: 0 4px 16px rgba(26,58,92,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar { width: 238px; background: var(--navy); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 24px 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.logo-mark { display: flex; align-items: center; gap: 12px; }
+.logo-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,var(--gold),#A8852E); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--navy); flex-shrink: 0; letter-spacing: -0.5px; box-shadow: 0 2px 8px rgba(201,168,76,0.4); }
+.logo-text { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 2px; }
+.logo-sub { font-size: 10.5px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 300; letter-spacing: 0.05em; }
+
+.sidebar-section { padding: 20px 10px 4px; }
+.sidebar-label { font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 10px; margin-bottom: 8px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); cursor: pointer; color: rgba(255,255,255,0.6); font-size: 13.5px; font-weight: 400; transition: all 0.15s; margin-bottom: 2px; }
+.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+.nav-item.active { background: rgba(201,168,76,0.18); color: var(--gold); font-weight: 600; border-left: 2px solid var(--gold); }
+.nav-icon { width: 17px; height: 17px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge { margin-left: auto; font-size: 11px; background: rgba(201,168,76,0.25); color: var(--gold); padding: 1px 8px; border-radius: 10px; font-weight: 700; }
+.nav-soon { margin-left: auto; font-size: 10px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); padding: 1px 7px; border-radius: 8px; font-weight: 500; }
+.sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 8px 18px; }
+
+.sidebar-bottom { margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+.user-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); background: rgba(255,255,255,0.06); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,var(--gold),#A8852E); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--navy); flex-shrink: 0; }
+.user-name { font-size: 13px; font-weight: 600; color: #fff; }
+.user-role { font-size: 10.5px; color: rgba(255,255,255,0.4); }
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.topbar { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 12px; flex-shrink: 0; background: var(--bg2); }
+.page-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--navy); letter-spacing: -0.2px; }
+.page-sub { font-size: 13px; color: var(--text3); margin-left: 6px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.status-pill { display: flex; align-items: center; gap: 6px; background: var(--green-bg); color: var(--green); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(26,122,74,0.15); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.content { flex: 1; overflow-y: auto; padding: 26px 28px; }
+
+/* ── CARDS ── */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow); }
+.card-sm { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.gold-line { height: 2px; background: linear-gradient(90deg,var(--gold),transparent); border-radius: 2px; margin-bottom: 18px; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--radius); font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; font-family: var(--font); line-height: 1; }
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--action); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+.btn-gold { background: var(--gold); color: var(--navy); font-weight: 700; }
+.btn-gold:hover { background: #B8952A; transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid #fca5a5; font-size: 13px; padding: 7px 14px; }
+.btn-danger:hover { background: var(--red-bg); }
+
+/* ── FORM ── */
+.field-label { display: block; font-size: 12.5px; color: var(--text2); margin-bottom: 7px; font-weight: 600; letter-spacing: 0.01em; }
+textarea, input, select { width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 13px; font-size: 14px; color: var(--text); font-family: var(--font); outline: none; transition: border 0.15s, box-shadow 0.15s; }
+textarea:focus, input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); background: var(--bg2); }
+select option { background: var(--bg2); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 2px; background: var(--bg3); border-radius: var(--radius); padding: 3px; margin-bottom: 16px; border: 1px solid var(--border); }
+.tab-btn { flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: var(--text3); font-family: var(--font); transition: all 0.15s; }
+.tab-btn.active { background: var(--bg2); color: var(--navy); box-shadow: var(--shadow); font-weight: 600; }
+
+/* ── KANBAN ── */
+.kanban { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
+.kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; box-shadow: var(--shadow); }
+.kcard:hover { border-color: var(--border2); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kcard-name { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.kcard-role { font-size: 11.5px; color: var(--text3); margin-bottom: 7px; line-height: 1.4; }
+.kcard-meta { font-size: 11px; color: var(--text3); margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+.badge-alta { background: #FEF0EF; color: var(--red); }
+.badge-media { background: var(--amber-bg); color: var(--amber); }
+.badge-baixa { background: #EFF6FF; color: #2563EB; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: min(520px,92vw); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-row { margin-bottom: 15px; }
+
+/* ── RESULT ── */
+.result-box { background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; font-size: 13.5px; line-height: 1.85; color: var(--text2); white-space: pre-wrap; word-break: break-word; max-height: 440px; overflow-y: auto; font-family: var(--font); }
+.result-box.mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12.5px; }
+
+/* ── STATS ── */
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); }
+.stat-val { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+.stat-label { font-size: 12px; color: var(--text3); font-weight: 400; }
+
+/* ── LOADER ── */
+.loader { display: flex; gap: 5px; align-items: center; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); animation: pulse 1.2s ease-in-out infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; } .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100%{opacity:.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+
+/* ── LANG TOGGLE ── */
+.lang-toggle { display: flex; gap: 4px; }
+.lang-btn { padding: 6px 12px; font-size: 12.5px; font-weight: 500; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg3); color: var(--text3); cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+.lang-btn.active { background: rgba(26,58,92,0.08); border-color: var(--navy); color: var(--navy); }
+.lang-btn:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+/* ── MISC ── */
+.empty { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.3; }
+.empty-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text2); margin-bottom: 8px; }
+.empty-sub { font-size: 13.5px; color: var(--text3); line-height: 1.7; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+.copy-btn { font-size: 11.5px; padding: 5px 12px; border-radius: 7px; background: var(--bg2); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; font-family: var(--font); transition: all 0.15s; font-weight: 500; }
+.copy-btn:hover { background: var(--bg3); color: var(--text); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── INTERVIEW ── */
+.chat-bubble-q { background: var(--navy); color: #fff; border-radius: 12px 12px 12px 2px; padding: 14px 18px; font-size: 14px; line-height: 1.7; margin-bottom: 12px; max-width: 88%; }
+.chat-bubble-a { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px 12px 2px 12px; padding: 14px 18px; font-size: 14px; line-height: 1.7; margin-bottom: 8px; }
+.feedback-card { background: linear-gradient(135deg,#EFF6FF,#F0FDF4); border: 1px solid #93C5FD; border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.progress-bar { height: 8px; background: var(--bg4); border-radius: 4px; overflow: hidden; margin: 6px 0; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+/* ── LINKEDIN ── */
+.linkedin-variant { background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.linkedin-variant-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.char-count { font-size: 11px; color: var(--text3); font-weight: 500; }
+.char-count.ok { color: var(--green); }
+.char-count.warn { color: var(--amber); }
+
+/* CONTACT LIST */
+.contact-list { display: flex; flex-direction: column; gap: 8px; }
+.contact-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s; }
+.contact-item:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+.contact-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,var(--navy),var(--action)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.contact-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.contact-role { font-size: 12px; color: var(--text3); }
+.contact-next { font-size: 12px; color: var(--text2); margin-left: auto; text-align: right; max-width: 200px; }
+.status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════════════════════
+     SIDEBAR
+══════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">S</div>
+      <div>
+        <div class="logo-text">SENOVA</div>
+        <div class="logo-sub">Your career. Renewed.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Ferramentas</div>
+    <div class="nav-item active" onclick="showPage('ats')" id="nav-ats">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="7.5" y2="10.5"/>
+      </svg>
+      Anti-ATS
+    </div>
+    <div class="nav-item" onclick="showPage('linkedin')" id="nav-linkedin">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><rect x="4" y="7" width="1.8" height="5" fill="currentColor" stroke="none"/><circle cx="4.9" cy="4.8" r="1" fill="currentColor" stroke="none"/><path d="M7.5 7v5m0-3.5c0-1 .8-1.5 1.8-1.5 1.2 0 1.7.8 1.7 2V12" stroke-width="1.5"/>
+      </svg>
+      LinkedIn
+    </div>
+    <div class="nav-item" onclick="showPage('crm')" id="nav-crm">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1.5" y="2" width="4" height="12" rx="1.5"/><rect x="7" y="5" width="4" height="9" rx="1.5"/><rect x="12.5" y="8" width="2" height="6" rx="1"/>
+      </svg>
+      Pipeline CRM
+      <span class="nav-badge" id="crm-badge">—</span>
+    </div>
+    <div class="nav-item" onclick="showPage('interview')" id="nav-interview">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2 3.5h9a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H7l-3 2.5V10H3a1 1 0 0 1-1-1V3.5Z"/>
+        <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
+      </svg>
+      Entrevista
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="avatar">MF</div>
+      <div>
+        <div class="user-name">Marcos Franco</div>
+        <div class="user-role">Executivo · Curitiba, PR</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════
+     MAIN
+══════════════════════════════════ -->
+<main class="main">
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: ANTI-ATS            │
+     └─────────────────────────────┘ -->
+<div id="page-ats" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Anti-ATS</span>
+      <span class="page-sub">Adaptador de CV com análise de keywords</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;">
+
+      <!-- Input -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="section-head"><span class="section-title">Idioma do CV base</span></div>
+          <div class="lang-toggle">
+            <button class="lang-btn active" onclick="setLang('PT',this)">🇧🇷 Português</button>
+            <button class="lang-btn" onclick="setLang('EN',this)">🇺🇸 English</button>
+            <button class="lang-btn" onclick="setLang('ES',this)">🇪🇸 Español</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-head"><span class="section-title">Descrição da vaga</span></div>
+          <div class="form-row">
+            <label class="field-label">Cole o texto completo da vaga</label>
+            <textarea id="vaga-input" rows="11" placeholder="Título, empresa, requisitos, responsabilidades, benefícios...&#10;&#10;Quanto mais completa, mais precisa a análise." style="resize:vertical;line-height:1.65;"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="analyzeJob()" id="analyze-btn" style="width:100%;justify-content:center;padding:12px;font-size:15px;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+            Analisar vaga + gerar CV
+          </button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="result-area">
+        <div class="card">
+          <div class="empty">
+            <div class="empty-icon">🎯</div>
+            <div class="empty-title">Pronto para analisar</div>
+            <div class="empty-sub">Cole a descrição de uma vaga ao lado<br>e clique em <strong>Analisar vaga + gerar CV</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: LINKEDIN            │
+     └─────────────────────────────┘ -->
+<div id="page-linkedin" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">LinkedIn</span>
+      <span class="page-sub">Otimizador de perfil executivo</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;">
+
+      <!-- Controls -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="gold-line"></div>
+          <div class="form-row">
+            <label class="field-label">Seção a otimizar</label>
+            <select id="li-section">
+              <option value="headline">Headline (título)</option>
+              <option value="about">About / Resumo</option>
+              <option value="experiencia">Experiência específica</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="field-label">Cargo / vaga alvo <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+            <input type="text" id="li-cargo" placeholder="Ex: CMO · Fintech · São Paulo">
+          </div>
+          <div class="form-row">
+            <label class="field-label">Experiência para reescrever</label>
+            <select id="li-exp" style="display:none;">
+              <option value="rpc">RPC/Globo — Diretor de Marketing</option>
+              <option value="rpc-ger">RPC/Globo — Gerente de Marketing</option>
+              <option value="popper">Popper — Head de Expansão</option>
+              <option value="consigliere">Consigliere — Consultor Sênior</option>
+              <option value="eadcon">EADCon — Diretor de Marketing</option>
+              <option value="expoente">Expoente — Diretor de Vendas</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="field-label">Idioma de saída</label>
+            <div class="lang-toggle">
+              <button class="lang-btn active" onclick="setLiLang('PT',this)">🇧🇷 PT</button>
+              <button class="lang-btn" onclick="setLiLang('EN',this)">🇺🇸 EN</button>
+              <button class="lang-btn" onclick="setLiLang('ES',this)">🇪🇸 ES</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="optimizeLinkedIn()" id="li-btn" style="width:100%;justify-content:center;padding:12px;margin-top:6px;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8a5.5 5.5 0 1 1-5.5-5.5"/><path d="M10.5 2.5l3 3-4.5 4.5-3-3"/></svg>
+            Otimizar
+          </button>
+        </div>
+
+        <div class="card-sm" style="background:rgba(26,58,92,0.04);border-color:rgba(26,58,92,0.1);">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Limites LinkedIn</div>
+          <div style="font-size:12.5px;color:var(--text2);line-height:1.8;">
+            📌 Headline: <strong>120</strong> caracteres<br>
+            📝 About: <strong>2.600</strong> caracteres<br>
+            💼 Experiência bullet: <strong>100</strong> chars/linha<br>
+            🔍 Preview (sem expand): <strong>~300</strong> chars
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="li-result-area">
+        <div class="card">
+          <div class="empty">
+            <div class="empty-icon">💼</div>
+            <div class="empty-title">Otimize seu LinkedIn</div>
+            <div class="empty-sub">Escolha a seção, defina o cargo alvo<br>e clique em <strong>Otimizar</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: CRM                 │
+     └─────────────────────────────┘ -->
+<div id="page-crm" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Pipeline CRM</span>
+      <span class="page-sub">Vagas & Contatos</span>
+    </div>
+    <div class="topbar-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
+        <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:8px;">
+        + Adicionar
+      </button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats" id="crm-stats"></div>
+
+    <!-- Vagas Kanban -->
+    <div id="crm-vagas">
+      <div class="kanban" id="kanban-vagas"></div>
+    </div>
+
+    <!-- Contatos List -->
+    <div id="crm-contatos" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="lang-btn active" onclick="filterContato('todos',this)">Todos</button>
+        <button class="lang-btn" onclick="filterContato('hot',this)">🔥 Quentes</button>
+        <button class="lang-btn" onclick="filterContato('warm',this)">🌤 Mornos</button>
+        <button class="lang-btn" onclick="filterContato('cold',this)">❄️ Frios</button>
+      </div>
+      <div class="contact-list" id="contact-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: INTERVIEW           │
+     └─────────────────────────────┘ -->
+<div id="page-interview" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Simulador de Entrevista</span>
+      <span class="page-sub">Preparação com feedback em tempo real</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start;">
+
+      <!-- Config -->
+      <div id="interview-config" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="gold-line"></div>
+          <div class="form-row">
+            <label class="field-label">Empresa e cargo alvo</label>
+            <input type="text" id="int-cargo" placeholder="Ex: CMO · Nubank · São Paulo">
+          </div>
+          <div class="form-row">
+            <label class="field-label">Tipo de entrevistador</label>
+            <select id="int-tipo">
+              <option value="headhunter">Headhunter / Recrutador</option>
+              <option value="rh">RH da empresa</option>
+              <option value="ceo">CEO / Board</option>
+              <option value="tecnica">Entrevista técnica / Case</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="field-label">Fase da seleção</label>
+            <select id="int-fase">
+              <option value="triagem">Triagem inicial</option>
+              <option value="entrevista1">Entrevista 1 (aprofundamento)</option>
+              <option value="entrevista2">Entrevista 2 (fit cultural)</option>
+              <option value="painel">Painel executivo / Final</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="field-label">Idioma</label>
+            <select id="int-lang">
+              <option value="PT">Português</option>
+              <option value="EN">English</option>
+              <option value="ES">Español</option>
+            </select>
+          </div>
+          <button class="btn btn-gold" onclick="startInterview()" id="int-start-btn" style="width:100%;justify-content:center;padding:12px;">
+            🎤 Iniciar simulação
+          </button>
+        </div>
+        <div class="card-sm" id="int-progress-card" style="display:none;">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Progresso</div>
+          <div class="progress-bar"><div class="progress-fill" id="int-progress-fill" style="background:var(--gold);width:0%"></div></div>
+          <div style="font-size:12px;color:var(--text3);margin-top:6px;" id="int-progress-label">0 de 5 perguntas</div>
+          <div style="margin-top:12px;" id="int-score-area" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Chat area -->
+      <div class="card" style="display:flex;flex-direction:column;min-height:500px;">
+        <div id="int-chat" style="flex:1;overflow-y:auto;max-height:460px;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;">
+          <div class="empty">
+            <div class="empty-icon">🎤</div>
+            <div class="empty-title">Simulador de Entrevista</div>
+            <div class="empty-sub">Configure o cenário ao lado e clique em<br><strong>Iniciar simulação</strong> para começar</div>
+          </div>
+        </div>
+        <div id="int-input-area" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+          <label class="field-label" id="int-input-label">Sua resposta</label>
+          <textarea id="int-answer" rows="4" placeholder="Digite sua resposta aqui..." style="margin-bottom:10px;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn btn-ghost btn-sm" onclick="skipQuestion()">Pular pergunta</button>
+            <button class="btn btn-primary" onclick="submitAnswer()" id="int-submit-btn">
+              Enviar resposta →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL VAGAS
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
+  <div class="modal">
+    <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
+    <div class="form-row">
+      <label class="field-label">Empresa</label>
+      <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Cargo</label>
+      <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
+    </div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div>
+        <label class="field-label">Canal</label>
+        <select id="mv-canal">
+          <option>LinkedIn</option>
+          <option>Indicação</option>
+          <option>Headhunter</option>
+          <option>Site da empresa</option>
+          <option>Gupy</option>
+          <option>Indeed</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Prioridade</label>
+        <select id="mv-prioridade">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Status</label>
+        <select id="mv-status">
+          <option value="radar">Radar</option>
+          <option value="candidatado">Candidatado</option>
+          <option value="andamento">Em andamento</option>
+          <option value="proposta">Proposta</option>
+          <option value="encerrado">Encerrado</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Pretensão (R$)</label>
+        <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="field-label">Próxima ação</label>
+      <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Notas</label>
+      <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+      <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL CONTATOS
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
+  <div class="modal">
+    <div class="modal-title" id="modal-contato-title">Contato</div>
+    <div class="form-row">
+      <label class="field-label">Nome</label>
+      <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Cargo · Empresa</label>
+      <input type="text" id="mc-cargo" placeholder="Ex: CEO · RPC/Globo">
+    </div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div>
+        <label class="field-label">Temperatura</label>
+        <select id="mc-temp">
+          <option value="hot">🔥 Quente</option>
+          <option value="warm">🌤 Morno</option>
+          <option value="cold">❄️ Frio</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Plano</label>
+        <select id="mc-plano">
+          <option value="A">Plano A — Emprego</option>
+          <option value="B">Plano B — Consultoria</option>
+          <option value="C">Plano C — Senova</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="field-label">Próxima ação</label>
+      <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+      <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DADOS BASE
+// ═══════════════════════════════════════════════
+
+const CV_BASE = {
+PT:`MARCOS FRANCO
+Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR
+(41) 99615-2224 · marcos_mco@hotmail.com · linkedin.com/in/marcos-ribeiro-franco-69153a12
+
+RESUMO EXECUTIVO
+Executivo sênior com mais de 30 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Quase 12 anos na RPC/Globo como Diretor de Marketing — equipe de 30 pessoas, 8 afiliadas, carteira de R$ 500 milhões. MBA FGV; Master's em Marketing pela Universitat de Barcelona; Mestrado pela Universidade de Évora. Inglês e espanhol avançados.
+
+EXPERIÊNCIA
+- Consultor Sênior C-Level · Consigliere Consultoria (dez/2025–atual)
+- Head de Expansão e Novos Negócios · Popper (ago/2024–nov/2025)
+- Diretor de Marketing · RPC Rede Paranaense/Globo (abr/2012–abr/2019) — 8 afiliadas, equipe 30 pessoas, portfólio R$500M
+- Gerente de Marketing · RPC Rede Paranaense/Globo (nov/2008–abr/2012) — criou o departamento do zero
+- Diretor de Marketing · EADCon (ago/2006–out/2008) — 180 parceiros, 120 mil alunos, campanhas R$20M
+- Diretor de Vendas · Expoente Sistema de Ensino (jan/2004–abr/2006) — R$40M faturamento, 300 mil alunos, 900 escolas
+- Superintendente Regional · Editel Listas Telefônicas (mai/1999–nov/2004) — equipe 45 pessoas
+
+FORMAÇÃO
+- Master's em Marketing e Vendas · Universitat de Barcelona (2014–2015)
+- Mestrado em Marketing · Universidade de Évora (2002–2004)
+- MBA · FGV Curitiba (1998–2000)
+- Publicidade e Propaganda · FAAP São Paulo (1989–1993)
+
+IDIOMAS: Português (nativo) · Inglês (avançado) · Espanhol (avançado)
+DOCÊNCIA: ESPM e UniExpoente — Comportamento do Consumidor, Planejamento Estratégico, Marketing`,
+EN:`MARCOS FRANCO | Marketing & Growth Executive | CMO · CSO · CEO
+Curitiba, Brazil | +55 (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
+
+EXECUTIVE SUMMARY
+Senior executive with 30+ years leading large-scale operations in media, education and technology. Nearly 12 years at RPC/Globo as Marketing Director — 30-person team, 8 affiliates, R$500M portfolio. MBA FGV; Master's in Marketing from Universitat de Barcelona; Master's from Universidade de Évora. Advanced English and Spanish.
+
+EXPERIENCE
+- Senior C-Level Consultant · Consigliere Consultoria (Dec/2025–present)
+- Head of Expansion & New Business · Popper (Aug/2024–Nov/2025)
+- Marketing Director · RPC/Globo (Apr/2012–Apr/2019) — 8 affiliates, 30-person team, R$500M portfolio
+- Marketing Manager · RPC/Globo (Nov/2008–Apr/2012) — built department from scratch
+- Marketing Director · EADCon (Aug/2006–Oct/2008) — 180 partners, 120K students, R$20M campaigns
+- Sales Director · Expoente (Jan/2004–Apr/2006) — R$40M revenue, 300K students, 900 schools
+- Regional Superintendent · Editel (May/1999–Nov/2004) — 45-person team
+
+EDUCATION
+- Master's Marketing & Sales · Universitat de Barcelona (2014–2015)
+- Master's Marketing · Universidade de Évora (2002–2004)
+- MBA · FGV Curitiba (1998–2000)
+- Advertising & PR · FAAP São Paulo (1989–1993)
+
+LANGUAGES: Portuguese (native) · English (advanced) · Spanish (advanced)
+TEACHING: ESPM & UniExpoente — Consumer Behavior, Strategic Planning, Marketing`,
+ES:`MARCOS FRANCO | Ejecutivo de Marketing y Crecimiento | CMO · CSO · CEO
+Curitiba, Brasil | +55 (41) 99615-2224 | marcos_mco@hotmail.com
+
+RESUMEN EJECUTIVO
+Ejecutivo sénior con más de 30 años liderando operaciones a gran escala en medios, educación y tecnología. Casi 12 años en RPC/Globo como Director de Marketing — equipo de 30 personas, 8 afiliadas, cartera R$500M. MBA FGV; Máster en Marketing por la Universitat de Barcelona. Inglés y español avanzados.
+
+EXPERIENCIA
+- Consultor Sénior C-Level · Consigliere Consultoria (dic/2025–actual)
+- Director de Expansión y Nuevos Negocios · Popper (ago/2024–nov/2025)
+- Director de Marketing · RPC/Globo (abr/2012–abr/2019) — 8 afiliadas, equipo 30 personas, cartera R$500M
+- Gerente de Marketing · RPC/Globo (nov/2008–abr/2012)
+- Director de Marketing · EADCon (ago/2006–oct/2008) — 180 socios, 120K alumnos, R$20M
+- Director de Ventas · Expoente (ene/2004–abr/2006) — R$40M, 300K alumnos
+- Superintendente Regional · Editel (may/1999–nov/2004)
+
+FORMACIÓN
+- Máster en Marketing y Ventas · Universitat de Barcelona (2014–2015)
+- Máster en Marketing · Universidade de Évora (2002–2004)
+- MBA · FGV Curitiba (1998–2000)
+- Publicidad y Propaganda · FAAP São Paulo (1989–1993)
+
+IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
+};
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+const PAGES = ['ats','linkedin','crm','interview'];
+function showPage(page) {
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if(el) el.style.display = p===page ? 'flex' : 'none';
+    const nav = document.getElementById('nav-'+p);
+    if(nav) nav.classList.toggle('active', p===page);
+  });
+  if(page==='crm') renderCRM();
+}
+
+// ═══════════════════════════════════════════════
+//  ANTI-ATS MODULE
+// ═══════════════════════════════════════════════
+let cvLang = 'PT';
+function setLang(lang,btn) {
+  cvLang = lang;
+  document.querySelectorAll('#page-ats .lang-toggle .lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+const ATS_SYSTEM = (lang) => `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
+
+PERFIL DO CANDIDATO:
+${CV_BASE[lang]}
+
+CARGO-ALVO: CEO / CMO / CSO / Diretor de Marketing (aceita Head/Gerente Sênior, PJ, relocação SC)
+PRETENSÃO: R$19.000–25.000 CLT (exceto AGTU: R$15-20k)
+
+REGRAS ABSOLUTAS:
+- NUNCA invente métricas ou fatos não presentes no CV base
+- Preserve voz elegante e profissional
+- ATS primeiro — sem tabelas, sem colunas, sem caracteres especiais (use hífens, não bullets especiais)
+- Otimize enquadramento, nunca os fatos
+- CV deve ser ATS-clean: texto simples, bullets em hífens, seções em maiúsculas
+
+Retorne EXATAMENTE neste formato com estes separadores:
+
+---ANALISE---
+## Análise da Vaga
+**Cargo real:** [o que precisam de fato]
+**Urgência:** [baixa/média/alta — motivo]
+**Red flags:** [ou "Nenhum"]
+**Empresa/Cultura:** [1 linha]
+
+## Match Score
+MATCH SCORE: [XX]/100
+Keywords [XX]/40 · Experiência [XX]/30 · Formação [XX]/15 · Localização/Idiomas [XX]/15
+VEREDICTO: [FORTE CANDIDATO | CANDIDATO VIÁVEL | GAP SIGNIFICATIVO]
+
+## Keywords
+**Presentes no CV:** [até 8, separadas por ·]
+**A inserir no CV:** [até 6, separadas por ·]
+
+---CV---
+[CV completo e otimizado para esta vaga específica, no idioma da vaga, ATS-clean sem tabelas, bullets com hífens, seções em maiúsculo, Verbo forte + Escopo + Método + Resultado onde possível]
+
+---CRM---
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 ENTRADA CRM — ${new Date().toLocaleDateString('pt-BR')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VAGA: [Cargo] | [Empresa]
+PLATAFORMA: [LinkedIn/Gupy/Indeed/Headhunter/Networking]
+CANDIDATURA: A enviar
+CV GERADO: CV_MF_[Empresa]_[Cargo]_v1
+MATCH SCORE: [XX]/100
+KEYWORDS: [5 principais separadas por ·]
+PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
+OBSERVAÇÕES: [contexto relevante em 1 linha]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+async function analyzeJob() {
+  const vaga = document.getElementById('vaga-input').value.trim();
+  if(!vaga) return;
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
+  document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,
+        system:ATS_SYSTEM(cvLang),
+        messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}`}]})
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text||'';
+    const parts = text.split('---CV---');
+    const analise = parts[0].replace('---ANALISE---','').trim();
+    const rest = parts[1]||'';
+    const cv = rest.split('---CRM---')[0].trim();
+    const crm = (rest.split('---CRM---')[1]||'').trim();
+    renderATSResult(analise,cv,crm);
+  } catch(e) {
+    document.getElementById('result-area').innerHTML=`<div class="card"><p style="color:var(--red);font-size:14px;padding:8px 0;">Erro ao conectar com a API. Verifique sua conexão e tente novamente.</p></div>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV`;
+}
+
+let lastCV='',lastCVFilename='CV_MF_Vaga_v1';
+function renderATSResult(analise,cv,crm) {
+  lastCV = cv;
+  const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
+  if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
+
+  const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
+  const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
+  const col = score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
+  const bg = score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
+  const bc = score>=75?'#A7F3D0':score>=55?'#FDE68A':'#FCA5A5';
+
+  const fmt = analise.split('\n').map(l=>{
+    if(l.startsWith('## ')) return `<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:16px 0 8px;">${l.slice(3)}</div>`;
+    const m = l.match(/^\*\*(.+?):\*\*\s*(.*)/);
+    if(m) return `<div style="margin:5px 0;font-size:13.5px;line-height:1.6;"><span style="font-weight:700;color:var(--text2);">${m[1]}:</span> <span style="color:var(--text2);">${m[2]}</span></div>`;
+    if(l.startsWith('MATCH SCORE:')) return `<div style="font-size:20px;font-weight:700;color:${col};margin:8px 0 4px;">${l}</div>`;
+    if(l.startsWith('Keywords')) return `<div style="font-size:12.5px;color:var(--text3);margin-bottom:6px;">${l}</div>`;
+    if(l.startsWith('VEREDICTO:')) return `<div style="font-size:13.5px;font-weight:700;color:${col};margin-bottom:10px;">${l}</div>`;
+    if(l.startsWith('━')) return `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
+    if(l.trim()==='') return '<br>';
+    return `<div style="font-size:13.5px;color:var(--text2);line-height:1.7;">${l}</div>`;
+  }).join('');
+
+  document.getElementById('result-area').innerHTML=`<div>
+    ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;">
+      <div style="font-family:var(--font-display);font-size:38px;font-weight:700;color:${col};line-height:1;letter-spacing:-1px;">${score}<span style="font-size:16px;color:var(--text3);font-weight:400;">/100</span></div>
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
+    </div>`:''}
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('analise',this)">📊 Análise</button>
+      <button class="tab-btn" onclick="switchTab('cv',this)">📄 CV Otimizado</button>
+      <button class="tab-btn" onclick="switchTab('crm',this)">📁 Entrada CRM</button>
+    </div>
+    <div id="tab-analise"><div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div></div>
+    <div id="tab-cv" style="display:none;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
+        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc</button>
+        <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
+        <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
+      </div>
+      <div class="result-box" id="cv-txt">${cv}</div>
+    </div>
+    <div id="tab-crm" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="copy-btn" onclick="copyEl('crm-txt',this)">📋 Copiar CRM</button></div>
+      <div class="result-box mono" id="crm-txt">${crm}</div>
+    </div>
+  </div>`;
+}
+
+function switchTab(tab,btn) {
+  ['analise','cv','crm'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
+  document.querySelectorAll('#result-area .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function copyEl(id,btn) {
+  const el=document.getElementById(id); if(!el)return;
+  navigator.clipboard.writeText(el.textContent||el.innerText);
+  const orig=btn.textContent; btn.textContent='Copiado ✓'; setTimeout(()=>btn.textContent=orig,2000);
+}
+function downloadDoc() {
+  const header='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>CV</title></head><body>';
+  const footer='</body></html>';
+  const conteudo=header+'<pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">'+lastCV+'</pre>'+footer;
+  const blob=new Blob(['\ufeff',conteudo],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=lastCVFilename+'.doc'; a.click(); URL.revokeObjectURL(url);
+}
+function downloadPDF() {
+  if(!window.jspdf){alert('jsPDF não carregado — tente recarregar a página.');return;}
+  const {jsPDF}=window.jspdf; const doc=new jsPDF();
+  doc.setFont('helvetica'); doc.setFontSize(10);
+  const linhas=doc.splitTextToSize(lastCV,180);
+  let y=20;
+  linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
+  doc.save(lastCVFilename+'.pdf');
+}
+function saveVagaFromCV() {
+  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
+  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas = score?`Match ATS: ${score}/100`:'';
+  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k CLT',proxima:'Gerar .doc final e candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
+  saveVagas();
+  alert(`Vaga "${empresa} — ${cargo}" salva no CRM! Acesse Pipeline CRM para acompanhar.`);
+}
+
+// ═══════════════════════════════════════════════
+//  LINKEDIN MODULE
+// ═══════════════════════════════════════════════
+let liLang='PT';
+function setLiLang(lang,btn) {
+  liLang=lang;
+  document.querySelectorAll('#page-linkedin .lang-toggle .lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+document.getElementById('li-section').addEventListener('change',function(){
+  document.getElementById('li-exp').style.display=this.value==='experiencia'?'block':'none';
+});
+
+async function optimizeLinkedIn() {
+  const section=document.getElementById('li-section').value;
+  const cargo=document.getElementById('li-cargo').value.trim();
+  const exp=document.getElementById('li-exp').value;
+  const btn=document.getElementById('li-btn');
+  btn.disabled=true;
+  btn.innerHTML=`<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Otimizando...`;
+  document.getElementById('li-result-area').innerHTML=`<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Gerando textos otimizados para LinkedIn...</div></div>`;
+
+  const sectionLabel={'headline':'Headline (título)','about':'About / Resumo','experiencia':'Experiência: '+exp}[section];
+  const cargoCtx=cargo?`Cargo/vaga alvo: ${cargo}`:'Sem cargo-alvo específico (texto genérico para perfil)';
+
+  const prompt=`Você é especialista em perfis LinkedIn executivos. Otimize a seção "${sectionLabel}" para Marcos Franco.
+
+PERFIL:
+${CV_BASE[liLang]}
+
+${cargoCtx}
+IDIOMA DE SAÍDA: ${liLang}
+
+${section==='headline'?`Gere 3 versões de headline (máx 120 caracteres cada):
+VERSÃO 1 — Foco no cargo atual (Consultor/Executivo)
+VERSÃO 2 — Foco em setor/especialização  
+VERSÃO 3 — Foco em resultado/proposta de valor
+Para cada versão: escreva o texto e (X caracteres).`:
+section==='about'?`Gere:
+1. VERSÃO COMPLETA (máx 2.600 caracteres) com estrutura: Hook de abertura | Proposta de valor | Prova social com números | Competências | CTA
+2. VERSÃO PREVIEW (máx 300 caracteres) — o que aparece sem clicar "ver mais"
+3. KEYWORDS SEO: 5 termos de busca relevantes para o perfil
+
+Formato limpo para colar diretamente no LinkedIn.`:
+`Reescreva os bullets da experiência "${exp}" com foco em resultados quantificados.
+Máx 5 bullets por cargo. Formato: verbo forte no passado + escopo + método + resultado mensurável.
+Evite clichês. Use números reais do CV base.`}
+
+Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    renderLinkedInResult(text,section);
+  } catch(e) {
+    document.getElementById('li-result-area').innerHTML=`<div class="card"><p style="color:var(--red);font-size:14px;padding:8px 0;">Erro ao conectar com a API.</p></div>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8a5.5 5.5 0 1 1-5.5-5.5"/><path d="M10.5 2.5l3 3-4.5 4.5-3-3"/></svg> Otimizar`;
+}
+
+function renderLinkedInResult(text,section) {
+  const sections=text.split(/(?:\n#{1,3}\s|\n(?=VERSÃO\s|\d+\.))/);
+  const html=`<div class="card">
+    <div class="gold-line"></div>
+    <div class="section-head" style="margin-bottom:16px;">
+      <span class="section-title">Resultado — ${{'headline':'Headline','about':'About/Resumo','experiencia':'Experiência'}[section]}</span>
+      <button class="copy-btn" onclick="copyFullLI()">📋 Copiar tudo</button>
+    </div>
+    <div id="li-full-text" class="result-box" style="max-height:520px;font-size:13.5px;">${text.replace(/\n/g,'<br>')}</div>
+  </div>`;
+  document.getElementById('li-result-area').innerHTML=html;
+}
+function copyFullLI() {
+  const el=document.getElementById('li-full-text');
+  navigator.clipboard.writeText(el.innerText);
+}
+
+// ═══════════════════════════════════════════════
+//  CRM MODULE
+// ═══════════════════════════════════════════════
+const DEFAULT_VAGAS=[
+  // RADAR
+  {id:1,empresa:'stays.net',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:2,empresa:'Comrade Digital',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:3,empresa:'Uber LATAM',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k',proxima:'Identificar vaga e contato',notas:'',data:''},
+  {id:4,empresa:'Amazon Prime Video',cargo:'Sr. Growth Manager',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k',proxima:'Analisar JD e adaptar CV',notas:'Resume EN gerado',data:''},
+  {id:5,empresa:'Apple Brazil',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'',proxima:'Monitorar abertura de vagas',notas:'',data:''},
+  {id:6,empresa:'Omnicom',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:7,empresa:'monday.com',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  // CANDIDATADO
+  {id:8,empresa:'Payoneer',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:9,empresa:'PinkMed',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:10,empresa:'SKY',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:11,empresa:'Adlook',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:12,empresa:'Omie',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:13,empresa:'Keeta',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:14,empresa:'Samsung',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:15,empresa:'Binance',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:16,empresa:'Ambev',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:17,empresa:'Publicis',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:18,empresa:'Marista',cargo:'Esp. Estratégia e Inteligência',canal:'Indicação',prioridade:'alta',status:'candidatado',salario:'R$15-20k',proxima:'Enviar via Leonardo Carvalho da Silva',notas:'Contato 1º grau — acionar asap',data:'abr/2026'},
+  {id:101,empresa:'CI&T',cargo:'Ger. Sênior Transformação Ágil',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aplicar ajustes anti-ATS e enviar .doc',notas:'Score ATS 74/100 — 3 ajustes pendentes',data:'30/abr/2026'},
+  // EM ANDAMENTO
+  {id:19,empresa:'Wise',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
+  {id:20,empresa:'BSI',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
+  {id:21,empresa:'Gaudium',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'andamento',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:22,empresa:'GPAC',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar contato do recrutador',notas:'',data:'abr/2026'},
+  {id:23,empresa:'FIEP',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'andamento',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:24,empresa:'99/DiDi',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:25,empresa:'Thomson Reuters',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+];
+
+const DEFAULT_CONTATOS=[
+  {id:1,nome:'Eduardo Bosquetti',cargo:'CEO · RPC/Globo',temp:'hot',plano:'A',next:'Convidar para missa 7h30 + café na semana'},
+  {id:2,nome:'Pedro Joanir Zonta',cargo:'Proprietário · Grupo Condor',temp:'warm',plano:'A',next:'WhatsApp enviado — aguardar'},
+  {id:3,nome:'Thiago Ayres',cargo:'Sócio · Consigliere Consultoria',temp:'hot',plano:'B',next:'Parceria confirmada — prospect em negociação'},
+  {id:4,nome:'Ronny Essert',cargo:'Superintendente · GERAR',temp:'warm',plano:'B',next:'Enviar material de societal marketing'},
+  {id:5,nome:'Augusto Michells',cargo:'Gerente Regional · AHK-PR',temp:'cold',plano:'B',next:'Aguardar retorno mensagem'},
+  {id:6,nome:'Dr. Charles London',cargo:'Neurocirurgião · FUNEF',temp:'warm',plano:'A',next:'Reativar via consulta médica'},
+  {id:7,nome:'Erlei Guimarães',cargo:'CEO · Beeotec',temp:'warm',plano:'A',next:'Aguardar momento certo'},
+  {id:8,nome:'Aldo Mallucelli',cargo:'Amigo estratégico',temp:'cold',plano:'A',next:'Ligar esta semana — pendente'},
+  {id:9,nome:'Priscilla Capellato',cargo:'Consultant · Korn Ferry',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn'},
+  {id:10,nome:'Aldo Bergamasco',cargo:'Practice Leader LatAm · Spencer Stuart',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn'},
+];
+
+let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null;
+let crmCurrentTab='vagas', contatoFilter='todos';
+
+function loadCRM(){
+  try{
+    const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
+    const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
+  } catch{
+    vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
+  }
+  updateBadge();
+}
+function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); }
+function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
+function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
+
+const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
+
+function setCrmTab(tab,btn){
+  crmCurrentTab=tab;
+  document.querySelectorAll('.topbar .lang-toggle .lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
+  document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
+  document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
+  renderCRM();
+}
+
+function renderCRM(){
+  // Stats
+  const ativas=vagas.filter(v=>v.status!=='encerrado').length;
+  const andamento=vagas.filter(v=>v.status==='andamento').length;
+  const propostas=vagas.filter(v=>v.status==='proposta').length;
+  const quentes=contatos.filter(c=>c.temp==='hot').length;
+  document.getElementById('crm-stats').innerHTML=`
+    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--action)">${andamento}</div><div class="stat-label">Em andamento</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
+    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
+
+  // Kanban vagas
+  const cols=['radar','candidatado','andamento','proposta','encerrado'];
+  document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
+    const cards=vagas.filter(v=>v.status===col);
+    return `<div>
+      <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
+        ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
+      </div>
+      ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
+      ${cards.map(c=>`
+        <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
+          <div class="kcard-name">${c.empresa}</div>
+          <div class="kcard-role">${c.cargo}</div>
+          ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
+          <div class="kcard-meta">
+            <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
+            ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
+          </div>
+          ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Contact list
+  const filtered=contatoFilter==='todos'?contatos:contatos.filter(c=>c.temp===contatoFilter);
+  document.getElementById('contact-list').innerHTML=filtered.map(c=>`
+    <div class="contact-item" onclick="openContatoModal(${c.id})">
+      <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div>
+        <div class="contact-name">${TEMP_LABEL[c.temp]||''} ${c.nome}</div>
+        <div class="contact-role">${c.cargo}</div>
+      </div>
+      <div class="contact-next">${c.next}</div>
+      <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;">P.${c.plano}</span>
+    </div>`).join('');
+}
+
+function filterContato(filter,btn){
+  contatoFilter=filter;
+  document.querySelectorAll('#crm-contatos .lang-toggle .lang-btn, #crm-contatos .lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCRM();
+}
+
+// Vaga Modal
+function openVagaModal(id){
+  editingVagaId=id;
+  const isNew=id==='new';
+  document.getElementById('modal-vaga-title').textContent=isNew?'Nova Vaga':'Editar Vaga';
+  document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
+  if(!isNew){
+    const v=vagas.find(x=>x.id===id); if(!v)return;
+    document.getElementById('mv-empresa').value=v.empresa;
+    document.getElementById('mv-cargo').value=v.cargo;
+    document.getElementById('mv-canal').value=v.canal;
+    document.getElementById('mv-prioridade').value=v.prioridade;
+    document.getElementById('mv-status').value=v.status;
+    document.getElementById('mv-salario').value=v.salario||'';
+    document.getElementById('mv-proxima').value=v.proxima||'';
+    document.getElementById('mv-notas').value=v.notas||'';
+  } else {
+    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('mv-canal').value='LinkedIn';
+    document.getElementById('mv-prioridade').value='media';
+    document.getElementById('mv-status').value='radar';
+  }
+  document.getElementById('modal-vaga').style.display='flex';
+}
+function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
+function saveVaga(){
+  const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
+  const obj={
+    id:editingVagaId==='new'?Date.now():editingVagaId,
+    empresa,
+    cargo:document.getElementById('mv-cargo').value,
+    canal:document.getElementById('mv-canal').value,
+    prioridade:document.getElementById('mv-prioridade').value,
+    status:document.getElementById('mv-status').value,
+    salario:document.getElementById('mv-salario').value,
+    proxima:document.getElementById('mv-proxima').value,
+    notas:document.getElementById('mv-notas').value,
+    data:new Date().toLocaleDateString('pt-BR')
+  };
+  if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
+  saveVagas(); renderCRM(); closeVagaModal();
+}
+function deleteVaga(){
+  if(!editingVagaId||editingVagaId==='new')return;
+  if(!confirm('Remover esta vaga?'))return;
+  vagas=vagas.filter(v=>v.id!==editingVagaId);
+  saveVagas(); renderCRM(); closeVagaModal();
+}
+
+// Contato Modal
+function openContatoModal(id){
+  editingContatoId=id;
+  const isNew=id==='new';
+  document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
+  document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
+  if(!isNew){
+    const c=contatos.find(x=>x.id===id); if(!c)return;
+    document.getElementById('mc-nome').value=c.nome;
+    document.getElementById('mc-cargo').value=c.cargo;
+    document.getElementById('mc-temp').value=c.temp;
+    document.getElementById('mc-plano').value=c.plano;
+    document.getElementById('mc-next').value=c.next;
+  } else {
+    ['mc-nome','mc-cargo','mc-next'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('mc-temp').value='warm';
+    document.getElementById('mc-plano').value='A';
+  }
+  document.getElementById('modal-contato').style.display='flex';
+}
+function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
+function saveContato(){
+  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+  const obj={
+    id:editingContatoId==='new'?Date.now():editingContatoId,
+    nome,
+    cargo:document.getElementById('mc-cargo').value,
+    temp:document.getElementById('mc-temp').value,
+    plano:document.getElementById('mc-plano').value,
+    next:document.getElementById('mc-next').value
+  };
+  if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
+  saveContatos(); renderCRM(); closeContatoModal();
+}
+function deleteContato(){
+  if(!editingContatoId||editingContatoId==='new')return;
+  if(!confirm('Remover este contato?'))return;
+  contatos=contatos.filter(c=>c.id!==editingContatoId);
+  saveContatos(); renderCRM(); closeContatoModal();
+}
+
+// ═══════════════════════════════════════════════
+//  INTERVIEW MODULE
+// ═══════════════════════════════════════════════
+let intState={
+  questions:[],
+  currentQ:0,
+  answers:[],
+  feedbacks:[],
+  active:false
+};
+
+async function startInterview(){
+  const cargo=document.getElementById('int-cargo').value.trim()||'Cargo executivo (CEO/CMO/Diretor)';
+  const tipo=document.getElementById('int-tipo').value;
+  const fase=document.getElementById('int-fase').value;
+  const lang=document.getElementById('int-lang').value;
+
+  const tipoLabel={headhunter:'Headhunter/Recrutador',rh:'RH da empresa',ceo:'CEO/Board',tecnica:'Entrevista Técnica/Case'}[tipo];
+  const faseLabel={triagem:'Triagem inicial',entrevista1:'Entrevista 1 — aprofundamento',entrevista2:'Entrevista 2 — fit cultural',painel:'Painel executivo final'}[fase];
+
+  const btn=document.getElementById('int-start-btn');
+  btn.disabled=true;
+  btn.innerHTML=`<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  document.getElementById('int-chat').innerHTML=`<div class="card" style="padding:30px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:12px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:13px;color:var(--text3);">Gerando perguntas calibradas...</div></div>`;
+
+  const genPrompt=`Você é um ${tipoLabel} conduzindo uma ${faseLabel} para a posição: ${cargo}.
+
+Candidato: Marcos Franco — executivo sênior, 30+ anos, ex-Diretor de Marketing RPC/Globo (12 anos, 30 pessoas, 8 afiliadas, R$500M), MBA FGV, Master's Barcelona.
+
+Gere EXATAMENTE 5 perguntas para esta entrevista. A pergunta 1 DEVE SER "Me fale sobre você" (ou equivalente em ${lang}). A pergunta 2 deve ser sobre a saída do último emprego. As demais devem ser específicas para ${cargo} e para a fase ${faseLabel}.
+
+Responda APENAS com as 5 perguntas numeradas, sem explicações adicionais, no idioma ${lang}.
+Formato:
+1. [pergunta]
+2. [pergunta]
+3. [pergunta]
+4. [pergunta]
+5. [pergunta]`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        messages:[{role:'user',content:genPrompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const qs=text.split('\n').filter(l=>/^\d\./.test(l.trim())).map(l=>l.replace(/^\d+\.\s*/,'').trim());
+    if(qs.length<3){throw new Error('Poucas perguntas geradas');}
+    intState={questions:qs,currentQ:0,answers:[],feedbacks:[],active:true,cargo,tipo,fase,lang};
+    renderInterview();
+  } catch(e){
+    document.getElementById('int-chat').innerHTML=`<div class="card"><p style="color:var(--red);font-size:14px;padding:8px 0;">Erro ao gerar perguntas. Tente novamente.</p></div>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML='🎤 Iniciar simulação';
+}
+
+function renderInterview(){
+  const {questions,currentQ}=intState;
+  const progress=Math.round((currentQ/questions.length)*100);
+  
+  document.getElementById('int-progress-card').style.display='block';
+  document.getElementById('int-progress-fill').style.width=progress+'%';
+  document.getElementById('int-progress-label').textContent=`${currentQ} de ${questions.length} perguntas`;
+
+  // Reconstruct chat
+  let chatHTML='';
+  for(let i=0;i<currentQ;i++){
+    chatHTML+=`<div class="chat-bubble-q"><strong>Pergunta ${i+1}/${questions.length}</strong><br>${questions[i]}</div>`;
+    if(intState.answers[i]){
+      chatHTML+=`<div class="chat-bubble-a"><strong>Sua resposta:</strong><br>${intState.answers[i]}</div>`;
+    }
+    if(intState.feedbacks[i]){
+      chatHTML+=`<div class="feedback-card">${intState.feedbacks[i].replace(/\n/g,'<br>')}</div>`;
+    }
+  }
+  if(currentQ<questions.length){
+    chatHTML+=`<div class="chat-bubble-q"><strong>Pergunta ${currentQ+1}/${questions.length}</strong><br>${questions[currentQ]}</div>`;
+  }
+  document.getElementById('int-chat').innerHTML=chatHTML;
+  document.getElementById('int-chat').scrollTop=9999;
+
+  if(currentQ<questions.length){
+    document.getElementById('int-input-area').style.display='block';
+    document.getElementById('int-input-label').textContent=`Sua resposta — Pergunta ${currentQ+1}`;
+    document.getElementById('int-answer').value='';
+    document.getElementById('int-answer').focus();
+  } else {
+    document.getElementById('int-input-area').style.display='none';
+    showFinalScore();
+  }
+}
+
+async function submitAnswer(){
+  const answer=document.getElementById('int-answer').value.trim();
+  if(!answer)return;
+  
+  const {questions,currentQ,cargo,tipo,lang}=intState;
+  intState.answers[currentQ]=answer;
+  
+  const btn=document.getElementById('int-submit-btn');
+  btn.disabled=true; btn.textContent='Avaliando...';
+
+  const evalPrompt=`Você é um coach de carreira avaliando a resposta de Marcos Franco em uma entrevista para ${cargo}.
+
+PERGUNTA: "${questions[currentQ]}"
+
+RESPOSTA DE MARCOS: "${answer}"
+
+PERFIL: Executivo sênior, 30+ anos, ex-Diretor RPC/Globo (12 anos, 30 pessoas, 8 afiliadas, R$500M portfolio), MBA FGV, Master's Barcelona.
+
+Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXATO:
+
+✅ PONTOS FORTES
+[2-3 pontos específicos do que foi bem]
+
+⚠️ COMO MELHORAR
+[1-2 sugestões concretas e acionáveis]
+
+💡 RESPOSTA IDEAL (baseada no perfil real de Marcos)
+[Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+        messages:[{role:'user',content:evalPrompt}]})
+    });
+    const data=await res.json();
+    const feedback=data.content?.find(b=>b.type==='text')?.text||'Feedback não disponível.';
+    intState.feedbacks[currentQ]=feedback;
+  } catch{
+    intState.feedbacks[currentQ]='Não foi possível avaliar esta resposta. Continue!';
+  }
+
+  intState.currentQ++;
+  btn.disabled=false; btn.textContent='Enviar resposta →';
+  renderInterview();
+}
+
+function skipQuestion(){
+  intState.answers[intState.currentQ]='[Pergunta pulada]';
+  intState.feedbacks[intState.currentQ]='Esta pergunta foi pulada.';
+  intState.currentQ++;
+  renderInterview();
+}
+
+async function showFinalScore(){
+  document.getElementById('int-progress-fill').style.width='100%';
+  document.getElementById('int-progress-label').textContent='Simulação concluída!';
+
+  const answered=intState.answers.filter(a=>a!=='[Pergunta pulada]').length;
+  const score=Math.round((answered/intState.questions.length)*100);
+  
+  const summaryPrompt=`Você avaliou ${answered} de ${intState.questions.length} respostas de Marcos Franco em uma entrevista para ${intState.cargo}.
+
+Com base nas perguntas e respostas desta sessão, gere um resumo de preparação em ${intState.lang}:
+
+SCORE GERAL: [calcule de 0-100 com base no volume de respostas dadas — ${answered}/${intState.questions.length}]
+
+PONTOS DE ATENÇÃO (máx 3):
+[O que Marcos deve reforçar antes da entrevista real]
+
+PRÓXIMOS PASSOS:
+[2 ações concretas de preparação]
+
+Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+        messages:[{role:'user',content:summaryPrompt}]})
+    });
+    const data=await res.json();
+    const summary=data.content?.find(b=>b.type==='text')?.text||'';
+    document.getElementById('int-score-area').style.display='block';
+    document.getElementById('int-score-area').innerHTML=`
+      <div style="background:var(--green-bg);border:1px solid rgba(26,122,74,0.2);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">🏁 Simulação concluída</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${summary}</div>
+        <button class="btn btn-ghost btn-sm" onclick="resetInterview()" style="margin-top:12px;width:100%;justify-content:center;">🔄 Nova simulação</button>
+      </div>`;
+    document.getElementById('int-progress-card').appendChild(document.getElementById('int-score-area'));
+  } catch{}
+
+  const finalMsg=`<div style="text-align:center;padding:20px 0;"><div style="font-size:32px;margin-bottom:10px;">🎯</div><div style="font-family:var(--font-display);font-size:18px;color:var(--navy);font-weight:700;">Simulação concluída!</div><div style="font-size:13px;color:var(--text3);margin-top:6px;">${answered} de ${intState.questions.length} respostas avaliadas</div></div>`;
+  document.getElementById('int-chat').innerHTML+=finalMsg;
+  document.getElementById('int-chat').scrollTop=9999;
+}
+
+function resetInterview(){
+  intState={questions:[],currentQ:0,answers:[],feedbacks:[],active:false};
+  document.getElementById('int-chat').innerHTML='<div class="empty"><div class="empty-icon">🎤</div><div class="empty-title">Simulador de Entrevista</div><div class="empty-sub">Configure o cenário ao lado e clique em<br><strong>Iniciar simulação</strong> para começar</div></div>';
+  document.getElementById('int-input-area').style.display='none';
+  document.getElementById('int-progress-card').style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+loadCRM();
+showPage('ats');
+</script>
+</body>
+</html>
