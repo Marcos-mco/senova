@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Senova Suite — Recolocação Executiva</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
@@ -30,7 +30,7 @@
   --radius: 10px;
   --radius-lg: 14px;
   --font-display: 'Playfair Display', Georgia, serif;
-  --font: 'Inter', -apple-system, sans-serif;
+  --font: 'DM Sans', -apple-system, sans-serif;
   --shadow: 0 1px 3px rgba(26,58,92,0.07), 0 1px 2px rgba(26,58,92,0.04);
   --shadow-md: 0 4px 16px rgba(26,58,92,0.10);
 }
@@ -228,13 +228,6 @@ select option { background: var(--bg2); }
         <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
       </svg>
       Entrevista
-    </div>
-    <div class="nav-item" onclick="showPage('vagas')" id="nav-vagas">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <rect x="2" y="3" width="12" height="10" rx="1.5"/><polyline points="2,6 8,9 14,6"/>
-      </svg>
-      Vagas E-mail
-      <span class="nav-badge" id="vagas-badge">0</span>
     </div>
   </div>
 
@@ -515,52 +508,6 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
-<!-- ┌─────────────────────────────┐
-     │  PAGE: VAGAS E-MAIL        │
-     └─────────────────────────────┘ -->
-<div id="page-vagas" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
-  <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Vagas E-mail</span>
-      <span class="page-sub">Análise automática de vagas recebidas em marcos@labordei.com.br</span>
-    </div>
-    <div class="topbar-right">
-      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
-    </div>
-  </div>
-  <div class="content" style="display:flex;flex-direction:column;gap:20px;">
-    <!-- Input nova vaga -->
-    <div class="card">
-      <div class="gold-line"></div>
-      <div class="section-head"><span class="section-title">Analisar nova vaga</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-        <div>
-          <label class="field-label">Cargo / Título</label>
-          <input type="text" id="vaga-titulo" placeholder="Ex: CMO · Head de Marketing">
-        </div>
-        <div>
-          <label class="field-label">Empresa</label>
-          <input type="text" id="vaga-empresa" placeholder="Ex: Nubank">
-        </div>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Descrição completa da vaga</label>
-        <textarea id="vaga-descricao" rows="5" placeholder="Cole aqui o texto completo da vaga recebida por e-mail ou LinkedIn..." style="resize:vertical;"></textarea>
-      </div>
-      <button class="btn btn-primary" id="btn-analisar-vaga" onclick="analisarNovaVaga()" style="width:100%;justify-content:center;padding:12px;font-size:15px;">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        Analisar vaga
-      </button>
-    </div>
-    <!-- Lista de vagas analisadas -->
-    <div>
-      <div class="section-head"><span class="section-title">Vagas analisadas — ordenadas por score</span></div>
-      <div id="vagas-email-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
-    </div>
-  </div>
-</div>
-
-
 </main>
 </div>
 
@@ -678,7 +625,6 @@ select option { background: var(--bg2); }
 </div>
 
 <script>
-const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
 // ═══════════════════════════════════════════════
 //  DADOS BASE
 // ═══════════════════════════════════════════════
@@ -758,7 +704,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['ats','linkedin','crm','interview','vagas'];
+const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -767,98 +713,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') renderCRM();
-  if(page==='vagas') renderVagasEmail();
 }
-
-// ═══════════════════════════════════════════════
-//  VAGAS E-MAIL MODULE
-// ═══════════════════════════════════════════════
-let vagasEmail = [];
-try{ vagasEmail = JSON.parse(localStorage.getItem('senova_vagas_email')||'[]'); } catch{}
-function saveVagasEmail(){ try{localStorage.setItem('senova_vagas_email',JSON.stringify(vagasEmail));}catch{} updateVagasBadge(); }
-function updateVagasBadge(){ const el=document.getElementById('vagas-badge'); if(el) el.textContent=vagasEmail.length; }
-
-const SCORE_COR = s => s>=75?'#1A7A4A':s>=50?'#B8670A':'#C0281E';
-const SCORE_BG  = s => s>=75?'#EAF7EF':s>=50?'#FFF8EC':'#FEF0EF';
-const CLASS_LABEL = {candidatar:'✅ Candidatar',analisar:'🔍 Analisar',recusar:'❌ Recusar'};
-
-function renderVagasEmail(){
-  updateVagasBadge();
-  const lista = document.getElementById('vagas-email-lista');
-  if(!lista) return;
-  if(vagasEmail.length===0){
-    lista.innerHTML=`<div class="card"><div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Nenhuma vaga analisada ainda</div><div class="empty-sub">Cole os dados de uma vaga acima e clique em <strong>Analisar</strong></div></div></div>`;
-    return;
-  }
-  const sorted=[...vagasEmail].sort((a,b)=>(b.score||0)-(a.score||0));
-  lista.innerHTML=sorted.map((v,i)=>`
-    <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
-      <div style="flex-shrink:0;text-align:center;background:${SCORE_BG(v.score)};border-radius:var(--radius);padding:10px 14px;min-width:64px;">
-        <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:${SCORE_COR(v.score)};line-height:1;">${v.score}</div>
-        <div style="font-size:10px;color:${SCORE_COR(v.score)};font-weight:600;">/100</div>
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
-          <div style="font-size:15px;font-weight:700;color:var(--navy);">${v.empresa}</div>
-          <div style="font-size:13px;color:var(--text2);">${v.titulo}</div>
-          <span style="font-size:12px;font-weight:700;color:${SCORE_COR(v.score)};background:${SCORE_BG(v.score)};padding:2px 10px;border-radius:8px;">${CLASS_LABEL[v.classificacao]||v.classificacao||''}</span>
-        </div>
-        <div style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:8px;">${v.resumo||''}</div>
-        ${v.pontos_fortes&&v.pontos_fortes.length?`<div style="font-size:12.5px;color:var(--green);margin-bottom:4px;"><strong>✓</strong> ${v.pontos_fortes.join(' · ')}</div>`:''}
-        ${v.pontos_atencao&&v.pontos_atencao.length?`<div style="font-size:12.5px;color:var(--amber);"><strong>⚠</strong> ${v.pontos_atencao.join(' · ')}</div>`:''}
-        <div style="font-size:11px;color:var(--text3);margin-top:8px;">${v.data||''}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-        <button class="btn btn-primary btn-sm" onclick="moverVagaParaCRM(${i})">+ CRM</button>
-        <button class="btn btn-ghost btn-sm" onclick="removerVagaEmail(${i})">Remover</button>
-      </div>
-    </div>`).join('');
-}
-
-function removerVagaEmail(i){
-  const sorted=[...vagasEmail].sort((a,b)=>(b.score||0)-(a.score||0));
-  const item=sorted[i];
-  vagasEmail=vagasEmail.filter(v=>v!==item);
-  saveVagasEmail(); renderVagasEmail();
-}
-
-function moverVagaParaCRM(i){
-  const sorted=[...vagasEmail].sort((a,b)=>(b.score||0)-(a.score||0));
-  const v=sorted[i];
-  vagas.push({id:Date.now(),empresa:v.empresa,cargo:v.titulo,canal:'LinkedIn',prioridade:v.score>=75?'alta':'media',status:'radar',salario:'R$19-25k CLT',proxima:'Candidatar',notas:`Score IA: ${v.score}/100`,data:v.data||new Date().toLocaleDateString('pt-BR')});
-  saveVagas();
-  alert(`"${v.empresa} — ${v.titulo}" adicionada ao Pipeline CRM!`);
-}
-
-async function analisarNovaVaga(){
-  const titulo=document.getElementById('vaga-titulo').value.trim();
-  const empresa=document.getElementById('vaga-empresa').value.trim();
-  const descricao=document.getElementById('vaga-descricao').value.trim();
-  if(!titulo||!empresa||!descricao){alert('Preencha título, empresa e descrição da vaga.');return;}
-  const btn=document.getElementById('btn-analisar-vaga');
-  btn.disabled=true;
-  btn.innerHTML=`<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
-  try{
-    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo,empresa,descricao})
-    });
-    if(!res.ok) throw new Error('Erro '+res.status);
-    const analise=await res.json();
-    vagasEmail.push({...analise,titulo,empresa,data:new Date().toLocaleDateString('pt-BR')});
-    saveVagasEmail();
-    document.getElementById('vaga-titulo').value='';
-    document.getElementById('vaga-empresa').value='';
-    document.getElementById('vaga-descricao').value='';
-    renderVagasEmail();
-  } catch(e){
-    alert('Erro ao analisar vaga. Verifique sua conexão e tente novamente.');
-  }
-  btn.disabled=false;
-  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga';
-}
-
-updateVagasBadge();
 
 // ═══════════════════════════════════════════════
 //  ANTI-ATS MODULE
@@ -928,7 +783,7 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch(WORKER_URL+'/api/claude',{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -1089,7 +944,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1173,17 +1028,42 @@ const DEFAULT_CONTATOS=[
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null;
 let crmCurrentTab='vagas', contatoFilter='todos';
 
-function loadCRM(){
+const WORKER='https://senova-proxy.marcos-mco.workers.dev';
+
+async function loadCRM(){
   try{
-    const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
-    const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
+    const [rv,rc]=await Promise.all([
+      fetch(`${WORKER}/api/vagas`).then(r=>r.json()),
+      fetch(`${WORKER}/api/contatos`).then(r=>r.json())
+    ]);
+    vagas=Array.isArray(rv)&&rv.length>0?rv:[...DEFAULT_VAGAS];
+    contatos=Array.isArray(rc)&&rc.length>0?rc:[...DEFAULT_CONTATOS];
   } catch{
-    vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
+    // fallback localStorage
+    try{
+      const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
+      const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
+    } catch{ vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS]; }
   }
   updateBadge();
 }
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); }
-function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
+
+async function saveVagas(){
+  try{
+    await fetch(`${WORKER}/api/vagas`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(vagas)});
+  } catch{
+    try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
+  }
+  updateBadge();
+}
+
+async function saveContatos(){
+  try{
+    await fetch(`${WORKER}/api/contatos`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(contatos)});
+  } catch{
+    try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{}
+  }
+}
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
 const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
@@ -1386,7 +1266,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -1470,7 +1350,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -1516,7 +1396,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
