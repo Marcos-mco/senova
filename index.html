@@ -106,7 +106,7 @@ select option { background: var(--bg2); }
 .tab-btn.active { background: var(--bg2); color: var(--navy); box-shadow: var(--shadow); font-weight: 600; }
 
 /* ── KANBAN ── */
-.kanban { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.kanban { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
 .kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; box-shadow: var(--shadow); }
@@ -228,12 +228,6 @@ select option { background: var(--bg2); }
         <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
       </svg>
       Entrevista
-    </div>
-    <div class="nav-item" onclick="showPage('vagas')" id="nav-vagas">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
-      </svg>
-      Buscar Vagas
     </div>
   </div>
 
@@ -514,84 +508,6 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
-<!-- ┌─────────────────────────────┐
-     │  PAGE: BUSCAR VAGAS        │
-     └─────────────────────────────┘ -->
-<div id="page-vagas" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
-  <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Buscar Vagas</span>
-      <span class="page-sub">Pesquisa inteligente com análise automática</span>
-    </div>
-    <div class="topbar-right">
-      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
-    </div>
-  </div>
-  <div class="content">
-    <div style="display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start;">
-
-      <!-- Filtros -->
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        <div class="card">
-          <div class="gold-line"></div>
-          <div class="form-row">
-            <label class="field-label">Cargo / Palavra-chave</label>
-            <input type="text" id="vb-cargo" placeholder="Ex: CMO, Diretor de Marketing, Head Growth" value="CMO OR Diretor de Marketing OR Head de Marketing">
-          </div>
-          <div class="form-row">
-            <label class="field-label">Localização</label>
-            <input type="text" id="vb-local" placeholder="Ex: Curitiba, São Paulo, Remoto" value="Brasil">
-          </div>
-          <div class="form-row">
-            <label class="field-label">Fonte</label>
-            <select id="vb-fonte">
-              <option value="geral">Todas as fontes</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="gupy">Gupy</option>
-              <option value="indeed">Indeed</option>
-              <option value="glassdoor">Glassdoor</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label class="field-label">Regime</label>
-            <select id="vb-regime">
-              <option value="todos">CLT + PJ</option>
-              <option value="clt">CLT</option>
-              <option value="pj">PJ</option>
-              <option value="remoto">Remoto</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" onclick="buscarVagas()" id="vb-btn" style="width:100%;justify-content:center;padding:12px;font-size:15px;">
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-            Buscar vagas
-          </button>
-        </div>
-        <div class="card-sm" style="background:rgba(26,58,92,0.04);border-color:rgba(26,58,92,0.1);">
-          <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Como funciona</div>
-          <div style="font-size:12.5px;color:var(--text2);line-height:1.8;">
-            1. Configure os filtros<br>
-            2. A IA busca e analisa vagas<br>
-            3. Cada vaga recebe um score<br>
-            4. Clique em <strong>Analisar</strong> para gerar o CV adaptado<br>
-            5. Clique em <strong>Salvar no CRM</strong> para adicionar ao pipeline
-          </div>
-        </div>
-      </div>
-
-      <!-- Resultados -->
-      <div id="vb-results">
-        <div class="card">
-          <div class="empty">
-            <div class="empty-icon">🔍</div>
-            <div class="empty-title">Pronto para buscar</div>
-            <div class="empty-sub">Configure os filtros ao lado e clique em<br><strong>Buscar vagas</strong> para encontrar oportunidades</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 </main>
 </div>
 
@@ -632,6 +548,7 @@ select option { background: var(--bg2); }
       <div>
         <label class="field-label">Status</label>
         <select id="mv-status">
+          <option value="lead">Lead</option>
           <option value="radar">Radar</option>
           <option value="candidatado">Candidatado</option>
           <option value="andamento">Em andamento</option>
@@ -709,11 +626,6 @@ select option { background: var(--bg2); }
 </div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  WORKER URL
-// ═══════════════════════════════════════════════
-const WORKER = 'https://senova-proxy.marcos-mco.workers.dev';
-
 // ═══════════════════════════════════════════════
 //  DADOS BASE
 // ═══════════════════════════════════════════════
@@ -793,7 +705,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['ats','linkedin','crm','interview','vagas'];
+const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -872,9 +784,9 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch(`${WORKER}/api/claude`,{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}`}]})
     });
@@ -898,10 +810,6 @@ function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
   if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
-  // Guardar metadados para CRM automático
-  window._lastVagaEmpresa = crm.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || crm.match(/VAGA:\s*([^|\n]+)/)?.[1]?.trim() || '';
-  window._lastVagaCargo   = crm.match(/VAGA:\s*([^|]+)/)?.[1]?.trim() || '';
-  window._lastVagaScore   = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
 
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
@@ -929,6 +837,7 @@ function renderATSResult(analise,cv,crm) {
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('analise',this)">📊 Análise</button>
       <button class="tab-btn" onclick="switchTab('cv',this)">📄 CV Otimizado</button>
+      <button class="tab-btn" onclick="switchTab('crm',this)">📁 Entrada CRM</button>
     </div>
     <div id="tab-analise"><div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div></div>
     <div id="tab-cv" style="display:none;">
@@ -936,15 +845,19 @@ function renderATSResult(analise,cv,crm) {
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
         <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc</button>
         <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
-        <button class="copy-btn" onclick="saveVagaFromCV()" style="background:var(--navy);color:#fff;border-color:var(--navy);">💾 Salvar no CRM</button>
+        <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
       </div>
       <div class="result-box" id="cv-txt">${cv}</div>
+    </div>
+    <div id="tab-crm" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="copy-btn" onclick="copyEl('crm-txt',this)">📋 Copiar CRM</button></div>
+      <div class="result-box mono" id="crm-txt">${crm}</div>
     </div>
   </div>`;
 }
 
 function switchTab(tab,btn) {
-  ['analise','cv'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
+  ['analise','cv','crm'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#result-area .tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
@@ -971,38 +884,14 @@ function downloadPDF() {
   doc.save(lastCVFilename+'.pdf');
 }
 function saveVagaFromCV() {
-  const empresa = (window._lastVagaEmpresa||'A definir').trim();
-  const cargo   = (window._lastVagaCargo||'A definir').trim();
-  const score   = window._lastVagaScore||'';
-  const notas   = score ? `Match ATS: ${score}/100` : '';
-  const filename = window.lastCVFilename || 'CV_MF_Vaga_v1';
-  vagas.push({
-    id: Date.now(),
-    empresa, cargo,
-    canal: 'LinkedIn',
-    prioridade: score >= 75 ? 'alta' : score >= 55 ? 'media' : 'baixa',
-    status: 'radar',
-    salario: 'R$19-25k CLT',
-    proxima: `Baixar ${filename}.doc e candidatar`,
-    notas,
-    data: new Date().toLocaleDateString('pt-BR')
-  });
+  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
+  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas = score?`Match ATS: ${score}/100`:'';
+  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Analisar Anti-ATS antes de candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
   saveVagas();
-  showToast(`✅ "${empresa} — ${cargo}" salvo no CRM!`);
-}
-
-function showToast(msg) {
-  let t = document.getElementById('senova-toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'senova-toast';
-    t.style.cssText = 'position:fixed;bottom:28px;right:28px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:9999;transition:opacity 0.3s;';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(t._timeout);
-  t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+  alert(`Vaga "${empresa} — ${cargo}" salva no CRM! Acesse Pipeline CRM para acompanhar.`);
 }
 
 // ═══════════════════════════════════════════════
@@ -1056,9 +945,9 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch(`${WORKER}/api/claude`,{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -1153,8 +1042,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={lead:'Lead',radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={lead:'#7C3AED',radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 function setCrmTab(tab,btn){
@@ -1170,17 +1059,18 @@ function setCrmTab(tab,btn){
 function renderCRM(){
   // Stats
   const ativas=vagas.filter(v=>v.status!=='encerrado').length;
+  const leads=vagas.filter(v=>v.status==='lead').length;
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
   document.getElementById('crm-stats').innerHTML=`
-    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
+    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no pipeline</div></div>
+    <div class="stat"><div class="stat-val" style="color:#7C3AED">${leads}</div><div class="stat-label">Leads novos</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--action)">${andamento}</div><div class="stat-label">Em andamento</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
+    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>`;
 
   // Kanban vagas
-  const cols=['radar','candidatado','andamento','proposta','encerrado'];
+  const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=vagas.filter(v=>v.status===col);
     return `<div>
@@ -1243,7 +1133,7 @@ function openVagaModal(id){
     ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
-    document.getElementById('mv-status').value='radar';
+    document.getElementById('mv-status').value='lead';
   }
   document.getElementById('modal-vaga').style.display='flex';
 }
@@ -1353,9 +1243,9 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch(`${WORKER}/api/claude`,{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
     });
     const data=await res.json();
@@ -1437,9 +1327,9 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch(`${WORKER}/api/claude`,{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();
@@ -1483,9 +1373,9 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch(`${WORKER}/api/claude`,{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
     });
     const data=await res.json();
@@ -1513,160 +1403,7 @@ function resetInterview(){
 }
 
 // ═══════════════════════════════════════════════
-//  BUSCAR VAGAS MODULE
-// ═══════════════════════════════════════════════
-async function buscarVagas() {
-  const cargo  = document.getElementById('vb-cargo').value.trim();
-  const local  = document.getElementById('vb-local').value.trim();
-  const fonte  = document.getElementById('vb-fonte').value;
-  const regime = document.getElementById('vb-regime').value;
-  if (!cargo) return;
-
-  const btn = document.getElementById('vb-btn');
-  btn.disabled = true;
-  btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Buscando...`;
-  document.getElementById('vb-results').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Buscando vagas e calculando compatibilidade...</div></div>`;
-
-  const fonteLabel = {geral:'LinkedIn, Gupy, Indeed e Glassdoor', linkedin:'LinkedIn', gupy:'Gupy', indeed:'Indeed', glassdoor:'Glassdoor'}[fonte];
-  const regimeLabel = {todos:'CLT ou PJ', clt:'CLT', pj:'PJ', remoto:'Remoto'}[regime];
-
-  const perfilMarcos = `Marcos Franco — Executivo sênior, 30+ anos, Curitiba/PR.
-Ex-Diretor de Marketing RPC/Globo (12 anos, 30 pessoas, 8 afiliadas, R$500M portfolio).
-MBA FGV, Master's Barcelona em Marketing. Inglês e espanhol avançados.
-Foco: CEO, CMO, CSO, Diretor de Marketing, Head de Negócios.
-Pretensão: R$19.000–25.000 CLT (aceita PJ via LaborDei). Aceita relocação SC.`;
-
-  const prompt = `Você é um especialista em recolocação executiva e pesquisa de mercado de trabalho no Brasil.
-
-PERFIL DO CANDIDATO:
-${perfilMarcos}
-
-BUSCA SOLICITADA:
-- Cargo/keyword: ${cargo}
-- Localização: ${local}
-- Fonte: ${fonteLabel}
-- Regime: ${regimeLabel}
-- Data da busca: ${new Date().toLocaleDateString('pt-BR')}
-
-Simule uma busca realista de vagas executivas abertas no mercado brasileiro hoje. Gere EXATAMENTE 6 vagas plausíveis e relevantes para o perfil, baseadas em empresas reais que costumam contratar este perfil.
-
-Para cada vaga, calcule um Match Score de 0-100 comparando com o perfil do candidato.
-
-Responda APENAS em JSON válido, sem texto adicional:
-{
-  "vagas": [
-    {
-      "id": 1,
-      "empresa": "Nome da empresa",
-      "cargo": "Título exato do cargo",
-      "local": "Cidade/Estado ou Remoto",
-      "regime": "CLT ou PJ",
-      "salario": "Faixa estimada ou 'A combinar'",
-      "fonte": "LinkedIn ou Gupy ou Indeed",
-      "score": 85,
-      "classificacao": "candidatar",
-      "resumo": "Por que esta vaga é boa para Marcos (1 linha)",
-      "pontos_fortes": ["ponto1", "ponto2"],
-      "ponto_atencao": "principal gap ou 'Nenhum'",
-      "url_simulada": "linkedin.com/jobs/search/?keywords=${encodeURIComponent(cargo)}"
-    }
-  ],
-  "resumo_mercado": "Análise de 2-3 linhas sobre o mercado atual para este perfil"
-}`;
-
-  try {
-    const res = await fetch(`${WORKER}/api/claude`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5', max_tokens: 3000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const texto = data.content?.find(b => b.type === 'text')?.text || '{}';
-    let resultado;
-    try { resultado = JSON.parse(texto.replace(/```json|```/g,'')); }
-    catch { throw new Error('Erro ao interpretar resposta'); }
-    renderVagasBusca(resultado);
-  } catch(e) {
-    document.getElementById('vb-results').innerHTML = `<div class="card"><p style="color:var(--red);font-size:14px;padding:8px 0;">Erro ao buscar vagas. Verifique sua conexão.</p></div>`;
-  }
-  btn.disabled = false;
-  btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Buscar vagas`;
-}
-
-function renderVagasBusca(resultado) {
-  const vagas_lista = resultado.vagas || [];
-  const resumo = resultado.resumo_mercado || '';
-
-  const cards = vagas_lista.map(v => {
-    const col = v.score >= 75 ? 'var(--green)' : v.score >= 55 ? 'var(--amber)' : 'var(--red)';
-    const bg  = v.score >= 75 ? 'var(--green-bg)' : v.score >= 55 ? 'var(--amber-bg)' : 'var(--red-bg)';
-    const classif = {'candidatar':'✅ Candidatar','analisar':'⚠️ Analisar','recusar':'❌ Recusar'}[v.classificacao] || v.classificacao;
-    return `
-    <div class="card" style="margin-bottom:14px;border-left:3px solid ${col};">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px;">${v.empresa}</div>
-          <div style="font-size:13px;color:var(--text2);">${v.cargo}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px;">📍 ${v.local} · ${v.regime} · ${v.fonte}</div>
-        </div>
-        <div style="text-align:center;flex-shrink:0;">
-          <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:${col};line-height:1;">${v.score}</div>
-          <div style="font-size:10px;color:var(--text3);">/ 100</div>
-        </div>
-      </div>
-      ${v.salario ? `<div style="font-size:12.5px;color:var(--action);font-weight:600;margin-bottom:8px;">💰 ${v.salario}</div>` : ''}
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.6;">${v.resumo}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
-        <span style="background:${bg};color:${col};font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:6px;">${classif}</span>
-        ${(v.pontos_fortes||[]).map(p=>`<span style="background:var(--bg3);color:var(--text2);font-size:11px;padding:2px 8px;border-radius:5px;">✓ ${p}</span>`).join('')}
-      </div>
-      ${v.ponto_atencao && v.ponto_atencao !== 'Nenhum' ? `<div style="font-size:12px;color:var(--amber);margin-bottom:10px;">⚠️ ${v.ponto_atencao}</div>` : ''}
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="copy-btn" onclick="salvarVagaBusca(${JSON.stringify(v).replace(/"/g,'&quot;')})">💾 Salvar no CRM</button>
-        <button class="btn btn-primary btn-sm" onclick="analisarVagaBusca(${JSON.stringify(v).replace(/"/g,'&quot;')})">
-          Gerar CV adaptado →
-        </button>
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('vb-results').innerHTML = `
-    <div style="background:rgba(26,58,92,0.04);border:1px solid rgba(26,58,92,0.1);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7;">
-      <strong style="color:var(--navy);">📊 Análise de mercado</strong><br>${resumo}
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">${vagas_lista.length} vagas encontradas</div>
-    ${cards}`;
-}
-
-function salvarVagaBusca(v) {
-  vagas.push({
-    id: Date.now(),
-    empresa: v.empresa, cargo: v.cargo,
-    canal: v.fonte || 'LinkedIn',
-    prioridade: v.score >= 75 ? 'alta' : v.score >= 55 ? 'media' : 'baixa',
-    status: 'radar', salario: v.salario || '',
-    proxima: 'Analisar e gerar CV adaptado',
-    notas: `Match ATS: ${v.score}/100 — ${v.resumo}`,
-    data: new Date().toLocaleDateString('pt-BR')
-  });
-  saveVagas();
-  showToast(`✅ "${v.empresa}" salvo no CRM!`);
-}
-
-function analisarVagaBusca(v) {
-  const desc = `Cargo: ${v.cargo}\nEmpresa: ${v.empresa}\nLocalização: ${v.local}\nRegime: ${v.regime}\nSalário: ${v.salario}\n\n${v.resumo}\n\nPontos fortes do match: ${(v.pontos_fortes||[]).join(', ')}`;
-  document.getElementById('vaga-input').value = desc;
-  showPage('ats');
-  setTimeout(() => aanalyzeJob(), 300);
-}
-
-// ═══════════════════════════════════════════════
 //  INIT
-// ═══════════════════════════════════════════════
-loadCRM();
-showPage('ats');
 // ═══════════════════════════════════════════════
 loadCRM();
 showPage('ats');
