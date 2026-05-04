@@ -1659,7 +1659,7 @@ function analisarVagaBusca(v) {
   const desc = `Cargo: ${v.cargo}\nEmpresa: ${v.empresa}\nLocalização: ${v.local}\nRegime: ${v.regime}\nSalário: ${v.salario}\n\n${v.resumo}\n\nPontos fortes do match: ${(v.pontos_fortes||[]).join(', ')}`;
   document.getElementById('vaga-input').value = desc;
   showPage('ats');
-  setTimeout(() => analyzeJob(), 300);
+  setTimeout(() => aanalyzeJob(), 300);
 }
 
 // ═══════════════════════════════════════════════
