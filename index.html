@@ -203,7 +203,14 @@ select option { background: var(--bg2); }
 
   <div class="sidebar-section">
     <div class="sidebar-label">Ferramentas</div>
-    <div class="nav-item active" onclick="showPage('ats')" id="nav-ats">
+    <div class="nav-item active" onclick="showPage('home')" id="nav-home">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2 6.5L8 2l6 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6.5Z"/><path d="M6 15V9h4v6"/>
+      </svg>
+      Home
+      <span class="nav-badge" id="home-badge" style="background:rgba(220,38,38,0.25);color:#f87171;">—</span>
+    </div>
+    <div class="nav-item" onclick="showPage('ats')" id="nav-ats">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="7.5" y2="10.5"/>
       </svg>
@@ -250,7 +257,71 @@ select option { background: var(--bg2); }
 <!-- ┌─────────────────────────────┐
      │  PAGE: ANTI-ATS            │
      └─────────────────────────────┘ -->
-<div id="page-ats" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+<!-- ┌─────────────────────────────┐
+     │  PAGE: HOME / DAILY BRIEFING│
+     └─────────────────────────────┘ -->
+<div id="page-home" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title" id="home-greeting">Bom dia, Marcos</span>
+      <span class="page-sub" id="home-date">—</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
+    </div>
+  </div>
+  <div class="content" style="overflow-y:auto;">
+
+    <!-- Barra IA -->
+    <div id="home-ai-bar" style="background:linear-gradient(90deg,#EDE9FE,#DBEAFE);border:1px solid #C4B5FD;border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:#4F46E5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 16 16" fill="none" style="width:18px;height:18px;"><circle cx="8" cy="8" r="6" stroke="white" stroke-width="1.5"/><path d="M5.5 8.5c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="7" r="0.8" fill="white"/><circle cx="10" cy="7" r="0.8" fill="white"/></svg>
+      </div>
+      <div id="home-ai-text" style="font-size:13.5px;color:#3730A3;flex:1;line-height:1.5;">Analisando seu pipeline e emails...</div>
+      <button class="btn btn-primary btn-sm" onclick="gerarAgendaIA()" id="home-agenda-btn" style="background:#4F46E5;white-space:nowrap;">Montar agenda ↗</button>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:4px;" id="home-stats"></div>
+
+    <!-- Duas colunas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px;">
+
+      <!-- Emails relevantes -->
+      <div>
+        <div class="section-head"><span class="section-title">📬 Caixa de entrada relevante</span></div>
+        <div class="card" id="home-emails" style="padding:0;">
+          <div style="padding:16px;color:var(--text3);font-size:13px;">Carregando emails...</div>
+        </div>
+      </div>
+
+      <!-- Ações do dia -->
+      <div>
+        <div class="section-head"><span class="section-title">✅ Suas ações de hoje</span></div>
+        <div class="card" id="home-acoes" style="padding:0;">
+          <div style="padding:16px;color:var(--text3);font-size:13px;">Carregando ações...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leads novos -->
+    <div>
+      <div class="section-head"><span class="section-title">🔍 Leads novos para analisar</span></div>
+      <div class="card" id="home-leads" style="padding:0;">
+        <div style="padding:16px;color:var(--text3);font-size:13px;">Carregando leads...</div>
+      </div>
+    </div>
+
+    <!-- Agenda IA (oculta até gerar) -->
+    <div id="home-agenda-box" style="display:none;">
+      <div class="section-head"><span class="section-title">📅 Sua agenda de hoje</span></div>
+      <div class="card" id="home-agenda-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="page-ats" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
     <div style="display:flex;align-items:baseline;gap:6px;">
       <span class="page-title">Anti-ATS</span>
@@ -705,7 +776,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['ats','linkedin','crm','interview'];
+const PAGES = ['home','ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -714,6 +785,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') renderCRM();
+  if(page==='home') renderHome();
 }
 
 // ═══════════════════════════════════════════════
@@ -1403,10 +1475,221 @@ function resetInterview(){
 }
 
 // ═══════════════════════════════════════════════
+//  HOME / DAILY BRIEFING
+// ═══════════════════════════════════════════════
+const WORKER = 'https://senova-proxy.marcos-mco.workers.dev';
+
+function renderHome() {
+  // Saudação e data
+  const now = new Date();
+  const hora = now.getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  document.getElementById('home-greeting').textContent = `${saudacao}, Marcos`;
+  const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  document.getElementById('home-date').textContent =
+    `· ${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} · ${String(now.getHours()).padStart(2,'0')}h${String(now.getMinutes()).padStart(2,'0')}`;
+
+  renderHomeStats();
+  renderHomeAcoes();
+  renderHomeLeads();
+  gerarBriefingIA();
+  document.getElementById('home-badge').textContent = contarAlertasHome();
+}
+
+function contarAlertasHome() {
+  const vencidas = vagas.filter(v => v.proxima && v.status !== 'encerrado' && v.status !== 'proposta').length;
+  const leads = vagas.filter(v => v.status === 'lead').length;
+  return vencidas + leads || '—';
+}
+
+function renderHomeStats() {
+  const leads = vagas.filter(v=>v.status==='lead').length;
+  const candidatados = vagas.filter(v=>v.status==='candidatado').length;
+  const andamento = vagas.filter(v=>v.status==='andamento').length;
+  const propostas = vagas.filter(v=>v.status==='proposta').length;
+  const contatos_count = typeof contatos !== 'undefined' ? contatos.length : 0;
+  document.getElementById('home-stats').innerHTML = `
+    <div class="card-sm" style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#7C3AED;">${leads}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Leads novos</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--action);">${candidatados}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Candidaturas</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--amber);">${andamento}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Em andamento</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--green);">${propostas}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Propostas</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:var(--navy);">${contatos_count}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">Contatos CRM</div>
+    </div>`;
+}
+
+function renderHomeAcoes() {
+  // Gera ações baseadas no pipeline real
+  const acoes = [];
+
+  // Vagas em andamento há mais de 7 dias sem update
+  vagas.filter(v=>v.status==='andamento').forEach(v=>{
+    acoes.push({
+      prioridade:'alta',
+      texto:`Follow-up ${v.empresa} — ${v.proxima||'verificar status'}`,
+      tag:'Hoje',
+      cor:'var(--red)'
+    });
+  });
+
+  // Leads sem análise
+  const leadsN = vagas.filter(v=>v.status==='lead').length;
+  if(leadsN > 0) acoes.push({
+    prioridade:'media',
+    texto:`Analisar ${leadsN} lead${leadsN>1?'s':''} novo${leadsN>1?'s':''}`,
+    tag:'Hoje',
+    cor:'var(--amber)'
+  });
+
+  // Contatos quentes do CRM
+  if(typeof contatos !== 'undefined') {
+    contatos.filter(c=>c.temp==='hot').forEach(c=>{
+      acoes.push({
+        prioridade:'media',
+        texto:`Reativar ${c.nome} — ${c.next||'próximo passo'}`,
+        tag:'Esta semana',
+        cor:'var(--action)'
+      });
+    });
+  }
+
+  if(acoes.length===0) {
+    document.getElementById('home-acoes').innerHTML =
+      '<div style="padding:16px;color:var(--text3);font-size:13px;">Nenhuma ação pendente. Parabéns! 🎉</div>';
+    return;
+  }
+
+  document.getElementById('home-acoes').innerHTML = acoes.slice(0,6).map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);">
+      <div style="width:7px;height:7px;border-radius:50%;background:${a.cor};flex-shrink:0;"></div>
+      <div style="flex:1;font-size:13px;color:var(--text);">${a.texto}</div>
+      <div style="font-size:11px;padding:2px 8px;border-radius:8px;background:${a.cor==='var(--red)'?'var(--red-bg)':a.cor==='var(--amber)'?'var(--amber-bg)':'var(--green-bg)'};color:${a.cor};">${a.tag}</div>
+    </div>`).join('') + (acoes.length>6?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);">+${acoes.length-6} ações adicionais no pipeline</div>`:'');
+}
+
+function renderHomeLeads() {
+  const leads = vagas.filter(v=>v.status==='lead');
+  if(leads.length===0) {
+    document.getElementById('home-leads').innerHTML =
+      '<div style="padding:16px;color:var(--text3);font-size:13px;">Nenhum lead novo. Use "Buscar Vagas" para encontrar oportunidades.</div>';
+    return;
+  }
+  document.getElementById('home-leads').innerHTML = leads.slice(0,5).map(v=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;border-radius:50%;background:#EDE9FE;color:#5B21B6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">
+        ${v.empresa.charAt(0).toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.empresa} — ${v.cargo}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.canal} · ${v.data||'recente'} · ${v.salario||'salário a definir'}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="analisarLeadHome(${v.id})">Analisar →</button>
+    </div>`).join('') + (leads.length>5?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);">+${leads.length-5} leads adicionais no Pipeline CRM</div>`:'');
+}
+
+function analisarLeadHome(id) {
+  const vaga = vagas.find(v=>v.id===id);
+  if(!vaga) return;
+  // Move para radar e abre Anti-ATS com empresa/cargo preenchidos
+  vaga.status = 'radar';
+  saveCRM();
+  showPage('ats');
+  setTimeout(()=>{
+    const descEl = document.getElementById('jd-input');
+    if(descEl) descEl.value = `Empresa: ${vaga.empresa}\nCargo: ${vaga.cargo}\n\n${vaga.notas||'Cole aqui a descrição completa da vaga para análise Anti-ATS.'}`;
+  }, 100);
+}
+
+async function gerarBriefingIA() {
+  const leads = vagas.filter(v=>v.status==='lead').length;
+  const andamento = vagas.filter(v=>v.status==='andamento').length;
+  const candidatados = vagas.filter(v=>v.status==='candidatado').length;
+
+  const aiBar = document.getElementById('home-ai-text');
+
+  // Briefing baseado nos dados reais do pipeline
+  let msg = '';
+  const alertas = [];
+  if(leads > 0) alertas.push(`${leads} lead${leads>1?'s':''} novo${leads>1?'s':''} para analisar`);
+  if(andamento > 0) alertas.push(`${andamento} processo${andamento>1?'s':''} em andamento`);
+  if(candidatados > 0) alertas.push(`${candidatados} candidatura${candidatados>1?'s':''} aguardando retorno`);
+
+  if(alertas.length > 0) {
+    msg = `Você tem ${alertas.join(', ')}. Quer que eu monte sua agenda de hoje?`;
+  } else {
+    msg = 'Pipeline atualizado. Nenhuma ação urgente no momento. Boa hora para buscar novas vagas!';
+  }
+
+  aiBar.textContent = msg;
+}
+
+async function gerarAgendaIA() {
+  const btn = document.getElementById('home-agenda-btn');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+
+  const resumoPipeline = vagas.filter(v=>v.status!=='encerrado').map(v=>
+    `${v.empresa} (${v.cargo}) — status: ${COL_STATUS[v.status]||v.status}, próxima ação: ${v.proxima||'—'}`
+  ).join('\n');
+
+  const prompt = `Você é Virgílio, assistente executivo sênior do Marcos Franco, que está em processo de recolocação profissional em Curitiba/PR.
+
+PIPELINE ATUAL:
+${resumoPipeline||'Nenhuma vaga cadastrada ainda.'}
+
+DATA HOJE: ${new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'})}
+
+Com base neste pipeline, crie uma agenda executiva para hoje com:
+1. Prioridade máxima (até 2 itens urgentes)
+2. Prioridades do dia (até 3 itens)
+3. Se houver tempo (até 2 itens)
+
+Seja direto, caloroso e estratégico. Máximo 200 palavras. Use emojis com moderação.`;
+
+  try {
+    const res = await fetch(`${WORKER}/api/claude`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const agenda = data.content?.find(b=>b.type==='text')?.text || 'Não foi possível gerar a agenda.';
+
+    document.getElementById('home-agenda-box').style.display = 'block';
+    document.getElementById('home-agenda-content').innerHTML =
+      `<div style="font-size:13.5px;line-height:1.7;color:var(--text);white-space:pre-wrap;">${agenda}</div>`;
+    document.getElementById('home-agenda-content').scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch(e) {
+    document.getElementById('home-agenda-box').style.display = 'block';
+    document.getElementById('home-agenda-content').innerHTML =
+      '<div style="color:var(--red);font-size:13px;">Erro ao gerar agenda. Verifique a conexão com o Worker.</div>';
+  }
+
+  btn.disabled = false; btn.textContent = 'Montar agenda ↗';
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 loadCRM();
-showPage('ats');
+showPage('home');
 </script>
 </body>
 </html>
