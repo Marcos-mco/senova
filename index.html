@@ -626,6 +626,11 @@ select option { background: var(--bg2); }
 
 <script>
 // ═══════════════════════════════════════════════
+//  WORKER URL
+// ═══════════════════════════════════════════════
+const WORKER = 'https://senova-proxy.marcos-mco.workers.dev';
+
+// ═══════════════════════════════════════════════
 //  DADOS BASE
 // ═══════════════════════════════════════════════
 
@@ -783,7 +788,7 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
+    const res = await fetch(`${WORKER}/api/claude`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -944,7 +949,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(`${WORKER}/api/claude`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1241,7 +1246,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(`${WORKER}/api/claude`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -1325,7 +1330,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(`${WORKER}/api/claude`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -1371,7 +1376,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(`${WORKER}/api/claude`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
