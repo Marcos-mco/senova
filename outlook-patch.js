@@ -44,7 +44,7 @@ window.addEventListener('load', function () {
 
       el.innerHTML = '<div style="padding:16px;color:var(--text3);font-size:13px;">Buscando emails...</div>';
 
-      const emailRes = await fetch(`${WORKER_URL}/api/emails?folder=inbox&limit=30`, {
+      const emailRes = await fetch(`${WORKER_URL}/api/emails?folder=inbox&limit=50`, {
         headers: { 'Authorization': `Bearer ${access_token}` }
       });
 
@@ -64,10 +64,18 @@ window.addEventListener('load', function () {
 
       const empresasPipeline = (window.vagas || []).map(v => v.empresa.toLowerCase());
       const palavrasChave = [
+        // PT
         'vaga', 'oportunidade', 'processo seletivo', 'entrevista', 'candidatura',
-        'recrutador', 'recruiter', 'headhunter', 'proposta', 'oferta', 'job',
-        'position', 'opportunity', 'hays', 'robert half', 'michael page',
-        'korn ferry', 'heidrick', 'linkedin', 'seleção'
+        'recrutador', 'headhunter', 'proposta', 'oferta', 'seleção', 'alerta de vaga',
+        'alertas de vaga', 'sua candidatura', 'candidatura enviada', 'recolocação',
+        'oportunidade de emprego', 'posição', 'contratação', 'currículo', 'perfil',
+        // EN
+        'recruiter', 'job', 'position', 'opportunity', 'hiring', 'application',
+        'interview', 'offer', 'career',
+        // Remetentes / plataformas
+        'linkedin', 'hays', 'robert half', 'michael page', 'korn ferry',
+        'heidrick', 'gupy', 'indeed', 'infojobs', 'catho', 'vagas.com',
+        'pageexecutive', 'pagegroup', 'odgers', 'egon zehnder', 'spencer stuart'
       ];
 
       const relevantes = emails.filter(e => {
