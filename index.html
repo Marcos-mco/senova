@@ -491,6 +491,33 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
+      <!-- Filtros -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Filtrar:</span>
+        <select id="filtro-prioridade" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
+          <option value="">Todas prioridades</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="media">🟡 Média</option>
+          <option value="baixa">🔵 Baixa</option>
+        </select>
+        <select id="filtro-canal" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
+          <option value="">Todos canais</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="Headhunter">Headhunter</option>
+          <option value="Indicação">Indicação</option>
+          <option value="Email">Email</option>
+        </select>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Ordenar:</span>
+          <select id="ordenar-por" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
+            <option value="data_desc">Mais recente</option>
+            <option value="data_asc">Mais antigo</option>
+            <option value="prioridade">Prioridade</option>
+            <option value="empresa">Empresa A-Z</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="limparFiltros()" style="font-size:11px;padding:5px 10px;">✕ Limpar</button>
+        </div>
+      </div>
       <div class="kanban" id="kanban-vagas"></div>
     </div>
 
@@ -650,16 +677,24 @@ select option { background: var(--bg2); }
       <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
     </div>
     <div class="form-row">
+      <label class="field-label">Email do destinatário (para envio do CV)</label>
+      <input type="email" id="mv-email-dest" placeholder="Ex: recrutador@empresa.com">
+    </div>
+    <div class="form-row">
       <label class="field-label">Notas</label>
       <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
         <button class="btn btn-ghost" onclick="analisarVagaATS()" id="mv-ats-btn" title="Analisar com Anti-ATS">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/></svg>
           Anti-ATS
+        </button>
+        <button class="btn btn-ghost" onclick="enviarCVOutlook()" id="mv-enviar-btn" title="Enviar CV via Outlook">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l6 5 6-5"/><rect x="1" y="3" width="14" height="10" rx="1.5"/></svg>
+          Enviar CV
         </button>
         <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
@@ -932,8 +967,8 @@ function renderATSResult(analise,cv,crm) {
     <div id="tab-cv" style="display:none;">
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
-        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc</button>
-        <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
+        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc (ATS)</button>
+        <button class="copy-btn" onclick="downloadPDF()">📄 PDF Executivo</button>
         <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
       </div>
       <div class="result-box" id="cv-txt">${cv}</div>
@@ -965,12 +1000,122 @@ function downloadDoc() {
 }
 function downloadPDF() {
   if(!window.jspdf){alert('jsPDF não carregado — tente recarregar a página.');return;}
-  const {jsPDF}=window.jspdf; const doc=new jsPDF();
-  doc.setFont('helvetica'); doc.setFontSize(10);
-  const linhas=doc.splitTextToSize(lastCV,180);
-  let y=20;
-  linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
-  doc.save(lastCVFilename+'.pdf');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210, H=297;
+  const margL=18, margR=18, conteudoW=W-margL-margR;
+
+  // ── Cores ──
+  const navy=[26,58,92];
+  const gold=[201,168,76];
+  const texto=[26,26,22];
+  const cinza=[74,71,64];
+  const bgLight=[247,245,240];
+
+  // ── Cabeçalho navy ──
+  doc.setFillColor(...navy);
+  doc.rect(0,0,W,38,'F');
+
+  // Nome
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20);
+  doc.text('MARCOS FRANCO',margL,15);
+
+  // Título executivo
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(201,168,76);
+  doc.text('Executivo de Marketing & Crescimento  |  CMO · CSO · CEO',margL,22);
+
+  // Contatos no cabeçalho
+  doc.setTextColor(200,200,200);
+  doc.setFontSize(8);
+  doc.text('(41) 99615-2224  ·  marcos_mco@hotmail.com  ·  linkedin.com/in/marcos-ribeiro-franco-69153a12  ·  Curitiba, PR',margL,30);
+
+  // ── Linha dourada ──
+  doc.setFillColor(...gold);
+  doc.rect(0,38,W,1.2,'F');
+
+  // ── Processar o CV em seções ──
+  const linhasCV = lastCV.split('\n');
+  let y = 48;
+  const lineH = 5;
+  const lineHSm = 4.2;
+
+  // Palavras que indicam cabeçalho de seção
+  const ehSecao = (linha) => {
+    const l = linha.trim().toUpperCase();
+    return ['RESUMO','EXECUTIVE','EXPERIÊNCIA','EXPERIENCE','FORMAÇÃO','EDUCATION',
+            'IDIOMAS','LANGUAGES','DOCÊNCIA','TEACHING','HABILIDADES','SKILLS',
+            'CERTIFICAÇÕES','CERTIFICATIONS'].some(s => l.startsWith(s));
+  };
+
+  linhasCV.forEach(linha => {
+    if(y > H-20){ doc.addPage(); y=18; }
+
+    const l = linha.trim();
+    if(!l){ y+=2; return; }
+
+    if(ehSecao(l)){
+      // Seção com fundo leve e linha dourada
+      y+=3;
+      doc.setFillColor(...bgLight);
+      doc.rect(margL-2, y-4, conteudoW+4, 6.5,'F');
+      doc.setFillColor(...gold);
+      doc.rect(margL-2, y+2.5, 28, 0.8,'F');
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...navy);
+      doc.text(l.toUpperCase(), margL, y+1);
+      y+=8;
+      return;
+    }
+
+    // Linha de empresa/cargo (começa com -)
+    if(l.startsWith('-') || l.startsWith('•')){
+      const txt = l.replace(/^[-•]\s*/,'');
+      // Verificar se é cargo principal (tem ·)
+      const ehCargo = txt.includes('·') && txt.includes('/');
+      doc.setFont('helvetica', ehCargo?'bold':'normal');
+      doc.setFontSize(ehCargo?9:8.5);
+      doc.setTextColor(ehCargo?...navy:...cinza);
+      const wrapped = doc.splitTextToSize('  • '+txt, conteudoW-4);
+      wrapped.forEach(wl=>{
+        if(y>H-20){doc.addPage();y=18;}
+        doc.text(wl, margL+2, y);
+        y+=lineHSm;
+      });
+      return;
+    }
+
+    // Texto normal
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...cinza);
+    const wrapped = doc.splitTextToSize(l, conteudoW);
+    wrapped.forEach(wl=>{
+      if(y>H-20){doc.addPage();y=18;}
+      doc.text(wl, margL, y);
+      y+=lineHSm;
+    });
+  });
+
+  // ── Rodapé ──
+  const totalPags = doc.internal.getNumberOfPages();
+  for(let p=1;p<=totalPags;p++){
+    doc.setPage(p);
+    doc.setFillColor(...navy);
+    doc.rect(0,H-10,W,10,'F');
+    doc.setTextColor(...gold);
+    doc.setFontSize(7);
+    doc.setFont('helvetica','normal');
+    doc.text('Marcos Franco  ·  Executivo de Marketing & Crescimento', margL, H-4);
+    doc.setTextColor(150,150,150);
+    doc.text(`Página ${p} de ${totalPags}`, W-margR, H-4, {align:'right'});
+  }
+
+  doc.save(lastCVFilename+'_executivo.pdf');
 }
 function saveVagaFromCV() {
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
@@ -1157,10 +1302,31 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
-  // Kanban vagas
+  // Kanban vagas com filtros
+  const filtroPrioridade = document.getElementById('filtro-prioridade')?.value || '';
+  const filtroCanal = document.getElementById('filtro-canal')?.value || '';
+  const ordenarPor = document.getElementById('ordenar-por')?.value || 'data_desc';
+
   const cols=['radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    const cards=vagas.filter(v=>v.status===col);
+    let cards=vagas.filter(v=>v.status===col);
+
+    // Aplicar filtros
+    if(filtroPrioridade) cards=cards.filter(v=>v.prioridade===filtroPrioridade);
+    if(filtroCanal) cards=cards.filter(v=>v.canal===filtroCanal);
+
+    // Ordenação
+    cards=[...cards].sort((a,b)=>{
+      if(ordenarPor==='prioridade'){
+        const ord={alta:0,media:1,baixa:2};
+        return (ord[a.prioridade]||1)-(ord[b.prioridade]||1);
+      }
+      if(ordenarPor==='empresa') return a.empresa.localeCompare(b.empresa);
+      // data_desc / data_asc
+      const da = a.data ? new Date(a.data.split('/').reverse().join('-')) : new Date(0);
+      const db = b.data ? new Date(b.data.split('/').reverse().join('-')) : new Date(0);
+      return ordenarPor==='data_asc' ? da-db : db-da;
+    });
     return `<div>
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
@@ -1219,9 +1385,10 @@ function openVagaModal(id){
     document.getElementById('mv-status').value=v.status;
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
+    document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-notas').value=v.notas||'';
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
+    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-email-dest','mv-notas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
     document.getElementById('mv-status').value='radar';
@@ -1240,6 +1407,7 @@ function saveVaga(){
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
+    emailDest:document.getElementById('mv-email-dest').value,
     notas:document.getElementById('mv-notas').value,
     data:new Date().toLocaleDateString('pt-BR')
   };
@@ -1255,6 +1423,48 @@ function analisarVagaATS() {
   const preview = vaga?.emailPreview || notas;
   saveVaga();
   abrirAntiATS(empresa, cargo, preview);
+}
+
+function limparFiltros(){
+  document.getElementById('filtro-prioridade').value='';
+  document.getElementById('filtro-canal').value='';
+  document.getElementById('ordenar-por').value='data_desc';
+  renderCRM();
+}
+
+function enviarCVOutlook(){
+  const empresa = document.getElementById('mv-empresa').value.trim();
+  const cargo = document.getElementById('mv-cargo').value.trim();
+  const dest = document.getElementById('mv-email-dest').value.trim();
+
+  if(!dest){
+    alert('Por favor, preencha o email do destinatário antes de enviar.');
+    document.getElementById('mv-email-dest').focus();
+    return;
+  }
+
+  const assunto = encodeURIComponent(`Candidatura — ${cargo} · ${empresa} | Marcos Franco`);
+  const corpo = encodeURIComponent(
+`Prezado(a),
+
+Meu nome é Marcos Franco, executivo sênior com mais de 30 anos de experiência em marketing, mídia e educação. Fui Diretor de Marketing na RPC/Globo por quase 12 anos — equipe de 30 pessoas, 8 afiliadas, carteira de R$ 500 milhões.
+
+Tenho interesse na posição de ${cargo} na ${empresa} e acredito que meu perfil se alinha fortemente com os desafios do cargo. Segue meu CV em anexo para sua apreciação.
+
+Fico à disposição para uma conversa.
+
+Atenciosamente,
+Marcos Franco
+(41) 99615-2224
+marcos_mco@hotmail.com
+linkedin.com/in/marcos-ribeiro-franco-69153a12`
+  );
+
+  // Abre Outlook com email pré-preenchido
+  window.location.href = `mailto:${dest}?subject=${assunto}&body=${corpo}`;
+
+  // Salva a vaga com o email e atualiza status
+  saveVaga();
 }
 
 function deleteVaga(){
