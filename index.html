@@ -283,61 +283,49 @@ select option { background: var(--bg2); }
       <button class="btn btn-gold btn-sm" onclick="showPage('crm')" style="flex-shrink:0;">Ver Pipeline →</button>
     </div>
 
-    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;">
+    <div style="max-width:560px;">
 
-      <!-- Próximas Ações (coluna principal) -->
-      <div>
-        <div class="section-head" style="margin-bottom:12px;">
-          <span class="section-title">⚡ Próximas Ações</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:7px;" id="home-acoes">
-          <!-- Item emails novos (dinâmico) -->
-          <div id="home-acao-emails" style="display:none;" class="card-sm" style="border-left:3px solid var(--navy);cursor:pointer;" onclick="showPage('crm')">
-            <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📬 Novos leads</div>
-            <div style="font-size:13px;color:var(--text);" id="home-acao-emails-txt">Você tem emails novos no pipeline</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--red);cursor:pointer;" onclick="irParaVaga('Dr. Charles London')">
-            <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔴 Urgente</div>
-            <div style="font-size:13px;color:var(--text);">Enviar CV para Dr. Charles London (FUNEF)</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaVaga('InBetta')">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
-            <div style="font-size:13px;color:var(--text);">Reunião InBetta — seg 12/mai 14h (CFO Tulini)</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaContato('Aldo Mallucelli')">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
-            <div style="font-size:13px;color:var(--text);">Remarcar Aldo Mallucelli — semana 12/mai</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Priscilla Capellato')">
-            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
-            <div style="font-size:13px;color:var(--text);">Follow-up Priscilla Capellato (Korn Ferry) — semana 12/mai</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Aldo Bergamasco')">
-            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
-            <div style="font-size:13px;color:var(--text);">Enviar CV Aldo Bergamasco (Spencer Stuart)</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--gold);cursor:pointer;" onclick="irParaContato('Alan Ceppini')">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">⭐ Novo contato</div>
-            <div style="font-size:13px;color:var(--text);">Alan Ceppini — RICTV/Jovem Pan (indicação Heleni)</div>
-          </div>
-          <div class="card-sm" style="border-left:3px solid var(--border2);cursor:pointer;" onclick="irParaContato('Eduardo Bosquetti')">
-            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📅 Marcar</div>
-            <div style="font-size:13px;color:var(--text);">Café Eduardo Bosquetti + missa Sta Terezinha 7h30</div>
-          </div>
-        </div>
+      <!-- Próximas Ações — coluna única -->
+      <div class="section-head" style="margin-bottom:12px;">
+        <span class="section-title">⚡ Próximas Ações</span>
+        <span style="font-size:11px;color:var(--text3);" id="home-email-meta"></span>
       </div>
+      <div style="display:flex;flex-direction:column;gap:7px;" id="home-acoes">
 
-      <!-- Leads do Pipeline (coluna direita) -->
-      <div>
-        <div class="section-head" style="margin-bottom:12px;">
-          <span class="section-title">📋 Leads no Pipeline</span>
-          <span style="font-size:11px;color:var(--text3);" id="home-email-meta"></span>
+        <!-- Item emails novos (dinâmico — aparece quando há novos) -->
+        <div id="home-acao-emails" style="display:none;background:var(--bg2);border:1px solid rgba(26,58,92,0.2);border-left:3px solid var(--navy);border-radius:var(--radius);padding:12px 16px;cursor:pointer;" onclick="showPage('crm')">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📬 Novos leads</div>
+          <div style="font-size:13.5px;color:var(--text);font-weight:600;" id="home-acao-emails-txt">Você tem emails novos no pipeline</div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:3px;">Clique para ver na coluna Radar →</div>
         </div>
-        <div id="home-emails">
-          <div class="card" style="text-align:center;padding:32px;">
-            <div class="loader" style="justify-content:center;margin-bottom:10px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <div style="font-size:13px;color:var(--text3);">Verificando emails...</div>
-          </div>
+
+        <div class="card-sm" style="border-left:3px solid var(--red);cursor:pointer;" onclick="irParaVaga('Charles London')">
+          <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔴 Urgente</div>
+          <div style="font-size:13px;color:var(--text);">Enviar CV para Dr. Charles London (FUNEF)</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaVaga('InBetta')">
+          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
+          <div style="font-size:13px;color:var(--text);">Reunião InBetta — seg 12/mai 14h (CFO Tulini)</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaContato('Aldo Mallucelli')">
+          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
+          <div style="font-size:13px;color:var(--text);">Remarcar Aldo Mallucelli — semana 12/mai</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Priscilla Capellato')">
+          <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
+          <div style="font-size:13px;color:var(--text);">Follow-up Priscilla Capellato (Korn Ferry) — semana 12/mai</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Aldo Bergamasco')">
+          <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
+          <div style="font-size:13px;color:var(--text);">Enviar CV Aldo Bergamasco (Spencer Stuart)</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--gold);cursor:pointer;" onclick="irParaContato('Alan Ceppini')">
+          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">⭐ Novo contato</div>
+          <div style="font-size:13px;color:var(--text);">Alan Ceppini — RICTV/Jovem Pan (indicação Heleni)</div>
+        </div>
+        <div class="card-sm" style="border-left:3px solid var(--border2);cursor:pointer;" onclick="irParaContato('Eduardo Bosquetti')">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📅 Marcar</div>
+          <div style="font-size:13px;color:var(--text);">Café Eduardo Bosquetti + missa Sta Terezinha 7h30</div>
         </div>
       </div>
     </div>
@@ -1259,8 +1247,11 @@ function analisarVagaATS() {
   const empresa = document.getElementById('mv-empresa').value.trim();
   const cargo = document.getElementById('mv-cargo').value.trim();
   const notas = document.getElementById('mv-notas').value.trim();
-  closeVagaModal();
-  abrirAntiATS(empresa, cargo, notas);
+  // Buscar preview do email se disponível
+  const vaga = editingVagaId && editingVagaId !== 'new' ? vagas.find(v=>v.id===editingVagaId) : null;
+  const preview = vaga?.emailPreview || notas;
+  saveVaga();
+  abrirAntiATS(empresa, cargo, preview);
 }
 
 function deleteVaga(){
@@ -1548,14 +1539,15 @@ function irParaContato(nomeContato) {
 }
 
 // Abrir Anti-ATS com dados da vaga pré-preenchidos
-function abrirAntiATS(empresa, cargo, descricao) {
+function abrirAntiATS(empresa, cargo, preview) {
   showPage('ats');
   setTimeout(()=>{
-    const jdEl = document.getElementById('jd-input');
-    if(jdEl) jdEl.value = `Empresa: ${empresa}\nCargo: ${cargo}\n\n${descricao||''}`;
-    // Auto-iniciar análise se tiver descrição
-    if(descricao) runATS();
-  }, 200);
+    const jdEl = document.getElementById('vaga-input');
+    if(jdEl) {
+      jdEl.value = `Empresa: ${empresa}\nCargo: ${cargo}${preview ? '\n\n' + preview : ''}`;
+      jdEl.focus();
+    }
+  }, 300);
 }
 
 function initHome() {
@@ -1594,58 +1586,26 @@ function renderHomeStats() {
 
 async function carregarEmails() {
   const btn = document.getElementById('home-refresh-btn');
-  const container = document.getElementById('home-emails');
   btn.disabled = true;
-  btn.innerHTML = '<div class="loader" style="display:inline-flex"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-
-  container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
-    <div class="loader" style="justify-content:center;margin-bottom:10px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    <div style="font-size:13px;color:var(--text3);">Analisando caixa com IA...</div>
-  </div>`;
+  btn.innerHTML = '<div class="loader" style="display:inline-flex;gap:4px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
 
   try {
     const resp = await fetch(`${WORKER_URL}/api/emails?limite=50`);
     const data = await resp.json();
 
-    if (data.erro === 'outlook_desconectado' || data.erro === 'token_expirado') {
-      container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
-        <div style="font-size:24px;margin-bottom:10px;">🔌</div>
-        <div style="font-family:var(--font-display);font-size:15px;color:var(--navy);margin-bottom:8px;">Outlook não conectado</div>
-        <a href="${WORKER_URL}/api/auth/outlook" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">Conectar Outlook</a>
-      </div>`;
+    if (data.erro) {
+      document.getElementById('home-email-meta').textContent = 'Outlook desconectado';
       return;
     }
 
     const novos = data.novos || [];
-    const irrelevantes = data.irrelevantes_novos || 0;
-
-    // Atualizar item de ação de emails na sidebar esquerda
-    const acaoEmails = document.getElementById('home-acao-emails');
-    const acaoTxt = document.getElementById('home-acao-emails-txt');
-    if (novos.length > 0) {
-      acaoEmails.style.display = 'block';
-      acaoTxt.textContent = `Você tem ${novos.length} email${novos.length>1?'s':''} novo${novos.length>1?'s':''} no pipeline`;
-      // Badge no menu home
-      const badge = document.getElementById('home-badge');
-      badge.textContent = novos.length;
-      badge.style.display = '';
-    } else {
-      acaoEmails.style.display = 'none';
-      document.getElementById('home-badge').style.display = 'none';
-    }
-
-    // Meta info
-    document.getElementById('home-email-meta').textContent =
-      `${novos.length} novos · ${irrelevantes} filtrados · ${data.total_ja_vistos} já vistos`;
 
     // Banner IA
     const temUrgente = novos.some(e => e.categoria === 'retorno_positivo');
     const vagasNovas = novos.filter(e => e.categoria === 'vaga_nova').length;
     const hunters = novos.filter(e => e.categoria === 'contato_hunter').length;
-    let bannerTxt = '';
-    if (novos.length === 0) {
-      bannerTxt = 'Caixa em dia — nenhum email novo relevante.';
-    } else {
+    let bannerTxt = 'Caixa em dia — nenhum email novo relevante.';
+    if (novos.length > 0) {
       const partes = [];
       if (temUrgente) partes.push('🟢 <strong>Retorno positivo</strong> recebido!');
       if (vagasNovas > 0) partes.push(`📋 <strong>${vagasNovas} vaga${vagasNovas>1?'s':''} nova${vagasNovas>1?'s':''}</strong>`);
@@ -1654,87 +1614,71 @@ async function carregarEmails() {
       bannerTxt = partes.join(' · ');
     }
     document.getElementById('home-banner-text').innerHTML = bannerTxt;
+    document.getElementById('home-email-meta').textContent =
+      `${data.total_ja_vistos} já vistos · ${data.irrelevantes_novos||0} filtrados`;
 
-    // Adicionar emails novos como Leads no Pipeline automaticamente
+    // Mostrar item de ação se há emails novos
+    const acaoEmails = document.getElementById('home-acao-emails');
+    const acaoTxt = document.getElementById('home-acao-emails-txt');
     if (novos.length > 0) {
+      acaoEmails.style.display = 'block';
+      acaoTxt.textContent = `Você tem ${novos.length} email${novos.length>1?'s':''} novo${novos.length>1?'s':''} no pipeline`;
+      document.getElementById('home-badge').textContent = novos.length;
+      document.getElementById('home-badge').style.display = '';
+    } else {
+      acaoEmails.style.display = 'none';
+      document.getElementById('home-badge').style.display = 'none';
+    }
+
+    // Salvar emails relevantes como Leads na coluna Radar do Pipeline
+    if (novos.length > 0) {
+      let adicionados = 0;
       novos.forEach(email => {
-        if (email.categoria === 'irrelevante') return;
+        // Verificar se já existe pelo ID do email nas notas
+        const jaExiste = vagas.find(v => v.notas && v.notas.includes(email.id));
+        if (jaExiste) return;
+
         // Extrair empresa e cargo do assunto
-        const assunto = email.assunto || '';
         let empresa = email.de_nome || 'Desconhecido';
-        let cargo = assunto.substring(0, 60);
-        // Detectar padrão "Cargo na empresa Empresa"
-        const match = assunto.match(/(.+?)\s+na empresa\s+(.+)/i);
-        if (match) { cargo = match[1].trim(); empresa = match[2].trim(); }
-        // Verificar se já existe no pipeline
-        const jaExiste = vagas.find(v =>
-          v.empresa.toLowerCase() === empresa.toLowerCase() ||
-          v.notas?.includes(email.id)
-        );
-        if (!jaExiste) {
-          const novaVaga = {
-            id: Date.now() + Math.random(),
-            empresa,
-            cargo,
-            canal: email.de_nome?.includes('LinkedIn') ? 'LinkedIn' : 'Email',
-            prioridade: email.categoria === 'retorno_positivo' ? 'alta' : 'media',
-            status: 'radar',
-            salario: '',
-            proxima: 'Analisar vaga com Anti-ATS',
-            notas: `Email: ${email.de_email} | ${email.motivo || ''} | id:${email.id}`,
-            data: new Date().toLocaleDateString('pt-BR'),
-            emailPreview: email.preview?.substring(0, 200),
-          };
-          vagas.push(novaVaga);
-        }
+        let cargo = (email.assunto || '').substring(0, 70);
+
+        // Padrão: "Cargo na empresa Empresa"
+        const m1 = (email.assunto||'').match(/^(.+?)\s+na empresa\s+(.+)/i);
+        if (m1) { cargo = m1[1].trim(); empresa = m1[2].trim(); }
+
+        // Padrão LinkedIn: "cargo de CARGO da Empresa"
+        const m2 = (email.assunto||'').match(/cargo de (.+?) da (.+)/i);
+        if (m2) { cargo = m2[1].trim(); empresa = m2[2].trim(); }
+
+        const novaVaga = {
+          id: Date.now() + Math.random(),
+          empresa: empresa.substring(0, 40),
+          cargo: cargo.substring(0, 60),
+          canal: (email.de_nome||'').toLowerCase().includes('linkedin') ? 'LinkedIn' :
+                 (email.de_nome||'').toLowerCase().includes('michael page') ? 'Headhunter' : 'Email',
+          prioridade: email.categoria === 'retorno_positivo' ? 'alta' :
+                      email.categoria === 'contato_hunter' ? 'alta' : 'media',
+          status: 'radar',
+          salario: '',
+          proxima: 'Analisar com Anti-ATS',
+          notas: `[${email.emoji||'📧'} ${email.categoria}] ${email.motivo||''} | email_id:${email.id}`,
+          data: new Date().toLocaleDateString('pt-BR'),
+          emailPreview: (email.preview||'').substring(0, 300),
+          emailAssunto: email.assunto || '',
+          emailDe: email.de_email || '',
+        };
+        vagas.push(novaVaga);
+        adicionados++;
       });
-      saveVagas();
-      renderHomeStats();
+
+      if (adicionados > 0) {
+        saveVagas();
+        renderHomeStats();
+      }
     }
-
-    // Renderizar cards de leads
-    if (novos.length === 0) {
-      container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
-        <div style="font-size:24px;margin-bottom:8px;">✅</div>
-        <div style="font-size:13px;color:var(--text3);">Nenhum email novo. Você está em dia!</div>
-      </div>`;
-      return;
-    }
-
-    const ordem = ['retorno_positivo','contato_hunter','pipeline_ativo','vaga_nova','retorno_negativo'];
-    novos.sort((a,b) => (ordem.indexOf(a.categoria)||99) - (ordem.indexOf(b.categoria)||99));
-
-    container.innerHTML = novos.map(email => {
-      const cfg = CATEGORIA_CONFIG[email.categoria] || CATEGORIA_CONFIG.irrelevante;
-      const data2 = new Date(email.recebido);
-      const diffH = Math.round((new Date() - data2) / 36e5);
-      const tempoStr = diffH < 1 ? 'agora' : diffH < 24 ? `${diffH}h atrás` : diffH < 48 ? 'ontem' : `${Math.round(diffH/24)}d atrás`;
-      const assuntoLimpo = (email.assunto||'').replace(/\r?\n/g,'').substring(0,70);
-      const previewLimpo = (email.preview||'').replace(/\r?\n|\s+/g,' ').trim().substring(0,100);
-
-      // Detectar empresa para abrir card
-      let empresaCard = email.de_nome || '';
-      const match = (email.assunto||'').match(/na empresa\s+(.+)/i);
-      if(match) empresaCard = match[1].trim();
-
-      return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${cfg.cor};border-radius:var(--radius);padding:10px 13px;margin-bottom:7px;cursor:pointer;transition:all 0.15s;"
-        onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow=''"
-        onclick="irParaVaga('${empresaCard.replace(/'/g,"\\'")}')">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
-          <span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:${cfg.bg};color:${cfg.cor};">${cfg.emoji} ${cfg.label}</span>
-          <span style="font-size:11px;color:var(--text3);margin-left:auto;">${tempoStr}</span>
-          ${!email.lido ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--action);flex-shrink:0;"></span>' : ''}
-        </div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:1px;">${email.de_nome||email.de_email}</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:3px;">${assuntoLimpo}</div>
-        <div style="font-size:11.5px;color:var(--text3);">${previewLimpo}</div>
-      </div>`;
-    }).join('');
 
   } catch(e) {
-    container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
-      <div style="font-size:13px;color:var(--red);">Erro ao carregar emails: ${e.message}</div>
-    </div>`;
+    document.getElementById('home-banner-text').textContent = `Erro: ${e.message}`;
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M13.5 2.5v3h-3"/></svg> Atualizar';
