@@ -283,55 +283,60 @@ select option { background: var(--bg2); }
       <button class="btn btn-gold btn-sm" onclick="showPage('crm')" style="flex-shrink:0;">Ver Pipeline →</button>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;">
 
-      <!-- Emails -->
-      <div>
-        <div class="section-head" style="margin-bottom:12px;">
-          <span class="section-title">📬 Caixa de Entrada Relevante</span>
-          <span style="font-size:11px;color:var(--text3);" id="home-email-meta"></span>
-        </div>
-        <div id="home-emails">
-          <div class="card" style="text-align:center;padding:40px;">
-            <div style="font-size:28px;margin-bottom:10px;opacity:0.3;">📬</div>
-            <div style="font-size:13px;color:var(--text3);">Carregando emails...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Próximas Ações -->
+      <!-- Próximas Ações (coluna principal) -->
       <div>
         <div class="section-head" style="margin-bottom:12px;">
           <span class="section-title">⚡ Próximas Ações</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes">
-          <div class="card-sm" style="border-left:3px solid var(--red);">
-            <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Urgente</div>
+        <div style="display:flex;flex-direction:column;gap:7px;" id="home-acoes">
+          <!-- Item emails novos (dinâmico) -->
+          <div id="home-acao-emails" style="display:none;" class="card-sm" style="border-left:3px solid var(--navy);cursor:pointer;" onclick="showPage('crm')">
+            <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📬 Novos leads</div>
+            <div style="font-size:13px;color:var(--text);" id="home-acao-emails-txt">Você tem emails novos no pipeline</div>
+          </div>
+          <div class="card-sm" style="border-left:3px solid var(--red);cursor:pointer;" onclick="irParaVaga('Dr. Charles London')">
+            <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔴 Urgente</div>
             <div style="font-size:13px;color:var(--text);">Enviar CV para Dr. Charles London (FUNEF)</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--amber);">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Esta semana</div>
+          <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaVaga('InBetta')">
+            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
             <div style="font-size:13px;color:var(--text);">Reunião InBetta — seg 12/mai 14h (CFO Tulini)</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--amber);">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Esta semana</div>
+          <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaContato('Aldo Mallucelli')">
+            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
             <div style="font-size:13px;color:var(--text);">Remarcar Aldo Mallucelli — semana 12/mai</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--action);">
-            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Média prioridade</div>
+          <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Priscilla Capellato')">
+            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
             <div style="font-size:13px;color:var(--text);">Follow-up Priscilla Capellato (Korn Ferry) — semana 12/mai</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--action);">
-            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Média prioridade</div>
+          <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Aldo Bergamasco')">
+            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
             <div style="font-size:13px;color:var(--text);">Enviar CV Aldo Bergamasco (Spencer Stuart)</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--action);">
-            <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Novo contato</div>
+          <div class="card-sm" style="border-left:3px solid var(--gold);cursor:pointer;" onclick="irParaContato('Alan Ceppini')">
+            <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">⭐ Novo contato</div>
             <div style="font-size:13px;color:var(--text);">Alan Ceppini — RICTV/Jovem Pan (indicação Heleni)</div>
           </div>
-          <div class="card-sm" style="border-left:3px solid var(--border2);">
-            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Marcar</div>
+          <div class="card-sm" style="border-left:3px solid var(--border2);cursor:pointer;" onclick="irParaContato('Eduardo Bosquetti')">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📅 Marcar</div>
             <div style="font-size:13px;color:var(--text);">Café Eduardo Bosquetti + missa Sta Terezinha 7h30</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leads do Pipeline (coluna direita) -->
+      <div>
+        <div class="section-head" style="margin-bottom:12px;">
+          <span class="section-title">📋 Leads no Pipeline</span>
+          <span style="font-size:11px;color:var(--text3);" id="home-email-meta"></span>
+        </div>
+        <div id="home-emails">
+          <div class="card" style="text-align:center;padding:32px;">
+            <div class="loader" style="justify-content:center;margin-bottom:10px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div style="font-size:13px;color:var(--text3);">Verificando emails...</div>
           </div>
         </div>
       </div>
@@ -664,6 +669,10 @@ select option { background: var(--bg2); }
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
+        <button class="btn btn-ghost" onclick="analisarVagaATS()" id="mv-ats-btn" title="Analisar com Anti-ATS">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/></svg>
+          Anti-ATS
+        </button>
         <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
     </div>
@@ -1246,6 +1255,14 @@ function saveVaga(){
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
 }
+function analisarVagaATS() {
+  const empresa = document.getElementById('mv-empresa').value.trim();
+  const cargo = document.getElementById('mv-cargo').value.trim();
+  const notas = document.getElementById('mv-notas').value.trim();
+  closeVagaModal();
+  abrirAntiATS(empresa, cargo, notas);
+}
+
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
   if(!confirm('Remover esta vaga?'))return;
@@ -1507,13 +1524,50 @@ const CATEGORIA_CONFIG = {
   irrelevante:      { emoji:'—',  label:'Irrelevante',      cor:'var(--text3)', bg:'var(--bg3)' },
 };
 
+// Navegar direto para card de vaga no pipeline
+function irParaVaga(nomeEmpresa) {
+  showPage('crm');
+  setTimeout(()=>{
+    const v = vagas.find(x => x.empresa.toLowerCase().includes(nomeEmpresa.toLowerCase()));
+    if(v) openVagaModal(v.id);
+  }, 200);
+}
+
+// Navegar direto para contato no pipeline
+function irParaContato(nomeContato) {
+  showPage('crm');
+  setTimeout(()=>{
+    // Mudar para aba contatos
+    const btnContatos = document.querySelector('.topbar .lang-toggle .lang-btn:last-child');
+    if(btnContatos) setCrmTab('contatos', btnContatos);
+    setTimeout(()=>{
+      const c = contatos.find(x => x.nome.toLowerCase().includes(nomeContato.toLowerCase()));
+      if(c) openContatoModal(c.id);
+    }, 150);
+  }, 200);
+}
+
+// Abrir Anti-ATS com dados da vaga pré-preenchidos
+function abrirAntiATS(empresa, cargo, descricao) {
+  showPage('ats');
+  setTimeout(()=>{
+    const jdEl = document.getElementById('jd-input');
+    if(jdEl) jdEl.value = `Empresa: ${empresa}\nCargo: ${cargo}\n\n${descricao||''}`;
+    // Auto-iniciar análise se tiver descrição
+    if(descricao) runATS();
+  }, 200);
+}
+
 function initHome() {
   // Data/hora
   const agora = new Date();
   const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const hora = agora.getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  document.querySelector('#page-home .page-title').textContent = `${saudacao}, Marcos`;
   document.getElementById('home-data').textContent =
-    `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} · ${String(agora.getHours()).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
+    `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} · ${String(hora).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
 
   // Stats do CRM
   renderHomeStats();
@@ -1523,17 +1577,18 @@ function initHome() {
 }
 
 function renderHomeStats() {
-  const crm = JSON.parse(localStorage.getItem('senova_crm') || '{"vagas":[],"contatos":[]}');
-  const vagas = crm.vagas || [];
   const stats = [
-    { val: vagas.filter(v=>v.status==='radar').length,       label:'Leads novos' },
+    { val: vagas.filter(v=>v.status==='radar').length,        label:'Leads novos' },
     { val: vagas.filter(v=>v.status==='candidatado').length,  label:'Candidaturas' },
     { val: vagas.filter(v=>v.status==='andamento').length,    label:'Em andamento' },
     { val: vagas.filter(v=>v.status==='proposta').length,     label:'Propostas' },
-    { val: (crm.contatos||[]).length,                         label:'Contatos CRM' },
+    { val: contatos.length,                                    label:'Contatos CRM' },
   ];
   document.getElementById('home-stats').innerHTML = stats.map(s=>
-    `<div class="stat"><div class="stat-val">${s.val}</div><div class="stat-label">${s.label}</div></div>`
+    `<div class="stat" style="cursor:pointer;" onclick="showPage('crm')">
+      <div class="stat-val">${s.val}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`
   ).join('');
 }
 
@@ -1541,11 +1596,11 @@ async function carregarEmails() {
   const btn = document.getElementById('home-refresh-btn');
   const container = document.getElementById('home-emails');
   btn.disabled = true;
-  btn.innerHTML = '<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  btn.innerHTML = '<div class="loader" style="display:inline-flex"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
 
-  container.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
+  container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
     <div class="loader" style="justify-content:center;margin-bottom:10px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    <div style="font-size:13px;color:var(--text3);">Analisando sua caixa com IA...</div>
+    <div style="font-size:13px;color:var(--text3);">Analisando caixa com IA...</div>
   </div>`;
 
   try {
@@ -1553,91 +1608,132 @@ async function carregarEmails() {
     const data = await resp.json();
 
     if (data.erro === 'outlook_desconectado' || data.erro === 'token_expirado') {
-      container.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
-        <div style="font-size:28px;margin-bottom:10px;">🔌</div>
-        <div style="font-family:var(--font-display);font-size:16px;color:var(--navy);margin-bottom:8px;">Outlook não conectado</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Conecte sua conta para ver os emails aqui.</div>
-        <a href="${WORKER_URL}/api/auth/outlook" target="_blank" class="btn btn-primary" style="text-decoration:none;">Conectar Outlook</a>
+      container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
+        <div style="font-size:24px;margin-bottom:10px;">🔌</div>
+        <div style="font-family:var(--font-display);font-size:15px;color:var(--navy);margin-bottom:8px;">Outlook não conectado</div>
+        <a href="${WORKER_URL}/api/auth/outlook" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">Conectar Outlook</a>
       </div>`;
       return;
     }
 
     const novos = data.novos || [];
-    const totalNovos = novos.length;
     const irrelevantes = data.irrelevantes_novos || 0;
 
-    // Badge no menu
-    if (totalNovos > 0) {
+    // Atualizar item de ação de emails na sidebar esquerda
+    const acaoEmails = document.getElementById('home-acao-emails');
+    const acaoTxt = document.getElementById('home-acao-emails-txt');
+    if (novos.length > 0) {
+      acaoEmails.style.display = 'block';
+      acaoTxt.textContent = `Você tem ${novos.length} email${novos.length>1?'s':''} novo${novos.length>1?'s':''} no pipeline`;
+      // Badge no menu home
       const badge = document.getElementById('home-badge');
-      badge.textContent = totalNovos;
+      badge.textContent = novos.length;
       badge.style.display = '';
+    } else {
+      acaoEmails.style.display = 'none';
+      document.getElementById('home-badge').style.display = 'none';
     }
 
     // Meta info
     document.getElementById('home-email-meta').textContent =
-      `${totalNovos} novos relevantes · ${irrelevantes} irrelevantes filtrados · ${data.total_ja_vistos} já vistos`;
+      `${novos.length} novos · ${irrelevantes} filtrados · ${data.total_ja_vistos} já vistos`;
 
     // Banner IA
     const temUrgente = novos.some(e => e.categoria === 'retorno_positivo');
     const vagasNovas = novos.filter(e => e.categoria === 'vaga_nova').length;
     const hunters = novos.filter(e => e.categoria === 'contato_hunter').length;
     let bannerTxt = '';
-    if (totalNovos === 0) {
-      bannerTxt = 'Sua caixa está em dia. Nenhum email novo relevante desde a última verificação.';
+    if (novos.length === 0) {
+      bannerTxt = 'Caixa em dia — nenhum email novo relevante.';
     } else {
       const partes = [];
-      if (temUrgente) partes.push('🟢 <strong>Retorno positivo</strong> recebido — verifique agora!');
-      if (vagasNovas > 0) partes.push(`📋 <strong>${vagasNovas} vaga${vagasNovas>1?'s':''} nova${vagasNovas>1?'s':''}</strong> alinhada${vagasNovas>1?'s':''} ao seu perfil`);
-      if (hunters > 0) partes.push(`🎯 <strong>${hunters} headhunter${hunters>1?'s':''}</strong> em contato`);
-      if (partes.length === 0) partes.push(`${totalNovos} email${totalNovos>1?'s':''} novo${totalNovos>1?'s':''} para revisar`);
+      if (temUrgente) partes.push('🟢 <strong>Retorno positivo</strong> recebido!');
+      if (vagasNovas > 0) partes.push(`📋 <strong>${vagasNovas} vaga${vagasNovas>1?'s':''} nova${vagasNovas>1?'s':''}</strong>`);
+      if (hunters > 0) partes.push(`🎯 <strong>${hunters} headhunter${hunters>1?'s':''}</strong>`);
+      if (partes.length === 0) partes.push(`${novos.length} email${novos.length>1?'s':''} para revisar`);
       bannerTxt = partes.join(' · ');
     }
     document.getElementById('home-banner-text').innerHTML = bannerTxt;
 
-    // Renderizar emails
+    // Adicionar emails novos como Leads no Pipeline automaticamente
+    if (novos.length > 0) {
+      novos.forEach(email => {
+        if (email.categoria === 'irrelevante') return;
+        // Extrair empresa e cargo do assunto
+        const assunto = email.assunto || '';
+        let empresa = email.de_nome || 'Desconhecido';
+        let cargo = assunto.substring(0, 60);
+        // Detectar padrão "Cargo na empresa Empresa"
+        const match = assunto.match(/(.+?)\s+na empresa\s+(.+)/i);
+        if (match) { cargo = match[1].trim(); empresa = match[2].trim(); }
+        // Verificar se já existe no pipeline
+        const jaExiste = vagas.find(v =>
+          v.empresa.toLowerCase() === empresa.toLowerCase() ||
+          v.notas?.includes(email.id)
+        );
+        if (!jaExiste) {
+          const novaVaga = {
+            id: Date.now() + Math.random(),
+            empresa,
+            cargo,
+            canal: email.de_nome?.includes('LinkedIn') ? 'LinkedIn' : 'Email',
+            prioridade: email.categoria === 'retorno_positivo' ? 'alta' : 'media',
+            status: 'radar',
+            salario: '',
+            proxima: 'Analisar vaga com Anti-ATS',
+            notas: `Email: ${email.de_email} | ${email.motivo || ''} | id:${email.id}`,
+            data: new Date().toLocaleDateString('pt-BR'),
+            emailPreview: email.preview?.substring(0, 200),
+          };
+          vagas.push(novaVaga);
+        }
+      });
+      saveVagas();
+      renderHomeStats();
+    }
+
+    // Renderizar cards de leads
     if (novos.length === 0) {
-      container.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
-        <div style="font-size:28px;margin-bottom:10px;">✅</div>
-        <div style="font-size:13px;color:var(--text3);">Nenhum email novo relevante. Você está em dia!</div>
+      container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
+        <div style="font-size:24px;margin-bottom:8px;">✅</div>
+        <div style="font-size:13px;color:var(--text3);">Nenhum email novo. Você está em dia!</div>
       </div>`;
       return;
     }
 
-    // Ordenar: retorno_positivo > contato_hunter > pipeline_ativo > vaga_nova > retorno_negativo
     const ordem = ['retorno_positivo','contato_hunter','pipeline_ativo','vaga_nova','retorno_negativo'];
     novos.sort((a,b) => (ordem.indexOf(a.categoria)||99) - (ordem.indexOf(b.categoria)||99));
 
     container.innerHTML = novos.map(email => {
       const cfg = CATEGORIA_CONFIG[email.categoria] || CATEGORIA_CONFIG.irrelevante;
-      const data = new Date(email.recebido);
-      const agora2 = new Date();
-      const diffH = Math.round((agora2 - data) / 36e5);
-      const tempoStr = diffH < 1 ? 'agora' : diffH < 24 ? `${diffH}h atrás` :
-        diffH < 48 ? 'ontem' : `${Math.round(diffH/24)}d atrás`;
+      const data2 = new Date(email.recebido);
+      const diffH = Math.round((new Date() - data2) / 36e5);
+      const tempoStr = diffH < 1 ? 'agora' : diffH < 24 ? `${diffH}h atrás` : diffH < 48 ? 'ontem' : `${Math.round(diffH/24)}d atrás`;
+      const assuntoLimpo = (email.assunto||'').replace(/\r?\n/g,'').substring(0,70);
+      const previewLimpo = (email.preview||'').replace(/\r?\n|\s+/g,' ').trim().substring(0,100);
 
-      const assuntoLimpo = email.assunto.replace(/\r?\n/g,'').substring(0,80);
-      const previewLimpo = email.preview.replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim().substring(0,120);
+      // Detectar empresa para abrir card
+      let empresaCard = email.de_nome || '';
+      const match = (email.assunto||'').match(/na empresa\s+(.+)/i);
+      if(match) empresaCard = match[1].trim();
 
-      return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${cfg.cor};border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;"
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${cfg.cor};border-radius:var(--radius);padding:10px 13px;margin-bottom:7px;cursor:pointer;transition:all 0.15s;"
         onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow=''"
-        onclick="abrirEmail('${email.de_email}','${encodeURIComponent(email.assunto)}')">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cfg.bg};color:${cfg.cor};">${cfg.emoji} ${cfg.label}</span>
+        onclick="irParaVaga('${empresaCard.replace(/'/g,"\\'")}')">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+          <span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:${cfg.bg};color:${cfg.cor};">${cfg.emoji} ${cfg.label}</span>
           <span style="font-size:11px;color:var(--text3);margin-left:auto;">${tempoStr}</span>
-          ${!email.lido ? '<span style="width:7px;height:7px;border-radius:50%;background:var(--action);flex-shrink:0;"></span>' : ''}
+          ${!email.lido ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--action);flex-shrink:0;"></span>' : ''}
         </div>
-        <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:2px;">${email.de_nome || email.de_email}</div>
-        <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px;">${assuntoLimpo}</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.5;">${previewLimpo}</div>
-        ${email.motivo ? `<div style="font-size:11px;color:${cfg.cor};margin-top:6px;font-style:italic;">${email.motivo}</div>` : ''}
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:1px;">${email.de_nome||email.de_email}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:3px;">${assuntoLimpo}</div>
+        <div style="font-size:11.5px;color:var(--text3);">${previewLimpo}</div>
       </div>`;
     }).join('');
 
   } catch(e) {
-    container.innerHTML = `<div class="card" style="text-align:center;padding:40px;">
-      <div style="font-size:28px;margin-bottom:10px;">⚠️</div>
-      <div style="font-size:13px;color:var(--red);">Erro ao carregar emails. Verifique a conexão com o Worker.</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;">${e.message}</div>
+    container.innerHTML = `<div class="card" style="text-align:center;padding:32px;">
+      <div style="font-size:13px;color:var(--red);">Erro ao carregar emails: ${e.message}</div>
     </div>`;
   } finally {
     btn.disabled = false;
