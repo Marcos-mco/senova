@@ -1079,7 +1079,8 @@ function downloadPDF() {
       const ehCargo = txt.includes('·') && txt.includes('/');
       doc.setFont('helvetica', ehCargo?'bold':'normal');
       doc.setFontSize(ehCargo?9:8.5);
-      doc.setTextColor(ehCargo?...navy:...cinza);
+      if(ehCargo){ doc.setTextColor(navy[0],navy[1],navy[2]); }
+      else { doc.setTextColor(cinza[0],cinza[1],cinza[2]); }
       const wrapped = doc.splitTextToSize('  • '+txt, conteudoW-4);
       wrapped.forEach(wl=>{
         if(y>H-20){doc.addPage();y=18;}
