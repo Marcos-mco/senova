@@ -1013,7 +1013,7 @@ function downloadPDF() {
   const bgLight=[247,245,240];
 
   // ── Cabeçalho navy ──
-  doc.setFillColor(...navy);
+  doc.setFillColor(26,58,92);
   doc.rect(0,0,W,38,'F');
 
   // Nome
@@ -1034,7 +1034,7 @@ function downloadPDF() {
   doc.text('(41) 99615-2224  ·  marcos_mco@hotmail.com  ·  linkedin.com/in/marcos-ribeiro-franco-69153a12  ·  Curitiba, PR',margL,30);
 
   // ── Linha dourada ──
-  doc.setFillColor(...gold);
+  doc.setFillColor(201,168,76);
   doc.rect(0,38,W,1.2,'F');
 
   // ── Processar o CV em seções ──
@@ -1060,13 +1060,13 @@ function downloadPDF() {
     if(ehSecao(l)){
       // Seção com fundo leve e linha dourada
       y+=3;
-      doc.setFillColor(...bgLight);
+      doc.setFillColor(247,245,240);
       doc.rect(margL-2, y-4, conteudoW+4, 6.5,'F');
-      doc.setFillColor(...gold);
+      doc.setFillColor(201,168,76);
       doc.rect(margL-2, y+2.5, 28, 0.8,'F');
       doc.setFont('helvetica','bold');
       doc.setFontSize(8.5);
-      doc.setTextColor(...navy);
+      doc.setTextColor(26,58,92);
       doc.text(l.toUpperCase(), margL, y+1);
       y+=8;
       return;
@@ -1093,7 +1093,7 @@ function downloadPDF() {
     // Texto normal
     doc.setFont('helvetica','normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(...cinza);
+    doc.setTextColor(74,71,64);
     const wrapped = doc.splitTextToSize(l, conteudoW);
     wrapped.forEach(wl=>{
       if(y>H-20){doc.addPage();y=18;}
@@ -1106,9 +1106,9 @@ function downloadPDF() {
   const totalPags = doc.internal.getNumberOfPages();
   for(let p=1;p<=totalPags;p++){
     doc.setPage(p);
-    doc.setFillColor(...navy);
+    doc.setFillColor(26,58,92);
     doc.rect(0,H-10,W,10,'F');
-    doc.setTextColor(...gold);
+    doc.setTextColor(201,168,76);
     doc.setFontSize(7);
     doc.setFont('helvetica','normal');
     doc.text('Marcos Franco  ·  Executivo de Marketing & Crescimento', margL, H-4);
