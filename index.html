@@ -181,7 +181,31 @@ select option { background: var(--bg2); }
 .contact-name { font-size: 14px; font-weight: 600; color: var(--text); }
 .contact-role { font-size: 12px; color: var(--text3); }
 .contact-next { font-size: 12px; color: var(--text2); margin-left: auto; text-align: right; max-width: 200px; }
+/* CONTACT LIST */
+.contact-list { display: flex; flex-direction: column; gap: 8px; }
+.contact-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s; }
+.contact-item:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+.contact-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,var(--navy),var(--action)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.contact-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.contact-role { font-size: 12px; color: var(--text3); }
+.contact-next { font-size: 12px; color: var(--text2); margin-left: auto; text-align: right; max-width: 200px; }
 .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── HOME / COCKPIT ── */
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.email-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: all 0.15s; }
+.email-item:hover { border-color: var(--border2); box-shadow: var(--shadow); transform: translateY(-1px); }
+.email-emoji { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.email-from { font-size: 12px; font-weight: 700; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.email-subject { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.email-resumo { font-size: 11.5px; color: var(--text3); line-height: 1.5; margin-top: 2px; }
+.email-date { font-size: 10.5px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+.outlook-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #0078D4; color: #fff; border: none; border-radius: var(--radius); font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.15s; width: 100%; justify-content: center; }
+.outlook-btn:hover { opacity: 0.88; }
+.home-stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+.home-stat-num { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--navy); line-height: 1; }
+.home-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.home-stat-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -203,7 +227,13 @@ select option { background: var(--bg2); }
 
   <div class="sidebar-section">
     <div class="sidebar-label">Ferramentas</div>
-    <div class="nav-item active" onclick="showPage('ats')" id="nav-ats">
+    <div class="nav-item active" onclick="showPage('home')" id="nav-home">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2 6.5L8 2l6 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6.5Z"/><path d="M6 15V9h4v6"/>
+      </svg>
+      Home
+    </div>
+    <div class="nav-item" onclick="showPage('ats')" id="nav-ats">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="7.5" y2="10.5"/>
       </svg>
@@ -246,6 +276,103 @@ select option { background: var(--bg2); }
      MAIN
 ══════════════════════════════════ -->
 <main class="main">
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: HOME (cockpit)      │
+     └─────────────────────────────┘ -->
+<div id="page-home" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Bom dia, Marcos</span>
+      <span class="page-sub" id="home-date"></span>
+    </div>
+    <div class="topbar-right">
+      <button id="outlook-status-btn" onclick="toggleOutlook()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);color:var(--text2);">
+        <div id="outlook-dot" style="width:7px;height:7px;border-radius:50%;background:#9CA3AF;"></div>
+        <span id="outlook-label">Outlook</span>
+      </button>
+      <button onclick="carregarEmails()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text2);">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 8A6 6 0 1 1 8 2"/><path d="M14 2v4h-4"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- Stats rápidos -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;" id="home-stats-row">
+      <div class="home-stat">
+        <div><div class="home-stat-label">Pipeline ativo</div><div class="home-stat-num" id="stat-pipeline">—</div><div class="home-stat-sub">vagas em andamento</div></div>
+      </div>
+      <div class="home-stat">
+        <div><div class="home-stat-label">Candidaturas</div><div class="home-stat-num" id="stat-candidatados">—</div><div class="home-stat-sub">aguardando retorno</div></div>
+      </div>
+      <div class="home-stat">
+        <div><div class="home-stat-label">E-mails novos</div><div class="home-stat-num" id="stat-emails">—</div><div class="home-stat-sub">relevantes hoje</div></div>
+      </div>
+      <div class="home-stat">
+        <div><div class="home-stat-label">Plano B</div><div class="home-stat-num">3</div><div class="home-stat-sub">oportunidades ativas</div></div>
+      </div>
+    </div>
+
+    <div class="home-grid">
+      <!-- E-mails -->
+      <div>
+        <div class="section-head">
+          <span class="section-title">Caixa de entrada relevante</span>
+          <button onclick="limparVistos()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 6px;">Recarregar tudo</button>
+        </div>
+        <div id="email-area">
+          <div class="card" style="padding:30px;text-align:center;">
+            <div id="outlook-connect-area">
+              <div style="font-size:32px;margin-bottom:12px;">📧</div>
+              <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;">Outlook não conectado</div>
+              <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Conecte seu Outlook para ver e-mails relevantes filtrados por IA</div>
+              <button class="outlook-btn" onclick="conectarOutlook()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10a2 2 0 0 1 2 2v1H5V4a2 2 0 0 1 2-2zm-2 5h14l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 7z"/></svg>
+                Conectar Outlook
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Próximas ações -->
+      <div>
+        <div class="section-head">
+          <span class="section-title">Próximas ações</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="card" style="padding:14px 18px;border-left:3px solid #D97706;">
+            <div style="font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Hoje — Plano B</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">InBetta — Reunião briefing 14h</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">CFO Tulini · PMO leve integrado · papel Silver</div>
+          </div>
+          <div class="card" style="padding:14px 18px;border-left:3px solid #2563EB;">
+            <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Seg 12/mai — Plano A</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">Aldo Mallucelli — Remarcar</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">Amigo estratégico · pendente</div>
+          </div>
+          <div class="card" style="padding:14px 18px;border-left:3px solid #059669;">
+            <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Ter 12/mai</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">Preparação reunião Alan Ceppini (RIC)</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">Reunião real: Qua 13/mai 15h · Prestinaria</div>
+          </div>
+          <div class="card" style="padding:14px 18px;border-left:3px solid #7C3AED;">
+            <div style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Qua 13/mai — Plano A</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">Alan Ceppini — RICTV / Jovem Pan / Banda B</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">15h · Prestinaria Casa de Pães · Rua Mateus Leme 3440</div>
+          </div>
+          <div class="card" style="padding:14px 18px;border-left:3px solid #9CA3AF;">
+            <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Plano A — Headhunters</div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">Priscilla Capellato (Korn Ferry)</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px;">Mensagem enviada 22/abr · follow-up semana 12/mai</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ┌─────────────────────────────┐
      │  PAGE: ANTI-ATS            │
@@ -704,7 +831,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['ats','linkedin','crm','interview'];
+const PAGES = ['home','ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -713,6 +840,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') renderCRM();
+  if(page==='home') { atualizarStatsHome(); carregarEmails(); }
 }
 
 // ═══════════════════════════════════════════════
@@ -1450,10 +1578,154 @@ function resetInterview(){
 }
 
 // ═══════════════════════════════════════════════
+//  HOME — OUTLOOK + EMAILS
+// ═══════════════════════════════════════════════
+const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
+
+// Atualiza data na Home
+(function(){
+  const el = document.getElementById('home-date');
+  if(el) el.textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+})();
+
+async function checkOutlookStatus() {
+  try {
+    const res = await fetch(`${WORKER_URL}/health`);
+    const data = await res.json();
+    const dot = document.getElementById('outlook-dot');
+    const label = document.getElementById('outlook-label');
+    if(!dot || !label) return;
+    if(data.outlook === 'conectado') {
+      dot.style.background = '#1A7A4A';
+      label.textContent = 'Outlook conectado';
+      document.getElementById('outlook-connect-area') && (document.getElementById('outlook-connect-area').style.display = 'none');
+      return true;
+    } else {
+      dot.style.background = '#9CA3AF';
+      label.textContent = 'Outlook';
+      return false;
+    }
+  } catch { return false; }
+}
+
+function conectarOutlook() {
+  window.open(`${WORKER_URL}/api/auth/outlook`, '_blank', 'width=500,height=600');
+  // Verifica status após 10s
+  setTimeout(async () => {
+    const ok = await checkOutlookStatus();
+    if(ok) carregarEmails();
+  }, 10000);
+}
+
+async function toggleOutlook() {
+  const ok = await checkOutlookStatus();
+  if(ok) {
+    if(confirm('Desconectar o Outlook?')) {
+      await fetch(`${WORKER_URL}/api/auth/outlook`, { method: 'DELETE' });
+      checkOutlookStatus();
+    }
+  } else {
+    conectarOutlook();
+  }
+}
+
+async function carregarEmails() {
+  const area = document.getElementById('email-area');
+  if(!area) return;
+
+  const connected = await checkOutlookStatus();
+  if(!connected) {
+    area.innerHTML = `<div class="card" style="padding:30px;text-align:center;">
+      <div id="outlook-connect-area">
+        <div style="font-size:32px;margin-bottom:12px;">📧</div>
+        <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;">Outlook não conectado</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Conecte para ver e-mails relevantes filtrados por IA</div>
+        <button class="outlook-btn" onclick="conectarOutlook()">Conectar Outlook</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  area.innerHTML = `<div class="card" style="padding:30px;text-align:center;">
+    <div class="loader" style="justify-content:center;margin-bottom:10px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div style="font-size:13px;color:var(--text3);">Buscando e-mails · filtrando com IA...</div>
+  </div>`;
+
+  try {
+    const res = await fetch(`${WORKER_URL}/api/emails`);
+    const data = await res.json();
+
+    if(data.reauth) {
+      area.innerHTML = `<div class="card" style="padding:24px;text-align:center;">
+        <div style="font-size:13px;color:var(--amber);margin-bottom:12px;">Sessão expirada. Reconecte o Outlook.</div>
+        <button class="outlook-btn" onclick="conectarOutlook()">Reconectar Outlook</button>
+      </div>`;
+      return;
+    }
+
+    // Atualiza stat de emails
+    const statEl = document.getElementById('stat-emails');
+    if(statEl) statEl.textContent = data.total_relevantes || 0;
+
+    const emails = data.emails || [];
+    if(!emails.length) {
+      area.innerHTML = `<div class="card" style="padding:24px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px;">✅</div>
+        <div style="font-size:14px;font-weight:600;color:var(--navy);">Nenhum e-mail novo relevante</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">${data.total_lidos || 0} e-mails lidos · ${data.total_novos || 0} novos verificados</div>
+      </div>`;
+      return;
+    }
+
+    const items = emails.map(e => {
+      const dt = new Date(e.date).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const href = `mailto:${e.from}?subject=Re: ${encodeURIComponent(e.subject)}`;
+      return `<div class="email-item" onclick="window.location.href='${href}'" title="${e.subject}">
+        <div class="email-emoji">${e.emoji || '📧'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+            <div class="email-from">${e.from_name || e.from}</div>
+            <div class="email-date" style="margin-left:auto;">${dt}</div>
+          </div>
+          <div class="email-subject">${e.subject}</div>
+          ${e.resumo ? `<div class="email-resumo">${e.resumo}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    area.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">${data.total_lidos} lidos · ${data.total_novos} novos · ${emails.length} relevantes</div>
+      ${items}
+    </div>`;
+
+  } catch(err) {
+    area.innerHTML = `<div class="card" style="padding:20px;"><div style="color:var(--red);font-size:13px;">Erro ao carregar e-mails: ${err.message}</div></div>`;
+  }
+}
+
+async function limparVistos() {
+  await fetch(`${WORKER_URL}/api/emails/limpar-vistos`, { method: 'DELETE' });
+  carregarEmails();
+}
+
+function atualizarStatsHome() {
+  try {
+    const pipeline = vagas.filter(v => v.status === 'andamento').length;
+    const candidatados = vagas.filter(v => v.status === 'candidatado').length;
+    const sp = document.getElementById('stat-pipeline');
+    const sc = document.getElementById('stat-candidatados');
+    if(sp) sp.textContent = pipeline;
+    if(sc) sc.textContent = candidatados;
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 loadCRM();
-showPage('ats');
+showPage('home');
+checkOutlookStatus();
+atualizarStatsHome();
 </script>
 </body>
 </html>
