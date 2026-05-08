@@ -203,14 +203,7 @@ select option { background: var(--bg2); }
 
   <div class="sidebar-section">
     <div class="sidebar-label">Ferramentas</div>
-    <div class="nav-item active" onclick="showPage('home')" id="nav-home">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M2 7L8 2l6 5v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Z"/><path d="M6 16v-5h4v5"/>
-      </svg>
-      Home
-      <span class="nav-badge" id="home-badge" style="display:none;">0</span>
-    </div>
-    <div class="nav-item" onclick="showPage('ats')" id="nav-ats">
+    <div class="nav-item active" onclick="showPage('ats')" id="nav-ats">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="7.5" y2="10.5"/>
       </svg>
@@ -253,84 +246,6 @@ select option { background: var(--bg2); }
      MAIN
 ══════════════════════════════════ -->
 <main class="main">
-
-<!-- ┌─────────────────────────────┐
-     │  PAGE: HOME                │
-     └─────────────────────────────┘ -->
-<div id="page-home" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
-  <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Bom dia, Marcos</span>
-      <span class="page-sub" id="home-data"></span>
-    </div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="carregarEmails()" id="home-refresh-btn">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M13.5 2.5v3h-3"/></svg>
-        Atualizar
-      </button>
-      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
-    </div>
-  </div>
-  <div class="content">
-
-    <!-- Stats -->
-    <div class="stats" id="home-stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;"></div>
-
-    <!-- Banner IA -->
-    <div id="home-banner" style="background:linear-gradient(135deg,rgba(26,58,92,0.06),rgba(201,168,76,0.08));border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius-lg);padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:20px;">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--action));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">✦</div>
-      <div style="flex:1;font-size:13.5px;color:var(--text2);line-height:1.6;" id="home-banner-text">Carregando sua caixa de entrada...</div>
-      <button class="btn btn-gold btn-sm" onclick="showPage('crm')" style="flex-shrink:0;">Ver Pipeline →</button>
-    </div>
-
-    <div style="max-width:560px;">
-
-      <!-- Próximas Ações — coluna única -->
-      <div class="section-head" style="margin-bottom:12px;">
-        <span class="section-title">⚡ Próximas Ações</span>
-        <span style="font-size:11px;color:var(--text3);" id="home-email-meta"></span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:7px;" id="home-acoes">
-
-        <!-- Item emails novos (dinâmico — aparece quando há novos) -->
-        <div id="home-acao-emails" style="display:none;background:var(--bg2);border:1px solid rgba(26,58,92,0.2);border-left:3px solid var(--navy);border-radius:var(--radius);padding:12px 16px;cursor:pointer;" onclick="showPage('crm')">
-          <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📬 Novos leads</div>
-          <div style="font-size:13.5px;color:var(--text);font-weight:600;" id="home-acao-emails-txt">Você tem emails novos no pipeline</div>
-          <div style="font-size:11.5px;color:var(--text3);margin-top:3px;">Clique para ver na coluna Radar →</div>
-        </div>
-
-        <div class="card-sm" style="border-left:3px solid var(--red);cursor:pointer;" onclick="irParaVaga('Charles London')">
-          <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔴 Urgente</div>
-          <div style="font-size:13px;color:var(--text);">Enviar CV para Dr. Charles London (FUNEF)</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaVaga('InBetta')">
-          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
-          <div style="font-size:13px;color:var(--text);">Reunião InBetta — seg 12/mai 14h (CFO Tulini)</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--amber);cursor:pointer;" onclick="irParaContato('Aldo Mallucelli')">
-          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🟡 Esta semana</div>
-          <div style="font-size:13px;color:var(--text);">Remarcar Aldo Mallucelli — semana 12/mai</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Priscilla Capellato')">
-          <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
-          <div style="font-size:13px;color:var(--text);">Follow-up Priscilla Capellato (Korn Ferry) — semana 12/mai</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--action);cursor:pointer;" onclick="irParaContato('Aldo Bergamasco')">
-          <div style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">🔵 Média prioridade</div>
-          <div style="font-size:13px;color:var(--text);">Enviar CV Aldo Bergamasco (Spencer Stuart)</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--gold);cursor:pointer;" onclick="irParaContato('Alan Ceppini')">
-          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">⭐ Novo contato</div>
-          <div style="font-size:13px;color:var(--text);">Alan Ceppini — RICTV/Jovem Pan (indicação Heleni)</div>
-        </div>
-        <div class="card-sm" style="border-left:3px solid var(--border2);cursor:pointer;" onclick="irParaContato('Eduardo Bosquetti')">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">📅 Marcar</div>
-          <div style="font-size:13px;color:var(--text);">Café Eduardo Bosquetti + missa Sta Terezinha 7h30</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ┌─────────────────────────────┐
      │  PAGE: ANTI-ATS            │
@@ -491,33 +406,6 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
-      <!-- Filtros -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Filtrar:</span>
-        <select id="filtro-prioridade" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
-          <option value="">Todas prioridades</option>
-          <option value="alta">🔴 Alta</option>
-          <option value="media">🟡 Média</option>
-          <option value="baixa">🔵 Baixa</option>
-        </select>
-        <select id="filtro-canal" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
-          <option value="">Todos canais</option>
-          <option value="LinkedIn">LinkedIn</option>
-          <option value="Headhunter">Headhunter</option>
-          <option value="Indicação">Indicação</option>
-          <option value="Email">Email</option>
-        </select>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
-          <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Ordenar:</span>
-          <select id="ordenar-por" onchange="renderCRM()" style="width:auto;padding:5px 10px;font-size:12px;border-radius:8px;">
-            <option value="data_desc">Mais recente</option>
-            <option value="data_asc">Mais antigo</option>
-            <option value="prioridade">Prioridade</option>
-            <option value="empresa">Empresa A-Z</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="limparFiltros()" style="font-size:11px;padding:5px 10px;">✕ Limpar</button>
-        </div>
-      </div>
       <div class="kanban" id="kanban-vagas"></div>
     </div>
 
@@ -677,25 +565,13 @@ select option { background: var(--bg2); }
       <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
     </div>
     <div class="form-row">
-      <label class="field-label">Email do destinatário (para envio do CV)</label>
-      <input type="email" id="mv-email-dest" placeholder="Ex: recrutador@empresa.com">
-    </div>
-    <div class="form-row">
       <label class="field-label">Notas</label>
       <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
-        <button class="btn btn-ghost" onclick="analisarVagaATS()" id="mv-ats-btn" title="Analisar com Anti-ATS">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/></svg>
-          Anti-ATS
-        </button>
-        <button class="btn btn-ghost" onclick="enviarCVOutlook()" id="mv-enviar-btn" title="Enviar CV via Outlook">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l6 5 6-5"/><rect x="1" y="3" width="14" height="10" rx="1.5"/></svg>
-          Enviar CV
-        </button>
         <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
     </div>
@@ -828,7 +704,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['home','ats','linkedin','crm','interview'];
+const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -837,7 +713,6 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') renderCRM();
-  if(page==='home') initHome();
 }
 
 // ═══════════════════════════════════════════════
@@ -908,7 +783,7 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch('https://senova-proxy.marcos-mco.workers.dev/api/claude',{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -954,9 +829,13 @@ function renderATSResult(analise,cv,crm) {
   }).join('');
 
   document.getElementById('result-area').innerHTML=`<div>
-    ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;">
+    ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
       <div style="font-family:var(--font-display);font-size:38px;font-weight:700;color:${col};line-height:1;letter-spacing:-1px;">${score}<span style="font-size:16px;color:var(--text3);font-weight:400;">/100</span></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
+      <div style="flex:1;min-width:120px;"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button onclick="candidatarVagaATS()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">✅ Me candidatar</button>
+        <button onclick="declinarVagaATS()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:var(--bg2);color:var(--text3);border:1.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">❌ Declinar</button>
+      </div>
     </div>`:''}
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('analise',this)">📊 Análise</button>
@@ -967,8 +846,8 @@ function renderATSResult(analise,cv,crm) {
     <div id="tab-cv" style="display:none;">
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
-        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc (ATS)</button>
-        <button class="copy-btn" onclick="downloadPDF()">📄 PDF Executivo</button>
+        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc</button>
+        <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
         <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
       </div>
       <div class="result-box" id="cv-txt">${cv}</div>
@@ -1000,123 +879,12 @@ function downloadDoc() {
 }
 function downloadPDF() {
   if(!window.jspdf){alert('jsPDF não carregado — tente recarregar a página.');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  const W=210, H=297;
-  const margL=18, margR=18, conteudoW=W-margL-margR;
-
-  // ── Cores ──
-  const navy=[26,58,92];
-  const gold=[201,168,76];
-  const texto=[26,26,22];
-  const cinza=[74,71,64];
-  const bgLight=[247,245,240];
-
-  // ── Cabeçalho navy ──
-  doc.setFillColor(26,58,92);
-  doc.rect(0,0,W,38,'F');
-
-  // Nome
-  doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(20);
-  doc.text('MARCOS FRANCO',margL,15);
-
-  // Título executivo
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(201,168,76);
-  doc.text('Executivo de Marketing & Crescimento  |  CMO · CSO · CEO',margL,22);
-
-  // Contatos no cabeçalho
-  doc.setTextColor(200,200,200);
-  doc.setFontSize(8);
-  doc.text('(41) 99615-2224  ·  marcos_mco@hotmail.com  ·  linkedin.com/in/marcos-ribeiro-franco-69153a12  ·  Curitiba, PR',margL,30);
-
-  // ── Linha dourada ──
-  doc.setFillColor(201,168,76);
-  doc.rect(0,38,W,1.2,'F');
-
-  // ── Processar o CV em seções ──
-  const linhasCV = lastCV.split('\n');
-  let y = 48;
-  const lineH = 5;
-  const lineHSm = 4.2;
-
-  // Palavras que indicam cabeçalho de seção
-  const ehSecao = (linha) => {
-    const l = linha.trim().toUpperCase();
-    return ['RESUMO','EXECUTIVE','EXPERIÊNCIA','EXPERIENCE','FORMAÇÃO','EDUCATION',
-            'IDIOMAS','LANGUAGES','DOCÊNCIA','TEACHING','HABILIDADES','SKILLS',
-            'CERTIFICAÇÕES','CERTIFICATIONS'].some(s => l.startsWith(s));
-  };
-
-  linhasCV.forEach(linha => {
-    if(y > H-20){ doc.addPage(); y=18; }
-
-    const l = linha.trim();
-    if(!l){ y+=2; return; }
-
-    if(ehSecao(l)){
-      // Seção com fundo leve e linha dourada
-      y+=3;
-      doc.setFillColor(247,245,240);
-      doc.rect(margL-2, y-4, conteudoW+4, 6.5,'F');
-      doc.setFillColor(201,168,76);
-      doc.rect(margL-2, y+2.5, 28, 0.8,'F');
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(26,58,92);
-      doc.text(l.toUpperCase(), margL, y+1);
-      y+=8;
-      return;
-    }
-
-    // Linha de empresa/cargo (começa com -)
-    if(l.startsWith('-') || l.startsWith('•')){
-      const txt = l.replace(/^[-•]\s*/,'');
-      // Verificar se é cargo principal (tem ·)
-      const ehCargo = txt.includes('·') && txt.includes('/');
-      doc.setFont('helvetica', ehCargo?'bold':'normal');
-      doc.setFontSize(ehCargo?9:8.5);
-      if(ehCargo){ doc.setTextColor(navy[0],navy[1],navy[2]); }
-      else { doc.setTextColor(cinza[0],cinza[1],cinza[2]); }
-      const wrapped = doc.splitTextToSize('  • '+txt, conteudoW-4);
-      wrapped.forEach(wl=>{
-        if(y>H-20){doc.addPage();y=18;}
-        doc.text(wl, margL+2, y);
-        y+=lineHSm;
-      });
-      return;
-    }
-
-    // Texto normal
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(74,71,64);
-    const wrapped = doc.splitTextToSize(l, conteudoW);
-    wrapped.forEach(wl=>{
-      if(y>H-20){doc.addPage();y=18;}
-      doc.text(wl, margL, y);
-      y+=lineHSm;
-    });
-  });
-
-  // ── Rodapé ──
-  const totalPags = doc.internal.getNumberOfPages();
-  for(let p=1;p<=totalPags;p++){
-    doc.setPage(p);
-    doc.setFillColor(26,58,92);
-    doc.rect(0,H-10,W,10,'F');
-    doc.setTextColor(201,168,76);
-    doc.setFontSize(7);
-    doc.setFont('helvetica','normal');
-    doc.text('Marcos Franco  ·  Executivo de Marketing & Crescimento', margL, H-4);
-    doc.setTextColor(150,150,150);
-    doc.text(`Página ${p} de ${totalPags}`, W-margR, H-4, {align:'right'});
-  }
-
-  doc.save(lastCVFilename+'_executivo.pdf');
+  const {jsPDF}=window.jspdf; const doc=new jsPDF();
+  doc.setFont('helvetica'); doc.setFontSize(10);
+  const linhas=doc.splitTextToSize(lastCV,180);
+  let y=20;
+  linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
+  doc.save(lastCVFilename+'.pdf');
 }
 function saveVagaFromCV() {
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
@@ -1127,6 +895,51 @@ function saveVagaFromCV() {
   vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k CLT',proxima:'Gerar .doc final e candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva no CRM! Acesse Pipeline CRM para acompanhar.`);
+}
+
+function candidatarVagaATS() {
+  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
+  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const keywords = crmTxt.match(/KEYWORDS:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const notas = [score?`Match ATS: ${score}/100`:'', keywords?`Keywords: ${keywords}`:''].filter(Boolean).join(' · ');
+  const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  if(idx>=0){
+    vagas[idx].status='candidatado';
+    vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
+    vagas[idx].notas=notas||vagas[idx].notas;
+    vagas[idx].data=hoje;
+  } else {
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k CLT',proxima:'Aguardar retorno — follow-up em 7 dias',notas,data:hoje});
+  }
+  saveVagas();
+  // Feedback visual no botão
+  const btns = document.querySelectorAll('#result-area button');
+  btns.forEach(b=>{ if(b.textContent.includes('candidatar')){ const orig=b.textContent; b.textContent='✅ Candidatura registrada!'; b.style.background='#1A7A4A'; setTimeout(()=>{b.textContent=orig;},3000); }});
+}
+
+function declinarVagaATS() {
+  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
+  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas = score?`Match ATS: ${score}/100 — Declinada`:'Declinada';
+  const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  if(idx>=0){
+    vagas[idx].status='encerrado';
+    vagas[idx].proxima='Vaga declinada via Anti-ATS';
+    vagas[idx].notas=notas||vagas[idx].notas;
+    vagas[idx].data=hoje;
+  } else {
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'encerrado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
+  }
+  saveVagas();
+  // Feedback visual no botão
+  const btns = document.querySelectorAll('#result-area button');
+  btns.forEach(b=>{ if(b.textContent.includes('Declinar')){ const orig=b.textContent; b.textContent='❌ Registrado como declinada'; setTimeout(()=>{b.textContent=orig;},3000); }});
 }
 
 // ═══════════════════════════════════════════════
@@ -1180,7 +993,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1303,31 +1116,10 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
-  // Kanban vagas com filtros
-  const filtroPrioridade = document.getElementById('filtro-prioridade')?.value || '';
-  const filtroCanal = document.getElementById('filtro-canal')?.value || '';
-  const ordenarPor = document.getElementById('ordenar-por')?.value || 'data_desc';
-
+  // Kanban vagas
   const cols=['radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    let cards=vagas.filter(v=>v.status===col);
-
-    // Aplicar filtros
-    if(filtroPrioridade) cards=cards.filter(v=>v.prioridade===filtroPrioridade);
-    if(filtroCanal) cards=cards.filter(v=>v.canal===filtroCanal);
-
-    // Ordenação
-    cards=[...cards].sort((a,b)=>{
-      if(ordenarPor==='prioridade'){
-        const ord={alta:0,media:1,baixa:2};
-        return (ord[a.prioridade]||1)-(ord[b.prioridade]||1);
-      }
-      if(ordenarPor==='empresa') return a.empresa.localeCompare(b.empresa);
-      // data_desc / data_asc
-      const da = a.data ? new Date(a.data.split('/').reverse().join('-')) : new Date(0);
-      const db = b.data ? new Date(b.data.split('/').reverse().join('-')) : new Date(0);
-      return ordenarPor==='data_asc' ? da-db : db-da;
-    });
+    const cards=vagas.filter(v=>v.status===col);
     return `<div>
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
@@ -1335,10 +1127,7 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
       ${cards.map(c=>`
         <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:2px;">
-            <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
-            ${c.data?`<span style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-top:2px;">${c.data}</span>`:''}
-          </div>
+          <div class="kcard-name">${c.empresa}</div>
           <div class="kcard-role">${c.cargo}</div>
           ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
           <div class="kcard-meta">
@@ -1386,10 +1175,9 @@ function openVagaModal(id){
     document.getElementById('mv-status').value=v.status;
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
-    document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-notas').value=v.notas||'';
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-email-dest','mv-notas'].forEach(i=>document.getElementById(i).value='');
+    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
     document.getElementById('mv-status').value='radar';
@@ -1408,66 +1196,12 @@ function saveVaga(){
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
-    emailDest:document.getElementById('mv-email-dest').value,
     notas:document.getElementById('mv-notas').value,
     data:new Date().toLocaleDateString('pt-BR')
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
 }
-function analisarVagaATS() {
-  const empresa = document.getElementById('mv-empresa').value.trim();
-  const cargo = document.getElementById('mv-cargo').value.trim();
-  const notas = document.getElementById('mv-notas').value.trim();
-  // Buscar preview do email se disponível
-  const vaga = editingVagaId && editingVagaId !== 'new' ? vagas.find(v=>v.id===editingVagaId) : null;
-  const preview = vaga?.emailPreview || notas;
-  saveVaga();
-  abrirAntiATS(empresa, cargo, preview);
-}
-
-function limparFiltros(){
-  document.getElementById('filtro-prioridade').value='';
-  document.getElementById('filtro-canal').value='';
-  document.getElementById('ordenar-por').value='data_desc';
-  renderCRM();
-}
-
-function enviarCVOutlook(){
-  const empresa = document.getElementById('mv-empresa').value.trim();
-  const cargo = document.getElementById('mv-cargo').value.trim();
-  const dest = document.getElementById('mv-email-dest').value.trim();
-
-  if(!dest){
-    alert('Por favor, preencha o email do destinatário antes de enviar.');
-    document.getElementById('mv-email-dest').focus();
-    return;
-  }
-
-  const assunto = encodeURIComponent(`Candidatura — ${cargo} · ${empresa} | Marcos Franco`);
-  const corpo = encodeURIComponent(
-`Prezado(a),
-
-Meu nome é Marcos Franco, executivo sênior com mais de 30 anos de experiência em marketing, mídia e educação. Fui Diretor de Marketing na RPC/Globo por quase 12 anos — equipe de 30 pessoas, 8 afiliadas, carteira de R$ 500 milhões.
-
-Tenho interesse na posição de ${cargo} na ${empresa} e acredito que meu perfil se alinha fortemente com os desafios do cargo. Segue meu CV em anexo para sua apreciação.
-
-Fico à disposição para uma conversa.
-
-Atenciosamente,
-Marcos Franco
-(41) 99615-2224
-marcos_mco@hotmail.com
-linkedin.com/in/marcos-ribeiro-franco-69153a12`
-  );
-
-  // Abre Outlook com email pré-preenchido
-  window.location.href = `mailto:${dest}?subject=${assunto}&body=${corpo}`;
-
-  // Salva a vaga com o email e atualiza status
-  saveVaga();
-}
-
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
   if(!confirm('Remover esta vaga?'))return;
@@ -1556,7 +1290,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -1640,7 +1374,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -1686,7 +1420,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
@@ -1716,198 +1450,10 @@ function resetInterview(){
 }
 
 // ═══════════════════════════════════════════════
-//  HOME MODULE
-// ═══════════════════════════════════════════════
-const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
-
-const CATEGORIA_CONFIG = {
-  retorno_positivo: { emoji:'🟢', label:'Retorno positivo', cor:'var(--green)', bg:'var(--green-bg)' },
-  pipeline_ativo:   { emoji:'⭐', label:'Pipeline ativo',   cor:'var(--amber)', bg:'var(--amber-bg)' },
-  contato_hunter:   { emoji:'🎯', label:'Headhunter',       cor:'var(--action)', bg:'#EFF6FF' },
-  vaga_nova:        { emoji:'📋', label:'Vaga nova',        cor:'var(--navy)',  bg:'rgba(26,58,92,0.06)' },
-  retorno_negativo: { emoji:'⚫', label:'Encerrado',        cor:'var(--text3)', bg:'var(--bg3)' },
-  irrelevante:      { emoji:'—',  label:'Irrelevante',      cor:'var(--text3)', bg:'var(--bg3)' },
-};
-
-// Navegar direto para card de vaga no pipeline
-function irParaVaga(nomeEmpresa) {
-  showPage('crm');
-  setTimeout(()=>{
-    const v = vagas.find(x => x.empresa.toLowerCase().includes(nomeEmpresa.toLowerCase()));
-    if(v) openVagaModal(v.id);
-  }, 200);
-}
-
-// Navegar direto para contato no pipeline
-function irParaContato(nomeContato) {
-  showPage('crm');
-  setTimeout(()=>{
-    // Mudar para aba contatos
-    const btnContatos = document.querySelector('.topbar .lang-toggle .lang-btn:last-child');
-    if(btnContatos) setCrmTab('contatos', btnContatos);
-    setTimeout(()=>{
-      const c = contatos.find(x => x.nome.toLowerCase().includes(nomeContato.toLowerCase()));
-      if(c) openContatoModal(c.id);
-    }, 150);
-  }, 200);
-}
-
-// Abrir Anti-ATS com dados da vaga pré-preenchidos
-function abrirAntiATS(empresa, cargo, preview) {
-  showPage('ats');
-  setTimeout(()=>{
-    const jdEl = document.getElementById('vaga-input');
-    if(jdEl) {
-      jdEl.value = `Empresa: ${empresa}\nCargo: ${cargo}${preview ? '\n\n' + preview : ''}`;
-      jdEl.focus();
-    }
-  }, 300);
-}
-
-function initHome() {
-  // Data/hora
-  const agora = new Date();
-  const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const hora = agora.getHours();
-  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-  document.querySelector('#page-home .page-title').textContent = `${saudacao}, Marcos`;
-  document.getElementById('home-data').textContent =
-    `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} · ${String(hora).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
-
-  // Stats do CRM
-  renderHomeStats();
-
-  // Carregar emails
-  carregarEmails();
-}
-
-function renderHomeStats() {
-  const stats = [
-    { val: vagas.filter(v=>v.status==='radar').length,        label:'Leads novos' },
-    { val: vagas.filter(v=>v.status==='candidatado').length,  label:'Candidaturas' },
-    { val: vagas.filter(v=>v.status==='andamento').length,    label:'Em andamento' },
-    { val: vagas.filter(v=>v.status==='proposta').length,     label:'Propostas' },
-    { val: contatos.length,                                    label:'Contatos CRM' },
-  ];
-  document.getElementById('home-stats').innerHTML = stats.map(s=>
-    `<div class="stat" style="cursor:pointer;" onclick="showPage('crm')">
-      <div class="stat-val">${s.val}</div>
-      <div class="stat-label">${s.label}</div>
-    </div>`
-  ).join('');
-}
-
-async function carregarEmails() {
-  const btn = document.getElementById('home-refresh-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<div class="loader" style="display:inline-flex;gap:4px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-
-  try {
-    const resp = await fetch(`${WORKER_URL}/api/emails?limite=50`);
-    const data = await resp.json();
-
-    if (data.erro) {
-      document.getElementById('home-email-meta').textContent = 'Outlook desconectado';
-      return;
-    }
-
-    const novos = data.novos || [];
-
-    // Banner IA
-    const temUrgente = novos.some(e => e.categoria === 'retorno_positivo');
-    const vagasNovas = novos.filter(e => e.categoria === 'vaga_nova').length;
-    const hunters = novos.filter(e => e.categoria === 'contato_hunter').length;
-    let bannerTxt = 'Caixa em dia — nenhum email novo relevante.';
-    if (novos.length > 0) {
-      const partes = [];
-      if (temUrgente) partes.push('🟢 <strong>Retorno positivo</strong> recebido!');
-      if (vagasNovas > 0) partes.push(`📋 <strong>${vagasNovas} vaga${vagasNovas>1?'s':''} nova${vagasNovas>1?'s':''}</strong>`);
-      if (hunters > 0) partes.push(`🎯 <strong>${hunters} headhunter${hunters>1?'s':''}</strong>`);
-      if (partes.length === 0) partes.push(`${novos.length} email${novos.length>1?'s':''} para revisar`);
-      bannerTxt = partes.join(' · ');
-    }
-    document.getElementById('home-banner-text').innerHTML = bannerTxt;
-    document.getElementById('home-email-meta').textContent =
-      `${data.total_ja_vistos} já vistos · ${data.irrelevantes_novos||0} filtrados`;
-
-    // Mostrar item de ação se há emails novos
-    const acaoEmails = document.getElementById('home-acao-emails');
-    const acaoTxt = document.getElementById('home-acao-emails-txt');
-    if (novos.length > 0) {
-      acaoEmails.style.display = 'block';
-      acaoTxt.textContent = `Você tem ${novos.length} email${novos.length>1?'s':''} novo${novos.length>1?'s':''} no pipeline`;
-      document.getElementById('home-badge').textContent = novos.length;
-      document.getElementById('home-badge').style.display = '';
-    } else {
-      acaoEmails.style.display = 'none';
-      document.getElementById('home-badge').style.display = 'none';
-    }
-
-    // Salvar emails relevantes como Leads na coluna Radar do Pipeline
-    if (novos.length > 0) {
-      let adicionados = 0;
-      novos.forEach(email => {
-        // Verificar se já existe pelo ID do email nas notas
-        const jaExiste = vagas.find(v => v.notas && v.notas.includes(email.id));
-        if (jaExiste) return;
-
-        // Extrair empresa e cargo do assunto
-        let empresa = email.de_nome || 'Desconhecido';
-        let cargo = (email.assunto || '').substring(0, 70);
-
-        // Padrão: "Cargo na empresa Empresa"
-        const m1 = (email.assunto||'').match(/^(.+?)\s+na empresa\s+(.+)/i);
-        if (m1) { cargo = m1[1].trim(); empresa = m1[2].trim(); }
-
-        // Padrão LinkedIn: "cargo de CARGO da Empresa"
-        const m2 = (email.assunto||'').match(/cargo de (.+?) da (.+)/i);
-        if (m2) { cargo = m2[1].trim(); empresa = m2[2].trim(); }
-
-        const novaVaga = {
-          id: Date.now() + Math.random(),
-          empresa: empresa.substring(0, 40),
-          cargo: cargo.substring(0, 60),
-          canal: (email.de_nome||'').toLowerCase().includes('linkedin') ? 'LinkedIn' :
-                 (email.de_nome||'').toLowerCase().includes('michael page') ? 'Headhunter' : 'Email',
-          prioridade: email.categoria === 'retorno_positivo' ? 'alta' :
-                      email.categoria === 'contato_hunter' ? 'alta' : 'media',
-          status: 'radar',
-          salario: '',
-          proxima: 'Analisar com Anti-ATS',
-          notas: `[${email.emoji||'📧'} ${email.categoria}] ${email.motivo||''} | email_id:${email.id}`,
-          data: new Date().toLocaleDateString('pt-BR'),
-          emailPreview: (email.preview||'').substring(0, 300),
-          emailAssunto: email.assunto || '',
-          emailDe: email.de_email || '',
-        };
-        vagas.push(novaVaga);
-        adicionados++;
-      });
-
-      if (adicionados > 0) {
-        saveVagas();
-        renderHomeStats();
-      }
-    }
-
-  } catch(e) {
-    document.getElementById('home-banner-text').textContent = `Erro: ${e.message}`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/><path d="M13.5 2.5v3h-3"/></svg> Atualizar';
-  }
-}
-
-function abrirEmail(emailAddr, assunto) {
-  window.location.href = `mailto:${emailAddr}?subject=${assunto}`;
-}
-
-// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 loadCRM();
-showPage('home');
+showPage('ats');
 </script>
 </body>
 </html>
