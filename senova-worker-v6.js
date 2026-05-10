@@ -1,27 +1,27 @@
-// ═══════════════════════════════════════════════════════════════
+// 
 //  SENOVA WORKER v6
 //  Cloudflare Worker — senova-proxy.marcos-mco.workers.dev
 //
 //  ROTAS:
-//  GET  /health                    → status do worker + outlook status
-//  POST /api/claude                → proxy Anthropic API
-//  POST /api/analisar-vaga         → análise Anti-ATS
-//  GET  /api/auth/outlook          → inicia OAuth Microsoft
-//  GET  /api/auth/callback         → callback OAuth, salva token KV
-//  DELETE /api/auth/outlook        → desconecta Outlook
-//  GET  /api/emails                → busca emails novos + filtra IA
-//  POST /api/emails/marcar-visto   → marca emails como vistos no KV
-//  DELETE /api/emails/limpar-vistos → limpa histórico de vistos
-//  POST /api/whitelist             → adiciona domínio à whitelist
-//  DELETE /api/whitelist           → remove domínio da whitelist
-//  GET  /api/whitelist             → lista whitelist atual
+//  GET  /health                    -> status do worker + outlook status
+//  POST /api/claude                -> proxy Anthropic API
+//  POST /api/analisar-vaga         -> análise Anti-ATS
+//  GET  /api/auth/outlook          -> inicia OAuth Microsoft
+//  GET  /api/auth/callback         -> callback OAuth, salva token KV
+//  DELETE /api/auth/outlook        -> desconecta Outlook
+//  GET  /api/emails                -> busca emails novos + filtra IA
+//  POST /api/emails/marcar-visto   -> marca emails como vistos no KV
+//  DELETE /api/emails/limpar-vistos -> limpa histórico de vistos
+//  POST /api/whitelist             -> adiciona domínio à whitelist
+//  DELETE /api/whitelist           -> remove domínio da whitelist
+//  GET  /api/whitelist             -> lista whitelist atual
 //
-//  VARIÁVEIS DE AMBIENTE (Cloudflare → Workers → senova-proxy → Settings):
-//  ANTHROPIC_API_KEY   → sua chave API Anthropic
-//  MS_CLIENT_ID        → Azure App Registration Client ID
-//  MS_CLIENT_SECRET    → Azure App Registration Client Secret
-//  KV_SENOVA           → binding KV namespace (nome do binding: KV_SENOVA)
-// ═══════════════════════════════════════════════════════════════
+//  VARIÁVEIS DE AMBIENTE (Cloudflare -> Workers -> senova-proxy -> Settings):
+//  ANTHROPIC_API_KEY   -> sua chave API Anthropic
+//  MS_CLIENT_ID        -> Azure App Registration Client ID
+//  MS_CLIENT_SECRET    -> Azure App Registration Client Secret
+//  KV_SENOVA           -> binding KV namespace (nome do binding: KV_SENOVA)
+// 
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -41,7 +41,7 @@ Experiência principal: RPC/Globo Diretor Marketing 2012-2019, Popper Head Expan
 Candidaturas ativas: Payoneer, PinkMed, SKY, Adlook, Omie, Keeta, Samsung, Binance, Ambev, Publicis, Wise, BSI, Gaudium, GPAC, FIEP, 99/DiDi, Thomson Reuters, Figma, CI&T.
 `.trim();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+//  Helpers 
 
 function jsonResp(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -57,7 +57,7 @@ function htmlResp(content, status = 200) {
   });
 }
 
-// ─── KV: Token Outlook ───────────────────────────────────────────────────────
+//  KV: Token Outlook 
 
 async function getTokenData(env) {
   try {
@@ -109,7 +109,7 @@ async function getValidToken(env) {
   return null;
 }
 
-// ─── KV: Emails vistos ───────────────────────────────────────────────────────
+//  KV: Emails vistos 
 
 async function getVistos(env) {
   try {
@@ -125,7 +125,7 @@ async function salvarVistos(env, ids) {
   await env.SENOVA_KV.put('emails_vistos', JSON.stringify(lista));
 }
 
-// ─── KV: Whitelist de domínios ───────────────────────────────────────────────
+//  KV: Whitelist de domínios 
 
 async function getWhitelist(env) {
   try {
@@ -138,7 +138,7 @@ async function salvarWhitelist(env, lista) {
   await env.SENOVA_KV.put('whitelist_dominios', JSON.stringify(lista));
 }
 
-// ─── Claude call ─────────────────────────────────────────────────────────────
+//  Claude call 
 
 async function claudeCall(prompt, env, maxTokens = 2000) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -158,7 +158,7 @@ async function claudeCall(prompt, env, maxTokens = 2000) {
   return data.content?.[0]?.text || '';
 }
 
-// ─── Classificação de emails por IA ──────────────────────────────────────────
+//  Classificação de emails por IA 
 
 async function classificarEmails(emails, whitelist, env) {
   if (!emails.length) return [];
@@ -237,9 +237,9 @@ ${listaEmails}`;
     .sort((a, b) => a.prioridade - b.prioridade);
 }
 
-// ═══════════════════════════════════════════════════════════════
+// 
 //  HANDLER PRINCIPAL
-// ═══════════════════════════════════════════════════════════════
+// 
 
 export default {
   async fetch(request, env) {
@@ -250,7 +250,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // ── 1. Health check ──────────────────────────────────────────
+    //  1. Health check 
     if (path === '/health') {
       const token = await getValidToken(env);
       const wl = await getWhitelist(env);
@@ -264,7 +264,7 @@ export default {
       });
     }
 
-    // ── 2. Proxy Claude API ──────────────────────────────────────
+    //  2. Proxy Claude API 
     if (path === '/api/claude' && request.method === 'POST') {
       const body = await request.json();
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -283,7 +283,7 @@ export default {
       });
     }
 
-    // ── 3. Anti-ATS ──────────────────────────────────────────────
+    //  3. Anti-ATS 
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       const { titulo, empresa, descricao } = await request.json();
       const prompt = `Você é especialista em ATS e recrutamento executivo, analisando para Marcos Franco.\n\nPERFIL:\n${PERFIL_MARCOS}\n\nVAGA:\nTítulo: ${titulo}\nEmpresa: ${empresa}\nDescrição: ${descricao}\n\nResponda APENAS em JSON:\n{"score":85,"classificacao":"candidatar","resumo":"...","pontos_fortes":["..."],"pontos_atencao":["..."],"salario_compativel":true}`;
@@ -296,7 +296,7 @@ export default {
       }
     }
 
-    // ── 4. Auth Outlook — inicia OAuth ───────────────────────────
+    //  4. Auth Outlook — inicia OAuth 
     if (path === '/api/auth/outlook' && request.method === 'GET') {
       const params = new URLSearchParams({
         client_id: env.MS_CLIENT_ID,
@@ -309,7 +309,7 @@ export default {
       return Response.redirect(`https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?${params}`, 302);
     }
 
-    // ── 5. Auth Callback ─────────────────────────────────────────
+    //  5. Auth Callback 
     if (path === '/api/auth/callback' && request.method === 'GET') {
       const code = url.searchParams.get('code');
       if (!code) return htmlResp('<h2>Erro: código OAuth não recebido.</h2>', 400);
@@ -340,13 +340,13 @@ export default {
       return htmlResp(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#F7F5F0;}.box{background:#fff;border-radius:14px;padding:40px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.1);}.icon{font-size:48px;margin-bottom:16px;}.title{font-size:22px;font-weight:700;color:#1A3A5C;margin-bottom:8px;}.sub{color:#8A8680;font-size:14px;}</style></head><body><div class="box"><div class="icon">✅</div><div class="title">Outlook conectado!</div><div class="sub">Feche esta janela e volte ao Senova.</div></div></body></html>`);
     }
 
-    // ── 6. Desconectar Outlook ───────────────────────────────────
+    //  6. Desconectar Outlook 
     if (path === '/api/auth/outlook' && request.method === 'DELETE') {
       await env.SENOVA_KV.delete('outlook_token');
       return jsonResp({ ok: true, mensagem: 'Outlook desconectado.' });
     }
 
-    // ── 7. Buscar e-mails ────────────────────────────────────────
+    //  7. Buscar e-mails 
     if (path === '/api/emails' && request.method === 'GET') {
       const token = await getValidToken(env);
       if (!token) {
@@ -401,29 +401,32 @@ export default {
       const novosComConteudo = await Promise.all(novos.map(async (e) => {
         const isVagaEmail = /linkedin\.com\/jobs|gupy|greenhouse|lever|workday|jobscore|indeed|vagas|emprego|job|career|oportunidade/i.test(e.from + e.subject + e.body);
         if (isVagaEmail && e.links.length > 0) {
-          // Tenta buscar o link mais relevante (priorizando linkedin jobs, gupy, etc.)
+          // Ignora links do LinkedIn (exigem login) e tenta outros
           const linkVaga = e.links.find(l =>
-            /linkedin\.com\/jobs|gupy\.io|greenhouse\.io|lever\.co|workday|jobscore|jobs\./i.test(l)
-          ) || e.links[0];
-          try {
-            const r = await fetch(linkVaga, {
-              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)' },
-              redirect: 'follow',
-              signal: AbortSignal.timeout(5000),
-            });
-            if (r.ok) {
-              const html = await r.text();
-              // Extrai texto limpo do HTML
-              const texto = html
-                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                .replace(/<[^>]+>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .slice(0, 3000);
-              return { ...e, conteudo_vaga: texto, link_vaga: linkVaga };
-            }
-          } catch {}
+            /gupy\.io|greenhouse\.io|lever\.co|workday|jobscore|jobs\./i.test(l)
+          );
+          if(linkVaga) {
+            try {
+              const r = await fetch(linkVaga, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout(5000),
+              });
+              if (r.ok) {
+                const html = await r.text();
+                const texto = html
+                  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .slice(0, 3000);
+                return { ...e, conteudo_vaga: texto, link_vaga: linkVaga };
+              }
+            } catch {}
+          }
+          // LinkedIn e outros: usa o corpo do email diretamente
+          return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
         }
         return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
       }));
@@ -444,7 +447,7 @@ export default {
       });
     }
 
-    // ── 8. Marcar emails como vistos ─────────────────────────────
+    //  8. Marcar emails como vistos 
     if (path === '/api/emails/marcar-visto' && request.method === 'POST') {
       const { ids } = await request.json();
       if (!Array.isArray(ids)) return jsonResp({ erro: 'ids deve ser array' }, 400);
@@ -452,18 +455,18 @@ export default {
       return jsonResp({ ok: true, marcados: ids.length });
     }
 
-    // ── 9. Limpar histórico de vistos ────────────────────────────
-    if (path === '/api/emails/limpar-vistos' && request.method === 'DELETE') {
+    //  9. Limpar histórico de vistos 
+    if (path === '/api/emails/limpar-vistos' && (request.method === 'DELETE' || request.method === 'GET')) {
       await env.SENOVA_KV.delete('emails_vistos');
       return jsonResp({ ok: true, mensagem: 'Histórico limpo. Todos os emails serão reanalisados.' });
     }
 
-    // ── 10. Whitelist — listar ───────────────────────────────────
+    //  10. Whitelist — listar 
     if (path === '/api/whitelist' && request.method === 'GET') {
       return jsonResp({ dominios: await getWhitelist(env) });
     }
 
-    // ── 11. Whitelist — adicionar ────────────────────────────────
+    //  11. Whitelist — adicionar 
     if (path === '/api/whitelist' && request.method === 'POST') {
       const { dominio } = await request.json();
       if (!dominio) return jsonResp({ erro: 'dominio obrigatório' }, 400);
@@ -476,7 +479,7 @@ export default {
       return jsonResp({ ok: true, dominios: lista });
     }
 
-    // ── 12. Whitelist — remover ──────────────────────────────────
+    //  12. Whitelist — remover 
     if (path === '/api/whitelist' && request.method === 'DELETE') {
       const { dominio } = await request.json();
       const lista = (await getWhitelist(env)).filter(d => d !== dominio?.toLowerCase().trim());
