@@ -1,0 +1,7 @@
+name = "senova-proxy"
+main = "senova-worker-v6.js"
+compatibility_date = "2026-04-30"
+
+[[kv_namespaces]]
+binding = "SENOVA_KV"
+id = "e0f1fc09836b48d1be86fcdf217ef7dd"
