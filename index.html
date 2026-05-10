@@ -282,7 +282,7 @@ select option { background: var(--bg2); }
 <div id="page-home" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
     <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Bom dia, Marcos</span>
+      <span class="page-title" id="home-saudacao">Olá, Marcos</span>
       <span class="page-sub" id="home-date-sub"></span>
     </div>
     <div class="topbar-right">
@@ -290,6 +290,9 @@ select option { background: var(--bg2); }
         <div id="outlook-dot" style="width:7px;height:7px;border-radius:50%;background:#9CA3AF;"></div>
         <span id="outlook-label">Outlook</span>
       </div>
+      <button onclick="limparEmails()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Reprocessar todos os emails">
+        Recarregar emails
+      </button>
       <button onclick="carregarEmails(true)" class="btn btn-ghost btn-sm">Atualizar</button>
     </div>
   </div>
@@ -945,7 +948,14 @@ OBSERVAÇÕES: [contexto relevante em 1 linha]
 
 async function analyzeJob() {
   const vaga = document.getElementById('vaga-input').value.trim();
-  if(!vaga) return;
+  if(!vaga) {
+    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;">Cole o texto da vaga</div><div style="font-size:13px;color:var(--text3);">Copie a descrição completa da vaga (título, requisitos, responsabilidades) e cole no campo ao lado.</div></div>`;
+    return;
+  }
+  if(vaga.length < 80) {
+    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:6px;">Conteúdo insuficiente</div><div style="font-size:13px;color:var(--text3);line-height:1.6;">O texto da vaga está muito curto para análise precisa. <br><br>Se este email é um convite ou alerta (não uma vaga), abra o email original, copie a descrição completa da vaga e cole aqui.</div></div>`;
+    return;
+  }
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
@@ -1660,7 +1670,20 @@ const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
 (function(){
   const el=document.getElementById('home-date-sub');
   if(el) el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  const h=new Date().getHours();
+  const saud=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  const s=document.getElementById('home-saudacao');
+  if(s) s.textContent=saud+', Marcos';
 })();
+
+async function limparEmails(){
+  try{
+    // Tenta via DELETE
+    const res=await fetch(WORKER_URL+'/api/emails/limpar-vistos',{method:'DELETE'});
+    const data=await res.json();
+    if(data.ok) carregarEmails(true);
+  } catch{ carregarEmails(true); }
+}
 
 async function checkOutlookStatus(){
   try{
@@ -1720,20 +1743,26 @@ async function carregarEmails(forcar){
       const novaData=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       emails.forEach(e=>{
         if(e.categoria==='irrelevante') return;
-        const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===e.de_email&&v.empresa===e.de_nome);
+        const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
+        const emailAddr=e.from||e.de_email||'';
+        const assunto=e.subject||e.assunto||'A definir';
+        const preview=e.resumo||e.preview||e.bodyPreview||'';
+        const conteudoVaga=e.conteudo_vaga||preview;
+        const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
+        const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
         if(!jaExiste){
           vagas.push({
             id:Date.now()+Math.random(),
-            empresa:e.de_nome||e.de_email||'Email',
-            cargo:e.assunto||'A definir',
+            empresa:nome,
+            cargo:assunto,
             canal:'Email',
             prioridade:'media',
             status:'lead',
             salario:'',
             proxima:'Analisar no Anti-ATS',
-            notas:e.resumo||e.preview||'',
-            emailDest:e.de_email||'',
-            origemUrl:e.de_email||'',
+            notas:conteudoVaga,
+            emailDest:emailAddr,
+            origemUrl:linkVaga||emailAddr,
             data:novaData
           });
         }
@@ -1774,12 +1803,17 @@ function abrirAntiATSModal(){
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const notas=document.getElementById('mv-notas')?.value||'';
+  const origemUrl=document.getElementById('mv-origem-url')?.value||'';
   closeVagaModal();
   showPage('ats');
   setTimeout(()=>{
     const campo=document.getElementById('vaga-input');
-    if(campo && (empresa||cargo)){
-      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(notas?'Contexto: '+notas:'');
+    if(!campo) return;
+    // Se as notas têm conteúdo substancial (>100 chars), usa como descrição da vaga
+    if(notas && notas.length > 100){
+      campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n\n${notas}`;
+    } else if(empresa||cargo){
+      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
     }
   },200);
 }
