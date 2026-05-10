@@ -674,7 +674,7 @@ select option { background: var(--bg2); }
      MODAL VAGAS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
-  <div class="modal">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
     <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
     <div class="form-row">
       <label class="field-label">Empresa</label>
@@ -738,7 +738,7 @@ select option { background: var(--bg2); }
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:8px;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn" style="display:none;">Ver origem</button>
+        <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn">Ver vaga</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirAntiATSModal()">Analisar no Anti-ATS</button>
         <button class="btn btn-ghost btn-sm" onclick="enviarCVModal()">Enviar CV</button>
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
@@ -1791,15 +1791,18 @@ function atualizarStatsHome(){
 // ═══════════════════════════════════════════════
 function verOrigem(){
   const url=document.getElementById('mv-origem-url')?.value||'';
-  if(!url) return;
-  if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank');
+  const emailDest=document.getElementById('mv-email-dest')?.value||'';
+  if(url && url.startsWith('http')){window.open(url,'_blank');}
+  else if(url && url.includes('@') && !url.includes('noreply')){window.location.href='mailto:'+url;}
+  else if(emailDest && emailDest.includes('@') && !emailDest.includes('noreply')){window.location.href='mailto:'+emailDest;}
+  else{alert('Cole o link direto da vaga no campo URL da vaga ou origem e clique Salvar.');}
 }
 
 function verOrigemCard(url){
   if(!url) return;
-  if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank');
+  if(url.startsWith('http')) window.open(url,'_blank');
+  else if(url.includes('@') && !url.includes('noreply')) window.location.href='mailto:'+url;
+  else window.open('https://www.linkedin.com/jobs/','_blank');
 }
 
 function abrirAntiATSModal(){
@@ -1824,14 +1827,17 @@ function abrirAntiATSModal(){
 function enviarCVModal(){
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
-  const dest=document.getElementById('mv-email-dest')?.value||'';
-  if(!dest){ alert('Preencha o email do destinatario no campo acima.'); return; }
+  let dest=document.getElementById('mv-email-dest')?.value||'';
+  if(!dest||dest.includes('noreply')||dest.includes('no-reply')){
+    const novo=prompt('Email do recrutador? (informe o email real)');
+    if(!novo||!novo.includes('@')) return;
+    dest=novo;
+    const el=document.getElementById('mv-email-dest');
+    if(el) el.value=novo;
+  }
+  const emp=empresa&&!empresa.toLowerCase().includes('linkedin')?' na '+empresa:'';
   const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
-  const corpo=encodeURIComponent(
-    'Prezado(a),\n\nMe chamo Marcos Franco, executivo senior com mais de 30 anos em marketing, midia e negocios.\n\n'+
-    'Tenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciacao.\n\n'+
-    'Aguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com'
-  );
+  const corpo=encodeURIComponent('Marcos Franco - Candidatura\n'+cargo+emp);
   window.location.href='mailto:'+dest+'?subject='+assunto+'&body='+corpo;
 }
 
