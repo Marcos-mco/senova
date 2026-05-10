@@ -963,7 +963,7 @@ async function analyzeJob() {
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}`}]})
     });
@@ -1166,7 +1166,7 @@ Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} d
   try {
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -1502,7 +1502,7 @@ Formato:
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
     });
     const data=await res.json();
@@ -1586,7 +1586,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();
@@ -1632,7 +1632,7 @@ Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
     });
     const data=await res.json();
