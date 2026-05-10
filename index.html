@@ -1678,11 +1678,14 @@ const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
 
 async function limparEmails(){
   try{
-    // Tenta via DELETE
-    const res=await fetch(WORKER_URL+'/api/emails/limpar-vistos',{method:'DELETE'});
+    const res=await fetch(WORKER_URL+'/api/emails/limpar-vistos');
     const data=await res.json();
-    if(data.ok) carregarEmails(true);
-  } catch{ carregarEmails(true); }
+    if(data.ok){
+      const btn=document.querySelector('[onclick="limparEmails()"]');
+      if(btn){const orig=btn.textContent;btn.textContent='Limpando...';setTimeout(()=>{btn.textContent=orig;},2000);}
+      carregarEmails(true);
+    }
+  } catch(e){ console.error('Erro ao limpar:',e); carregarEmails(true); }
 }
 
 async function checkOutlookStatus(){
