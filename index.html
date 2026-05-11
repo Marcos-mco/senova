@@ -120,8 +120,8 @@ select option { background: var(--bg2); }
 .badge-baixa { background: #EFF6FF; color: #2563EB; }
 
 /* ── MODAL ── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
-.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: min(520px,92vw); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 24px 20px; width: min(540px,100%); max-height: calc(100vh - 32px); overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
@@ -182,28 +182,6 @@ select option { background: var(--bg2); }
 .contact-role { font-size: 12px; color: var(--text3); }
 .contact-next { font-size: 12px; color: var(--text2); margin-left: auto; text-align: right; max-width: 200px; }
 .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-/* ── HOME COCKPIT ── */
-.home-acao-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
-.home-acao-item:hover { border-color: var(--border2); box-shadow: var(--shadow); transform: translateX(2px); }
-.home-acao-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.home-stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; transition: all 0.15s; }
-.home-stat-box:hover { border-color: var(--action); box-shadow: var(--shadow); }
-.home-stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--navy); }
-.home-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 2px; }
-
-/* ── FILTROS PIPELINE ── */
-.filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 0; flex-wrap: wrap; }
-.filter-select { font-size: 12.5px; padding: 5px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg2); color: var(--text2); font-family: var(--font); cursor: pointer; }
-.filter-select:focus { outline: none; border-color: var(--action); }
-
-/* ── CARD DATA/HORA ── */
-.kcard-date { font-size: 10.5px; color: var(--text3); margin-top: 4px; }
-.kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ── OUTLOOK BTN ── */
-.outlook-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #0078D4; color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.15s; }
-.outlook-btn:hover { opacity: 0.88; }
 </style>
 </head>
 <body>
@@ -225,14 +203,7 @@ select option { background: var(--bg2); }
 
   <div class="sidebar-section">
     <div class="sidebar-label">Ferramentas</div>
-    <div class="nav-item active" onclick="showPage('home')" id="nav-home">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M2 6.5L8 2l6 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6.5Z"/><path d="M6 15V9h4v6"/>
-      </svg>
-      Home
-      <span class="nav-badge" id="home-badge" style="display:none;">0</span>
-    </div>
-    <div class="nav-item" onclick="showPage('ats')" id="nav-ats">
+    <div class="nav-item active" onclick="showPage('ats')" id="nav-ats">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="9" y2="8"/><line x1="5" y1="10.5" x2="7.5" y2="10.5"/>
       </svg>
@@ -275,113 +246,6 @@ select option { background: var(--bg2); }
      MAIN
 ══════════════════════════════════ -->
 <main class="main">
-
-<!-- ┌─────────────────────────────┐
-     │  PAGE: HOME (cockpit)      │
-     └─────────────────────────────┘ -->
-<div id="page-home" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
-  <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title" id="home-saudacao">Olá, Marcos</span>
-      <span class="page-sub" id="home-date-sub"></span>
-    </div>
-    <div class="topbar-right">
-      <div id="outlook-pill" onclick="toggleOutlook()" style="display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);">
-        <div id="outlook-dot" style="width:7px;height:7px;border-radius:50%;background:#9CA3AF;"></div>
-        <span id="outlook-label">Outlook</span>
-      </div>
-      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Limpando...';setTimeout(()=>{this.textContent='Recarregar emails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Reprocessar todos os emails">
-        Recarregar emails
-      </button>
-      <button onclick="carregarEmails(true)" class="btn btn-ghost btn-sm">Atualizar</button>
-    </div>
-  </div>
-  <div class="content">
-    <!-- Stats clicáveis -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;">
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Pipeline ativo</div>
-        <div class="home-stat-num" id="stat-pipeline">—</div>
-        <div style="font-size:12px;color:var(--text3);">vagas em andamento</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Candidaturas</div>
-        <div class="home-stat-num" id="stat-candidatados">—</div>
-        <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">E-mails novos</div>
-        <div class="home-stat-num" id="stat-emails">—</div>
-        <div style="font-size:12px;color:var(--text3);">leads no pipeline</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Plano B</div>
-        <div class="home-stat-num">3</div>
-        <div style="font-size:12px;color:var(--text3);">oportunidades ativas</div>
-      </div>
-    </div>
-
-    <!-- Proximas Acoes (coluna unica) -->
-    <div class="section-head"><span class="section-title">Proximas Acoes</span></div>
-    <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list">
-      <!-- item email novos dinamico -->
-      <div id="home-email-action" style="display:none;" class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid var(--action);">
-        <div class="home-acao-dot" style="background:var(--action);"></div>
-        <div style="flex:1;">
-          <div style="font-size:13.5px;font-weight:600;color:var(--navy);" id="home-email-action-text">Voce tem novos emails no pipeline</div>
-          <div style="font-size:12px;color:var(--text3);">Clique para ver na coluna Lead do Pipeline</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <!-- acoes fixas -->
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #D97706;">
-        <div class="home-acao-dot" style="background:#D97706;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:0.06em;">Hoje - Plano B</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">InBetta - Reuniao briefing 14h (seg 12/mai)</div>
-          <div style="font-size:12px;color:var(--text3);">CFO Tulini - PMO leve integrado - papel Silver</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #2563EB;">
-        <div class="home-acao-dot" style="background:#2563EB;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">Seg 12/mai - Plano A</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Aldo Mallucelli - Remarcar</div>
-          <div style="font-size:12px;color:var(--text3);">Amigo estrategico - pendente</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #059669;">
-        <div class="home-acao-dot" style="background:#059669;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;">Ter 12/mai</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Preparacao reuniao Alan Ceppini (RIC)</div>
-          <div style="font-size:12px;color:var(--text3);">Reuniao real: Qua 13/mai 15h - Prestinaria Casa de Paes</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #7C3AED;">
-        <div class="home-acao-dot" style="background:#7C3AED;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.06em;">Qua 13/mai - Plano A</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Alan Ceppini - RICTV / Jovem Pan / Banda B</div>
-          <div style="font-size:12px;color:var(--text3);">15h - Prestinaria Casa de Paes - Rua Mateus Leme 3440</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #9CA3AF;">
-        <div class="home-acao-dot" style="background:#9CA3AF;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;">Plano A - Headhunters</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Priscilla Capellato (Korn Ferry)</div>
-          <div style="font-size:12px;color:var(--text3);">Mensagem enviada 22/abr - follow-up semana 12/mai</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ┌─────────────────────────────┐
      │  PAGE: ANTI-ATS            │
@@ -539,29 +403,6 @@ select option { background: var(--bg2); }
   </div>
   <div class="content">
     <div class="stats" id="crm-stats"></div>
-    <!-- Filtros -->
-    <div class="filter-bar" id="crm-filter-bar">
-      <select class="filter-select" id="filter-prioridade" onchange="aplicarFiltros()">
-        <option value="">Todas as prioridades</option>
-        <option value="alta">Alta prioridade</option>
-        <option value="media">Media</option>
-        <option value="baixa">Baixa</option>
-      </select>
-      <select class="filter-select" id="filter-canal" onchange="aplicarFiltros()">
-        <option value="">Todos os canais</option>
-        <option value="LinkedIn">LinkedIn</option>
-        <option value="Headhunter">Headhunter</option>
-        <option value="Indicacao">Indicacao</option>
-        <option value="Email">Email</option>
-      </select>
-      <select class="filter-select" id="filter-ordem" onchange="aplicarFiltros()">
-        <option value="recente">Mais recente</option>
-        <option value="antigo">Mais antigo</option>
-        <option value="prioridade">Prioridade</option>
-        <option value="az">Empresa A-Z</option>
-      </select>
-      <button class="copy-btn" onclick="limparFiltros()">Limpar filtros</button>
-    </div>
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
@@ -674,7 +515,7 @@ select option { background: var(--bg2); }
      MODAL VAGAS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+  <div class="modal">
     <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
     <div class="form-row">
       <label class="field-label">Empresa</label>
@@ -720,27 +561,20 @@ select option { background: var(--bg2); }
       </div>
     </div>
     <div class="form-row">
+      <label class="field-label">Email do recrutador</label>
+      <input type="email" id="mv-email" placeholder="Ex: recrutador@empresa.com">
+    </div>
+    <div class="form-row">
       <label class="field-label">Próxima ação</label>
       <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
-    </div>
-    <div class="form-row">
-      <label class="field-label">Email do destinatário</label>
-      <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
-    </div>
-    <div class="form-row">
-      <label class="field-label">URL da vaga ou origem</label>
-      <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou email@empresa.com">
     </div>
     <div class="form-row">
       <label class="field-label">Notas</label>
       <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn">Ver vaga</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirAntiATSModal()">Analisar no Anti-ATS</button>
-        <button class="btn btn-ghost btn-sm" onclick="enviarCVModal()">Enviar CV</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
@@ -874,7 +708,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['home','ats','linkedin','crm','interview'];
+const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -882,8 +716,7 @@ function showPage(page) {
     const nav = document.getElementById('nav-'+p);
     if(nav) nav.classList.toggle('active', p===page);
   });
-  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display='flex'; }
-  if(page==='home') { atualizarStatsHome(); carregarEmails(false); }
+  if(page==='crm') renderCRM();
 }
 
 // ═══════════════════════════════════════════════
@@ -948,20 +781,13 @@ OBSERVAÇÕES: [contexto relevante em 1 linha]
 
 async function analyzeJob() {
   const vaga = document.getElementById('vaga-input').value.trim();
-  if(!vaga) {
-    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;">Cole o texto da vaga</div><div style="font-size:13px;color:var(--text3);">Copie a descrição completa da vaga (título, requisitos, responsabilidades) e cole no campo ao lado.</div></div>`;
-    return;
-  }
-  if(vaga.length < 80) {
-    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:6px;">Conteúdo insuficiente</div><div style="font-size:13px;color:var(--text3);line-height:1.6;">O texto da vaga está muito curto para análise precisa. <br><br>Se este email é um convite ou alerta (não uma vaga), abra o email original, copie a descrição completa da vaga e cole aqui.</div></div>`;
-    return;
-  }
+  if(!vaga) return;
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch(WORKER_URL+'/api/claude',{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -1007,26 +833,21 @@ function renderATSResult(analise,cv,crm) {
   }).join('');
 
   document.getElementById('result-area').innerHTML=`<div>
-    ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+    ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;">
       <div style="font-family:var(--font-display);font-size:38px;font-weight:700;color:${col};line-height:1;letter-spacing:-1px;">${score}<span style="font-size:16px;color:var(--text3);font-weight:400;">/100</span></div>
-      <div style="flex:1;min-width:120px;"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
-        <button onclick="candidatarVagaATS()" style="padding:8px 14px;background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font);">Candidatar</button>
-        <button onclick="declinarVagaATS()" style="padding:8px 14px;background:var(--bg2);color:var(--text3);border:1.5px solid var(--border2);border-radius:var(--radius);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font);">Declinar</button>
-      </div>
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
     </div>`:''}
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('analise',this)">Analise</button>
-      <button class="tab-btn" onclick="switchTab('cv',this)">CV Otimizado</button>
-      <button class="tab-btn" onclick="switchTab('crm',this)">Entrada CRM</button>
+      <button class="tab-btn active" onclick="switchTab('analise',this)">📊 Análise</button>
+      <button class="tab-btn" onclick="switchTab('cv',this)">📄 CV Otimizado</button>
+      <button class="tab-btn" onclick="switchTab('crm',this)">📁 Entrada CRM</button>
     </div>
     <div id="tab-analise"><div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div></div>
     <div id="tab-cv" style="display:none;">
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
         <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .doc</button>
-        <button class="copy-btn" onclick="downloadPDF()">📄 PDF (ATS)</button>
-        <button class="copy-btn" onclick="downloadPDFExecutivo()" style="background:var(--navy);color:#fff;border-color:var(--navy);">PDF Executivo</button>
+        <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
         <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
       </div>
       <div class="result-box" id="cv-txt">${cv}</div>
@@ -1065,46 +886,6 @@ function downloadPDF() {
   linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
   doc.save(lastCVFilename+'.pdf');
 }
-function candidatarVagaATS() {
-  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
-  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
-  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
-  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const keywords = crmTxt.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
-  const notas = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' - ');
-  const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
-  if(idx>=0){
-    vagas[idx].status='candidatado';
-    vagas[idx].proxima='Aguardar retorno - follow-up em 7 dias';
-    vagas[idx].notas=notas||vagas[idx].notas;
-    vagas[idx].data=hoje;
-  } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k CLT',proxima:'Aguardar retorno - follow-up em 7 dias',notas,data:hoje});
-  }
-  saveVagas();
-  const btn=document.querySelector('#result-area button');
-  if(btn&&btn.textContent.includes('Candidatar')){const orig=btn.textContent;btn.textContent='Candidatura registrada!';setTimeout(()=>{btn.textContent=orig;},2500);}
-}
-
-function declinarVagaATS() {
-  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
-  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
-  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
-  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const notas = score?'Match ATS: '+score+'/100 - Declinada':'Declinada';
-  const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
-  if(idx>=0){
-    vagas[idx].status='encerrado';
-    vagas[idx].proxima='Vaga declinada via Anti-ATS';
-    vagas[idx].notas=notas;
-    vagas[idx].data=hoje;
-  } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'encerrado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
-  }
-  saveVagas();
-}
 function saveVagaFromCV() {
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
   const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
@@ -1115,6 +896,9 @@ function saveVagaFromCV() {
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva no CRM! Acesse Pipeline CRM para acompanhar.`);
 }
+
+// ═══════════════════════════════════════════════
+//  LINKEDIN MODULE
 // ═══════════════════════════════════════════════
 let liLang='PT';
 function setLiLang(lang,btn) {
@@ -1164,7 +948,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1261,36 +1045,9 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Lead',radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={lead:'#7C3AED',radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
-
-let vagasFiltradas = null;
-let filtroAtivo = false;
-
-function aplicarFiltros() {
-  filtroAtivo = true;
-  const pri = document.getElementById('filter-prioridade')?.value||'';
-  const canal = document.getElementById('filter-canal')?.value||'';
-  const ordem = document.getElementById('filter-ordem')?.value||'recente';
-  let lista = [...vagas];
-  if(pri) lista = lista.filter(v=>v.prioridade===pri);
-  if(canal) lista = lista.filter(v=>v.canal===canal);
-  if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
-  else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
-  else lista.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  vagasFiltradas = lista;
-  renderCRM();
-}
-
-function limparFiltros() {
-  filtroAtivo = false;
-  vagasFiltradas = null;
-  ['filter-prioridade','filter-canal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const fo = document.getElementById('filter-ordem'); if(fo) fo.value='recente';
-  renderCRM();
-}
 
 function setCrmTab(tab,btn){
   crmCurrentTab=tab;
@@ -1303,6 +1060,7 @@ function setCrmTab(tab,btn){
 }
 
 function renderCRM(){
+  // Stats
   const ativas=vagas.filter(v=>v.status!=='encerrado').length;
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
@@ -1313,35 +1071,33 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
-  const listaBase = vagasFiltradas || vagas;
-  const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
+  // Kanban vagas
+  const cols=['radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    const cards=listaBase.filter(v=>v.status===col);
-    const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
+    const cards=vagas.filter(v=>v.status===col);
     return `<div>
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
       </div>
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
-      ${cards.map(c=>{
-        const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
-        return `<div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${corPri[c.prioridade]||'#ccc'}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-            <div class="kcard-name">${c.empresa}</div>
-            ${c.data?`<div class="kcard-date">${c.data}</div>`:''}
-          </div>
+      ${cards.map(c=>`
+        <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
+          <div class="kcard-name">${c.empresa}</div>
           <div class="kcard-role">${c.cargo}</div>
+          ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
-            ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Media</span>':'<span class="badge badge-baixa">Baixa</span>'}
+            ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
           </div>
-          ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
-        </div>`;
-      }).join('')}
+          ${c.status==='radar'||c.status==='candidatado'?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
+            <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--navy);color:#fff;font-size:12px;" onclick="candidatar(${c.id})">✉ Candidatar</button>
+          </div>`:''}
+        </div>`).join('')}
     </div>`;
   }).join('');
 
+  // Contact list
   const filtered=contatoFilter==='todos'?contatos:contatos.filter(c=>c.temp===contatoFilter);
   document.getElementById('contact-list').innerHTML=filtered.map(c=>`
     <div class="contact-item" onclick="openContatoModal(${c.id})">
@@ -1376,19 +1132,14 @@ function openVagaModal(id){
     document.getElementById('mv-prioridade').value=v.prioridade;
     document.getElementById('mv-status').value=v.status;
     document.getElementById('mv-salario').value=v.salario||'';
+    document.getElementById('mv-email').value=v.email||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
     document.getElementById('mv-notas').value=v.notas||'';
-    document.getElementById('mv-email-dest').value=v.emailDest||'';
-    document.getElementById('mv-origem-url').value=v.origemUrl||'';
-    const btnOrigem=document.getElementById('mv-ver-origem-btn');
-    if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['mv-empresa','mv-cargo','mv-salario','mv-email','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
     document.getElementById('mv-status').value='radar';
-    const btnOrigem=document.getElementById('mv-ver-origem-btn');
-    if(btnOrigem) btnOrigem.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
 }
@@ -1403,11 +1154,10 @@ function saveVaga(){
     prioridade:document.getElementById('mv-prioridade').value,
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
+    email:document.getElementById('mv-email').value,
     proxima:document.getElementById('mv-proxima').value,
     notas:document.getElementById('mv-notas').value,
-    emailDest:document.getElementById('mv-email-dest').value,
-    origemUrl:document.getElementById('mv-origem-url').value,
-    data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+    data:new Date().toLocaleDateString('pt-BR')
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
@@ -1417,6 +1167,23 @@ function deleteVaga(){
   if(!confirm('Remover esta vaga?'))return;
   vagas=vagas.filter(v=>v.id!==editingVagaId);
   saveVagas(); renderCRM(); closeVagaModal();
+}
+
+function candidatar(id){
+  const v=vagas.find(x=>x.id===id); if(!v)return;
+  const email=v.email||'';
+  const assunto=encodeURIComponent(`Candidatura — ${v.cargo} | Marcos Franco`);
+  const corpo=encodeURIComponent(`Prezado(a),\n\nEstou me candidatando à vaga de ${v.cargo} na ${v.empresa}.\n\nSegue em anexo meu CV para apreciação.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224`);
+  if(email){
+    window.location.href=`mailto:${email}?subject=${assunto}&body=${corpo}`;
+  } else {
+    // Sem email — abre modal de edição para preencher
+    alert('Adicione o email do recrutador na vaga antes de candidatar.');
+    openVagaModal(id);
+  }
+  // Atualiza status para candidatado
+  vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',data:new Date().toLocaleDateString('pt-BR')}:x);
+  saveVagas(); renderCRM();
 }
 
 // Contato Modal
@@ -1500,7 +1267,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -1584,7 +1351,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -1630,7 +1397,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
@@ -1660,272 +1427,10 @@ function resetInterview(){
 }
 
 // ═══════════════════════════════════════════════
-//  WORKER URL
+//  INIT
 // ═══════════════════════════════════════════════
-const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
-
-// ═══════════════════════════════════════════════
-//  HOME — OUTLOOK + EMAILS
-// ═══════════════════════════════════════════════
-(function(){
-  const el=document.getElementById('home-date-sub');
-  if(el) el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  const h=new Date().getHours();
-  const saud=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
-  const s=document.getElementById('home-saudacao');
-  if(s) s.textContent=saud+', Marcos';
-})();
-
-async function limparEmails(){
-  try{
-    const res=await fetch(WORKER_URL+'/api/emails/limpar-vistos');
-    const data=await res.json();
-    if(data.ok){
-      const btn=document.querySelector('[onclick="limparEmails()"]');
-      if(btn){const orig=btn.textContent;btn.textContent='Limpando...';setTimeout(()=>{btn.textContent=orig;},2000);}
-      carregarEmails(true);
-    }
-  } catch(e){ console.error('Erro ao limpar:',e); carregarEmails(true); }
-}
-
-async function checkOutlookStatus(){
-  try{
-    const res=await fetch(WORKER_URL+'/health');
-    const data=await res.json();
-    const dot=document.getElementById('outlook-dot');
-    const lbl=document.getElementById('outlook-label');
-    if(!dot||!lbl) return false;
-    if(data.outlook==='conectado'){
-      dot.style.background='#1A7A4A'; lbl.textContent='Outlook conectado'; return true;
-    } else {
-      dot.style.background='#9CA3AF'; lbl.textContent='Outlook'; return false;
-    }
-  } catch{ return false; }
-}
-
-function conectarOutlook(){
-  window.open(WORKER_URL+'/api/auth/outlook','_blank','width=500,height=600');
-  setTimeout(async()=>{ const ok=await checkOutlookStatus(); if(ok) carregarEmails(true); },10000);
-}
-
-async function toggleOutlook(){
-  const ok=await checkOutlookStatus();
-  if(ok){ if(confirm('Desconectar o Outlook?')){ await fetch(WORKER_URL+'/api/auth/outlook',{method:'DELETE'}); checkOutlookStatus(); } }
-  else conectarOutlook();
-}
-
-async function carregarEmails(forcar){
-  const connected=await checkOutlookStatus();
-  if(!connected) return;
-  try{
-    const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
-    const res=await fetch(url);
-    const data=await res.json();
-    if(data.reauth){ conectarOutlook(); return; }
-    const emails=data.emails||data.novos||[];
-    const total=emails.length;
-    // Atualiza stat
-    const statEl=document.getElementById('stat-emails');
-    if(statEl) statEl.textContent=total;
-    // Atualiza badge
-    const badge=document.getElementById('home-badge');
-    if(badge){ badge.textContent=total; badge.style.display=total>0?'':'none'; }
-    // Mostra item de acao se tiver emails novos
-    const actionEl=document.getElementById('home-email-action');
-    const actionTxt=document.getElementById('home-email-action-text');
-    if(actionEl){
-      if(total>0){
-        actionEl.style.display='flex';
-        if(actionTxt) actionTxt.textContent='Voce tem '+total+' emails novos no pipeline';
-      } else {
-        actionEl.style.display='none';
-      }
-    }
-    // Salva emails relevantes no Pipeline como Lead
-    if(emails.length>0){
-      const novaData=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      emails.forEach(e=>{
-        if(e.categoria==='irrelevante') return;
-        const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
-        const emailAddr=e.from||e.de_email||'';
-        const assunto=e.subject||e.assunto||'A definir';
-        const preview=e.resumo||e.preview||e.bodyPreview||'';
-        const conteudoVaga=e.conteudo_vaga||preview;
-        const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
-        const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
-        if(!jaExiste){
-          vagas.push({
-            id:Date.now()+Math.random(),
-            empresa:nome,
-            cargo:assunto,
-            canal:'Email',
-            prioridade:'media',
-            status:'lead',
-            salario:'',
-            proxima:'Analisar no Anti-ATS',
-            notas:conteudoVaga,
-            emailDest:emailAddr,
-            origemUrl:linkVaga||emailAddr,
-            data:novaData
-          });
-        }
-      });
-      saveVagas();
-    }
-  } catch(err){ console.error('Erro ao carregar emails:',err); }
-}
-
-function atualizarStatsHome(){
-  try{
-    const pipeline=vagas.filter(v=>v.status==='andamento').length;
-    const candidatados=vagas.filter(v=>v.status==='candidatado').length;
-    const sp=document.getElementById('stat-pipeline');
-    const sc=document.getElementById('stat-candidatados');
-    if(sp) sp.textContent=pipeline;
-    if(sc) sc.textContent=candidatados;
-  } catch{}
-}
-
-// ═══════════════════════════════════════════════
-//  FUNCOES DO MODAL DE VAGA
-// ═══════════════════════════════════════════════
-function verOrigem(){
-  const url=document.getElementById('mv-origem-url')?.value||'';
-  const emailDest=document.getElementById('mv-email-dest')?.value||'';
-  if(url && url.startsWith('http')){window.open(url,'_blank');}
-  else if(url && url.includes('@') && !url.includes('noreply')){window.location.href='mailto:'+url;}
-  else if(emailDest && emailDest.includes('@') && !emailDest.includes('noreply')){window.location.href='mailto:'+emailDest;}
-  else{alert('Cole o link direto da vaga no campo URL da vaga ou origem e clique Salvar.');}
-}
-
-function verOrigemCard(url){
-  if(!url) return;
-  if(url.startsWith('http')) window.open(url,'_blank');
-  else if(url.includes('@') && !url.includes('noreply')) window.location.href='mailto:'+url;
-  else window.open('https://www.linkedin.com/jobs/','_blank');
-}
-
-function abrirAntiATSModal(){
-  const empresa=document.getElementById('mv-empresa')?.value||'';
-  const cargo=document.getElementById('mv-cargo')?.value||'';
-  const notas=document.getElementById('mv-notas')?.value||'';
-  const origemUrl=document.getElementById('mv-origem-url')?.value||'';
-  closeVagaModal();
-  showPage('ats');
-  setTimeout(()=>{
-    const campo=document.getElementById('vaga-input');
-    if(!campo) return;
-    // Se as notas têm conteúdo substancial (>100 chars), usa como descrição da vaga
-    if(notas && notas.length > 100){
-      campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n\n${notas}`;
-    } else if(empresa||cargo){
-      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
-    }
-  },200);
-}
-
-function enviarCVModal(){
-  const empresa=document.getElementById('mv-empresa')?.value||'';
-  const cargo=document.getElementById('mv-cargo')?.value||'';
-  let dest=document.getElementById('mv-email-dest')?.value||'';
-  if(!dest||dest.includes('noreply')||dest.includes('no-reply')){
-    const novo=prompt('Email do recrutador? (informe o email real)');
-    if(!novo||!novo.includes('@')) return;
-    dest=novo;
-    const el=document.getElementById('mv-email-dest');
-    if(el) el.value=novo;
-  }
-  const emp=empresa&&!empresa.toLowerCase().includes('linkedin')?' na '+empresa:'';
-  const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
-  const corpo=encodeURIComponent('Marcos Franco - Candidatura\n'+cargo+emp);
-  window.location.href='mailto:'+dest+'?subject='+assunto+'&body='+corpo;
-}
-
-// ═══════════════════════════════════════════════
-//  ANTI-ATS via WORKER (resolve CORS)
-// ═══════════════════════════════════════════════
-// (analyzeJob ja existente usa o Worker via WORKER_URL)
-
-// ═══════════════════════════════════════════════
-//  PDF EXECUTIVO (design navy/dourado)
-// ═══════════════════════════════════════════════
-function downloadPDFExecutivo(){
-  if(!window.jspdf){alert('jsPDF nao carregado.');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF();
-  const navy=[26,58,92];
-  const gold=[201,168,76];
-  const branco=[255,255,255];
-  const cinzaEsc=[74,71,64];
-  const cinzaCla=[138,134,128];
-  const margL=15; const margR=195; const larg=180;
-  let y=0;
-
-  // Cabecalho navy
-  doc.setFillColor(navy[0],navy[1],navy[2]);
-  doc.rect(0,0,210,38,'F');
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(20);
-  doc.setTextColor(branco[0],branco[1],branco[2]);
-  doc.text('MARCOS FRANCO',margL,16);
-  doc.setFontSize(11);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(gold[0],gold[1],gold[2]);
-  doc.text('Executivo Senior de Marketing | Curitiba, PR',margL,24);
-  doc.setFontSize(9);
-  doc.setTextColor(200,200,200);
-  doc.text('(41) 99615-2224  |  marcos_mco@hotmail.com  |  linkedin.com/in/marcos-ribeiro-franco-69153a12',margL,31);
-
-  // Linha dourada
-  y=42;
-  doc.setDrawColor(gold[0],gold[1],gold[2]);
-  doc.setLineWidth(0.8);
-  doc.line(margL,y,margR,y);
-  y+=6;
-
-  // Conteudo do CV
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(cinzaEsc[0],cinzaEsc[1],cinzaEsc[2]);
-  const linhas=doc.splitTextToSize(lastCV||'',larg);
-  linhas.forEach(l=>{
-    if(y>280){doc.addPage();y=20;}
-    const upper=l.toUpperCase();
-    if(l===upper&&l.trim().length>3&&!l.includes(' ')){
-      y+=3;
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.setTextColor(navy[0],navy[1],navy[2]);
-      doc.text(l,margL,y);
-      doc.setLineWidth(0.3);
-      doc.setDrawColor(gold[0],gold[1],gold[2]);
-      doc.line(margL,y+1,margR,y+1);
-      y+=5;
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor(cinzaEsc[0],cinzaEsc[1],cinzaEsc[2]);
-    } else {
-      doc.text(l,margL,y);
-      y+=4.5;
-    }
-  });
-
-  // Rodape
-  const pages=doc.getNumberOfPages();
-  for(let i=1;i<=pages;i++){
-    doc.setPage(i);
-    doc.setFillColor(navy[0],navy[1],navy[2]);
-    doc.rect(0,287,210,10,'F');
-    doc.setFontSize(8);
-    doc.setTextColor(branco[0],branco[1],branco[2]);
-    doc.text('Marcos Franco  |  Curitiba, PR',margL,293);
-    doc.text('Pagina '+i+' de '+pages,190,293,{align:'right'});
-  }
-  doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
-}
 loadCRM();
-showPage('home');
-checkOutlookStatus();
+showPage('ats');
 </script>
 </body>
 </html>
