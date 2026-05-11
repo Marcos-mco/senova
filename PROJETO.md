@@ -1,5 +1,5 @@
 # Senova Suite — Documento de Projeto
-**Versão:** 1.0 · **Atualizado:** 04/mai/2026 · **Responsável:** Marcos Franco
+**Versão:** 2.0 · **Atualizado:** 11/mai/2026 · **Responsável:** Marcos Franco
 
 ---
 
@@ -28,7 +28,7 @@
 [Anthropic API — claude-sonnet-4-5]
         │
         ▼
-[Cloudflare KV — vagas_lista / contatos_lista]
+[Cloudflare KV — SENOVA_KV]
 ```
 
 ### Decisões técnicas registradas
@@ -71,14 +71,37 @@
 | GitHub repo | github.com/marcos-mco/senova | github.com |
 | Cloudflare login | marcos_mco@hotmail.com | dash.cloudflare.com |
 | Worker name | senova-proxy | CF → Workers & Pages |
-| KV Namespace | VAGAS_KV | CF → KV |
+| KV Namespace | SENOVA_KV | CF → KV |
 | API Key Anthropic | Configurada como secret no Worker | CF → Workers → senova-proxy → Settings → Variables |
+| Hunter.io API Key | Configurada como secret no Worker | CF → Workers → senova-proxy → Settings → Variables (HUNTER_API_KEY) |
 | E-mail profissional | marcos@labordei.com.br | Microsoft 365 |
 | DNS | Cloudflare (labordei.com.br) | NS: lilyana + merlin |
+| Azure App | Senova Suite — Client ID: eaf69797-def3-4f6a-a103-8bcb3ed0f79e | portal.azure.com |
+| Azure Tenant | b7fdfe9f-441d-4571-90f1-6882e06fb8a7 | portal.azure.com |
 
 ---
 
-## 5. Processo de Atualização (como fazer deploy)
+## 5. Ferramentas Externas Instaladas (11/mai/2026)
+
+| Ferramenta | Status | Observação |
+|---|---|---|
+| Google Alerts | ✅ Ativo | 36 alertas — Brasil, Alemanha, Espanha, mídia/TV |
+| Pasta "Alertas Senova" Outlook | ✅ Ativo | Regras automáticas: Google Alerts + LinkedIn → pasta |
+| Hunter.io | ✅ Cadastrado | API Key salva — integrar ao Worker (HUNTER_API_KEY) |
+| Lusha | ❌ Bloqueada | Conta suspensa — substituída pelo Hunter.io |
+| Gupy | ✅ Atualizado | Perfil completo: formação, experiências, 30 habilidades |
+
+### Google Alerts — categorias monitoradas
+- Movimentações executivas Brasil (Paraná, Sul, C-Level)
+- Empresas europeias chegando ao Brasil (DE, ES)
+- Mídia, TV, comunicação — afiliadas Globo, grupos regionais
+- Fusões, aquisições, expansões no Paraná
+- Startups com captação em Curitiba/PR
+- Nome próprio: "Marcos Franco" marketing Curitiba
+
+---
+
+## 6. Processo de Atualização (como fazer deploy)
 
 1. Editar o arquivo `index.html` localmente ou via Claude
 2. Acessar **github.com/marcos-mco/senova**
@@ -92,14 +115,18 @@
 
 ---
 
-## 6. Roadmap de Melhorias
+## 7. Roadmap de Melhorias
 
-### Fase 1 — Agora (maio/2026)
+### Fase 1 — Imediato (mai/2026)
 
-- [ ] **Outlook → CRM automático:** vagas recebidas por e-mail entram automaticamente no pipeline
-- [ ] **Busca de vagas na web:** pesquisar LinkedIn/Gupy e trazer direto para o Anti-ATS
-- [ ] **CRM automático:** botão "Salvar no CRM" popula o Kanban direto — sem copiar texto
-- [ ] **Remover aba "Entrada CRM"** do Anti-ATS (substituída pela automação)
+- [ ] **Varredura automática de vagas:** RSS LinkedIn, Indeed BR/DE/ES, Gupy — cron trigger diário às 7h
+- [ ] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões
+- [ ] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal
+- [ ] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar"
+- [ ] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar
+- [ ] **Fix: modal Editar Vaga** caber na tela sem rolar
+- [ ] **Fix: botão Enviar CV** com email correto do recrutador
+- [ ] **Fix: URL LinkedIn** abre vaga correta (atualmente recebe página de login)
 
 ### Fase 2 — Próximo ciclo (jun/2026)
 
@@ -108,46 +135,82 @@
 - [ ] **Próximos passos com datas:** follow-up com prazo, alerta de vencimento
 - [ ] **Dashboard estratégico:** visão consolidada — taxa de retorno, funil, tendências
 - [ ] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo
+- [ ] **Alertas de follow-up:** 7/14/21 dias sem resposta
 
 ### Fase 3 — Médio prazo (jul–ago/2026)
 
 - [ ] **Análise de resultados:** IA analisa padrões (quais vagas têm mais retorno, quais headhunters respondem mais)
-- [ ] **PMV Senova para outros usuários:** validar R$47/mês com público 40+
-- [ ] **Registro domínio senova.com.br**
+- [ ] **PMV Senova para outros usuários:** validar R$47/mês com público 50+
+- [ ] **Registro domínio senova.com.br** (~R$47/mês)
 - [ ] **Avaliar migração para Cowork** quando o app tiver múltiplos usuários
+- [ ] **Gmail OAuth** para monitorar emails candidaturas
 
 ---
 
-## 7. Melhorias Anotadas pelo Usuário (04/mai/2026)
+## 8. Arquitetura de Inteligência de Mercado (definida 11/mai/2026)
 
-Lista original preservada para referência:
+### Varredura 1 — Oportunidades de emprego
+```
+RSS: LinkedIn Jobs + Indeed BR/DE/ES + Infojobs ES + Stepstone DE
+        ↓
+Cloudflare Worker (cron 07:00 diário)
+        ↓
+Filtra por keywords: marketing, CMO, diretor, head, comercial, expansão
+        ↓
+Score ATS automático via Claude API
+        ↓
+Coluna "Lead" no CRM com badge "Nova hoje"
+```
 
-> - Emissão de relatórios consolidados
-> - Campo negativados
-> - Colocar filtros para busca
-> - Criar processo de próximos passos com datas, prazos e demais variáveis comum em CRMs de mercado
-> - Análise de resultados
-> - Criação de dashboard para análise estratégica
-> - Criar plano para PMV
-> - Verificar se temos um projeto com processos e metodologia corretos
+### Varredura 2 — Sinais de mercado
+```
+Google News RSS (empresas-alvo cadastradas)
+        ↓
+Detecta: "saiu", "deixa cargo", "novo CEO", "expansão", "fusão", "contratou"
+        ↓
+Claude analisa: empresa, cargo vago, contato do Marcos lá
+        ↓
+Hunter.io API busca email do decisor
+        ↓
+"Central de Sinais" no Senova com mensagem sugerida pronta
+```
 
-**Status:** todas incorporadas no roadmap acima.
+### Variável a adicionar no Cloudflare Worker
+- `HUNTER_API_KEY` → obter em hunter.io → Settings → API
 
 ---
 
-## 8. Arquivos no Repositório
+## 9. Headhunters Contatados (mai/2026)
+
+| Nome | Firma | Status | Próximo passo |
+|---|---|---|---|
+| Priscilla Capellato | Korn Ferry | Convite LinkedIn enviado 11/mai | Aguardar aceite → enviar mensagem |
+| Aldo Bergamasco | Spencer Stuart | Convite com nota enviado 11/mai | Aguardar aceite → enviar mensagem |
+| Guilherme Maciel | Heidrick & Struggles | Mensagem enviada 11/mai | Aguardar resposta |
+| Ângela Pêgas | Egon Zehnder | Convite enviado 11/mai | Aguardar aceite |
+| Ezequiel Silva | Egon Zehnder | Convite enviado 11/mai | Aguardar aceite |
+| Robert Half | — | Cadastrado | Follow-up semana 12/mai |
+| Hays | — | Cadastrado | Follow-up semana 12/mai |
+| PageExecutive | — | Cadastrado portal | Follow-up semana 12/mai |
+| Michael Page | — | A contatar | Buscar consultor Sul no LinkedIn |
+| Evermonte | — | Cadastrado portal | — |
+| deBernt | — | A contatar | — |
+| Odgers Berndtson | — | A contatar | — |
+
+---
+
+## 10. Arquivos no Repositório
 
 | Arquivo | Status | Ação |
 |---------|--------|------|
 | `index.html` | ✅ Ativo — versão de produção | Nunca excluir |
+| `PROJETO.md` | ✅ Ativo | Manter atualizado a cada sessão |
 | `README.md` | ✅ Ativo | Manter atualizado |
-| ~~`app.js`~~ | ❌ Excluído | Resíduo de versão antiga |
-| ~~`style.css`~~ | ❌ Excluído | Resíduo de versão antiga |
-| ~~`senova_suite_v2.html`~~ | ❌ Excluído | Resíduo de versão antiga |
+| `senova-worker.js` | ✅ Referência | Versão de produção está no Cloudflare |
 
 ---
 
-## 9. Análise de Riscos
+## 11. Análise de Riscos
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
@@ -155,10 +218,11 @@ Lista original preservada para referência:
 | GitHub Pages fora do ar | Muito baixa | Médio | Backup do index.html neste projeto Claude |
 | KV perder dados | Muito baixa | Alto | Exportar backup mensal dos dados via `/api/vagas` |
 | Limite Cloudflare gratuito (100k req/dia) | Baixa | Médio | Uso pessoal — estimativa de ~50 req/dia |
+| Lusha bloqueada | ✅ Resolvido | — | Substituída pelo Hunter.io |
 
 ---
 
-## 10. Glossário
+## 12. Glossário
 
 | Termo | Significado |
 |-------|-------------|
@@ -167,7 +231,11 @@ Lista original preservada para referência:
 | KV | *Key-Value store* — banco de dados simples do Cloudflare |
 | PMV | Produto Mínimo Viável |
 | Brand Book | Guia de identidade visual — cores, fontes, tom de voz |
+| Cron trigger | Tarefa agendada — executa automaticamente em horário definido |
+| RSS | Feed de conteúdo estruturado — permite leitura automática de notícias e vagas |
+| Social listening | Monitoramento de sinais públicos (notícias, LinkedIn) para detectar oportunidades |
 
 ---
 
-*Documento mantido no repositório GitHub e no Projeto Claude de Marcos Franco.*
+*Documento mantido no repositório GitHub e no Projeto Claude de Marcos Franco.*  
+*Versão 1.0: 04/mai/2026 · Versão 2.0: 11/mai/2026*
