@@ -1,0 +1,1 @@
+- skill_crm: https://github.com/Marcos-mco/senova/blob/main/skill_crm.md
