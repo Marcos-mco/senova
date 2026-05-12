@@ -719,6 +719,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
+const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
 const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
@@ -798,7 +799,7 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
+    const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -959,7 +960,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1051,6 +1052,40 @@ function loadCRM(){
     vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
   }
   updateBadge();
+  fetchLeadsVarredura();
+}
+
+async function fetchLeadsVarredura(){
+  try{
+    const res=await fetch(WORKER_URL+'/api/vagas-lead');
+    const { leads }=await res.json();
+    if(!leads?.length) return;
+    const hoje=new Date().toISOString().slice(0,10);
+    const urlsExistentes=new Set(vagas.filter(v=>v.origemUrl).map(v=>v.origemUrl));
+    let added=0;
+    leads.forEach(l=>{
+      if(urlsExistentes.has(l.url)) return;
+      vagas.push({
+        id:'lead_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+        empresa:l.empresa||l.titulo,
+        cargo:l.titulo,
+        canal:l.fonte||'Varredura',
+        prioridade:l.score>=80?'alta':'media',
+        status:'lead',
+        salario:'',
+        email:'',
+        proxima:'Analisar vaga e adaptar CV',
+        notas:l.resumo||'',
+        origemUrl:l.url,
+        data:l.data||hoje,
+        nova:l.data===hoje,
+        score:l.score||0,
+      });
+      urlsExistentes.add(l.url);
+      added++;
+    });
+    if(added) renderCRM();
+  }catch{}
 }
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
@@ -1093,7 +1128,11 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
       ${cards.map(c=>`
         <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
-          <div class="kcard-name">${c.empresa}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="kcard-name">${c.empresa}</span>
+            ${c.nova?'<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">Nova</span>':''}
+            ${c.score?`<span style="background:var(--bg3);color:var(--text2);font-size:10px;padding:1px 6px;border-radius:4px;">ATS ${c.score}</span>`:''}
+          </div>
           <div class="kcard-role">${c.cargo}</div>
           ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
           <div class="kcard-meta">
@@ -1294,7 +1333,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -1378,7 +1417,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -1424,7 +1463,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})

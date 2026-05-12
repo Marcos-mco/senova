@@ -237,9 +237,105 @@ ${listaEmails}`;
     .sort((a, b) => a.prioridade - b.prioridade);
 }
 
-// 
+//
+//  VARREDURA AUTOMÁTICA DE VAGAS
+//
+
+const PALAVRAS_CHAVE_VAGA = [
+  'cmo','cso','cco','vp marketing','vp de marketing',
+  'diretor de marketing','director de marketing','marketing director',
+  'chief marketing','head de marketing','head of marketing',
+  'diretor comercial','head comercial','gerente sênior de marketing',
+];
+
+const RSS_VAGAS = [
+  { url: 'https://br.indeed.com/rss?q=diretor+marketing+CMO&sort=date', fonte: 'Indeed BR' },
+  { url: 'https://de.indeed.com/rss?q=marketing+director+CMO&sort=date', fonte: 'Indeed DE' },
+  { url: 'https://es.indeed.com/rss?q=director+marketing+CMO&sort=date', fonte: 'Indeed ES' },
+];
+
+function parseRSS(xml) {
+  const items = [];
+  const matches = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+  for (const item of matches) {
+    const getTag = (tag) => {
+      const m = item.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+      if (!m) return '';
+      return m[1].replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, ' ').trim();
+    };
+    const link = item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim()
+               || item.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i)?.[1]?.trim() || '';
+    items.push({
+      titulo: getTag('title'),
+      empresa: getTag('source') || getTag('author') || '',
+      descricao: getTag('description').slice(0, 500),
+      url: link,
+    });
+  }
+  return items;
+}
+
+function passaFiltro(item) {
+  const texto = (item.titulo + ' ' + item.descricao).toLowerCase();
+  return PALAVRAS_CHAVE_VAGA.some(kw => texto.includes(kw));
+}
+
+async function getLeadsKV(env) {
+  try {
+    const raw = await env.SENOVA_KV.get('leads_varredura');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+async function salvarLeadsKV(env, leads) {
+  await env.SENOVA_KV.put('leads_varredura', JSON.stringify(leads.slice(0, 50)));
+}
+
+async function varrerVagas(env) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const existentes = await getLeadsKV(env);
+  const urlsExistentes = new Set(existentes.map(l => l.url));
+  const candidatos = [];
+
+  for (const feed of RSS_VAGAS) {
+    try {
+      const res = await fetch(feed.url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) continue;
+      const xml = await res.text();
+      for (const item of parseRSS(xml)) {
+        if (!item.url || urlsExistentes.has(item.url)) continue;
+        if (!passaFiltro(item)) continue;
+        candidatos.push({ ...item, fonte: feed.fonte, data: hoje });
+      }
+    } catch {}
+  }
+
+  if (!candidatos.length) return { novos: 0, total: existentes.length };
+
+  // Score ATS — máx 5 por rodada para economizar tokens
+  const paraScore = candidatos.slice(0, 5);
+  const aprovados = [];
+
+  for (const vaga of paraScore) {
+    try {
+      const prompt = `Avalie a compatibilidade desta vaga com o perfil de Marcos Franco.\n\nPERFIL:\n${PERFIL_MARCOS}\n\nVAGA:\nTítulo: ${vaga.titulo}\nEmpresa: ${vaga.empresa}\nDescrição: ${vaga.descricao}\n\nResponda APENAS em JSON: {"score":85,"resumo":"1 linha de compatibilidade"}`;
+      const texto = await claudeCall(prompt, env, 200);
+      const { score, resumo } = JSON.parse(texto.replace(/```json|```/g, '').trim());
+      if ((score || 0) >= 60) aprovados.push({ ...vaga, score, resumo: resumo || '' });
+    } catch {}
+  }
+
+  const atualizados = [...aprovados, ...existentes].slice(0, 50);
+  await salvarLeadsKV(env, atualizados);
+  return { novos: aprovados.length, total: atualizados.length };
+}
+
+//
 //  HANDLER PRINCIPAL
-// 
+//
 
 export default {
   async fetch(request, env) {
@@ -487,6 +583,29 @@ export default {
       return jsonResp({ ok: true, dominios: lista });
     }
 
+    //  13. Leads varredura — listar
+    if (path === '/api/vagas-lead' && request.method === 'GET') {
+      return jsonResp({ leads: await getLeadsKV(env) });
+    }
+
+    //  14. Leads varredura — acionar manualmente (testes)
+    if (path === '/api/vagas-lead/processar' && request.method === 'POST') {
+      const resultado = await varrerVagas(env);
+      return jsonResp({ ok: true, ...resultado });
+    }
+
+    //  15. Leads varredura — descartar
+    if (path === '/api/vagas-lead' && request.method === 'DELETE') {
+      const { url } = await request.json();
+      const leads = await getLeadsKV(env);
+      await salvarLeadsKV(env, leads.filter(l => l.url !== url));
+      return jsonResp({ ok: true });
+    }
+
     return jsonResp({ erro: 'Rota não encontrada' }, 404);
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(varrerVagas(env));
   },
 };
