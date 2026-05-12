@@ -1805,13 +1805,13 @@ function verOrigem(){
   const url=document.getElementById('mv-origem-url')?.value||'';
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank');
+  else window.open(url,'_blank','noopener,noreferrer');
 }
 
 function verOrigemCard(url){
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank');
+  else window.open(url,'_blank','noopener,noreferrer');
 }
 
 function abrirAntiATSModal(){
