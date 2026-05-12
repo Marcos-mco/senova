@@ -106,7 +106,7 @@ select option { background: var(--bg2); }
 .tab-btn.active { background: var(--bg2); color: var(--navy); box-shadow: var(--shadow); font-weight: 600; }
 
 /* ── KANBAN ── */
-.kanban { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
+.kanban { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
 .kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; box-shadow: var(--shadow); }
@@ -125,25 +125,13 @@ select option { background: var(--bg2); }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
-.kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 4px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* ── CENTRAL DE SINAIS ── */
-.sinal-card { background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid #7C3AED; border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
-.sinal-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.sinal-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
-.sinal-empresa { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--navy); }
-.sinal-cargo { font-size: 12.5px; color: var(--action); font-weight: 600; margin: 2px 0 8px; }
-.sinal-resumo { font-size: 13.5px; color: var(--text); margin-bottom: 6px; }
-.sinal-acao { font-size: 12.5px; color: var(--text2); margin-bottom: 12px; }
-.sinal-msg { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--text); white-space: pre-wrap; margin: 8px 0; line-height: 1.6; }
-.sinal-hunter { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
-.sinal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ── RESULT ── */
 .result-box { background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; font-size: 13.5px; line-height: 1.85; color: var(--text2); white-space: pre-wrap; word-break: break-word; max-height: 440px; overflow-y: auto; font-family: var(--font); }
 .result-box.mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12.5px; }
 
 /* ── STATS ── */
-.stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 14px; margin-bottom: 24px; }
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
 .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); }
 .stat-val { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
 .stat-label { font-size: 12px; color: var(--text3); font-weight: 400; }
@@ -240,14 +228,6 @@ select option { background: var(--bg2); }
         <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
       </svg>
       Entrevista
-    </div>
-    <div class="nav-item" onclick="showPage('sinais')" id="nav-sinais">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M4.1 11.9l1.4-1.4M10.5 5.5l1.4-1.4"/>
-        <circle cx="8" cy="8" r="2.5"/>
-      </svg>
-      Sinais
-      <span class="nav-badge" id="sinais-badge" style="background:#7C3AED;color:#fff;">—</span>
     </div>
   </div>
 
@@ -415,8 +395,6 @@ select option { background: var(--bg2); }
       <div class="lang-toggle">
         <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
-        <button class="lang-btn" onclick="setCrmTab('negativo',this)" id="crm-tab-negativo">📭 Negativados <span id="neg-count"></span></button>
-        <button class="lang-btn" onclick="setCrmTab('dashboard',this)">📊 Dashboard</button>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:8px;">
         + Adicionar
@@ -428,35 +406,7 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-        <input type="text" id="crm-busca" placeholder="🔍 Buscar empresa ou cargo..." style="width:220px;padding:8px 12px;font-size:13px;" oninput="aplicarFiltrosCRM()">
-        <select id="crm-fil-prioridade" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltrosCRM()">
-          <option value="todas">Todas prioridades</option>
-          <option value="alta">Alta</option>
-          <option value="media">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
-        <select id="crm-fil-canal" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltrosCRM()">
-          <option value="todos">Todos os canais</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="limparFiltrosCRM()" id="crm-limpar-btn" style="display:none;">✕ Limpar</button>
-        <span id="crm-filtro-count" style="font-size:12px;color:var(--text3);"></span>
-      </div>
-      <div id="followup-alert" style="display:none;background:#FEF3C7;border:1px solid #D97706;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text);"></div>
       <div class="kanban" id="kanban-vagas"></div>
-    </div>
-
-    <!-- Negativados List -->
-    <div id="crm-negativados" style="display:none;">
-      <div id="negativados-lista"></div>
-    </div>
-
-    <!-- Dashboard -->
-    <div id="crm-dashboard" style="display:none;">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-        <button class="btn btn-primary btn-sm" onclick="gerarRelatorioPDF()">⬇ Exportar PDF</button>
-      </div>
-      <div id="dashboard-content"></div>
     </div>
 
     <!-- Contatos List -->
@@ -558,32 +508,6 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
-<!-- ┌─────────────────────────────┐
-     │  PAGE: SINAIS              │
-     └─────────────────────────────┘ -->
-<div id="page-sinais" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
-  <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Central de Sinais</span>
-      <span class="page-sub">Oportunidades detectadas no mercado</span>
-    </div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="processarSinais()" id="sinais-processar-btn">↻ Processar agora</button>
-      <div class="status-pill"><div class="status-dot"></div>Monitoramento ativo</div>
-    </div>
-  </div>
-  <div class="content">
-    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="sinais-filtros">
-      <button class="lang-btn active" onclick="filtrarSinais('todos',this)">Todos</button>
-      <button class="lang-btn" onclick="filtrarSinais('alta',this)">🔴 Alta relevância</button>
-      <button class="lang-btn" onclick="filtrarSinais('media',this)">🟡 Média</button>
-      <button class="lang-btn" onclick="filtrarSinais('movimentacao_exec',this)">👤 Movimentações</button>
-      <button class="lang-btn" onclick="filtrarSinais('startup_captacao',this)">🚀 Startups</button>
-    </div>
-    <div id="sinais-lista"><div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhum sinal detectado ainda. Clique em "Processar agora" para iniciar.</div></div>
-  </div>
-</div>
-
 </main>
 </div>
 
@@ -591,78 +515,64 @@ select option { background: var(--bg2); }
      MODAL VAGAS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
-  <div class="modal" style="overflow:hidden;">
+  <div class="modal">
     <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
-    <div style="overflow-y:auto;flex:1;min-height:0;">
-      <div class="form-row">
-        <label class="field-label">Empresa</label>
-        <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
+    <div class="form-row">
+      <label class="field-label">Empresa</label>
+      <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Cargo</label>
+      <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
+    </div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div>
+        <label class="field-label">Canal</label>
+        <select id="mv-canal">
+          <option>LinkedIn</option>
+          <option>Indicação</option>
+          <option>Headhunter</option>
+          <option>Site da empresa</option>
+          <option>Gupy</option>
+          <option>Indeed</option>
+        </select>
       </div>
-      <div class="form-row">
-        <label class="field-label">Cargo</label>
-        <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
+      <div>
+        <label class="field-label">Prioridade</label>
+        <select id="mv-prioridade">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Canal</label>
-          <select id="mv-canal">
-            <option>LinkedIn</option>
-            <option>Indicação</option>
-            <option>Headhunter</option>
-            <option>Site da empresa</option>
-            <option>Gupy</option>
-            <option>Indeed</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Prioridade</label>
-          <select id="mv-prioridade">
-            <option value="alta">Alta</option>
-            <option value="media" selected>Média</option>
-            <option value="baixa">Baixa</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Status</label>
-          <select id="mv-status">
-            <option value="lead">Lead</option>
-            <option value="radar">Radar</option>
-            <option value="candidatado">Candidatado</option>
-            <option value="andamento">Em andamento</option>
-            <option value="proposta">Proposta</option>
-            <option value="encerrado">Encerrado</option>
-            <option value="negativo">Negativo</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Pretensão (R$)</label>
-          <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
-        </div>
+      <div>
+        <label class="field-label">Status</label>
+        <select id="mv-status">
+          <option value="radar">Radar</option>
+          <option value="candidatado">Candidatado</option>
+          <option value="andamento">Em andamento</option>
+          <option value="proposta">Proposta</option>
+          <option value="encerrado">Encerrado</option>
+        </select>
       </div>
-      <div class="form-row">
-        <label class="field-label">Email do recrutador</label>
-        <input type="email" id="mv-email" placeholder="Ex: recrutador@empresa.com">
-      </div>
-      <div class="form-row">
-        <label class="field-label">Próxima ação</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter" style="flex:1;">
-          <input type="date" id="mv-prazo" title="Prazo" style="width:150px;padding:11px 10px;font-size:13px;">
-        </div>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Notas</label>
-        <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
-      </div>
-      <div class="form-row" style="margin-bottom:0;">
-        <label class="field-label">URL da vaga</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou gupy.io/..." oninput="document.getElementById('mv-ver-origem-btn').style.display=this.value?'flex':'none'">
-          <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn" style="display:none;white-space:nowrap;">Ver vaga</button>
-        </div>
+      <div>
+        <label class="field-label">Pretensão (R$)</label>
+        <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+    <div class="form-row">
+      <label class="field-label">Email do recrutador</label>
+      <input type="email" id="mv-email" placeholder="Ex: recrutador@empresa.com">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Próxima ação</label>
+      <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+    </div>
+    <div class="form-row">
+      <label class="field-label">Notas</label>
+      <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
@@ -798,15 +708,7 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
-const PAGES = ['ats','linkedin','crm','interview','sinais'];
-const SINAL_TIPO = {
-  movimentacao_exec: { label: 'Movimentação', cor: '#7C3AED' },
-  empresa_europeia:  { label: 'Empresa Europeia', cor: '#2563EB' },
-  midia_tv:          { label: 'Mídia/TV', cor: '#DC2626' },
-  fusao_aquisicao:   { label: 'Fusão/Aquisição', cor: '#D97706' },
-  startup_captacao:  { label: 'Startup', cor: '#059669' },
-};
+const PAGES = ['ats','linkedin','crm','interview'];
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -885,7 +787,7 @@ async function analyzeJob() {
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
-    const res = await fetch(WORKER_URL+'/api/claude',{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
@@ -1046,7 +948,7 @@ Evite clichês. Use números reais do CV base.`}
 Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} de forma pronta para colar no LinkedIn.`;
 
   try {
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
@@ -1129,7 +1031,6 @@ const DEFAULT_CONTATOS=[
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null;
 let crmCurrentTab='vagas', contatoFilter='todos';
-let crmFiltros={busca:'',prioridade:'todas',canal:'todos'};
 
 function loadCRM(){
   try{
@@ -1139,163 +1040,13 @@ function loadCRM(){
     vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
   }
   updateBadge();
-  fetchLeadsVarredura();
-  fetchSinais();
-}
-
-let sinaisMercado=[];
-
-async function fetchSinais(){
-  try{
-    const res=await fetch(WORKER_URL+'/api/sinais');
-    const { sinais }=await res.json();
-    sinaisMercado=sinais||[];
-    const novos=sinaisMercado.filter(s=>s.nova).length;
-    const badge=document.getElementById('sinais-badge');
-    if(badge) badge.textContent=novos||sinaisMercado.length||'—';
-    renderCRM();
-    if(document.getElementById('page-sinais')?.style.display!=='none') renderSinais();
-  }catch{}
-}
-
-let sinaisFiltroAtual='todos';
-function filtrarSinais(filtro, btn){
-  sinaisFiltroAtual=filtro;
-  document.querySelectorAll('#sinais-filtros .lang-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderSinais();
-}
-
-function renderSinais(){
-  const lista=document.getElementById('sinais-lista'); if(!lista) return;
-  let dados=[...sinaisMercado];
-  if(sinaisFiltroAtual==='alta') dados=dados.filter(s=>s.relevancia==='alta');
-  else if(sinaisFiltroAtual==='media') dados=dados.filter(s=>s.relevancia==='media');
-  else if(sinaisFiltroAtual!=='todos') dados=dados.filter(s=>s.tipo===sinaisFiltroAtual);
-  dados.sort((a,b)=>{
-    const r={alta:0,media:1,baixa:2};
-    if(r[a.relevancia]!==r[b.relevancia]) return r[a.relevancia]-r[b.relevancia];
-    return (b.nova?1:0)-(a.nova?1:0);
-  });
-  if(!dados.length){
-    lista.innerHTML='<div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhum sinal nesta categoria.</div>';
-    return;
-  }
-  lista.innerHTML=dados.map(s=>{
-    const tipo=SINAL_TIPO[s.tipo]||{label:s.tipo,cor:'#9CA3AF'};
-    const dataFmt=s.data?s.data.slice(5).replace('-','/'):'';
-    const relCor=s.relevancia==='alta'?'#DC2626':s.relevancia==='media'?'#D97706':'#9CA3AF';
-    const hunterResult=s.hunter_email
-      ?`<span style="font-size:12px;color:var(--green);font-weight:600;">✓ ${s.hunter_email}${s.hunter_nome?' · '+s.hunter_nome:''}</span>`
-      :`<input type="text" id="hd-${s.id}" placeholder="dominio.com.br" style="width:160px;padding:6px 10px;font-size:12px;">
-        <button class="btn btn-ghost btn-sm" onclick="buscarEmailHunter('${s.id}','hd-${s.id}')">🔍 Buscar email</button>`;
-    return `<div class="sinal-card" style="border-left-color:${tipo.cor}">
-      <div class="sinal-header">
-        <span class="sinal-badge" style="background:${tipo.cor}">${tipo.label}</span>
-        ${s.nova?'<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">Nova</span>':''}
-        <span style="font-size:11px;color:var(--text3);margin-left:auto;">${dataFmt}</span>
-        <span style="font-size:11px;font-weight:700;color:${relCor};">● ${s.relevancia||'—'}</span>
-      </div>
-      <div class="sinal-empresa">${s.empresa||'—'}</div>
-      ${s.cargo_vago?`<div class="sinal-cargo">Cargo: ${s.cargo_vago}</div>`:''}
-      <div class="sinal-resumo">${s.resumo||''}</div>
-      ${s.acao?`<div class="sinal-acao">→ ${s.acao}</div>`:''}
-      ${s.mensagem_sugerida?`
-        <button class="btn btn-ghost btn-sm" onclick="
-          const m=document.getElementById('msg-${s.id}');
-          m.style.display=m.style.display==='none'?'block':'none';
-          this.textContent=m.style.display==='none'?'📝 Ver mensagem':'📝 Fechar mensagem'
-        ">📝 Ver mensagem</button>
-        <div class="sinal-msg" id="msg-${s.id}" style="display:none;">${s.mensagem_sugerida}
-          <div style="margin-top:8px;">
-            <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('msg-${s.id}').innerText.replace('📋 Copiar','').trim()).then(()=>alert('Copiado!'))">📋 Copiar</button>
-          </div>
-        </div>`:''}
-      <div class="sinal-hunter">${hunterResult}</div>
-      <div class="sinal-footer">
-        ${s.url?`<a href="${s.url}" target="_blank" style="font-size:12.5px;color:var(--action);text-decoration:none;">📰 Ver notícia →</a>`:'<span></span>'}
-        <button class="btn btn-ghost btn-sm" style="color:#DC2626;font-size:12px;" onclick="descartarSinal('${s.id}')">✕ Descartar</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function buscarEmailHunter(sinalId, inputId){
-  const dominio=document.getElementById(inputId)?.value?.trim();
-  if(!dominio){ alert('Digite o domínio da empresa (ex: empresa.com.br)'); return; }
-  const btn=event.target; btn.textContent='Buscando...'; btn.disabled=true;
-  try{
-    const res=await fetch(WORKER_URL+'/api/hunter',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({dominio, sinal_id:sinalId})
-    });
-    const data=await res.json();
-    if(data.erro){ alert('Erro: '+data.erro); return; }
-    if(!data.emails?.length){ alert('Nenhum email executivo encontrado para '+dominio); return; }
-    const e=data.emails[0];
-    sinaisMercado=sinaisMercado.map(s=>s.id===sinalId?{...s,hunter_email:e.email,hunter_nome:e.nome}:s);
-    renderSinais();
-  }catch(e){ alert('Erro ao buscar email.'); }
-  finally{ btn.textContent='🔍 Buscar email'; btn.disabled=false; }
-}
-
-async function descartarSinal(id){
-  if(!confirm('Descartar este sinal?')) return;
-  try{ await fetch(WORKER_URL+'/api/sinais',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); }catch{}
-  sinaisMercado=sinaisMercado.filter(s=>s.id!==id);
-  const badge=document.getElementById('sinais-badge');
-  if(badge) badge.textContent=sinaisMercado.filter(s=>s.nova).length||sinaisMercado.length||'—';
-  renderSinais();
-}
-
-async function processarSinais(){
-  const btn=document.getElementById('sinais-processar-btn');
-  btn.textContent='Processando...'; btn.disabled=true;
-  try{
-    await fetch(WORKER_URL+'/api/sinais/processar',{method:'POST'});
-    await fetchSinais();
-  }catch{}
-  btn.textContent='↻ Processar agora'; btn.disabled=false;
-}
-
-async function fetchLeadsVarredura(){
-  try{
-    const res=await fetch(WORKER_URL+'/api/vagas-lead');
-    const { leads }=await res.json();
-    if(!leads?.length) return;
-    const hoje=new Date().toISOString().slice(0,10);
-    const urlsExistentes=new Set(vagas.filter(v=>v.origemUrl).map(v=>v.origemUrl));
-    let added=0;
-    leads.forEach(l=>{
-      if(urlsExistentes.has(l.url)) return;
-      vagas.push({
-        id:'lead_'+Date.now()+'_'+Math.random().toString(36).slice(2),
-        empresa:l.empresa||l.titulo,
-        cargo:l.titulo,
-        canal:l.fonte||'Varredura',
-        prioridade:l.score>=80?'alta':'media',
-        status:'lead',
-        salario:'',
-        email:'',
-        proxima:'Analisar vaga e adaptar CV',
-        notas:l.resumo||'',
-        origemUrl:l.url,
-        data:l.data||hoje,
-        nova:l.data===hoje,
-        score:l.score||0,
-      });
-      urlsExistentes.add(l.url);
-      added++;
-    });
-    if(added) renderCRM();
-  }catch{}
 }
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Lead',radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={lead:'#7C3AED',radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 function setCrmTab(tab,btn){
@@ -1304,11 +1055,7 @@ function setCrmTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
-  document.getElementById('crm-negativados').style.display=tab==='negativo'?'block':'none';
-  document.getElementById('crm-dashboard').style.display=tab==='dashboard'?'block':'none';
-  const addBtn=document.getElementById('crm-add-btn');
-  addBtn.style.display=(tab==='negativo'||tab==='dashboard')?'none':'inline-flex';
-  addBtn.onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
+  document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
   renderCRM();
 }
 
@@ -1318,51 +1065,16 @@ function renderCRM(){
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
-  const negativados=vagas.filter(v=>v.status==='negativo').length;
-  const sinaisNovos=sinaisMercado.filter(s=>s.nova).length;
-  const negCount=document.getElementById('neg-count');
-  if(negCount) negCount.textContent=negativados?`(${negativados})`:'';
   document.getElementById('crm-stats').innerHTML=`
-    <div class="stat"><div class="stat-val">${vagas.filter(v=>v.status!=='negativo').length}</div><div class="stat-label">Vagas ativas</div></div>
+    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--action)">${andamento}</div><div class="stat-label">Em andamento</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>
-    <div class="stat"><div class="stat-val" style="color:#6B7280">${negativados}</div><div class="stat-label">Negativados</div></div>
-    <div class="stat"><div class="stat-val" style="color:#7C3AED">${sinaisNovos||sinaisMercado.length}</div><div class="stat-label">Sinais de mercado</div></div>`;
-  if(crmCurrentTab==='negativo') renderNegativados();
-  if(crmCurrentTab==='dashboard') renderDashboard();
+    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
-  // Popula select de canais dinamicamente
-  const canalSel=document.getElementById('crm-fil-canal');
-  if(canalSel && canalSel.options.length<=1){
-    const canais=[...new Set(vagas.map(v=>v.canal).filter(Boolean))].sort();
-    canais.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; canalSel.appendChild(o); });
-  }
-
-  // Kanban vagas (exclui negativados — ficam na aba própria)
-  const vagasFiltradas=vagas.filter(v=>v.status!=='negativo'&&passaFiltroCRM(v));
-  const totalFiltradas=vagasFiltradas.length;
-  const totalAtivas=vagas.filter(v=>v.status!=='negativo').length;
-  const countEl=document.getElementById('crm-filtro-count');
-  if(countEl) countEl.textContent=(totalFiltradas<totalAtivas)?`${totalFiltradas} de ${totalAtivas} vagas`:'';
-
-  // Barra de alertas follow-up
-  const overdue=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7)
-    .sort((a,b)=>(diasSemResposta(b)||0)-(diasSemResposta(a)||0));
-  const alertBar=document.getElementById('followup-alert');
-  if(alertBar){
-    if(overdue.length){
-      const cor=overdue.some(v=>(diasSemResposta(v)||0)>=21)?'#DC2626':'#D97706';
-      alertBar.style.display='block';
-      alertBar.innerHTML=`<span style="font-weight:700;color:${cor};">📬 ${overdue.length} follow-up${overdue.length>1?'s':''} pendente${overdue.length>1?'s':''}:</span> `
-        +overdue.slice(0,5).map(v=>`<span onclick="openVagaModal(${v.id})" style="cursor:pointer;text-decoration:underline;margin-right:10px;">${v.empresa} (${diasSemResposta(v)}d)</span>`).join('')
-        +(overdue.length>5?`<span style="color:var(--text3)">+${overdue.length-5} mais</span>`:'');
-    } else { alertBar.style.display='none'; }
-  }
-
-  const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
+  // Kanban vagas
+  const cols=['radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    const cards=vagasFiltradas.filter(v=>v.status===col);
+    const cards=vagas.filter(v=>v.status===col);
     return `<div>
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
@@ -1370,39 +1082,15 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
       ${cards.map(c=>`
         <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
-          ${(()=>{
-            const d=diasSemResposta(c);
-            const badge=d===null?'':d>=21?`<span style="background:#DC2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:d>=14?`<span style="background:#D97706;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:d>=7?`<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:'';
-            return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span class="kcard-name">${c.empresa}</span>
-            ${badge}
-            ${c.nova?'<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">Nova</span>':''}
-            ${c.score?`<span style="background:var(--bg3);color:var(--text2);font-size:10px;padding:1px 6px;border-radius:4px;">ATS ${c.score}</span>`:''}
-          </div>`;
-          })()}
+          <div class="kcard-name">${c.empresa}</div>
           <div class="kcard-role">${c.cargo}</div>
           ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
           </div>
-          ${c.proxima||c.prazoData?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
-            ${c.proxima?`→ ${c.proxima}`:''}
-            ${c.prazoData?(()=>{
-              const hoje=new Date(); hoje.setHours(0,0,0,0);
-              const prazo=new Date(c.prazoData+'T00:00:00');
-              const diff=Math.round((prazo-hoje)/(1000*60*60*24));
-              if(diff<0) return `<span style="color:#DC2626;font-weight:700;font-size:11px;"> ⚠ Vencido há ${Math.abs(diff)}d</span>`;
-              if(diff===0) return `<span style="color:#D97706;font-weight:700;font-size:11px;"> 🔔 Hoje</span>`;
-              if(diff===1) return `<span style="color:#D97706;font-size:11px;"> 📅 Amanhã</span>`;
-              if(diff<=7) return `<span style="color:var(--text3);font-size:11px;"> 📅 em ${diff}d</span>`;
-              return `<span style="color:var(--text3);font-size:11px;"> 📅 ${prazo.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>`;
-            })():''}
-          </div>`:''}
-          ${c.origemUrl?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl.replace(/'/g,"\\'")}')">
-            ${c.origemUrl.includes('linkedin.com')?'🔗 LinkedIn (requer login)':c.origemUrl.includes('@')?'✉ Ver email':'🔗 Ver vaga'}
-          </div>`:''}
-          ${c.status==='lead'||c.status==='radar'||c.status==='candidatado'?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
+          ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+          ${c.status==='radar'||c.status==='candidatado'?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
             <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--navy);color:#fff;font-size:12px;" onclick="candidatar(${c.id})">✉ Candidatar</button>
           </div>`:''}
         </div>`).join('')}
@@ -1421,270 +1109,6 @@ function renderCRM(){
       <div class="contact-next">${c.next}</div>
       <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;">P.${c.plano}</span>
     </div>`).join('');
-}
-
-function renderDashboard(){
-  const el=document.getElementById('dashboard-content');
-  if(!el) return;
-  const ativas=vagas.filter(v=>v.status!=='negativo');
-  const negativados=vagas.filter(v=>v.status==='negativo').length;
-  const funnelSteps=[{key:'lead',label:'Lead'},{key:'radar',label:'Radar'},{key:'candidatado',label:'Candidatado'},{key:'andamento',label:'Em Andamento'},{key:'proposta',label:'Proposta'}];
-  const counts={};
-  funnelSteps.forEach(s=>counts[s.key]=vagas.filter(v=>v.status===s.key).length);
-  const maxCount=Math.max(...Object.values(counts),1);
-  const overdueCount=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7).length;
-  const prioMap={alta:0,media:0,baixa:0};
-  ativas.forEach(v=>{ prioMap[v.prioridade]=(prioMap[v.prioridade]||0)+1; });
-  const canalMap={};
-  ativas.forEach(v=>{ const c=v.canal||'N/A'; canalMap[c]=(canalMap[c]||0)+1; });
-  const canalEntries=Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxCanal=Math.max(...canalEntries.map(e=>e[1]),1);
-  const total=ativas.length;
-  el.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
-        <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:16px;">Funil de Processo</div>
-        ${funnelSteps.map(s=>`
-          <div style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-              <span style="color:var(--text2);">${s.label}</span>
-              <span style="font-weight:700;color:${COL_COLOR[s.key]};">${counts[s.key]}</span>
-            </div>
-            <div style="background:var(--bg3);border-radius:6px;height:10px;overflow:hidden;">
-              <div style="background:${COL_COLOR[s.key]};height:100%;border-radius:6px;width:${Math.max(counts[s.key]/maxCount*100,2)}%;"></div>
-            </div>
-          </div>`).join('')}
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:16px;">
-          <div style="text-align:center;flex:1;">
-            <div style="font-size:22px;font-weight:700;color:var(--navy);">${counts.candidatado?Math.round(counts.andamento/counts.candidatado*100):0}%</div>
-            <div style="font-size:11px;color:var(--text3);">Retorno p/ entrevista</div>
-          </div>
-          <div style="text-align:center;flex:1;">
-            <div style="font-size:22px;font-weight:700;color:var(--green);">${counts.andamento?Math.round(counts.proposta/counts.andamento*100):0}%</div>
-            <div style="font-size:11px;color:var(--text3);">Conversão p/ proposta</div>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
-          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:12px;">Situação Geral</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
-              <div style="font-size:24px;font-weight:700;color:var(--navy);">${total}</div>
-              <div style="font-size:11px;color:var(--text3);">Vagas ativas</div>
-            </div>
-            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
-              <div style="font-size:24px;font-weight:700;color:#6B7280;">${negativados}</div>
-              <div style="font-size:11px;color:var(--text3);">Negativados</div>
-            </div>
-            <div style="background:${overdueCount?'#FEF3C7':'var(--bg)'};border-radius:var(--radius);padding:12px;">
-              <div style="font-size:24px;font-weight:700;color:${overdueCount?'#D97706':'var(--navy)'};">${overdueCount}</div>
-              <div style="font-size:11px;color:var(--text3);">Follow-up pendente</div>
-            </div>
-            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
-              <div style="font-size:24px;font-weight:700;color:var(--green);">${counts.proposta}</div>
-              <div style="font-size:11px;color:var(--text3);">Propostas recebidas</div>
-            </div>
-          </div>
-        </div>
-        <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
-          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:12px;">Por Prioridade</div>
-          ${[['alta','Alta','#DC2626'],['media','Média','#D97706'],['baixa','Baixa','#2563EB']].map(([k,l,c])=>`
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <span style="width:50px;font-size:12px;color:var(--text2);">${l}</span>
-              <div style="flex:1;background:var(--bg3);border-radius:5px;height:8px;overflow:hidden;">
-                <div style="background:${c};height:100%;border-radius:5px;width:${total?Math.max(prioMap[k]/total*100,2):2}%;"></div>
-              </div>
-              <span style="width:22px;text-align:right;font-size:13px;font-weight:700;color:${c};">${prioMap[k]}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-    </div>
-    ${canalEntries.length?`
-    <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);margin-top:20px;">
-      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:14px;">Por Canal de Origem</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
-        ${canalEntries.map(([canal,n])=>`
-          <div style="background:var(--bg);border-radius:var(--radius);padding:14px;">
-            <div style="font-size:22px;font-weight:700;color:var(--action);">${n}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px;">${canal}</div>
-            <div style="background:var(--border);border-radius:4px;height:4px;margin-top:8px;overflow:hidden;">
-              <div style="background:var(--action);height:100%;border-radius:4px;width:${Math.max(n/maxCanal*100,3)}%;"></div>
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>`:''}`;
-}
-
-function gerarRelatorioPDF(){
-  if(!window.jspdf){alert('jsPDF não carregado — recarregue a página.');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210,mL=18,mR=18,cW=W-mL-mR;
-  const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-  let y=0;
-
-  function checkPage(need=18){if(y+need>278){doc.addPage();y=18;}}
-
-  function sectionTitle(t){
-    checkPage(16);
-    doc.setFillColor(240,244,248);
-    doc.rect(mL,y,cW,9,'F');
-    doc.setTextColor(26,58,92);doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.text(t,mL+3,y+6.5);
-    y+=13;
-  }
-
-  // Header band
-  doc.setFillColor(26,58,92);
-  doc.rect(0,0,W,34,'F');
-  doc.setFillColor(201,168,76);
-  doc.rect(0,34,W,1.5,'F');
-  doc.setTextColor(201,168,76);doc.setFont('helvetica','bold');doc.setFontSize(18);
-  doc.text('SENOVA SUITE',mL,14);
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');doc.setFontSize(9);
-  doc.text('Relatorio de Processo Seletivo Executivo',mL,22);
-  doc.text('Marcos Franco  |  '+hoje,mL,29);
-  y=44;
-
-  // Dados
-  const ativas=vagas.filter(v=>v.status!=='negativo');
-  const negList=vagas.filter(v=>v.status==='negativo');
-  const andList=vagas.filter(v=>v.status==='andamento');
-  const propList=vagas.filter(v=>v.status==='proposta');
-  const overdueList=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7)
-    .sort((a,b)=>(diasSemResposta(b)||0)-(diasSemResposta(a)||0));
-  const quentesList=contatos.filter(c=>c.temp==='hot');
-  const funnelSteps=[{key:'lead',label:'Lead'},{key:'radar',label:'Radar'},{key:'candidatado',label:'Candidatado'},{key:'andamento',label:'Em Andamento'},{key:'proposta',label:'Proposta'},{key:'encerrado',label:'Encerrado'}];
-  const counts={};funnelSteps.forEach(s=>counts[s.key]=vagas.filter(v=>v.status===s.key).length);
-  const maxCount=Math.max(...Object.values(counts),1);
-
-  // Resumo — 4 boxes
-  sectionTitle('Resumo Executivo');
-  const bW=(cW-9)/4;
-  [{label:'Vagas ativas',val:ativas.length,c:[26,58,92]},{label:'Em andamento',val:andList.length,c:[46,109,164]},{label:'Propostas',c:[26,122,74],val:propList.length},{label:'Negativados',val:negList.length,c:[107,114,128]}]
-    .forEach((s,i)=>{
-      const x=mL+i*(bW+3);
-      doc.setFillColor(247,245,240);doc.roundedRect(x,y,bW,18,2,2,'F');
-      doc.setTextColor(...s.c);doc.setFont('helvetica','bold');doc.setFontSize(16);
-      doc.text(String(s.val),x+bW/2,y+10,{align:'center'});
-      doc.setTextColor(138,134,128);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-      doc.text(s.label,x+bW/2,y+16,{align:'center'});
-    });
-  y+=24;
-
-  // Funil
-  checkPage(60);sectionTitle('Funil de Processo');
-  const barMaxW=cW-56;
-  const fColors={lead:[124,58,237],radar:[156,163,175],candidatado:[37,99,235],andamento:[217,119,6],proposta:[5,150,105],encerrado:[220,38,38]};
-  funnelSteps.forEach(s=>{
-    const n=counts[s.key];const bw=Math.max(n/maxCount*barMaxW,0.5);
-    const[r,g,b]=fColors[s.key]||[100,100,100];
-    doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
-    doc.text(s.label,mL,y+4.5);
-    doc.setFillColor(232,228,219);doc.rect(mL+50,y,barMaxW,6,'F');
-    if(n>0){doc.setFillColor(r,g,b);doc.rect(mL+50,y,bw,6,'F');}
-    doc.setTextColor(r,g,b);doc.setFont('helvetica','bold');doc.setFontSize(9);
-    doc.text(String(n),mL+50+barMaxW+4,y+4.5);
-    y+=10;
-  });
-  y+=2;
-  const convInt=counts.candidatado?Math.round(counts.andamento/counts.candidatado*100):0;
-  const convProp=counts.andamento?Math.round(counts.proposta/counts.andamento*100):0;
-  doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(8.5);
-  doc.text(`Taxa retorno p/ entrevista: ${convInt}%   |   Conversao p/ proposta: ${convProp}%`,mL,y);
-  y+=12;
-
-  // Vagas em andamento
-  if(andList.length){
-    checkPage(30);sectionTitle('Vagas em Andamento ('+andList.length+')');
-    andList.forEach(v=>{
-      checkPage(14);
-      doc.setFillColor(247,245,240);doc.rect(mL,y,cW,11,'F');
-      doc.setTextColor(26,58,92);doc.setFont('helvetica','bold');doc.setFontSize(10);
-      const nw=Math.min(doc.getTextWidth(v.empresa),70);
-      doc.text(v.empresa,mL+3,y+7,{maxWidth:70});
-      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
-      doc.text(v.cargo,mL+3+nw+3,y+7,{maxWidth:80});
-      const d=diasSemResposta(v);
-      if(d!==null){
-        const dc=d>=21?[192,40,30]:d>=7?[217,119,6]:[138,134,128];
-        doc.setTextColor(...dc);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
-        doc.text(d+'d sem resposta',W-mR-2,y+7,{align:'right'});
-      }
-      y+=13;
-    });
-    y+=2;
-  }
-
-  // Propostas
-  if(propList.length){
-    checkPage(30);sectionTitle('Propostas Recebidas ('+propList.length+')');
-    propList.forEach(v=>{
-      checkPage(11);
-      doc.setTextColor(26,122,74);doc.setFont('helvetica','bold');doc.setFontSize(10);
-      doc.text('>',mL,y+4.5);
-      doc.setTextColor(26,58,92);
-      doc.text(v.empresa,mL+7,y+4.5);
-      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
-      const ew=doc.getTextWidth(v.empresa);
-      doc.text(v.cargo,mL+7+ew+3,y+4.5,{maxWidth:80});
-      if(v.salario){doc.setTextColor(46,109,164);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(v.salario,W-mR-2,y+4.5,{align:'right'});}
-      y+=10;
-    });
-    y+=4;
-  }
-
-  // Follow-up pendentes
-  if(overdueList.length){
-    checkPage(30);sectionTitle('Follow-up Pendentes ('+overdueList.length+')');
-    overdueList.forEach(v=>{
-      checkPage(10);
-      const d=diasSemResposta(v);
-      const dc=d>=21?[192,40,30]:d>=14?[217,119,6]:[184,103,10];
-      doc.setTextColor(...dc);doc.setFont('helvetica','bold');doc.setFontSize(9);
-      doc.text(d+'d',mL,y+4);
-      doc.setTextColor(26,58,92);
-      doc.text(v.empresa,mL+14,y+4);
-      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
-      const ew=doc.getTextWidth(v.empresa);
-      doc.text(v.cargo,mL+14+ew+3,y+4,{maxWidth:90});
-      y+=9;
-    });
-    y+=4;
-  }
-
-  // Contatos quentes
-  if(quentesList.length){
-    checkPage(30);sectionTitle('Contatos Quentes ('+quentesList.length+')');
-    quentesList.forEach(c=>{
-      checkPage(10);
-      doc.setTextColor(192,40,30);doc.setFont('helvetica','bold');doc.setFontSize(9);
-      doc.text('*',mL,y+4);
-      doc.setTextColor(26,58,92);
-      doc.text(c.nome,mL+6,y+4);
-      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
-      const nw=doc.getTextWidth(c.nome);
-      doc.text(c.cargo,mL+6+nw+3,y+4,{maxWidth:70});
-      if(c.next){doc.setTextColor(138,134,128);doc.setFontSize(8.5);doc.text('> '+c.next,W-mR-2,y+4,{align:'right',maxWidth:60});}
-      y+=9;
-    });
-    y+=4;
-  }
-
-  // Footer em todas as páginas
-  const total=doc.getNumberOfPages();
-  for(let i=1;i<=total;i++){
-    doc.setPage(i);
-    doc.setFillColor(26,58,92);doc.rect(0,289,W,8,'F');
-    doc.setTextColor(201,168,76);doc.setFont('helvetica','bold');doc.setFontSize(7);
-    doc.text('SENOVA SUITE',mL,294.5);
-    doc.setTextColor(200,200,200);doc.setFont('helvetica','normal');
-    doc.text('Confidencial — uso pessoal',W/2,294.5,{align:'center'});
-    doc.text('Pagina '+i+' de '+total,W-mR,294.5,{align:'right'});
-  }
-
-  doc.save('Senova_Relatorio_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.pdf');
 }
 
 function filterContato(filter,btn){
@@ -1710,98 +1134,16 @@ function openVagaModal(id){
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-email').value=v.email||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
-    document.getElementById('mv-prazo').value=v.prazoData||'';
     document.getElementById('mv-notas').value=v.notas||'';
-    document.getElementById('mv-origem-url').value=v.origemUrl||'';
-    document.getElementById('mv-ver-origem-btn').style.display=v.origemUrl?'flex':'none';
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-email','mv-proxima','mv-prazo','mv-notas','mv-origem-url'].forEach(i=>document.getElementById(i).value='');
-    document.getElementById('mv-ver-origem-btn').style.display='none';
+    ['mv-empresa','mv-cargo','mv-salario','mv-email','mv-proxima','mv-notas'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
     document.getElementById('mv-status').value='radar';
   }
   document.getElementById('modal-vaga').style.display='flex';
 }
-function renderNegativados(){
-  const lista=document.getElementById('negativados-lista'); if(!lista) return;
-  const negs=vagas.filter(v=>v.status==='negativo').sort((a,b)=>b.id-a.id);
-  if(!negs.length){
-    lista.innerHTML='<div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhuma vaga negativada ainda.</div>';
-    return;
-  }
-  lista.innerHTML=negs.map(v=>`
-    <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid #6B7280;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow);">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">${v.empresa}</div>
-        <div style="font-size:13px;color:var(--text2);">${v.cargo||'—'}</div>
-        <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">${v.canal||''} · ${v.data||''}</div>
-        ${v.notas?`<div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic;">${v.notas}</div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="reativarVaga(${v.id})">↩ Reativar</button>
-        <button class="btn btn-ghost btn-sm" onclick="openVagaModal(${v.id})">Editar</button>
-      </div>
-    </div>`).join('');
-}
-
-function reativarVaga(id){
-  vagas=vagas.map(v=>v.id===id?{...v,status:'radar',proxima:'Reativar contato'}:v);
-  saveVagas(); renderCRM();
-}
-
-function diasSemResposta(v){
-  if(!['candidatado','andamento'].includes(v.status)) return null;
-  const ref=v.dataCandidatura||(()=>{
-    if(!v.data) return null;
-    const m=v.data.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    return m?`${m[3]}-${m[2]}-${m[1]}`:null;
-  })();
-  if(!ref) return null;
-  const diff=Math.round((new Date()-new Date(ref+'T00:00:00'))/(1000*60*60*24));
-  return diff>=0?diff:null;
-}
-
-function passaFiltroCRM(v){
-  const b=crmFiltros.busca;
-  if(b && !v.empresa?.toLowerCase().includes(b) && !v.cargo?.toLowerCase().includes(b)) return false;
-  if(crmFiltros.prioridade!=='todas' && v.prioridade!==crmFiltros.prioridade) return false;
-  if(crmFiltros.canal!=='todos' && v.canal!==crmFiltros.canal) return false;
-  return true;
-}
-
-function aplicarFiltrosCRM(){
-  crmFiltros.busca=(document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
-  crmFiltros.prioridade=document.getElementById('crm-fil-prioridade')?.value||'todas';
-  crmFiltros.canal=document.getElementById('crm-fil-canal')?.value||'todos';
-  const ativo=crmFiltros.busca||crmFiltros.prioridade!=='todas'||crmFiltros.canal!=='todos';
-  const limpar=document.getElementById('crm-limpar-btn');
-  if(limpar) limpar.style.display=ativo?'inline-flex':'none';
-  renderCRM();
-}
-
-function limparFiltrosCRM(){
-  crmFiltros={busca:'',prioridade:'todas',canal:'todos'};
-  const b=document.getElementById('crm-busca'); if(b) b.value='';
-  const p=document.getElementById('crm-fil-prioridade'); if(p) p.value='todas';
-  const c=document.getElementById('crm-fil-canal'); if(c) c.value='todos';
-  document.getElementById('crm-limpar-btn').style.display='none';
-  document.getElementById('crm-filtro-count').textContent='';
-  renderCRM();
-}
-
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
-function verOrigem(){
-  const url=document.getElementById('mv-origem-url')?.value||'';
-  if(!url) return;
-  if(url.includes('@')) window.open('mailto:'+url);
-  else window.open(url,'_blank');
-}
-function verOrigemCard(url){
-  if(!url) return;
-  if(url.includes('@')) window.open('mailto:'+url);
-  else window.open(url,'_blank');
-}
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
   const obj={
@@ -1814,13 +1156,10 @@ function saveVaga(){
     salario:document.getElementById('mv-salario').value,
     email:document.getElementById('mv-email').value,
     proxima:document.getElementById('mv-proxima').value,
-    prazoData:document.getElementById('mv-prazo').value,
     notas:document.getElementById('mv-notas').value,
-    origemUrl:document.getElementById('mv-origem-url').value,
     data:new Date().toLocaleDateString('pt-BR')
   };
-  if(editingVagaId==='new') vagas.push(obj);
-  else vagas=vagas.map(v=>v.id===editingVagaId?{...obj,dataCandidatura:v.dataCandidatura}:v);
+  if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
 }
 function deleteVaga(){
@@ -1833,16 +1172,17 @@ function deleteVaga(){
 function candidatar(id){
   const v=vagas.find(x=>x.id===id); if(!v)return;
   const email=v.email||'';
-  if(!email){
-    alert('Adicione o email do recrutador na vaga antes de candidatar.');
-    openVagaModal(id);
-    return;
-  }
   const assunto=encodeURIComponent(`Candidatura — ${v.cargo} | Marcos Franco`);
   const corpo=encodeURIComponent(`Prezado(a),\n\nEstou me candidatando à vaga de ${v.cargo} na ${v.empresa}.\n\nSegue em anexo meu CV para apreciação.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224`);
-  window.open(`mailto:${email}?subject=${assunto}&body=${corpo}`);
-  const hoje=new Date().toISOString().slice(0,10);
-  vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',dataCandidatura:hoje,data:new Date().toLocaleDateString('pt-BR')}:x);
+  if(email){
+    window.location.href=`mailto:${email}?subject=${assunto}&body=${corpo}`;
+  } else {
+    // Sem email — abre modal de edição para preencher
+    alert('Adicione o email do recrutador na vaga antes de candidatar.');
+    openVagaModal(id);
+  }
+  // Atualiza status para candidatado
+  vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',data:new Date().toLocaleDateString('pt-BR')}:x);
   saveVagas(); renderCRM();
 }
 
@@ -1927,7 +1267,7 @@ Formato:
 5. [pergunta]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
@@ -2011,7 +1351,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
 [Exemplo de como Marcos poderia responder usando seus dados reais — máx 80 palavras]`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
@@ -2057,7 +1397,7 @@ PRÓXIMOS PASSOS:
 Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
