@@ -334,6 +334,109 @@ async function varrerVagas(env) {
 }
 
 //
+//  VARREDURA DE SINAIS DE MERCADO
+//
+
+const RSS_SINAIS = [
+  { url: 'https://news.google.com/rss/search?q=CEO+CMO+diretor+saiu+OR+deixa+OR+novo+Paraná+OR+Curitiba&hl=pt-BR&gl=BR&ceid=BR:pt', tipo: 'movimentacao_exec', label: 'Movimentação executiva' },
+  { url: 'https://news.google.com/rss/search?q=empresa+alemã+OR+espanhola+expansão+OR+filial+Brasil&hl=pt-BR&gl=BR&ceid=BR:pt', tipo: 'empresa_europeia', label: 'Empresa europeia' },
+  { url: 'https://news.google.com/rss/search?q=afiliada+Globo+OR+RPC+OR+comunicação+mídia+diretor+marketing&hl=pt-BR&gl=BR&ceid=BR:pt', tipo: 'midia_tv', label: 'Mídia/TV' },
+  { url: 'https://news.google.com/rss/search?q=fusão+OR+aquisição+OR+expansão+Paraná+empresa&hl=pt-BR&gl=BR&ceid=BR:pt', tipo: 'fusao_aquisicao', label: 'Fusão/Aquisição' },
+  { url: 'https://news.google.com/rss/search?q=startup+captação+OR+rodada+investimento+Curitiba+OR+Paraná&hl=pt-BR&gl=BR&ceid=BR:pt', tipo: 'startup_captacao', label: 'Startup/Captação' },
+];
+
+const PALAVRAS_SINAL = [
+  'saiu', 'deixa', 'deixou', 'demitido', 'afastado', 'novo ceo', 'novo cmo', 'novo diretor',
+  'expansão', 'expande', 'fusão', 'aquisição', 'adquire', 'captação', 'captou',
+  'contratou', 'contrata', 'abre escritório', 'chegando ao brasil', 'entra no brasil', 'investe',
+];
+
+async function getSinaisKV(env) {
+  try {
+    const raw = await env.SENOVA_KV.get('sinais_mercado');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+async function salvarSinaisKV(env, sinais) {
+  await env.SENOVA_KV.put('sinais_mercado', JSON.stringify(sinais.slice(0, 30)));
+}
+
+function passaFiltroSinal(item) {
+  const texto = (item.titulo + ' ' + item.descricao).toLowerCase();
+  return PALAVRAS_SINAL.some(kw => texto.includes(kw));
+}
+
+async function analisarSinal(item, tipo, env) {
+  const label = RSS_SINAIS.find(f => f.tipo === tipo)?.label || tipo;
+  const prompt = `Você é assistente de recolocação executiva de Marcos Franco, executivo sênior de marketing de Curitiba/PR.
+
+PERFIL: ${PERFIL_MARCOS}
+
+Notícia detectada como possível sinal de oportunidade:
+Tipo: ${label}
+Título: ${item.titulo}
+Conteúdo: ${item.descricao}
+
+Responda APENAS em JSON válido:
+{"empresa":"nome da empresa","cargo_vago":"cargo executivo possivelmente necessário ou null","resumo":"1 frase sobre a oportunidade para Marcos","acao":"ação concreta recomendada","mensagem_sugerida":"mensagem curta pronta para enviar ao decisor (máx 3 linhas, tom executivo direto)","relevancia":"alta|media|baixa"}`;
+
+  try {
+    const texto = await claudeCall(prompt, env, 400);
+    return JSON.parse(texto.replace(/```json|```/g, '').trim());
+  } catch {
+    return { empresa: '', cargo_vago: null, resumo: item.titulo, acao: 'Verificar manualmente', mensagem_sugerida: '', relevancia: 'baixa' };
+  }
+}
+
+async function varrerSinais(env) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const existentes = await getSinaisKV(env);
+  const urlsExistentes = new Set(existentes.map(s => s.url));
+  const candidatos = [];
+
+  for (const feed of RSS_SINAIS) {
+    try {
+      const res = await fetch(feed.url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) continue;
+      const xml = await res.text();
+      for (const item of parseRSS(xml)) {
+        if (!item.url || urlsExistentes.has(item.url)) continue;
+        if (!passaFiltroSinal(item)) continue;
+        candidatos.push({ ...item, tipo: feed.tipo, data: hoje });
+      }
+    } catch {}
+  }
+
+  if (!candidatos.length) return { novos: 0, total: existentes.length };
+
+  const paraAnalise = candidatos.slice(0, 5);
+  const novos = [];
+
+  for (const item of paraAnalise) {
+    const analise = await analisarSinal(item, item.tipo, env);
+    if (analise.relevancia === 'baixa') continue;
+    novos.push({
+      id: 'sinal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      titulo: item.titulo,
+      url: item.url,
+      tipo: item.tipo,
+      data: hoje,
+      nova: true,
+      hunter_email: null,
+      ...analise,
+    });
+  }
+
+  const atualizados = [...novos, ...existentes].slice(0, 30);
+  await salvarSinaisKV(env, atualizados);
+  return { novos: novos.length, total: atualizados.length };
+}
+
+//
 //  HANDLER PRINCIPAL
 //
 
@@ -583,18 +686,37 @@ export default {
       return jsonResp({ ok: true, dominios: lista });
     }
 
-    //  13. Leads varredura — listar
+    //  13. Sinais de mercado — listar
+    if (path === '/api/sinais' && request.method === 'GET') {
+      return jsonResp({ sinais: await getSinaisKV(env) });
+    }
+
+    //  14. Sinais — acionar manualmente (testes)
+    if (path === '/api/sinais/processar' && request.method === 'POST') {
+      const resultado = await varrerSinais(env);
+      return jsonResp({ ok: true, ...resultado });
+    }
+
+    //  15. Sinais — descartar
+    if (path === '/api/sinais' && request.method === 'DELETE') {
+      const { id } = await request.json();
+      const sinais = await getSinaisKV(env);
+      await salvarSinaisKV(env, sinais.filter(s => s.id !== id));
+      return jsonResp({ ok: true });
+    }
+
+    //  16. Leads varredura — listar
     if (path === '/api/vagas-lead' && request.method === 'GET') {
       return jsonResp({ leads: await getLeadsKV(env) });
     }
 
-    //  14. Leads varredura — acionar manualmente (testes)
+    //  17. Leads varredura — acionar manualmente (testes)
     if (path === '/api/vagas-lead/processar' && request.method === 'POST') {
       const resultado = await varrerVagas(env);
       return jsonResp({ ok: true, ...resultado });
     }
 
-    //  15. Leads varredura — descartar
+    //  18. Leads varredura — descartar
     if (path === '/api/vagas-lead' && request.method === 'DELETE') {
       const { url } = await request.json();
       const leads = await getLeadsKV(env);
@@ -606,6 +728,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(varrerVagas(env));
+    ctx.waitUntil(Promise.all([varrerVagas(env), varrerSinais(env)]));
   },
 };

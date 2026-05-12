@@ -1053,6 +1053,18 @@ function loadCRM(){
   }
   updateBadge();
   fetchLeadsVarredura();
+  fetchSinais();
+}
+
+let sinaisMercado=[];
+
+async function fetchSinais(){
+  try{
+    const res=await fetch(WORKER_URL+'/api/sinais');
+    const { sinais }=await res.json();
+    sinaisMercado=sinais||[];
+    renderCRM();
+  }catch{}
 }
 
 async function fetchLeadsVarredura(){
@@ -1111,11 +1123,13 @@ function renderCRM(){
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
+  const sinaisNovos=sinaisMercado.filter(s=>s.nova).length;
   document.getElementById('crm-stats').innerHTML=`
     <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--action)">${andamento}</div><div class="stat-label">Em andamento</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
+    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>
+    <div class="stat"><div class="stat-val" style="color:#7C3AED">${sinaisNovos||sinaisMercado.length}</div><div class="stat-label">Sinais de mercado</div></div>`;
 
   // Kanban vagas
   const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
