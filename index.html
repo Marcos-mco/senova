@@ -427,6 +427,20 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="crm-busca" placeholder="🔍 Buscar empresa ou cargo..." style="width:220px;padding:8px 12px;font-size:13px;" oninput="aplicarFiltrosCRM()">
+        <select id="crm-fil-prioridade" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltrosCRM()">
+          <option value="todas">Todas prioridades</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <select id="crm-fil-canal" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltrosCRM()">
+          <option value="todos">Todos os canais</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="limparFiltrosCRM()" id="crm-limpar-btn" style="display:none;">✕ Limpar</button>
+        <span id="crm-filtro-count" style="font-size:12px;color:var(--text3);"></span>
+      </div>
       <div class="kanban" id="kanban-vagas"></div>
     </div>
 
@@ -1102,6 +1116,7 @@ const DEFAULT_CONTATOS=[
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null;
 let crmCurrentTab='vagas', contatoFilter='todos';
+let crmFiltros={busca:'',prioridade:'todas',canal:'todos'};
 
 function loadCRM(){
   try{
@@ -1302,10 +1317,23 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:#7C3AED">${sinaisNovos||sinaisMercado.length}</div><div class="stat-label">Sinais de mercado</div></div>`;
   if(crmCurrentTab==='negativo') renderNegativados();
 
+  // Popula select de canais dinamicamente
+  const canalSel=document.getElementById('crm-fil-canal');
+  if(canalSel && canalSel.options.length<=1){
+    const canais=[...new Set(vagas.map(v=>v.canal).filter(Boolean))].sort();
+    canais.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; canalSel.appendChild(o); });
+  }
+
   // Kanban vagas (exclui negativados — ficam na aba própria)
+  const vagasFiltradas=vagas.filter(v=>v.status!=='negativo'&&passaFiltroCRM(v));
+  const totalFiltradas=vagasFiltradas.length;
+  const totalAtivas=vagas.filter(v=>v.status!=='negativo').length;
+  const countEl=document.getElementById('crm-filtro-count');
+  if(countEl) countEl.textContent=(totalFiltradas<totalAtivas)?`${totalFiltradas} de ${totalAtivas} vagas`:'';
+
   const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    const cards=vagas.filter(v=>v.status===col);
+    const cards=vagasFiltradas.filter(v=>v.status===col);
     return `<div>
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
@@ -1409,6 +1437,34 @@ function renderNegativados(){
 function reativarVaga(id){
   vagas=vagas.map(v=>v.id===id?{...v,status:'radar',proxima:'Reativar contato'}:v);
   saveVagas(); renderCRM();
+}
+
+function passaFiltroCRM(v){
+  const b=crmFiltros.busca;
+  if(b && !v.empresa?.toLowerCase().includes(b) && !v.cargo?.toLowerCase().includes(b)) return false;
+  if(crmFiltros.prioridade!=='todas' && v.prioridade!==crmFiltros.prioridade) return false;
+  if(crmFiltros.canal!=='todos' && v.canal!==crmFiltros.canal) return false;
+  return true;
+}
+
+function aplicarFiltrosCRM(){
+  crmFiltros.busca=(document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
+  crmFiltros.prioridade=document.getElementById('crm-fil-prioridade')?.value||'todas';
+  crmFiltros.canal=document.getElementById('crm-fil-canal')?.value||'todos';
+  const ativo=crmFiltros.busca||crmFiltros.prioridade!=='todas'||crmFiltros.canal!=='todos';
+  const limpar=document.getElementById('crm-limpar-btn');
+  if(limpar) limpar.style.display=ativo?'inline-flex':'none';
+  renderCRM();
+}
+
+function limparFiltrosCRM(){
+  crmFiltros={busca:'',prioridade:'todas',canal:'todos'};
+  const b=document.getElementById('crm-busca'); if(b) b.value='';
+  const p=document.getElementById('crm-fil-prioridade'); if(p) p.value='todas';
+  const c=document.getElementById('crm-fil-canal'); if(c) c.value='todos';
+  document.getElementById('crm-limpar-btn').style.display='none';
+  document.getElementById('crm-filtro-count').textContent='';
+  renderCRM();
 }
 
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
