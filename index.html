@@ -453,6 +453,9 @@ select option { background: var(--bg2); }
 
     <!-- Dashboard -->
     <div id="crm-dashboard" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+        <button class="btn btn-primary btn-sm" onclick="gerarRelatorioPDF()">⬇ Exportar PDF</button>
+      </div>
       <div id="dashboard-content"></div>
     </div>
 
@@ -1511,6 +1514,177 @@ function renderDashboard(){
           </div>`).join('')}
       </div>
     </div>`:''}`;
+}
+
+function gerarRelatorioPDF(){
+  if(!window.jspdf){alert('jsPDF não carregado — recarregue a página.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,mL=18,mR=18,cW=W-mL-mR;
+  const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  let y=0;
+
+  function checkPage(need=18){if(y+need>278){doc.addPage();y=18;}}
+
+  function sectionTitle(t){
+    checkPage(16);
+    doc.setFillColor(240,244,248);
+    doc.rect(mL,y,cW,9,'F');
+    doc.setTextColor(26,58,92);doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text(t,mL+3,y+6.5);
+    y+=13;
+  }
+
+  // Header band
+  doc.setFillColor(26,58,92);
+  doc.rect(0,0,W,34,'F');
+  doc.setFillColor(201,168,76);
+  doc.rect(0,34,W,1.5,'F');
+  doc.setTextColor(201,168,76);doc.setFont('helvetica','bold');doc.setFontSize(18);
+  doc.text('SENOVA SUITE',mL,14);
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.text('Relatorio de Processo Seletivo Executivo',mL,22);
+  doc.text('Marcos Franco  |  '+hoje,mL,29);
+  y=44;
+
+  // Dados
+  const ativas=vagas.filter(v=>v.status!=='negativo');
+  const negList=vagas.filter(v=>v.status==='negativo');
+  const andList=vagas.filter(v=>v.status==='andamento');
+  const propList=vagas.filter(v=>v.status==='proposta');
+  const overdueList=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7)
+    .sort((a,b)=>(diasSemResposta(b)||0)-(diasSemResposta(a)||0));
+  const quentesList=contatos.filter(c=>c.temp==='hot');
+  const funnelSteps=[{key:'lead',label:'Lead'},{key:'radar',label:'Radar'},{key:'candidatado',label:'Candidatado'},{key:'andamento',label:'Em Andamento'},{key:'proposta',label:'Proposta'},{key:'encerrado',label:'Encerrado'}];
+  const counts={};funnelSteps.forEach(s=>counts[s.key]=vagas.filter(v=>v.status===s.key).length);
+  const maxCount=Math.max(...Object.values(counts),1);
+
+  // Resumo — 4 boxes
+  sectionTitle('Resumo Executivo');
+  const bW=(cW-9)/4;
+  [{label:'Vagas ativas',val:ativas.length,c:[26,58,92]},{label:'Em andamento',val:andList.length,c:[46,109,164]},{label:'Propostas',c:[26,122,74],val:propList.length},{label:'Negativados',val:negList.length,c:[107,114,128]}]
+    .forEach((s,i)=>{
+      const x=mL+i*(bW+3);
+      doc.setFillColor(247,245,240);doc.roundedRect(x,y,bW,18,2,2,'F');
+      doc.setTextColor(...s.c);doc.setFont('helvetica','bold');doc.setFontSize(16);
+      doc.text(String(s.val),x+bW/2,y+10,{align:'center'});
+      doc.setTextColor(138,134,128);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+      doc.text(s.label,x+bW/2,y+16,{align:'center'});
+    });
+  y+=24;
+
+  // Funil
+  checkPage(60);sectionTitle('Funil de Processo');
+  const barMaxW=cW-56;
+  const fColors={lead:[124,58,237],radar:[156,163,175],candidatado:[37,99,235],andamento:[217,119,6],proposta:[5,150,105],encerrado:[220,38,38]};
+  funnelSteps.forEach(s=>{
+    const n=counts[s.key];const bw=Math.max(n/maxCount*barMaxW,0.5);
+    const[r,g,b]=fColors[s.key]||[100,100,100];
+    doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text(s.label,mL,y+4.5);
+    doc.setFillColor(232,228,219);doc.rect(mL+50,y,barMaxW,6,'F');
+    if(n>0){doc.setFillColor(r,g,b);doc.rect(mL+50,y,bw,6,'F');}
+    doc.setTextColor(r,g,b);doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.text(String(n),mL+50+barMaxW+4,y+4.5);
+    y+=10;
+  });
+  y+=2;
+  const convInt=counts.candidatado?Math.round(counts.andamento/counts.candidatado*100):0;
+  const convProp=counts.andamento?Math.round(counts.proposta/counts.andamento*100):0;
+  doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+  doc.text(`Taxa retorno p/ entrevista: ${convInt}%   |   Conversao p/ proposta: ${convProp}%`,mL,y);
+  y+=12;
+
+  // Vagas em andamento
+  if(andList.length){
+    checkPage(30);sectionTitle('Vagas em Andamento ('+andList.length+')');
+    andList.forEach(v=>{
+      checkPage(14);
+      doc.setFillColor(247,245,240);doc.rect(mL,y,cW,11,'F');
+      doc.setTextColor(26,58,92);doc.setFont('helvetica','bold');doc.setFontSize(10);
+      const nw=Math.min(doc.getTextWidth(v.empresa),70);
+      doc.text(v.empresa,mL+3,y+7,{maxWidth:70});
+      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
+      doc.text(v.cargo,mL+3+nw+3,y+7,{maxWidth:80});
+      const d=diasSemResposta(v);
+      if(d!==null){
+        const dc=d>=21?[192,40,30]:d>=7?[217,119,6]:[138,134,128];
+        doc.setTextColor(...dc);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+        doc.text(d+'d sem resposta',W-mR-2,y+7,{align:'right'});
+      }
+      y+=13;
+    });
+    y+=2;
+  }
+
+  // Propostas
+  if(propList.length){
+    checkPage(30);sectionTitle('Propostas Recebidas ('+propList.length+')');
+    propList.forEach(v=>{
+      checkPage(11);
+      doc.setTextColor(26,122,74);doc.setFont('helvetica','bold');doc.setFontSize(10);
+      doc.text('>',mL,y+4.5);
+      doc.setTextColor(26,58,92);
+      doc.text(v.empresa,mL+7,y+4.5);
+      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
+      const ew=doc.getTextWidth(v.empresa);
+      doc.text(v.cargo,mL+7+ew+3,y+4.5,{maxWidth:80});
+      if(v.salario){doc.setTextColor(46,109,164);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(v.salario,W-mR-2,y+4.5,{align:'right'});}
+      y+=10;
+    });
+    y+=4;
+  }
+
+  // Follow-up pendentes
+  if(overdueList.length){
+    checkPage(30);sectionTitle('Follow-up Pendentes ('+overdueList.length+')');
+    overdueList.forEach(v=>{
+      checkPage(10);
+      const d=diasSemResposta(v);
+      const dc=d>=21?[192,40,30]:d>=14?[217,119,6]:[184,103,10];
+      doc.setTextColor(...dc);doc.setFont('helvetica','bold');doc.setFontSize(9);
+      doc.text(d+'d',mL,y+4);
+      doc.setTextColor(26,58,92);
+      doc.text(v.empresa,mL+14,y+4);
+      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
+      const ew=doc.getTextWidth(v.empresa);
+      doc.text(v.cargo,mL+14+ew+3,y+4,{maxWidth:90});
+      y+=9;
+    });
+    y+=4;
+  }
+
+  // Contatos quentes
+  if(quentesList.length){
+    checkPage(30);sectionTitle('Contatos Quentes ('+quentesList.length+')');
+    quentesList.forEach(c=>{
+      checkPage(10);
+      doc.setTextColor(192,40,30);doc.setFont('helvetica','bold');doc.setFontSize(9);
+      doc.text('*',mL,y+4);
+      doc.setTextColor(26,58,92);
+      doc.text(c.nome,mL+6,y+4);
+      doc.setTextColor(74,71,64);doc.setFont('helvetica','normal');doc.setFontSize(9);
+      const nw=doc.getTextWidth(c.nome);
+      doc.text(c.cargo,mL+6+nw+3,y+4,{maxWidth:70});
+      if(c.next){doc.setTextColor(138,134,128);doc.setFontSize(8.5);doc.text('> '+c.next,W-mR-2,y+4,{align:'right',maxWidth:60});}
+      y+=9;
+    });
+    y+=4;
+  }
+
+  // Footer em todas as páginas
+  const total=doc.getNumberOfPages();
+  for(let i=1;i<=total;i++){
+    doc.setPage(i);
+    doc.setFillColor(26,58,92);doc.rect(0,289,W,8,'F');
+    doc.setTextColor(201,168,76);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text('SENOVA SUITE',mL,294.5);
+    doc.setTextColor(200,200,200);doc.setFont('helvetica','normal');
+    doc.text('Confidencial — uso pessoal',W/2,294.5,{align:'center'});
+    doc.text('Pagina '+i+' de '+total,W-mR,294.5,{align:'right'});
+  }
+
+  doc.save('Senova_Relatorio_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.pdf');
 }
 
 function filterContato(filter,btn){
