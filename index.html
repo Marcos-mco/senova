@@ -126,13 +126,24 @@ select option { background: var(--bg2); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 4px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ── CENTRAL DE SINAIS ── */
+.sinal-card { background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid #7C3AED; border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.sinal-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.sinal-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
+.sinal-empresa { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--navy); }
+.sinal-cargo { font-size: 12.5px; color: var(--action); font-weight: 600; margin: 2px 0 8px; }
+.sinal-resumo { font-size: 13.5px; color: var(--text); margin-bottom: 6px; }
+.sinal-acao { font-size: 12.5px; color: var(--text2); margin-bottom: 12px; }
+.sinal-msg { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--text); white-space: pre-wrap; margin: 8px 0; line-height: 1.6; }
+.sinal-hunter { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.sinal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ── RESULT ── */
 .result-box { background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; font-size: 13.5px; line-height: 1.85; color: var(--text2); white-space: pre-wrap; word-break: break-word; max-height: 440px; overflow-y: auto; font-family: var(--font); }
 .result-box.mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12.5px; }
 
 /* ── STATS ── */
-.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 14px; margin-bottom: 24px; }
 .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); }
 .stat-val { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
 .stat-label { font-size: 12px; color: var(--text3); font-weight: 400; }
@@ -229,6 +240,14 @@ select option { background: var(--bg2); }
         <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
       </svg>
       Entrevista
+    </div>
+    <div class="nav-item" onclick="showPage('sinais')" id="nav-sinais">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M4.1 11.9l1.4-1.4M10.5 5.5l1.4-1.4"/>
+        <circle cx="8" cy="8" r="2.5"/>
+      </svg>
+      Sinais
+      <span class="nav-badge" id="sinais-badge" style="background:#7C3AED;color:#fff;">—</span>
     </div>
   </div>
 
@@ -509,6 +528,32 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
+<!-- ┌─────────────────────────────┐
+     │  PAGE: SINAIS              │
+     └─────────────────────────────┘ -->
+<div id="page-sinais" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Central de Sinais</span>
+      <span class="page-sub">Oportunidades detectadas no mercado</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="processarSinais()" id="sinais-processar-btn">↻ Processar agora</button>
+      <div class="status-pill"><div class="status-dot"></div>Monitoramento ativo</div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="sinais-filtros">
+      <button class="lang-btn active" onclick="filtrarSinais('todos',this)">Todos</button>
+      <button class="lang-btn" onclick="filtrarSinais('alta',this)">🔴 Alta relevância</button>
+      <button class="lang-btn" onclick="filtrarSinais('media',this)">🟡 Média</button>
+      <button class="lang-btn" onclick="filtrarSinais('movimentacao_exec',this)">👤 Movimentações</button>
+      <button class="lang-btn" onclick="filtrarSinais('startup_captacao',this)">🚀 Startups</button>
+    </div>
+    <div id="sinais-lista"><div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhum sinal detectado ainda. Clique em "Processar agora" para iniciar.</div></div>
+  </div>
+</div>
+
 </main>
 </div>
 
@@ -720,7 +765,14 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 //  NAVIGATION
 // ═══════════════════════════════════════════════
 const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
-const PAGES = ['ats','linkedin','crm','interview'];
+const PAGES = ['ats','linkedin','crm','interview','sinais'];
+const SINAL_TIPO = {
+  movimentacao_exec: { label: 'Movimentação', cor: '#7C3AED' },
+  empresa_europeia:  { label: 'Empresa Europeia', cor: '#2563EB' },
+  midia_tv:          { label: 'Mídia/TV', cor: '#DC2626' },
+  fusao_aquisicao:   { label: 'Fusão/Aquisição', cor: '#D97706' },
+  startup_captacao:  { label: 'Startup', cor: '#059669' },
+};
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -1063,8 +1115,112 @@ async function fetchSinais(){
     const res=await fetch(WORKER_URL+'/api/sinais');
     const { sinais }=await res.json();
     sinaisMercado=sinais||[];
+    const novos=sinaisMercado.filter(s=>s.nova).length;
+    const badge=document.getElementById('sinais-badge');
+    if(badge) badge.textContent=novos||sinaisMercado.length||'—';
     renderCRM();
+    if(document.getElementById('page-sinais')?.style.display!=='none') renderSinais();
   }catch{}
+}
+
+let sinaisFiltroAtual='todos';
+function filtrarSinais(filtro, btn){
+  sinaisFiltroAtual=filtro;
+  document.querySelectorAll('#sinais-filtros .lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSinais();
+}
+
+function renderSinais(){
+  const lista=document.getElementById('sinais-lista'); if(!lista) return;
+  let dados=[...sinaisMercado];
+  if(sinaisFiltroAtual==='alta') dados=dados.filter(s=>s.relevancia==='alta');
+  else if(sinaisFiltroAtual==='media') dados=dados.filter(s=>s.relevancia==='media');
+  else if(sinaisFiltroAtual!=='todos') dados=dados.filter(s=>s.tipo===sinaisFiltroAtual);
+  dados.sort((a,b)=>{
+    const r={alta:0,media:1,baixa:2};
+    if(r[a.relevancia]!==r[b.relevancia]) return r[a.relevancia]-r[b.relevancia];
+    return (b.nova?1:0)-(a.nova?1:0);
+  });
+  if(!dados.length){
+    lista.innerHTML='<div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhum sinal nesta categoria.</div>';
+    return;
+  }
+  lista.innerHTML=dados.map(s=>{
+    const tipo=SINAL_TIPO[s.tipo]||{label:s.tipo,cor:'#9CA3AF'};
+    const dataFmt=s.data?s.data.slice(5).replace('-','/'):'';
+    const relCor=s.relevancia==='alta'?'#DC2626':s.relevancia==='media'?'#D97706':'#9CA3AF';
+    const hunterResult=s.hunter_email
+      ?`<span style="font-size:12px;color:var(--green);font-weight:600;">✓ ${s.hunter_email}${s.hunter_nome?' · '+s.hunter_nome:''}</span>`
+      :`<input type="text" id="hd-${s.id}" placeholder="dominio.com.br" style="width:160px;padding:6px 10px;font-size:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="buscarEmailHunter('${s.id}','hd-${s.id}')">🔍 Buscar email</button>`;
+    return `<div class="sinal-card" style="border-left-color:${tipo.cor}">
+      <div class="sinal-header">
+        <span class="sinal-badge" style="background:${tipo.cor}">${tipo.label}</span>
+        ${s.nova?'<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">Nova</span>':''}
+        <span style="font-size:11px;color:var(--text3);margin-left:auto;">${dataFmt}</span>
+        <span style="font-size:11px;font-weight:700;color:${relCor};">● ${s.relevancia||'—'}</span>
+      </div>
+      <div class="sinal-empresa">${s.empresa||'—'}</div>
+      ${s.cargo_vago?`<div class="sinal-cargo">Cargo: ${s.cargo_vago}</div>`:''}
+      <div class="sinal-resumo">${s.resumo||''}</div>
+      ${s.acao?`<div class="sinal-acao">→ ${s.acao}</div>`:''}
+      ${s.mensagem_sugerida?`
+        <button class="btn btn-ghost btn-sm" onclick="
+          const m=document.getElementById('msg-${s.id}');
+          m.style.display=m.style.display==='none'?'block':'none';
+          this.textContent=m.style.display==='none'?'📝 Ver mensagem':'📝 Fechar mensagem'
+        ">📝 Ver mensagem</button>
+        <div class="sinal-msg" id="msg-${s.id}" style="display:none;">${s.mensagem_sugerida}
+          <div style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('msg-${s.id}').innerText.replace('📋 Copiar','').trim()).then(()=>alert('Copiado!'))">📋 Copiar</button>
+          </div>
+        </div>`:''}
+      <div class="sinal-hunter">${hunterResult}</div>
+      <div class="sinal-footer">
+        ${s.url?`<a href="${s.url}" target="_blank" style="font-size:12.5px;color:var(--action);text-decoration:none;">📰 Ver notícia →</a>`:'<span></span>'}
+        <button class="btn btn-ghost btn-sm" style="color:#DC2626;font-size:12px;" onclick="descartarSinal('${s.id}')">✕ Descartar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function buscarEmailHunter(sinalId, inputId){
+  const dominio=document.getElementById(inputId)?.value?.trim();
+  if(!dominio){ alert('Digite o domínio da empresa (ex: empresa.com.br)'); return; }
+  const btn=event.target; btn.textContent='Buscando...'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/hunter',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({dominio, sinal_id:sinalId})
+    });
+    const data=await res.json();
+    if(data.erro){ alert('Erro: '+data.erro); return; }
+    if(!data.emails?.length){ alert('Nenhum email executivo encontrado para '+dominio); return; }
+    const e=data.emails[0];
+    sinaisMercado=sinaisMercado.map(s=>s.id===sinalId?{...s,hunter_email:e.email,hunter_nome:e.nome}:s);
+    renderSinais();
+  }catch(e){ alert('Erro ao buscar email.'); }
+  finally{ btn.textContent='🔍 Buscar email'; btn.disabled=false; }
+}
+
+async function descartarSinal(id){
+  if(!confirm('Descartar este sinal?')) return;
+  try{ await fetch(WORKER_URL+'/api/sinais',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); }catch{}
+  sinaisMercado=sinaisMercado.filter(s=>s.id!==id);
+  const badge=document.getElementById('sinais-badge');
+  if(badge) badge.textContent=sinaisMercado.filter(s=>s.nova).length||sinaisMercado.length||'—';
+  renderSinais();
+}
+
+async function processarSinais(){
+  const btn=document.getElementById('sinais-processar-btn');
+  btn.textContent='Processando...'; btn.disabled=true;
+  try{
+    await fetch(WORKER_URL+'/api/sinais/processar',{method:'POST'});
+    await fetchSinais();
+  }catch{}
+  btn.textContent='↻ Processar agora'; btn.disabled=false;
 }
 
 async function fetchLeadsVarredura(){

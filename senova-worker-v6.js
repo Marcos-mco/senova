@@ -705,18 +705,50 @@ export default {
       return jsonResp({ ok: true });
     }
 
-    //  16. Leads varredura — listar
+    //  16. Hunter.io — buscar email por domínio
+    if (path === '/api/hunter' && request.method === 'POST') {
+      const { dominio, sinal_id } = await request.json();
+      if (!dominio) return jsonResp({ erro: 'dominio obrigatório' }, 400);
+      if (!env.HUNTER_API_KEY) return jsonResp({ erro: 'HUNTER_API_KEY não configurada' }, 500);
+
+      const res = await fetch(
+        `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(dominio)}&limit=10&api_key=${env.HUNTER_API_KEY}`
+      );
+      const data = await res.json();
+      const todos = data.data?.emails || [];
+
+      const executivos = todos.filter(e =>
+        /ceo|cmo|cso|cco|diretor|director|marketing|head|vp |chief|gerente|president/i.test(e.position || '')
+      );
+      const emails = (executivos.length ? executivos : todos).slice(0, 3).map(e => ({
+        email: e.value,
+        nome: [e.first_name, e.last_name].filter(Boolean).join(' '),
+        cargo: e.position || '',
+        confianca: e.confidence || 0,
+      }));
+
+      if (sinal_id && emails.length) {
+        const sinais = await getSinaisKV(env);
+        await salvarSinaisKV(env, sinais.map(s =>
+          s.id === sinal_id ? { ...s, hunter_email: emails[0].email, hunter_nome: emails[0].nome } : s
+        ));
+      }
+
+      return jsonResp({ emails, organizacao: data.data?.organization || dominio });
+    }
+
+    //  19. Leads varredura — listar
     if (path === '/api/vagas-lead' && request.method === 'GET') {
       return jsonResp({ leads: await getLeadsKV(env) });
     }
 
-    //  17. Leads varredura — acionar manualmente (testes)
+    //  20. Leads varredura — acionar manualmente (testes)
     if (path === '/api/vagas-lead/processar' && request.method === 'POST') {
       const resultado = await varrerVagas(env);
       return jsonResp({ ok: true, ...resultado });
     }
 
-    //  18. Leads varredura — descartar
+    //  21. Leads varredura — descartar
     if (path === '/api/vagas-lead' && request.method === 'DELETE') {
       const { url } = await request.json();
       const leads = await getLeadsKV(env);
