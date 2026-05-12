@@ -1174,16 +1174,14 @@ function deleteVaga(){
 function candidatar(id){
   const v=vagas.find(x=>x.id===id); if(!v)return;
   const email=v.email||'';
-  const assunto=encodeURIComponent(`Candidatura — ${v.cargo} | Marcos Franco`);
-  const corpo=encodeURIComponent(`Prezado(a),\n\nEstou me candidatando à vaga de ${v.cargo} na ${v.empresa}.\n\nSegue em anexo meu CV para apreciação.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224`);
-  if(email){
-    window.location.href=`mailto:${email}?subject=${assunto}&body=${corpo}`;
-  } else {
-    // Sem email — abre modal de edição para preencher
+  if(!email){
     alert('Adicione o email do recrutador na vaga antes de candidatar.');
     openVagaModal(id);
+    return;
   }
-  // Atualiza status para candidatado
+  const assunto=encodeURIComponent(`Candidatura — ${v.cargo} | Marcos Franco`);
+  const corpo=encodeURIComponent(`Prezado(a),\n\nEstou me candidatando à vaga de ${v.cargo} na ${v.empresa}.\n\nSegue em anexo meu CV para apreciação.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224`);
+  window.open(`mailto:${email}?subject=${assunto}&body=${corpo}`);
   vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',data:new Date().toLocaleDateString('pt-BR')}:x);
   saveVagas(); renderCRM();
 }
