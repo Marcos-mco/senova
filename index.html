@@ -635,7 +635,10 @@ select option { background: var(--bg2); }
       </div>
       <div class="form-row">
         <label class="field-label">Próxima ação</label>
-        <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter" style="flex:1;">
+          <input type="date" id="mv-prazo" title="Prazo" style="width:150px;padding:11px 10px;font-size:13px;">
+        </div>
       </div>
       <div class="form-row">
         <label class="field-label">Notas</label>
@@ -1352,7 +1355,19 @@ function renderCRM(){
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
           </div>
-          ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+          ${c.proxima||c.prazoData?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">
+            ${c.proxima?`→ ${c.proxima}`:''}
+            ${c.prazoData?(()=>{
+              const hoje=new Date(); hoje.setHours(0,0,0,0);
+              const prazo=new Date(c.prazoData+'T00:00:00');
+              const diff=Math.round((prazo-hoje)/(1000*60*60*24));
+              if(diff<0) return `<span style="color:#DC2626;font-weight:700;font-size:11px;"> ⚠ Vencido há ${Math.abs(diff)}d</span>`;
+              if(diff===0) return `<span style="color:#D97706;font-weight:700;font-size:11px;"> 🔔 Hoje</span>`;
+              if(diff===1) return `<span style="color:#D97706;font-size:11px;"> 📅 Amanhã</span>`;
+              if(diff<=7) return `<span style="color:var(--text3);font-size:11px;"> 📅 em ${diff}d</span>`;
+              return `<span style="color:var(--text3);font-size:11px;"> 📅 ${prazo.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>`;
+            })():''}
+          </div>`:''}
           ${c.origemUrl?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl.replace(/'/g,"\\'")}')">
             ${c.origemUrl.includes('linkedin.com')?'🔗 LinkedIn (requer login)':c.origemUrl.includes('@')?'✉ Ver email':'🔗 Ver vaga'}
           </div>`:''}
@@ -1400,11 +1415,12 @@ function openVagaModal(id){
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-email').value=v.email||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
+    document.getElementById('mv-prazo').value=v.prazoData||'';
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
     document.getElementById('mv-ver-origem-btn').style.display=v.origemUrl?'flex':'none';
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-email','mv-proxima','mv-notas','mv-origem-url'].forEach(i=>document.getElementById(i).value='');
+    ['mv-empresa','mv-cargo','mv-salario','mv-email','mv-proxima','mv-prazo','mv-notas','mv-origem-url'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mv-ver-origem-btn').style.display='none';
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
@@ -1491,6 +1507,7 @@ function saveVaga(){
     salario:document.getElementById('mv-salario').value,
     email:document.getElementById('mv-email').value,
     proxima:document.getElementById('mv-proxima').value,
+    prazoData:document.getElementById('mv-prazo').value,
     notas:document.getElementById('mv-notas').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     data:new Date().toLocaleDateString('pt-BR')
