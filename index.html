@@ -709,10 +709,10 @@ select option { background: var(--bg2); }
         <label class="field-label">Status</label>
         <select id="mv-status">
           <option value="lead">Lead</option>
-          <option value="candidatado">Candidatado</option>
+          <option value="aplicado">Aplicado</option>
           <option value="andamento">Em andamento</option>
           <option value="proposta">Proposta</option>
-          <option value="encerrado">Encerrado</option>
+          <option value="negado">Negado</option>
         </select>
       </div>
       <div>
@@ -1076,12 +1076,12 @@ function candidatarVagaATS() {
   const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
   if(idx>=0){
-    vagas[idx].status='candidatado';
+    vagas[idx].status='aplicado';
     vagas[idx].proxima='Aguardar retorno - follow-up em 7 dias';
     vagas[idx].notas=notas||vagas[idx].notas;
     vagas[idx].data=hoje;
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k CLT',proxima:'Aguardar retorno - follow-up em 7 dias',notas,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k CLT',proxima:'Aguardar retorno - follow-up em 7 dias',notas,data:hoje});
   }
   saveVagas();
   const btn=document.querySelector('#result-area button');
@@ -1097,12 +1097,12 @@ function declinarVagaATS() {
   const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const idx = vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
   if(idx>=0){
-    vagas[idx].status='encerrado';
+    vagas[idx].status='negado';
     vagas[idx].proxima='Vaga declinada via Anti-ATS';
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'encerrado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
   }
   saveVagas();
 }
@@ -1210,18 +1210,18 @@ const DEFAULT_VAGAS=[
   {id:6,empresa:'Omnicom',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
   {id:7,empresa:'monday.com',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
   // CANDIDATADO
-  {id:8,empresa:'Payoneer',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:9,empresa:'PinkMed',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:10,empresa:'SKY',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:11,empresa:'Adlook',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:12,empresa:'Omie',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:13,empresa:'Keeta',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:14,empresa:'Samsung',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:15,empresa:'Binance',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:16,empresa:'Ambev',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:17,empresa:'Publicis',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:18,empresa:'Marista',cargo:'Esp. Estratégia e Inteligência',canal:'Indicação',prioridade:'alta',status:'candidatado',salario:'R$15-20k',proxima:'Enviar via Leonardo Carvalho da Silva',notas:'Contato 1º grau — acionar asap',data:'abr/2026'},
-  {id:101,empresa:'CI&T',cargo:'Ger. Sênior Transformação Ágil',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aplicar ajustes anti-ATS e enviar .doc',notas:'Score ATS 74/100 — 3 ajustes pendentes',data:'30/abr/2026'},
+  {id:8,empresa:'Payoneer',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:9,empresa:'PinkMed',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:10,empresa:'SKY',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:11,empresa:'Adlook',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:12,empresa:'Omie',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:13,empresa:'Keeta',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:14,empresa:'Samsung',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:15,empresa:'Binance',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:16,empresa:'Ambev',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:17,empresa:'Publicis',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:18,empresa:'Marista',cargo:'Esp. Estratégia e Inteligência',canal:'Indicação',prioridade:'alta',status:'aplicado',salario:'R$15-20k',proxima:'Enviar via Leonardo Carvalho da Silva',notas:'Contato 1º grau — acionar asap',data:'abr/2026'},
+  {id:101,empresa:'CI&T',cargo:'Ger. Sênior Transformação Ágil',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aplicar ajustes anti-ATS e enviar .doc',notas:'Score ATS 74/100 — 3 ajustes pendentes',data:'30/abr/2026'},
   // EM ANDAMENTO
   {id:19,empresa:'Wise',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
   {id:20,empresa:'BSI',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'andamento',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
@@ -1252,7 +1252,7 @@ let crmCurrentTab='vagas', contatoFilter='todos';
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
-    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v);
+    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v);
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
   } catch{
     vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
@@ -1263,8 +1263,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Lead',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={lead:'#7C3AED',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={lead:'Lead',aplicado:'Aplicado',andamento:'Em Andamento',proposta:'Proposta',negado:'Negado'};
+const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',andamento:'#D97706',proposta:'#059669',negado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 let vagasFiltradas = null;
@@ -1305,7 +1305,7 @@ function setCrmTab(tab,btn){
 }
 
 function renderCRM(){
-  const ativas=vagas.filter(v=>v.status!=='encerrado').length;
+  const ativas=vagas.filter(v=>v.status!=='negado').length;
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
@@ -1316,7 +1316,7 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
   const listaBase = vagasFiltradas || vagas;
-  const cols=['lead','candidatado','andamento','proposta','encerrado'];
+  const cols=['lead','aplicado','andamento','proposta','negado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=listaBase.filter(v=>v.status===col);
     const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
@@ -1780,7 +1780,7 @@ async function carregarEmails(forcar){
 function atualizarStatsHome(){
   try{
     const pipeline=vagas.filter(v=>v.status==='andamento').length;
-    const candidatados=vagas.filter(v=>v.status==='candidatado').length;
+    const candidatados=vagas.filter(v=>v.status==='aplicado').length;
     const sp=document.getElementById('stat-pipeline');
     const sc=document.getElementById('stat-candidatados');
     if(sp) sp.textContent=pipeline;
