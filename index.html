@@ -441,6 +441,7 @@ select option { background: var(--bg2); }
         <button class="btn btn-ghost btn-sm" onclick="limparFiltrosCRM()" id="crm-limpar-btn" style="display:none;">✕ Limpar</button>
         <span id="crm-filtro-count" style="font-size:12px;color:var(--text3);"></span>
       </div>
+      <div id="followup-alert" style="display:none;background:#FEF3C7;border:1px solid #D97706;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text);"></div>
       <div class="kanban" id="kanban-vagas"></div>
     </div>
 
@@ -1334,6 +1335,20 @@ function renderCRM(){
   const countEl=document.getElementById('crm-filtro-count');
   if(countEl) countEl.textContent=(totalFiltradas<totalAtivas)?`${totalFiltradas} de ${totalAtivas} vagas`:'';
 
+  // Barra de alertas follow-up
+  const overdue=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7)
+    .sort((a,b)=>(diasSemResposta(b)||0)-(diasSemResposta(a)||0));
+  const alertBar=document.getElementById('followup-alert');
+  if(alertBar){
+    if(overdue.length){
+      const cor=overdue.some(v=>(diasSemResposta(v)||0)>=21)?'#DC2626':'#D97706';
+      alertBar.style.display='block';
+      alertBar.innerHTML=`<span style="font-weight:700;color:${cor};">📬 ${overdue.length} follow-up${overdue.length>1?'s':''} pendente${overdue.length>1?'s':''}:</span> `
+        +overdue.slice(0,5).map(v=>`<span onclick="openVagaModal(${v.id})" style="cursor:pointer;text-decoration:underline;margin-right:10px;">${v.empresa} (${diasSemResposta(v)}d)</span>`).join('')
+        +(overdue.length>5?`<span style="color:var(--text3)">+${overdue.length-5} mais</span>`:'');
+    } else { alertBar.style.display='none'; }
+  }
+
   const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=vagasFiltradas.filter(v=>v.status===col);
@@ -1344,11 +1359,16 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
       ${cards.map(c=>`
         <div class="kcard" onclick="openVagaModal(${c.id})" style="border-left-color:${{'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'}[c.prioridade]||'#ccc'}">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${(()=>{
+            const d=diasSemResposta(c);
+            const badge=d===null?'':d>=21?`<span style="background:#DC2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:d>=14?`<span style="background:#D97706;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:d>=7?`<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">📬 ${d}d</span>`:'';
+            return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="kcard-name">${c.empresa}</span>
+            ${badge}
             ${c.nova?'<span style="background:#7C3AED;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;">Nova</span>':''}
             ${c.score?`<span style="background:var(--bg3);color:var(--text2);font-size:10px;padding:1px 6px;border-radius:4px;">ATS ${c.score}</span>`:''}
-          </div>
+          </div>`;
+          })()}
           <div class="kcard-role">${c.cargo}</div>
           ${c.salario?`<div style="font-size:11.5px;color:var(--action);font-weight:600;">💰 ${c.salario}</div>`:''}
           <div class="kcard-meta">
@@ -1455,6 +1475,18 @@ function reativarVaga(id){
   saveVagas(); renderCRM();
 }
 
+function diasSemResposta(v){
+  if(!['candidatado','andamento'].includes(v.status)) return null;
+  const ref=v.dataCandidatura||(()=>{
+    if(!v.data) return null;
+    const m=v.data.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    return m?`${m[3]}-${m[2]}-${m[1]}`:null;
+  })();
+  if(!ref) return null;
+  const diff=Math.round((new Date()-new Date(ref+'T00:00:00'))/(1000*60*60*24));
+  return diff>=0?diff:null;
+}
+
 function passaFiltroCRM(v){
   const b=crmFiltros.busca;
   if(b && !v.empresa?.toLowerCase().includes(b) && !v.cargo?.toLowerCase().includes(b)) return false;
@@ -1512,7 +1544,8 @@ function saveVaga(){
     origemUrl:document.getElementById('mv-origem-url').value,
     data:new Date().toLocaleDateString('pt-BR')
   };
-  if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
+  if(editingVagaId==='new') vagas.push(obj);
+  else vagas=vagas.map(v=>v.id===editingVagaId?{...obj,dataCandidatura:v.dataCandidatura}:v);
   saveVagas(); renderCRM(); closeVagaModal();
 }
 function deleteVaga(){
@@ -1533,7 +1566,8 @@ function candidatar(id){
   const assunto=encodeURIComponent(`Candidatura — ${v.cargo} | Marcos Franco`);
   const corpo=encodeURIComponent(`Prezado(a),\n\nEstou me candidatando à vaga de ${v.cargo} na ${v.empresa}.\n\nSegue em anexo meu CV para apreciação.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224`);
   window.open(`mailto:${email}?subject=${assunto}&body=${corpo}`);
-  vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',data:new Date().toLocaleDateString('pt-BR')}:x);
+  const hoje=new Date().toISOString().slice(0,10);
+  vagas=vagas.map(x=>x.id===id?{...x,status:'candidatado',proxima:'Aguardar retorno',dataCandidatura:hoje,data:new Date().toLocaleDateString('pt-BR')}:x);
   saveVagas(); renderCRM();
 }
 
