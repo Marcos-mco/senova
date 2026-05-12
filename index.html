@@ -721,7 +721,10 @@ select option { background: var(--bg2); }
       </div>
     </div>
     <div class="form-row">
-      <label class="field-label">Próxima ação</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label class="field-label" style="margin-bottom:0">Próxima ação</label>
+        <button class="btn btn-ghost btn-sm" onclick="avancarEstagio()">→ Avançar estágio</button>
+      </div>
       <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
     </div>
     <div class="form-row">
@@ -1396,6 +1399,12 @@ function openVagaModal(id){
   document.getElementById('modal-vaga').style.display='flex';
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
+function avancarEstagio(){
+  const seq=['lead','aplicado','processo','proposta','negado'];
+  const sel=document.getElementById('mv-status');
+  const idx=seq.indexOf(sel.value);
+  if(idx>=0&&idx<seq.length-1) sel.value=seq[idx+1];
+}
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
   const obj={
