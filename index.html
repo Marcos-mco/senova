@@ -121,8 +121,10 @@ select option { background: var(--bg2); }
 
 /* ── MODAL ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
-.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: min(520px,92vw); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
-.modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(520px,92vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); padding: 28px 28px 0; flex-shrink: 0; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 28px; min-height: 0; }
+.modal-footer { flex-shrink: 0; padding: 12px 28px 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
 
@@ -676,75 +678,75 @@ select option { background: var(--bg2); }
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
   <div class="modal">
     <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
-    <div class="form-row">
-      <label class="field-label">Empresa</label>
-      <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
-    </div>
-    <div class="form-row">
-      <label class="field-label">Cargo</label>
-      <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
-    </div>
-    <div class="form-grid" style="margin-bottom:14px;">
-      <div>
-        <label class="field-label">Canal</label>
-        <select id="mv-canal">
-          <option>LinkedIn</option>
-          <option>Indicação</option>
-          <option>Headhunter</option>
-          <option>Site da empresa</option>
-          <option>Gupy</option>
-          <option>Indeed</option>
-          <option>Email</option>
-        </select>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="field-label">Empresa</label>
+        <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
       </div>
-      <div>
-        <label class="field-label">Prioridade</label>
-        <select id="mv-prioridade">
-          <option value="alta">Alta</option>
-          <option value="media" selected>Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
+      <div class="form-row">
+        <label class="field-label">Cargo</label>
+        <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
       </div>
-      <div>
-        <label class="field-label">Status</label>
-        <select id="mv-status">
-          <option value="lead">Lead</option>
-          <option value="aplicado">Aplicado</option>
-          <option value="processo">Em Processo</option>
-          <option value="proposta">Proposta</option>
-          <option value="negado">Negado</option>
-        </select>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Canal</label>
+          <select id="mv-canal">
+            <option>LinkedIn</option>
+            <option>Indicação</option>
+            <option>Headhunter</option>
+            <option>Site da empresa</option>
+            <option>Gupy</option>
+            <option>Indeed</option>
+            <option>Email</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Prioridade</label>
+          <select id="mv-prioridade">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Status</label>
+          <select id="mv-status">
+            <option value="lead">Lead</option>
+            <option value="aplicado">Aplicado</option>
+            <option value="processo">Em Processo</option>
+            <option value="proposta">Proposta</option>
+            <option value="negado">Negado</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Pretensão (R$)</label>
+          <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
+        </div>
       </div>
-      <div>
-        <label class="field-label">Pretensão (R$)</label>
-        <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
+      <div class="form-row">
+        <label class="field-label">Próxima ação</label>
+        <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+      </div>
+      <div class="form-row">
+        <label class="field-label">Email do destinatário</label>
+        <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
+      </div>
+      <div class="form-row">
+        <label class="field-label">URL da vaga ou origem</label>
+        <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou email@empresa.com" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.style.display=this.value?'flex':'none'">
+      </div>
+      <div class="form-row">
+        <label class="field-label">Notas</label>
+        <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
     </div>
-    <div class="form-row">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <label class="field-label" style="margin-bottom:0">Próxima ação</label>
-        <button class="btn btn-ghost btn-sm" onclick="avancarEstagio()">→ Avançar estágio</button>
-      </div>
-      <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
-    </div>
-    <div class="form-row">
-      <label class="field-label">Email do destinatário</label>
-      <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
-    </div>
-    <div class="form-row">
-      <label class="field-label">URL da vaga ou origem</label>
-      <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou email@empresa.com" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.style.display=this.value?'flex':'none'">
-    </div>
-    <div class="form-row">
-      <label class="field-label">Notas</label>
-      <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:8px;">
+    <div class="modal-footer">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn" style="display:none;">Ver origem</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirAntiATSModal()">Analisar no Anti-ATS</button>
         <button class="btn btn-ghost btn-sm" onclick="enviarCVModal()">Enviar CV</button>
+        <button class="btn btn-ghost btn-sm" onclick="avancarEstagio()">→ Avançar estágio</button>
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
@@ -758,37 +760,39 @@ select option { background: var(--bg2); }
 <div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
   <div class="modal">
     <div class="modal-title" id="modal-contato-title">Contato</div>
-    <div class="form-row">
-      <label class="field-label">Nome</label>
-      <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
-    </div>
-    <div class="form-row">
-      <label class="field-label">Cargo · Empresa</label>
-      <input type="text" id="mc-cargo" placeholder="Ex: CEO · RPC/Globo">
-    </div>
-    <div class="form-grid" style="margin-bottom:14px;">
-      <div>
-        <label class="field-label">Temperatura</label>
-        <select id="mc-temp">
-          <option value="hot">🔥 Quente</option>
-          <option value="warm">🌤 Morno</option>
-          <option value="cold">❄️ Frio</option>
-        </select>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="field-label">Nome</label>
+        <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
       </div>
-      <div>
-        <label class="field-label">Plano</label>
-        <select id="mc-plano">
-          <option value="A">Plano A — Emprego</option>
-          <option value="B">Plano B — Consultoria</option>
-          <option value="C">Plano C — Senova</option>
-        </select>
+      <div class="form-row">
+        <label class="field-label">Cargo · Empresa</label>
+        <input type="text" id="mc-cargo" placeholder="Ex: CEO · RPC/Globo">
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Temperatura</label>
+          <select id="mc-temp">
+            <option value="hot">🔥 Quente</option>
+            <option value="warm">🌤 Morno</option>
+            <option value="cold">❄️ Frio</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Plano</label>
+          <select id="mc-plano">
+            <option value="A">Plano A — Emprego</option>
+            <option value="B">Plano B — Consultoria</option>
+            <option value="C">Plano C — Senova</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="field-label">Próxima ação</label>
+        <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
       </div>
     </div>
-    <div class="form-row">
-      <label class="field-label">Próxima ação</label>
-      <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+    <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
