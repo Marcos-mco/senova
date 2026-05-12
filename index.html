@@ -304,7 +304,7 @@ select option { background: var(--bg2); }
       <div class="home-stat-box" onclick="showPage('crm')">
         <div class="home-stat-label">Pipeline ativo</div>
         <div class="home-stat-num" id="stat-pipeline">—</div>
-        <div style="font-size:12px;color:var(--text3);">vagas em processo</div>
+        <div style="font-size:12px;color:var(--text3);">vagas em processo seletivo</div>
       </div>
       <div class="home-stat-box" onclick="showPage('crm')">
         <div class="home-stat-label">Candidaturas</div>
@@ -710,11 +710,13 @@ select option { background: var(--bg2); }
         </div>
         <div>
           <label class="field-label">Status</label>
-          <select id="mv-status">
+          <select id="mv-status" onchange="atualizarBotoes()">
             <option value="lead">Lead</option>
             <option value="aplicado">Aplicado</option>
-            <option value="processo">Em Processo</option>
+            <option value="contato">Em Contato</option>
+            <option value="entrevista">Entrevista</option>
             <option value="proposta">Proposta</option>
+            <option value="aceito">Aceito</option>
             <option value="negado">Negado</option>
           </select>
         </div>
@@ -739,20 +741,28 @@ select option { background: var(--bg2); }
         <label class="field-label">Notas</label>
         <textarea id="mv-notas" rows="2" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
+      <input type="hidden" id="mv-motivo">
     </div>
     <div class="modal-footer">
       <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
         <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-        <div style="display:flex;gap:8px;margin-left:auto;">
+        <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado" onclick="enviarCVModal()">Enviar CV</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="contato" onclick="marcarEntrevista()">Marcar Entrevista</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="entrevista" onclick="registrarResultado()">Registrar Resultado</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="proposta" onclick="aceitarProposta()">Aceitar</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="proposta" onclick="encerrarVaga('recusado')">Recusar</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="negado" onclick="reativarVaga()">Reativar</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado,contato,entrevista,proposta" onclick="encerrarVaga('desistido')">Desistir</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado,contato,entrevista" onclick="encerrarVaga('negado')">Negado</button>
           <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn" style="display:none;">Ver origem</button>
-          <button class="btn btn-ghost btn-sm" onclick="abrirAntiATSModal()">Analisar CV</button>
-          <button class="btn btn-ghost btn-sm" onclick="enviarCVModal()">Enviar CV</button>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="avancarEstagio()">→ Avançar estágio</button>
+          <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="candidatarVaga()">Candidatar</button>
           <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
         </div>
       </div>
@@ -1236,14 +1246,14 @@ const DEFAULT_VAGAS=[
   {id:18,empresa:'Marista',cargo:'Esp. Estratégia e Inteligência',canal:'Indicação',prioridade:'alta',status:'aplicado',salario:'R$15-20k',proxima:'Enviar via Leonardo Carvalho da Silva',notas:'Contato 1º grau — acionar asap',data:'abr/2026'},
   {id:101,empresa:'CI&T',cargo:'Ger. Sênior Transformação Ágil',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aplicar ajustes anti-ATS e enviar .doc',notas:'Score ATS 74/100 — 3 ajustes pendentes',data:'30/abr/2026'},
   // EM ANDAMENTO
-  {id:19,empresa:'Wise',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
-  {id:20,empresa:'BSI',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
-  {id:21,empresa:'Gaudium',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'processo',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:22,empresa:'GPAC',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar contato do recrutador',notas:'',data:'abr/2026'},
-  {id:23,empresa:'FIEP',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'processo',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:24,empresa:'99/DiDi',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:25,empresa:'Thomson Reuters',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'processo',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:19,empresa:'Wise',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
+  {id:20,empresa:'BSI',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
+  {id:21,empresa:'Gaudium',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:22,empresa:'GPAC',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar contato do recrutador',notas:'',data:'abr/2026'},
+  {id:23,empresa:'FIEP',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:24,empresa:'99/DiDi',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:25,empresa:'Thomson Reuters',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
 ];
 
 const DEFAULT_CONTATOS=[
@@ -1265,7 +1275,7 @@ let crmCurrentTab='vagas', contatoFilter='todos';
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
-    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'processo'}:v);
+    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'contato'}:v.status==='processo'?{...v,status:'contato'}:v);
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
   } catch{
@@ -1277,8 +1287,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Lead',aplicado:'Aplicado',processo:'Em Processo',proposta:'Proposta',negado:'Negado'};
-const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',processo:'#D97706',proposta:'#059669',negado:'#DC2626'};
+const COL_STATUS={lead:'Lead',aplicado:'Aplicado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',negado:'Negado'};
+const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',contato:'#0EA5E9',entrevista:'#8B5CF6',proposta:'#059669',aceito:'#15803D',negado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 let vagasFiltradas = null;
@@ -1320,17 +1330,17 @@ function setCrmTab(tab,btn){
 
 function renderCRM(){
   const ativas=vagas.filter(v=>v.status!=='negado').length;
-  const processo=vagas.filter(v=>v.status==='processo').length;
+  const processo=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
   document.getElementById('crm-stats').innerHTML=`
     <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--action)">${processo}</div><div class="stat-label">Em Processo</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--action)">${processo}</div><div class="stat-label">Em Contato/Entrevista</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
   const listaBase = vagasFiltradas || vagas;
-  const cols=['lead','aplicado','processo','proposta','negado'];
+  const cols=['lead','aplicado','contato','entrevista','proposta','aceito','negado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=listaBase.filter(v=>v.status===col);
     const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
@@ -1396,25 +1406,40 @@ function openVagaModal(id){
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
+    document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
   } else {
     ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-canal').value='LinkedIn';
-    document.getElementById('mv-prioridade').value='media';
-    document.getElementById('mv-status').value='lead';
+    document.getElementById('mv-prioridade').value='lead';
+    document.getElementById('mv-motivo').value='';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
+  atualizarBotoes();
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function avancarEstagio(){
-  const seq=['lead','aplicado','processo','proposta','negado'];
+  const seq=['lead','aplicado','contato','entrevista','proposta','aceito'];
   const sel=document.getElementById('mv-status');
   const idx=seq.indexOf(sel.value);
-  if(idx>=0&&idx<seq.length-1) sel.value=seq[idx+1];
+  if(idx>=0&&idx<seq.length-1){ sel.value=seq[idx+1]; atualizarBotoes(); }
 }
+function atualizarBotoes(){
+  const status=document.getElementById('mv-status')?.value||'lead';
+  document.querySelectorAll('.mv-btn').forEach(btn=>{
+    const stages=(btn.dataset.stages||'').split(',');
+    btn.style.display=stages.includes(status)?'':'none';
+  });
+}
+function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
+function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
+function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
+function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
+function encerrarVaga(motivo){ document.getElementById('mv-status').value='negado'; document.getElementById('mv-motivo').value=motivo; atualizarBotoes(); }
+function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
   const obj={
@@ -1429,6 +1454,7 @@ function saveVaga(){
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
+    motivo:document.getElementById('mv-motivo').value,
     data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
@@ -1799,7 +1825,7 @@ async function carregarEmails(forcar){
 
 function atualizarStatsHome(){
   try{
-    const pipeline=vagas.filter(v=>v.status==='processo').length;
+    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
     const candidatados=vagas.filter(v=>v.status==='aplicado').length;
     const sp=document.getElementById('stat-pipeline');
     const sc=document.getElementById('stat-candidatados');
