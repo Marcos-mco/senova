@@ -121,9 +121,9 @@
 
 - [x] **Varredura automática de vagas:** RSS LinkedIn, Indeed BR/DE/ES, Gupy — cron trigger diário às 7h — resolvido 12/mai/2026 (commit 517fc79) — **requer `npx wrangler deploy` para ativar o cron**
 - [x] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões — resolvido 12/mai/2026 (commit 28550c0)
-- [ ] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal
+- [x] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal — resolvido 12/mai/2026 (commit 70fadd7)
 - [x] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar" — resolvido 12/mai/2026 (commit 2e6e348)
-- [ ] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar
+- [x] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar — resolvido 12/mai/2026 (commit 70fadd7)
 - [x] **Fix: modal Editar Vaga** caber na tela sem rolar — resolvido 12/mai/2026 (commit fc6dae6)
 - [x] **Fix: botão Enviar CV** com email correto do recrutador — resolvido 12/mai/2026 (commit ba6e5d2)
 - [x] **Fix: URL LinkedIn** abre vaga correta — resolvido 12/mai/2026: campo origemUrl adicionado, aviso de login exibido no card (commit dd68145)
