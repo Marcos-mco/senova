@@ -120,7 +120,7 @@
 ### Fase 1 — Imediato (mai/2026)
 
 - [x] **Varredura automática de vagas:** RSS LinkedIn, Indeed BR/DE/ES, Gupy — cron trigger diário às 7h — resolvido 12/mai/2026 (commit 517fc79) — **requer `npx wrangler deploy` para ativar o cron**
-- [ ] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões
+- [x] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões — resolvido 12/mai/2026 (commit 28550c0)
 - [ ] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal
 - [x] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar" — resolvido 12/mai/2026 (commit 2e6e348)
 - [ ] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar
