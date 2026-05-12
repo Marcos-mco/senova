@@ -124,9 +124,9 @@
 - [ ] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal
 - [ ] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar"
 - [ ] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar
-- [ ] **Fix: modal Editar Vaga** caber na tela sem rolar
-- [ ] **Fix: botão Enviar CV** com email correto do recrutador
-- [ ] **Fix: URL LinkedIn** abre vaga correta (atualmente recebe página de login)
+- [x] **Fix: modal Editar Vaga** caber na tela sem rolar — resolvido 12/mai/2026 (commit fc6dae6)
+- [x] **Fix: botão Enviar CV** com email correto do recrutador — resolvido 12/mai/2026 (commit ba6e5d2)
+- [x] **Fix: URL LinkedIn** abre vaga correta — resolvido 12/mai/2026: campo origemUrl adicionado, aviso de login exibido no card (commit dd68145)
 
 ### Fase 2 — Próximo ciclo (jun/2026)
 
