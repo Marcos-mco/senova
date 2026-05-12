@@ -134,7 +134,7 @@
 - [x] **Filtros de busca no CRM:** por empresa, status, prioridade, data — resolvido 12/mai/2026 (commit e8a08cf)
 - [x] **Próximos passos com datas:** follow-up com prazo, alerta de vencimento — resolvido 12/mai/2026 (commit 6678177)
 - [x] **Dashboard estratégico:** funil visual, taxas de conversão, breakdown por canal/prioridade — resolvido 12/mai/2026 (commit 28a2490)
-- [ ] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo
+- [x] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo — resolvido 12/mai/2026 (commit 55ec965)
 - [x] **Alertas de follow-up:** 7/14/21 dias sem resposta — resolvido 12/mai/2026 (commit e3857d5)
 
 ### Fase 3 — Médio prazo (jul–ago/2026)
