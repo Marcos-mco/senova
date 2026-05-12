@@ -708,7 +708,7 @@ select option { background: var(--bg2); }
       <div>
         <label class="field-label">Status</label>
         <select id="mv-status">
-          <option value="radar">Radar</option>
+          <option value="lead">Lead</option>
           <option value="candidatado">Candidatado</option>
           <option value="andamento">Em andamento</option>
           <option value="proposta">Proposta</option>
@@ -1112,7 +1112,7 @@ function saveVagaFromCV() {
   const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
   const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas = score?`Match ATS: ${score}/100`:'';
-  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k CLT',proxima:'Gerar .doc final e candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
+  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .doc final e candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva no CRM! Acesse Pipeline CRM para acompanhar.`);
 }
@@ -1202,13 +1202,13 @@ function copyFullLI() {
 // ═══════════════════════════════════════════════
 const DEFAULT_VAGAS=[
   // RADAR
-  {id:1,empresa:'stays.net',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:2,empresa:'Comrade Digital',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:3,empresa:'Uber LATAM',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k',proxima:'Identificar vaga e contato',notas:'',data:''},
-  {id:4,empresa:'Amazon Prime Video',cargo:'Sr. Growth Manager',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'R$19-25k',proxima:'Analisar JD e adaptar CV',notas:'Resume EN gerado',data:''},
-  {id:5,empresa:'Apple Brazil',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'radar',salario:'',proxima:'Monitorar abertura de vagas',notas:'',data:''},
-  {id:6,empresa:'Omnicom',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:7,empresa:'monday.com',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'radar',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:1,empresa:'stays.net',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:2,empresa:'Comrade Digital',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:3,empresa:'Uber LATAM',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Identificar vaga e contato',notas:'',data:''},
+  {id:4,empresa:'Amazon Prime Video',cargo:'Sr. Growth Manager',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Analisar JD e adaptar CV',notas:'Resume EN gerado',data:''},
+  {id:5,empresa:'Apple Brazil',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Monitorar abertura de vagas',notas:'',data:''},
+  {id:6,empresa:'Omnicom',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
+  {id:7,empresa:'monday.com',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
   // CANDIDATADO
   {id:8,empresa:'Payoneer',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'candidatado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
   {id:9,empresa:'PinkMed',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'candidatado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
@@ -1252,6 +1252,7 @@ let crmCurrentTab='vagas', contatoFilter='todos';
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
+    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v);
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
   } catch{
     vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
@@ -1262,8 +1263,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Lead',radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={lead:'#7C3AED',radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={lead:'Lead',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={lead:'#7C3AED',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 let vagasFiltradas = null;
@@ -1315,7 +1316,7 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
   const listaBase = vagasFiltradas || vagas;
-  const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
+  const cols=['lead','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=listaBase.filter(v=>v.status===col);
     const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
@@ -1387,7 +1388,7 @@ function openVagaModal(id){
     ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
-    document.getElementById('mv-status').value='radar';
+    document.getElementById('mv-status').value='lead';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display='none';
   }
