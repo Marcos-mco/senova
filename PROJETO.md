@@ -122,7 +122,7 @@
 - [ ] **Varredura automática de vagas:** RSS LinkedIn, Indeed BR/DE/ES, Gupy — cron trigger diário às 7h
 - [ ] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões
 - [ ] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal
-- [ ] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar"
+- [x] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar" — resolvido 12/mai/2026 (commit 2e6e348)
 - [ ] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar
 - [x] **Fix: modal Editar Vaga** caber na tela sem rolar — resolvido 12/mai/2026 (commit fc6dae6)
 - [x] **Fix: botão Enviar CV** com email correto do recrutador — resolvido 12/mai/2026 (commit ba6e5d2)
