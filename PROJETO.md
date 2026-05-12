@@ -131,7 +131,7 @@
 ### Fase 2 — Próximo ciclo (jun/2026)
 
 - [x] **Campo "Negativados":** coluna ou filtro para vagas com resposta negativa — resolvido 12/mai/2026 (commit 89d8d47)
-- [ ] **Filtros de busca no CRM:** por empresa, status, prioridade, data
+- [x] **Filtros de busca no CRM:** por empresa, status, prioridade, data — resolvido 12/mai/2026 (commit e8a08cf)
 - [ ] **Próximos passos com datas:** follow-up com prazo, alerta de vencimento
 - [ ] **Dashboard estratégico:** visão consolidada — taxa de retorno, funil, tendências
 - [ ] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo
