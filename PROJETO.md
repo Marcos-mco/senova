@@ -135,7 +135,7 @@
 - [x] **Próximos passos com datas:** follow-up com prazo, alerta de vencimento — resolvido 12/mai/2026 (commit 6678177)
 - [ ] **Dashboard estratégico:** visão consolidada — taxa de retorno, funil, tendências
 - [ ] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo
-- [ ] **Alertas de follow-up:** 7/14/21 dias sem resposta
+- [x] **Alertas de follow-up:** 7/14/21 dias sem resposta — resolvido 12/mai/2026 (commit e3857d5)
 
 ### Fase 3 — Médio prazo (jul–ago/2026)
 
