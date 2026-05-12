@@ -106,7 +106,7 @@ select option { background: var(--bg2); }
 .tab-btn.active { background: var(--bg2); color: var(--navy); box-shadow: var(--shadow); font-weight: 600; }
 
 /* ── KANBAN ── */
-.kanban { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.kanban { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
 .kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; box-shadow: var(--shadow); }
@@ -550,6 +550,7 @@ select option { background: var(--bg2); }
         <div>
           <label class="field-label">Status</label>
           <select id="mv-status">
+            <option value="lead">Lead</option>
             <option value="radar">Radar</option>
             <option value="candidatado">Candidatado</option>
             <option value="andamento">Em andamento</option>
@@ -1055,8 +1056,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
-const COL_COLOR={radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
+const COL_STATUS={lead:'Lead',radar:'Radar',candidatado:'Candidatado',andamento:'Em Andamento',proposta:'Proposta',encerrado:'Encerrado'};
+const COL_COLOR={lead:'#7C3AED',radar:'#9CA3AF',candidatado:'#2563EB',andamento:'#D97706',proposta:'#059669',encerrado:'#DC2626'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 function setCrmTab(tab,btn){
@@ -1082,7 +1083,7 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
   // Kanban vagas
-  const cols=['radar','candidatado','andamento','proposta','encerrado'];
+  const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=vagas.filter(v=>v.status===col);
     return `<div>
@@ -1103,7 +1104,7 @@ function renderCRM(){
           ${c.origemUrl?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl.replace(/'/g,"\\'")}')">
             ${c.origemUrl.includes('linkedin.com')?'🔗 LinkedIn (requer login)':c.origemUrl.includes('@')?'✉ Ver email':'🔗 Ver vaga'}
           </div>`:''}
-          ${c.status==='radar'||c.status==='candidatado'?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
+          ${c.status==='lead'||c.status==='radar'||c.status==='candidatado'?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
             <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--navy);color:#fff;font-size:12px;" onclick="candidatar(${c.id})">✉ Candidatar</button>
           </div>`:''}
         </div>`).join('')}
