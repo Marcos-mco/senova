@@ -416,6 +416,7 @@ select option { background: var(--bg2); }
         <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
         <button class="lang-btn" onclick="setCrmTab('negativo',this)" id="crm-tab-negativo">📭 Negativados <span id="neg-count"></span></button>
+        <button class="lang-btn" onclick="setCrmTab('dashboard',this)">📊 Dashboard</button>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:8px;">
         + Adicionar
@@ -448,6 +449,11 @@ select option { background: var(--bg2); }
     <!-- Negativados List -->
     <div id="crm-negativados" style="display:none;">
       <div id="negativados-lista"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="crm-dashboard" style="display:none;">
+      <div id="dashboard-content"></div>
     </div>
 
     <!-- Contatos List -->
@@ -1296,8 +1302,9 @@ function setCrmTab(tab,btn){
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
   document.getElementById('crm-negativados').style.display=tab==='negativo'?'block':'none';
+  document.getElementById('crm-dashboard').style.display=tab==='dashboard'?'block':'none';
   const addBtn=document.getElementById('crm-add-btn');
-  addBtn.style.display=tab==='negativo'?'none':'inline-flex';
+  addBtn.style.display=(tab==='negativo'||tab==='dashboard')?'none':'inline-flex';
   addBtn.onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
   renderCRM();
 }
@@ -1320,6 +1327,7 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:#6B7280">${negativados}</div><div class="stat-label">Negativados</div></div>
     <div class="stat"><div class="stat-val" style="color:#7C3AED">${sinaisNovos||sinaisMercado.length}</div><div class="stat-label">Sinais de mercado</div></div>`;
   if(crmCurrentTab==='negativo') renderNegativados();
+  if(crmCurrentTab==='dashboard') renderDashboard();
 
   // Popula select de canais dinamicamente
   const canalSel=document.getElementById('crm-fil-canal');
@@ -1410,6 +1418,99 @@ function renderCRM(){
       <div class="contact-next">${c.next}</div>
       <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;">P.${c.plano}</span>
     </div>`).join('');
+}
+
+function renderDashboard(){
+  const el=document.getElementById('dashboard-content');
+  if(!el) return;
+  const ativas=vagas.filter(v=>v.status!=='negativo');
+  const negativados=vagas.filter(v=>v.status==='negativo').length;
+  const funnelSteps=[{key:'lead',label:'Lead'},{key:'radar',label:'Radar'},{key:'candidatado',label:'Candidatado'},{key:'andamento',label:'Em Andamento'},{key:'proposta',label:'Proposta'}];
+  const counts={};
+  funnelSteps.forEach(s=>counts[s.key]=vagas.filter(v=>v.status===s.key).length);
+  const maxCount=Math.max(...Object.values(counts),1);
+  const overdueCount=vagas.filter(v=>['candidatado','andamento'].includes(v.status)&&(diasSemResposta(v)||0)>=7).length;
+  const prioMap={alta:0,media:0,baixa:0};
+  ativas.forEach(v=>{ prioMap[v.prioridade]=(prioMap[v.prioridade]||0)+1; });
+  const canalMap={};
+  ativas.forEach(v=>{ const c=v.canal||'N/A'; canalMap[c]=(canalMap[c]||0)+1; });
+  const canalEntries=Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxCanal=Math.max(...canalEntries.map(e=>e[1]),1);
+  const total=ativas.length;
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:16px;">Funil de Processo</div>
+        ${funnelSteps.map(s=>`
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+              <span style="color:var(--text2);">${s.label}</span>
+              <span style="font-weight:700;color:${COL_COLOR[s.key]};">${counts[s.key]}</span>
+            </div>
+            <div style="background:var(--bg3);border-radius:6px;height:10px;overflow:hidden;">
+              <div style="background:${COL_COLOR[s.key]};height:100%;border-radius:6px;width:${Math.max(counts[s.key]/maxCount*100,2)}%;"></div>
+            </div>
+          </div>`).join('')}
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:16px;">
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:22px;font-weight:700;color:var(--navy);">${counts.candidatado?Math.round(counts.andamento/counts.candidatado*100):0}%</div>
+            <div style="font-size:11px;color:var(--text3);">Retorno p/ entrevista</div>
+          </div>
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:22px;font-weight:700;color:var(--green);">${counts.andamento?Math.round(counts.proposta/counts.andamento*100):0}%</div>
+            <div style="font-size:11px;color:var(--text3);">Conversão p/ proposta</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:12px;">Situação Geral</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:24px;font-weight:700;color:var(--navy);">${total}</div>
+              <div style="font-size:11px;color:var(--text3);">Vagas ativas</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:24px;font-weight:700;color:#6B7280;">${negativados}</div>
+              <div style="font-size:11px;color:var(--text3);">Negativados</div>
+            </div>
+            <div style="background:${overdueCount?'#FEF3C7':'var(--bg)'};border-radius:var(--radius);padding:12px;">
+              <div style="font-size:24px;font-weight:700;color:${overdueCount?'#D97706':'var(--navy)'};">${overdueCount}</div>
+              <div style="font-size:11px;color:var(--text3);">Follow-up pendente</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
+              <div style="font-size:24px;font-weight:700;color:var(--green);">${counts.proposta}</div>
+              <div style="font-size:11px;color:var(--text3);">Propostas recebidas</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:12px;">Por Prioridade</div>
+          ${[['alta','Alta','#DC2626'],['media','Média','#D97706'],['baixa','Baixa','#2563EB']].map(([k,l,c])=>`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <span style="width:50px;font-size:12px;color:var(--text2);">${l}</span>
+              <div style="flex:1;background:var(--bg3);border-radius:5px;height:8px;overflow:hidden;">
+                <div style="background:${c};height:100%;border-radius:5px;width:${total?Math.max(prioMap[k]/total*100,2):2}%;"></div>
+              </div>
+              <span style="width:22px;text-align:right;font-size:13px;font-weight:700;color:${c};">${prioMap[k]}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    ${canalEntries.length?`
+    <div style="background:#fff;border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border);margin-top:20px;">
+      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--navy);margin-bottom:14px;">Por Canal de Origem</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+        ${canalEntries.map(([canal,n])=>`
+          <div style="background:var(--bg);border-radius:var(--radius);padding:14px;">
+            <div style="font-size:22px;font-weight:700;color:var(--action);">${n}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">${canal}</div>
+            <div style="background:var(--border);border-radius:4px;height:4px;margin-top:8px;overflow:hidden;">
+              <div style="background:var(--action);height:100%;border-radius:4px;width:${Math.max(n/maxCanal*100,3)}%;"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`:''}`;
 }
 
 function filterContato(filter,btn){
