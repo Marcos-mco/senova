@@ -415,6 +415,7 @@ select option { background: var(--bg2); }
       <div class="lang-toggle">
         <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
+        <button class="lang-btn" onclick="setCrmTab('negativo',this)" id="crm-tab-negativo">📭 Negativados <span id="neg-count"></span></button>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:8px;">
         + Adicionar
@@ -427,6 +428,11 @@ select option { background: var(--bg2); }
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
       <div class="kanban" id="kanban-vagas"></div>
+    </div>
+
+    <!-- Negativados List -->
+    <div id="crm-negativados" style="display:none;">
+      <div id="negativados-lista"></div>
     </div>
 
     <!-- Contatos List -->
@@ -601,6 +607,7 @@ select option { background: var(--bg2); }
             <option value="andamento">Em andamento</option>
             <option value="proposta">Proposta</option>
             <option value="encerrado">Encerrado</option>
+            <option value="negativo">Negativo</option>
           </select>
         </div>
         <div>
@@ -1269,7 +1276,10 @@ function setCrmTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
-  document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
+  document.getElementById('crm-negativados').style.display=tab==='negativo'?'block':'none';
+  const addBtn=document.getElementById('crm-add-btn');
+  addBtn.style.display=tab==='negativo'?'none':'inline-flex';
+  addBtn.onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
   renderCRM();
 }
 
@@ -1279,15 +1289,20 @@ function renderCRM(){
   const andamento=vagas.filter(v=>v.status==='andamento').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   const quentes=contatos.filter(c=>c.temp==='hot').length;
+  const negativados=vagas.filter(v=>v.status==='negativo').length;
   const sinaisNovos=sinaisMercado.filter(s=>s.nova).length;
+  const negCount=document.getElementById('neg-count');
+  if(negCount) negCount.textContent=negativados?`(${negativados})`:'';
   document.getElementById('crm-stats').innerHTML=`
-    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
+    <div class="stat"><div class="stat-val">${vagas.filter(v=>v.status!=='negativo').length}</div><div class="stat-label">Vagas ativas</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--action)">${andamento}</div><div class="stat-label">Em andamento</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>
+    <div class="stat"><div class="stat-val" style="color:#6B7280">${negativados}</div><div class="stat-label">Negativados</div></div>
     <div class="stat"><div class="stat-val" style="color:#7C3AED">${sinaisNovos||sinaisMercado.length}</div><div class="stat-label">Sinais de mercado</div></div>`;
+  if(crmCurrentTab==='negativo') renderNegativados();
 
-  // Kanban vagas
+  // Kanban vagas (exclui negativados — ficam na aba própria)
   const cols=['lead','radar','candidatado','andamento','proposta','encerrado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cards=vagas.filter(v=>v.status===col);
@@ -1369,6 +1384,33 @@ function openVagaModal(id){
   }
   document.getElementById('modal-vaga').style.display='flex';
 }
+function renderNegativados(){
+  const lista=document.getElementById('negativados-lista'); if(!lista) return;
+  const negs=vagas.filter(v=>v.status==='negativo').sort((a,b)=>b.id-a.id);
+  if(!negs.length){
+    lista.innerHTML='<div style="color:var(--text3);font-size:14px;padding:40px;text-align:center;">Nenhuma vaga negativada ainda.</div>';
+    return;
+  }
+  lista.innerHTML=negs.map(v=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid #6B7280;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">${v.empresa}</div>
+        <div style="font-size:13px;color:var(--text2);">${v.cargo||'—'}</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">${v.canal||''} · ${v.data||''}</div>
+        ${v.notas?`<div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic;">${v.notas}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="reativarVaga(${v.id})">↩ Reativar</button>
+        <button class="btn btn-ghost btn-sm" onclick="openVagaModal(${v.id})">Editar</button>
+      </div>
+    </div>`).join('');
+}
+
+function reativarVaga(id){
+  vagas=vagas.map(v=>v.id===id?{...v,status:'radar',proxima:'Reativar contato'}:v);
+  saveVagas(); renderCRM();
+}
+
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function verOrigem(){
   const url=document.getElementById('mv-origem-url')?.value||'';
