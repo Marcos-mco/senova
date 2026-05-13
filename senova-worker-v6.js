@@ -93,7 +93,7 @@ async function getValidToken(env) {
         client_secret: env.MS_CLIENT_SECRET,
         grant_type: 'refresh_token',
         refresh_token: data.refresh_token,
-        scope: 'Mail.Read offline_access',
+        scope: 'Mail.Read Calendars.ReadWrite offline_access',
       }),
     });
     const novo = await res.json();
@@ -501,7 +501,7 @@ export default {
         client_id: env.MS_CLIENT_ID,
         response_type: 'code',
         redirect_uri: REDIRECT_URI,
-        scope: 'Mail.Read offline_access',
+        scope: 'Mail.Read Calendars.ReadWrite offline_access',
         response_mode: 'query',
         prompt: 'select_account',
       });

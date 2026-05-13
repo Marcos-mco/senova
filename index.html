@@ -216,6 +216,17 @@ select option { background: var(--bg2); }
 .col-filter-opt { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text2); padding:3px 0; cursor:pointer; }
 .col-filter-reset { margin-top:8px; width:100%; padding:4px; font-size:11px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; }
 
+/* ── TIMELINE ── */
+.tl-entry { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.tl-entry:last-child { border-bottom:none; }
+.tl-ts { font-size:11px; color:var(--text3); white-space:nowrap; padding-top:2px; min-width:110px; }
+.tl-txt { font-size:14px; color:var(--text1); line-height:1.4; word-break:break-word; }
+.tl-form { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; }
+.tl-form textarea { font-size:14px; resize:vertical; }
+.tl-check-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); cursor:pointer; margin-top:8px; }
+.tl-check-row input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:var(--navy); }
+.tl-extra-input { margin-top:6px; font-size:14px; }
+
 /* ── OUTLOOK BTN ── */
 .outlook-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #0078D4; color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.15s; }
 .outlook-btn:hover { opacity: 0.88; }
@@ -822,6 +833,28 @@ select option { background: var(--bg2); }
       <div class="form-row" style="margin-bottom:8px;">
         <label class="field-label">Notas</label>
         <textarea id="mv-notas" rows="4" placeholder="Contexto relevante, contatos, observações..."></textarea>
+      </div>
+      <div class="form-row" id="mv-timeline-section" style="margin-bottom:0;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="field-label" style="margin:0;">Histórico</label>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimeline()">+ Registrar atualização</button>
+        </div>
+        <div id="mv-timeline-form" class="tl-form" style="display:none;">
+          <textarea id="mv-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Liguei para recrutador, entrevista agendada para sexta..."></textarea>
+          <label class="tl-check-row">
+            <input type="checkbox" id="mv-tl-upd-proxima" onchange="toggleTimelineExtra()"> Atualizar próxima ação
+          </label>
+          <input type="text" id="mv-tl-proxima" class="tl-extra-input" style="display:none;" placeholder="Nova próxima ação...">
+          <label class="tl-check-row">
+            <input type="checkbox" id="mv-tl-upd-data" onchange="toggleTimelineExtra()"> Atualizar data prevista
+          </label>
+          <input type="date" id="mv-tl-data" class="tl-extra-input" style="display:none;">
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimeline()">Cancelar</button>
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimeline()">Salvar</button>
+          </div>
+        </div>
+        <div id="mv-timeline-lista" style="max-height:200px;overflow-y:auto;"></div>
       </div>
       <input type="hidden" id="mv-motivo">
     </div>
@@ -1738,6 +1771,9 @@ function openVagaModal(id){
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
+    document.getElementById('mv-timeline-section').style.display='';
+    document.getElementById('mv-timeline-form').style.display='none';
+    renderTimelineLista(v.timeline||[]);
   } else {
     ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-canal').value='LinkedIn';
@@ -1745,6 +1781,8 @@ function openVagaModal(id){
     document.getElementById('mv-motivo').value='';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display='none';
+    document.getElementById('mv-timeline-section').style.display='none';
+    document.getElementById('mv-timeline-lista').innerHTML='';
   }
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoes();
@@ -1771,6 +1809,7 @@ function encerrarVaga(motivo){ document.getElementById('mv-status').value='negad
 function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
+  const existing=editingVagaId!=='new'?vagas.find(v=>v.id===editingVagaId):null;
   const obj={
     id:editingVagaId==='new'?Date.now():editingVagaId,
     empresa,
@@ -1784,6 +1823,7 @@ function saveVaga(){
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
+    timeline:existing?.timeline||[],
     data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
     updatedAt:Date.now()
   };
@@ -1795,6 +1835,66 @@ function deleteVaga(){
   if(!confirm('Remover esta vaga?'))return;
   vagas=vagas.filter(v=>v.id!==editingVagaId);
   saveVagas(); renderCRM(); closeVagaModal();
+}
+
+// Timeline
+function abrirFormTimeline(){
+  document.getElementById('mv-timeline-form').style.display='block';
+  document.getElementById('mv-timeline-texto').value='';
+  document.getElementById('mv-tl-upd-proxima').checked=false;
+  document.getElementById('mv-tl-upd-data').checked=false;
+  document.getElementById('mv-tl-proxima').style.display='none';
+  document.getElementById('mv-tl-data').style.display='none';
+  setTimeout(()=>document.getElementById('mv-timeline-texto').focus(),60);
+}
+function fecharFormTimeline(){
+  document.getElementById('mv-timeline-form').style.display='none';
+}
+function toggleTimelineExtra(){
+  document.getElementById('mv-tl-proxima').style.display=
+    document.getElementById('mv-tl-upd-proxima').checked?'block':'none';
+  document.getElementById('mv-tl-data').style.display=
+    document.getElementById('mv-tl-upd-data').checked?'block':'none';
+}
+function salvarEntradaTimeline(){
+  const texto=document.getElementById('mv-timeline-texto').value.trim();
+  if(!texto){document.getElementById('mv-timeline-texto').focus();return;}
+  if(!editingVagaId||editingVagaId==='new') return;
+  const idx=vagas.findIndex(v=>v.id===editingVagaId);
+  if(idx<0) return;
+  if(!vagas[idx].timeline) vagas[idx].timeline=[];
+  vagas[idx].timeline.unshift({ts:Date.now(),texto});
+  if(document.getElementById('mv-tl-upd-proxima').checked){
+    const nova=document.getElementById('mv-tl-proxima').value.trim();
+    if(nova){
+      vagas[idx].proxima=nova;
+      document.getElementById('mv-proxima').value=nova;
+    }
+  }
+  if(document.getElementById('mv-tl-upd-data').checked){
+    const dateVal=document.getElementById('mv-tl-data').value;
+    if(dateVal){
+      const [y,m,d]=dateVal.split('-');
+      vagas[idx].data=`${d}/${m}/${y}`;
+    }
+  }
+  vagas[idx].updatedAt=Date.now();
+  saveVagas(); renderCRM();
+  fecharFormTimeline();
+  renderTimelineLista(vagas[idx].timeline);
+}
+function renderTimelineLista(timeline){
+  const lista=document.getElementById('mv-timeline-lista');
+  if(!lista) return;
+  if(!timeline||!timeline.length){
+    lista.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum registro ainda.</div>';
+    return;
+  }
+  lista.innerHTML=timeline.map(e=>{
+    const d=new Date(e.ts);
+    const ts=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="tl-entry"><span class="tl-ts">${ts}</span><span class="tl-txt">${e.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span></div>`;
+  }).join('');
 }
 
 // Contato Modal
