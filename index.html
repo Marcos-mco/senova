@@ -883,6 +883,31 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
+<!-- ══ MINI-MODAL: PRÓXIMA AÇÃO APÓS DRAG ══ -->
+<div class="modal-overlay" id="modal-proxima" style="display:none;" onclick="if(event.target===this)proximaSkip()">
+  <div class="modal" style="width:min(400px,92vw);">
+    <div class="modal-title" style="font-size:16px;padding:22px 22px 0;">
+      Próxima ação
+      <div style="font-size:13px;font-weight:400;color:var(--text3);margin-top:4px;font-family:var(--font);">Movido para <strong id="modal-proxima-status" style="color:var(--navy);"></strong></div>
+    </div>
+    <div class="modal-body" style="padding:16px 22px 16px;">
+      <div class="form-row">
+        <label class="field-label">Próxima ação</label>
+        <textarea id="modal-proxima-acao" rows="3" style="font-size:15px;resize:vertical;" placeholder="O que fazer agora?"></textarea>
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label class="field-label">Data prevista <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+        <input type="date" id="modal-proxima-data">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="proximaSkip()">Pular</button>
+      <button class="btn btn-primary" onclick="proximaSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 //  DADOS BASE
@@ -1524,6 +1549,17 @@ const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 let vagasFiltradas = null;
 let filtroAtivo = false;
 
+const PROXIMA_SUGESTAO={
+  lead:'Pesquisar vagas abertas e identificar contato na empresa',
+  aplicado:'Aguardar retorno — follow-up em 7 dias',
+  contato:'Enviar mensagem de acompanhamento — agendar call',
+  entrevista:'Preparar para a entrevista — pesquisar empresa e cultura',
+  proposta:'Avaliar proposta — negociar condições se necessário',
+  aceito:'Assinar contrato e alinhar data de início',
+  negado:'Registrar aprendizado — reativar contato em 3 meses'
+};
+let _proximaIdx=-1;
+
 function dropVaga(newStatus, event) {
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
@@ -1534,8 +1570,36 @@ function dropVaga(newStatus, event) {
     vagas[idx].updatedAt=Date.now();
     saveVagas();
     renderCRM();
+    _proximaIdx=idx;
+    document.getElementById('modal-proxima-status').textContent=COL_STATUS[newStatus]||newStatus;
+    document.getElementById('modal-proxima-acao').value=PROXIMA_SUGESTAO[newStatus]||'';
+    document.getElementById('modal-proxima-data').value='';
+    document.getElementById('modal-proxima').style.display='flex';
+    setTimeout(()=>document.getElementById('modal-proxima-acao').select(),60);
   }
   dragVagaId=null;
+}
+
+function proximaSalvar(){
+  if(_proximaIdx>=0){
+    const acao=document.getElementById('modal-proxima-acao').value.trim();
+    const dateVal=document.getElementById('modal-proxima-data').value;
+    if(acao) vagas[_proximaIdx].proxima=acao;
+    if(dateVal){
+      const [y,m,d]=dateVal.split('-');
+      vagas[_proximaIdx].data=`${d}/${m}/${y}`;
+    }
+    vagas[_proximaIdx].updatedAt=Date.now();
+    saveVagas();
+    renderCRM();
+  }
+  document.getElementById('modal-proxima').style.display='none';
+  _proximaIdx=-1;
+}
+
+function proximaSkip(){
+  document.getElementById('modal-proxima').style.display='none';
+  _proximaIdx=-1;
 }
 
 function aplicarFiltros() {
