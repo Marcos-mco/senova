@@ -340,52 +340,7 @@ select option { background: var(--bg2); }
         </div>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
       </div>
-      <!-- acoes fixas -->
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #D97706;">
-        <div class="home-acao-dot" style="background:#D97706;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:0.06em;">Hoje - Plano B</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">InBetta - Reuniao briefing 14h (seg 12/mai)</div>
-          <div style="font-size:12px;color:var(--text3);">CFO Tulini - PMO leve integrado - papel Silver</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #2563EB;">
-        <div class="home-acao-dot" style="background:#2563EB;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">Seg 12/mai - Plano A</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Aldo Mallucelli - Remarcar</div>
-          <div style="font-size:12px;color:var(--text3);">Amigo estrategico - pendente</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #059669;">
-        <div class="home-acao-dot" style="background:#059669;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;">Ter 12/mai</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Preparacao reuniao Alan Ceppini (RIC)</div>
-          <div style="font-size:12px;color:var(--text3);">Reuniao real: Qua 13/mai 15h - Prestinaria Casa de Paes</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #7C3AED;">
-        <div class="home-acao-dot" style="background:#7C3AED;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.06em;">Qua 13/mai - Plano A</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Alan Ceppini - RICTV / Jovem Pan / Banda B</div>
-          <div style="font-size:12px;color:var(--text3);">15h - Prestinaria Casa de Paes - Rua Mateus Leme 3440</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid #9CA3AF;">
-        <div class="home-acao-dot" style="background:#9CA3AF;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em;">Plano A - Headhunters</div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);">Priscilla Capellato (Korn Ferry)</div>
-          <div style="font-size:12px;color:var(--text3);">Mensagem enviada 22/abr - follow-up semana 12/mai</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
+      <!-- acoes dinamicas geradas por renderHomeAcoes() -->
     </div>
   </div>
 </div>
@@ -402,6 +357,14 @@ select option { background: var(--bg2); }
     <div class="topbar-right">
       <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
     </div>
+  </div>
+  <div id="ats-decisao-bar" style="display:none;background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 24px;align-items:center;gap:10px;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Decisão sobre esta vaga</div>
+      <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="ats-decisao-label">—</div>
+    </div>
+    <button class="btn" style="background:#1A7A4A;color:#fff;min-height:44px;flex-shrink:0;" onclick="candidatarVagaATS()">✓ Candidatar</button>
+    <button class="btn btn-danger" style="min-height:44px;flex-shrink:0;" onclick="declinarVagaATS()">✕ Declinar</button>
   </div>
   <div class="content">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;">
@@ -895,7 +858,8 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display='flex'; }
-  if(page==='home') { atualizarStatsHome(); carregarEmails(false); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); carregarEmails(false); }
+  if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
 
 // ═══════════════════════════════════════════════
@@ -994,7 +958,7 @@ async function analyzeJob() {
   btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV`;
 }
 
-let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null;
+let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='';
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
@@ -1096,16 +1060,27 @@ function candidatarVagaATS() {
   }
   atsOrigemVagaId=null;
   saveVagas();
+  const bar=document.getElementById('ats-decisao-bar');
+  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada em '+hoje; }
   const btn=document.querySelector('#result-area button');
   if(btn&&btn.textContent.includes('Candidatar')){const orig=btn.textContent;btn.textContent='Candidatura registrada!';setTimeout(()=>{btn.textContent=orig;},2500);}
+  if(atsEmailDest){
+    const emp=vagas[idx>=0?idx:vagas.length-1]?.empresa||empresa;
+    const carg=vagas[idx>=0?idx:vagas.length-1]?.cargo||cargo;
+    const assunto=encodeURIComponent('Candidatura: '+carg+' | Marcos Franco');
+    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo senior com mais de 30 anos em marketing, midia e negocios.\n\nTenho interesse na vaga de '+carg+' na '+emp+' e gostaria de enviar meu CV para sua apreciacao.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
+    setTimeout(()=>{ window.location.href='mailto:'+atsEmailDest+'?subject='+assunto+'&body='+corpo; },300);
+  }
+  atsEmailDest='';
 }
 
 function declinarVagaATS() {
+  const motivo=prompt('Motivo do declínio (opcional — deixe em branco para pular):')||'';
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
   const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
   const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
   const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const notas = score?'Match ATS: '+score+'/100 - Declinada':'Declinada';
+  const notas = [score?'Match ATS: '+score+'/100':'','Declinada',motivo].filter(Boolean).join(' — ');
   const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const idxById = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
   const idx = idxById>=0 ? idxById : vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
@@ -1118,7 +1093,10 @@ function declinarVagaATS() {
     vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
   }
   atsOrigemVagaId=null;
+  atsEmailDest='';
   saveVagas();
+  const bar=document.getElementById('ats-decisao-bar');
+  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✕ Vaga declinada'+(motivo?' — '+motivo:''); }
 }
 function saveVagaFromCV() {
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
@@ -1274,7 +1252,7 @@ function loadCRM(){
   }
   updateBadge();
 }
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); }
+function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
@@ -1838,6 +1816,39 @@ function atualizarStatsHome(){
   } catch{}
 }
 
+function renderHomeAcoes(){
+  const list=document.getElementById('home-acoes-list');
+  if(!list) return;
+  list.querySelectorAll('.home-vaga-acao').forEach(el=>el.remove());
+  const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
+  const priOrder={alta:0,media:1,baixa:2};
+  const ativas=vagas.filter(v=>v.proxima&&v.status!=='negado'&&v.status!=='aceito')
+    .sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3))
+    .slice(0,6);
+  const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
+  const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'Aplicado',lead:'Lead'};
+  if(!ativas.length){
+    const el=document.createElement('div');
+    el.className='home-vaga-acao';
+    el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
+    el.textContent='Nenhuma ação pendente no pipeline.';
+    list.appendChild(el);
+    return;
+  }
+  ativas.forEach(v=>{
+    const cor=corSt[v.status]||'#9CA3AF';
+    const lbl=lblSt[v.status]||v.status;
+    const pri=v.prioridade==='alta'?'Alta prioridade':v.prioridade==='media'?'Média prioridade':'Baixa prioridade';
+    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+    const el=document.createElement('div');
+    el.className='home-acao-item home-vaga-acao';
+    el.style.borderLeftColor=cor;
+    el.onclick=()=>openVagaModal(v.id);
+    el.innerHTML=`<div class="home-acao-dot" style="background:${cor};"></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl} · ${pri}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.proxima}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    list.appendChild(el);
+  });
+}
+
 // ═══════════════════════════════════════════════
 //  FUNCOES DO MODAL DE VAGA
 // ═══════════════════════════════════════════════
@@ -1859,13 +1870,20 @@ function abrirAntiATSModal(){
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const notas=document.getElementById('mv-notas')?.value||'';
   const origemUrl=document.getElementById('mv-origem-url')?.value||'';
+  atsEmailDest=document.getElementById('mv-email-dest')?.value||'';
   atsOrigemVagaId=editingVagaId;
   closeVagaModal();
   showPage('ats');
+  const bar=document.getElementById('ats-decisao-bar');
+  if(bar){
+    bar.style.display='flex';
+    const lbl=document.getElementById('ats-decisao-label');
+    if(lbl) lbl.textContent=(empresa||'Vaga')+(cargo&&cargo!=='A definir'?' — '+cargo:'');
+    bar.querySelectorAll('button').forEach(b=>{b.disabled=false;b.style.opacity='';});
+  }
   setTimeout(()=>{
     const campo=document.getElementById('vaga-input');
     if(!campo) return;
-    // Se as notas têm conteúdo substancial (>100 chars), usa como descrição da vaga
     if(notas && notas.length > 100){
       campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n\n${notas}`;
     } else if(empresa||cargo){
