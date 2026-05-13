@@ -958,7 +958,7 @@ async function analyzeJob() {
   btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV`;
 }
 
-let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='';
+let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
@@ -1041,62 +1041,59 @@ function downloadPDF() {
   doc.save(lastCVFilename+'.pdf');
 }
 function candidatarVagaATS() {
-  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
-  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
-  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
-  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  // Fonte primária: vaga pelo ID (funciona antes ou depois da análise ATS)
+  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
+  const vagaRef = idx>=0 ? vagas[idx] : null;
+  const empresa = vagaRef?.empresa || atsEmpresa || 'A definir';
+  const cargo   = vagaRef?.cargo   || atsCargo   || 'A definir';
+  // Enriquece notas com score ATS se análise já foi rodada
+  const crmTxt  = document.getElementById('crm-txt')?.innerText||'';
+  const score    = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const keywords = crmTxt.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
-  const notas = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' - ');
+  const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
   const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const idxById = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const idx = idxById>=0 ? idxById : vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
   if(idx>=0){
     vagas[idx].status='aplicado';
-    vagas[idx].proxima='Aguardar retorno - follow-up em 7 dias';
-    vagas[idx].notas=notas||vagas[idx].notas;
+    vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
+    if(notasAts) vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k CLT',proxima:'Aguardar retorno - follow-up em 7 dias',notas,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje});
   }
-  atsOrigemVagaId=null;
+  const emailDest=atsEmailDest;
+  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada em '+hoje; }
-  const btn=document.querySelector('#result-area button');
-  if(btn&&btn.textContent.includes('Candidatar')){const orig=btn.textContent;btn.textContent='Candidatura registrada!';setTimeout(()=>{btn.textContent=orig;},2500);}
-  if(atsEmailDest){
-    const emp=vagas[idx>=0?idx:vagas.length-1]?.empresa||empresa;
-    const carg=vagas[idx>=0?idx:vagas.length-1]?.cargo||cargo;
-    const assunto=encodeURIComponent('Candidatura: '+carg+' | Marcos Franco');
-    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo senior com mais de 30 anos em marketing, midia e negocios.\n\nTenho interesse na vaga de '+carg+' na '+emp+' e gostaria de enviar meu CV para sua apreciacao.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
-    setTimeout(()=>{ window.location.href='mailto:'+atsEmailDest+'?subject='+assunto+'&body='+corpo; },300);
+  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada — '+hoje; }
+  if(emailDest){
+    const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
+    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
+    setTimeout(()=>{ window.location.href='mailto:'+emailDest+'?subject='+assunto+'&body='+corpo; },300);
   }
-  atsEmailDest='';
 }
 
 function declinarVagaATS() {
   const motivo=prompt('Motivo do declínio (opcional — deixe em branco para pular):')||'';
-  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
-  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
-  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
-  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const notas = [score?'Match ATS: '+score+'/100':'','Declinada',motivo].filter(Boolean).join(' — ');
+  // Fonte primária: vaga pelo ID (funciona antes ou depois da análise ATS)
+  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
+  const vagaRef = idx>=0 ? vagas[idx] : null;
+  const empresa = vagaRef?.empresa || atsEmpresa || 'A definir';
+  const cargo   = vagaRef?.cargo   || atsCargo   || 'A definir';
+  const crmTxt  = document.getElementById('crm-txt')?.innerText||'';
+  const score   = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas   = [score?'Match ATS: '+score+'/100':'','Declinada',motivo].filter(Boolean).join(' — ');
   const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const idxById = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const idx = idxById>=0 ? idxById : vagas.findIndex(v=>v.empresa===empresa&&v.cargo===cargo);
   if(idx>=0){
     vagas[idx].status='negado';
-    vagas[idx].proxima='Vaga declinada via Anti-ATS';
+    vagas[idx].proxima='Declinada'+(motivo?' — '+motivo:'');
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Vaga declinada via Anti-ATS',notas,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje});
   }
-  atsOrigemVagaId=null;
-  atsEmailDest='';
+  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   saveVagas();
-  const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✕ Vaga declinada'+(motivo?' — '+motivo:''); }
+  showPage('crm');
 }
 function saveVagaFromCV() {
   const crmTxt = document.getElementById('crm-txt')?.innerText||'';
@@ -1871,6 +1868,7 @@ function abrirAntiATSModal(){
   const notas=document.getElementById('mv-notas')?.value||'';
   const origemUrl=document.getElementById('mv-origem-url')?.value||'';
   atsEmailDest=document.getElementById('mv-email-dest')?.value||'';
+  atsEmpresa=empresa; atsCargo=cargo;
   atsOrigemVagaId=editingVagaId;
   closeVagaModal();
   showPage('ats');
