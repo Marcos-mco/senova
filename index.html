@@ -127,8 +127,9 @@ select option { background: var(--bg2); }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(520px,92vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); padding: 28px 28px 0; flex-shrink: 0; }
-.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 16px; min-height: 0; }
-.modal-footer { flex-shrink: 0; padding: 12px 28px 28px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 100px; min-height: 0; }
+.modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
+.modal-footer .btn { min-height: 44px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
 
@@ -748,14 +749,11 @@ select option { background: var(--bg2); }
       <input type="hidden" id="mv-motivo">
     </div>
     <div class="modal-footer">
-      <div style="display:flex;width:100%;">
-        <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
-        <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
-        <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
-        <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
-      </div>
+      <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
+      <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
+      <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
     </div>
   </div>
 </div>
