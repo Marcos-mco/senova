@@ -503,7 +503,7 @@ export default {
         redirect_uri: REDIRECT_URI,
         scope: 'Mail.Read Calendars.ReadWrite offline_access',
         response_mode: 'query',
-        prompt: 'select_account',
+        prompt: 'consent',
       });
       return Response.redirect(`https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?${params}`, 302);
     }
