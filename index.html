@@ -119,9 +119,9 @@ select option { background: var(--bg2); }
 .kcard-role { font-size: 11.5px; color: var(--text3); margin-bottom: 7px; line-height: 1.4; }
 .kcard-meta { font-size: 11px; color: var(--text3); margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
 .badge { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
-.badge-alta { background: #FEF0EF; color: var(--red); }
-.badge-media { background: var(--amber-bg); color: var(--amber); }
-.badge-baixa { background: #EFF6FF; color: #2563EB; }
+.badge-alta { background: #FFF0F0; color: #E53E3E; }
+.badge-media { background: #FFF3EB; color: #DD6B20; }
+.badge-baixa { background: #EBF4FF; color: #2E6DA4; }
 
 /* ── MODAL ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -201,7 +201,7 @@ select option { background: var(--bg2); }
 
 /* ── FILTROS PIPELINE ── */
 .filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 0; flex-wrap: wrap; }
-.filter-select { font-size: 12.5px; padding: 5px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg2); color: var(--text2); font-family: var(--font); cursor: pointer; }
+.filter-select { font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg2); color: var(--text2); font-family: var(--font); cursor: pointer; max-width: 160px; width: auto; }
 .filter-select:focus { outline: none; border-color: var(--action); }
 
 /* ── CARD DATA/HORA ── */
@@ -209,7 +209,7 @@ select option { background: var(--bg2); }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
 .col-filter-btn:hover,.col-filter-btn.has-filter { color:var(--action); }
-.col-filter-menu { position:absolute; top:calc(100% + 4px); right:0; z-index:150; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; min-width:168px; box-shadow:0 8px 24px rgba(0,0,0,0.13); }
+.col-filter-menu { position:fixed; z-index:300; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; width:172px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
 .col-filter-sect { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text3); margin:8px 0 4px; }
 .col-filter-sect:first-child { margin-top:0; }
 .col-filter-opt { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text2); padding:3px 0; cursor:pointer; }
@@ -314,9 +314,9 @@ select option { background: var(--bg2); }
     <!-- Stats clicáveis -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;">
       <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Pipeline ativo</div>
-        <div class="home-stat-num" id="stat-pipeline">—</div>
-        <div style="font-size:12px;color:var(--text3);">vagas em processo seletivo</div>
+        <div class="home-stat-label">Leads / Radar</div>
+        <div class="home-stat-num" id="stat-lead">—</div>
+        <div style="font-size:12px;color:var(--text3);">vagas para analisar</div>
       </div>
       <div class="home-stat-box" onclick="showPage('crm')">
         <div class="home-stat-label">Candidaturas</div>
@@ -324,19 +324,43 @@ select option { background: var(--bg2); }
         <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
       </div>
       <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">E-mails novos</div>
-        <div class="home-stat-num" id="stat-emails">—</div>
-        <div style="font-size:12px;color:var(--text3);">leads no pipeline</div>
+        <div class="home-stat-label">Em processo</div>
+        <div class="home-stat-num" id="stat-pipeline">—</div>
+        <div style="font-size:12px;color:var(--text3);">contato + entrevista</div>
       </div>
       <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Plano B</div>
-        <div class="home-stat-num">3</div>
-        <div style="font-size:12px;color:var(--text3);">oportunidades ativas</div>
+        <div class="home-stat-label">Propostas</div>
+        <div class="home-stat-num" id="stat-proposta">—</div>
+        <div style="font-size:12px;color:var(--text3);">para decidir</div>
       </div>
     </div>
 
     <!-- Próximas Ações (coluna unica) -->
-    <div class="section-head"><span class="section-title">Próximas Ações</span></div>
+    <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="section-title">Próximas Ações</span>
+      <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
+        <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
+          <option value="all">Prioridade</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
+          <option value="all">Canal</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="email">E-mail</option>
+          <option value="headhunter">Headhunter</option>
+          <option value="indicacao">Indicação</option>
+          <option value="direto">Direto</option>
+        </select>
+        <select class="filter-select" id="hf-ordem" onchange="renderHomeAcoes()">
+          <option value="default">Ordenar</option>
+          <option value="data-asc">Data ↑</option>
+          <option value="data-desc">Data ↓</option>
+          <option value="pri">Prioridade</option>
+        </select>
+      </div>
+    </div>
     <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list">
       <!-- item email novos dinamico -->
       <div id="home-email-action" style="display:none;" class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid var(--action);">
@@ -1248,7 +1272,21 @@ let colFilters={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
 function resetColFilter(col){ colFilters[col]={pri:'all',canal:'all',sort:'default'}; renderCRM(); }
-function toggleColFilter(col,e){ e.stopPropagation(); const m=document.getElementById('cf-'+col); if(!m)return; const open=m.style.display!=='none'; document.querySelectorAll('.col-filter-menu').forEach(x=>x.style.display='none'); if(!open)m.style.display='block'; }
+function toggleColFilter(col,e){
+  e.stopPropagation();
+  const m=document.getElementById('cf-'+col);
+  if(!m) return;
+  const open=m.style.display!=='none';
+  document.querySelectorAll('.col-filter-menu').forEach(x=>x.style.display='none');
+  if(!open){
+    const rect=e.currentTarget.getBoundingClientRect();
+    m.style.top=(rect.bottom+4)+'px';
+    const rightEdge=window.innerWidth-rect.right;
+    if(rightEdge<180){ m.style.right=rightEdge+'px'; m.style.left='auto'; }
+    else { m.style.left=rect.left+'px'; m.style.right='auto'; }
+    m.style.display='block';
+  }
+}
 
 function loadCRM(){
   try{
@@ -1341,7 +1379,7 @@ function renderCRM(){
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
     if(cf.sort==='newer') cards=[...cards].sort((a,b)=>b.id-a.id);
     if(cf.sort==='older') cards=[...cards].sort((a,b)=>a.id-b.id);
-    const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
+    const corPri={'alta':'#E53E3E','media':'#DD6B20','baixa':'#2E6DA4'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
       <div class="col-filter-sect">Prioridade</div>
@@ -1835,12 +1873,13 @@ async function carregarEmails(forcar){
 
 function atualizarStatsHome(){
   try{
-    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+    const lead=vagas.filter(v=>v.status==='lead').length;
     const candidatados=vagas.filter(v=>v.status==='aplicado').length;
-    const sp=document.getElementById('stat-pipeline');
-    const sc=document.getElementById('stat-candidatados');
-    if(sp) sp.textContent=pipeline;
-    if(sc) sc.textContent=candidatados;
+    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+    const proposta=vagas.filter(v=>v.status==='proposta').length;
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    set('stat-lead',lead); set('stat-candidatados',candidatados);
+    set('stat-pipeline',pipeline); set('stat-proposta',proposta);
   } catch{}
 }
 
@@ -1848,31 +1887,43 @@ function renderHomeAcoes(){
   const list=document.getElementById('home-acoes-list');
   if(!list) return;
   list.querySelectorAll('.home-vaga-acao').forEach(el=>el.remove());
+  const hfPri=document.getElementById('hf-prioridade')?.value||'all';
+  const hfCanal=document.getElementById('hf-canal')?.value||'all';
+  const hfOrdem=document.getElementById('hf-ordem')?.value||'default';
   const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
   const priOrder={alta:0,media:1,baixa:2};
-  const ativas=vagas.filter(v=>v.proxima&&v.status!=='negado'&&v.status!=='aceito')
-    .sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3))
-    .slice(0,6);
+  let ativas=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado');
+  if(hfPri!=='all') ativas=ativas.filter(v=>v.prioridade===hfPri);
+  if(hfCanal!=='all') ativas=ativas.filter(v=>v.canal===hfCanal);
+  if(hfOrdem==='data-asc') ativas=[...ativas].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  else if(hfOrdem==='data-desc') ativas=[...ativas].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  else if(hfOrdem==='pri') ativas=[...ativas].sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
+  else ativas=[...ativas].sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
+  ativas=ativas.slice(0,8);
   const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
   const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'Aplicado',lead:'Lead'};
+  const corPriH={alta:'#E53E3E',media:'#DD6B20',baixa:'#2E6DA4'};
   if(!ativas.length){
     const el=document.createElement('div');
     el.className='home-vaga-acao';
     el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
-    el.textContent='Nenhuma ação pendente no pipeline.';
+    el.textContent='Nenhuma vaga para exibir.';
     list.appendChild(el);
     return;
   }
   ativas.forEach(v=>{
     const cor=corSt[v.status]||'#9CA3AF';
     const lbl=lblSt[v.status]||v.status;
-    const pri=v.prioridade==='alta'?'Alta prioridade':v.prioridade==='media'?'Média prioridade':'Baixa prioridade';
+    const priCor=corPriH[v.prioridade]||'#9CA3AF';
+    const priLbl=v.prioridade==='alta'?'Alta':v.prioridade==='media'?'Média':'Baixa';
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+    const dataHora=v.data?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">📅 ${v.data}${v.hora?' '+v.hora:''}</span>`:'';
+    const acaoTxt=v.proxima||'';
     const el=document.createElement('div');
     el.className='home-acao-item home-vaga-acao';
     el.style.borderLeftColor=cor;
     el.onclick=()=>openVagaModal(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:${cor};"></div><div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl} · ${pri}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.proxima}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    el.innerHTML=`<div class="home-acao-dot" style="background:${cor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     list.appendChild(el);
   });
 }
