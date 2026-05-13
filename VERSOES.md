@@ -12,7 +12,7 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3 — 08/mai/2026 (ATUAL — arquivo: senova_v3_08mai2026.html)
+### v3.1 — 13/mai/2026 (ATUAL — arquivo: senova_v3_13mai2026.html = backup pré-edição)
 **Status:** Completo e validado ✅
 **Funcionalidades:**
 - Home cockpit com Proximas Acoes
@@ -29,6 +29,11 @@ Para restaurar qualquer versão anterior:
 - PDF Executivo design navy/dourado
 - Coluna Lead no Kanban
 - Worker v6 integrado (senova-proxy.marcos-mco.workers.dev)
+- **CORREÇÕES 13/mai:**
+  - Bug grave: CV agora gerado em .docx real (html-docx-js CDN) em vez de .doc Word 97
+  - Campo Notas expandido (rows 2→4) — não corta mais conteúdo no modal
+  - Fluxo Analisar→Candidatar corrigido: usa ID da vaga de origem, não match por nome
+  - Drag-and-drop no Kanban: arrastar card entre colunas muda status e salva
 
 ### v2 — 06/mai/2026 (arquivo: senova_suite_v2.html no projeto)
 **Status:** Base funcional sem integrações completas
