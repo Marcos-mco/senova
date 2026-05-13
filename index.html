@@ -122,6 +122,7 @@ select option { background: var(--bg2); }
 .badge-alta { background: #FFE8E8; color: #CC0000; }
 .badge-media { background: #E8F0FF; color: #0066CC; }
 .badge-baixa { background: #E8FFE8; color: #008800; }
+.badge-inativo { background: #FF6600; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
 
 /* ── MODAL ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -1170,8 +1171,9 @@ function candidatarVagaATS() {
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
     if(notasAts) vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
+    vagas[idx].updatedAt=Date.now();
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,updatedAt:Date.now()});
   }
   const emailDest=atsEmailDest;
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
@@ -1201,8 +1203,9 @@ function declinarVagaATS() {
     vagas[idx].proxima='Declinada'+(motivo?' — '+motivo:'');
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
+    vagas[idx].updatedAt=Date.now();
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje});
+    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje,updatedAt:Date.now()});
   }
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   saveVagas();
@@ -1483,10 +1486,25 @@ function toggleColFilter(col,e){
   }
 }
 
+function parseDateBR(s){
+  if(!s) return null;
+  const M={jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
+  let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return new Date(+m[3],+m[2]-1,+m[1]).getTime();
+  m=s.match(/^(\d{1,2})\/([a-z]+)\/(\d{4})/i); if(m) return new Date(+m[3],M[m[2].toLowerCase()]??0,+m[1]).getTime();
+  m=s.match(/^([a-z]+)\/(\d{4})/i); if(m) return new Date(+m[2],M[m[1].toLowerCase()]??0,15).getTime();
+  return null;
+}
+const INATIVO_MS = 7*24*3600*1000;
+function isInativo(v){
+  if(!v.updatedAt||v.status==='negado'||v.status==='aceito') return false;
+  return Date.now()-v.updatedAt > INATIVO_MS;
+}
+
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
     vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'contato'}:v.status==='processo'?{...v,status:'contato'}:v);
+    vagas=vagas.map(v=>v.updatedAt?v:{...v,updatedAt:parseDateBR(v.data)||Date.now()});
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
   } catch{
@@ -1513,6 +1531,7 @@ function dropVaga(newStatus, event) {
   const idx=vagas.findIndex(v=>v.id===dragVagaId);
   if(idx>=0 && vagas[idx].status!==newStatus){
     vagas[idx].status=newStatus;
+    vagas[idx].updatedAt=Date.now();
     saveVagas();
     renderCRM();
   }
@@ -1595,7 +1614,8 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
       ${cards.map(c=>{
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${corPri[c.prioridade]||'#ccc'}">
+        const inativo = isInativo(c);
+        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${inativo?'#FF6600':corPri[c.prioridade]||'#ccc'}${inativo?';box-shadow:0 0 0 1px #FF660022':''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div class="kcard-name">${c.empresa}</div>
             ${c.data?`<div class="kcard-date">${c.data}</div>`:''}
@@ -1603,7 +1623,8 @@ function renderCRM(){
           <div class="kcard-role">${c.cargo}</div>
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
-            ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Media</span>':'<span class="badge badge-baixa">Baixa</span>'}
+            ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
+            ${inativo?'<span class="badge badge-inativo">⚠ 7 dias</span>':''}
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
@@ -1699,7 +1720,8 @@ function saveVaga(){
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
-    data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+    data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    updatedAt:Date.now()
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
@@ -2088,14 +2110,17 @@ function renderHomeAcoes(){
   const hfOrdem=document.getElementById('hf-ordem')?.value||'default';
   const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
   const priOrder={alta:0,media:1,baixa:2};
-  let ativas=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado');
-  if(hfPri!=='all') ativas=ativas.filter(v=>v.prioridade===hfPri);
-  if(hfCanal!=='all') ativas=ativas.filter(v=>v.canal===hfCanal);
-  if(hfOrdem==='data-asc') ativas=[...ativas].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  else if(hfOrdem==='data-desc') ativas=[...ativas].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  else if(hfOrdem==='pri') ativas=[...ativas].sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-  else ativas=[...ativas].sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-  ativas=ativas.slice(0,8);
+  let base=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado');
+  if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
+  if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
+  // Separar inativas (7+ dias) — sempre sobem ao topo
+  const inativos=base.filter(v=>isInativo(v)).sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
+  let normais=base.filter(v=>!isInativo(v));
+  if(hfOrdem==='data-asc') normais=[...normais].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  else if(hfOrdem==='data-desc') normais=[...normais].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  else if(hfOrdem==='pri') normais=[...normais].sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
+  else normais=[...normais].sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
+  const ativas=[...inativos,...normais].slice(0,8);
   const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
   const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'CV Enviado',lead:'Lead'};
   const corPriH={alta:'#CC0000',media:'#0066CC',baixa:'#008800'};
@@ -2108,6 +2133,7 @@ function renderHomeAcoes(){
     return;
   }
   ativas.forEach(v=>{
+    const inativo=isInativo(v);
     const cor=corSt[v.status]||'#9CA3AF';
     const lbl=lblSt[v.status]||v.status;
     const priCor=corPriH[v.prioridade]||'#9CA3AF';
@@ -2115,11 +2141,14 @@ function renderHomeAcoes(){
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
     const dataHora=v.data?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">📅 ${v.data}${v.hora?' '+v.hora:''}</span>`:'';
     const acaoTxt=v.proxima||'';
+    const bordaCor=inativo?'#FF6600':priCor;
+    const inativoBadge=inativo?'<span style="background:#FF6600;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;flex-shrink:0;">⚠ 7 dias</span>':'';
     const el=document.createElement('div');
     el.className='home-acao-item home-vaga-acao';
-    el.style.borderLeftColor=priCor;
+    el.style.borderLeftColor=bordaCor;
+    if(inativo) el.style.background='#FFF8F5';
     el.onclick=()=>openVagaModal(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:${priCor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${inativoBadge}${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     list.appendChild(el);
   });
 }
