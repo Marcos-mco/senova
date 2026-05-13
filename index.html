@@ -741,34 +741,20 @@ select option { background: var(--bg2); }
         <label class="field-label">URL da vaga ou origem</label>
         <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou email@empresa.com" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.style.display=this.value?'flex':'none'">
       </div>
-      <div class="form-row">
+      <div class="form-row" style="margin-bottom:8px;">
         <label class="field-label">Notas</label>
         <textarea id="mv-notas" rows="4" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
       <input type="hidden" id="mv-motivo">
     </div>
     <div class="modal-footer">
-      <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+      <div style="display:flex;width:100%;">
         <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
-        <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado" onclick="enviarCVModal()">Enviar CV</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="contato" onclick="marcarEntrevista()">Marcar Entrevista</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="entrevista" onclick="registrarResultado()">Registrar Resultado</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="proposta" onclick="aceitarProposta()">Aceitar</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="proposta" onclick="encerrarVaga('recusado')">Recusar</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="negado" onclick="reativarVaga()">Reativar</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado,contato,entrevista,proposta" onclick="encerrarVaga('desistido')">Desistir</button>
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="aplicado,contato,entrevista" onclick="encerrarVaga('negado')">Negado</button>
-          <button class="btn btn-ghost btn-sm" onclick="verOrigem()" id="mv-ver-origem-btn" style="display:none;">Ver origem</button>
-        </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
         <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="candidatarVaga()">Candidatar</button>
-          <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
-        </div>
+        <button class="btn btn-ghost btn-sm mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
+        <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
       </div>
     </div>
   </div>
