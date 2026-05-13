@@ -228,8 +228,12 @@ select option { background: var(--bg2); }
 .tl-extra-input { margin-top:6px; font-size:14px; }
 
 /* ── OUTLOOK BTN ── */
-.outlook-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #0078D4; color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.15s; }
-.outlook-btn:hover { opacity: 0.88; }
+.outlook-toggle-wrap { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
+.outlook-toggle-label { font-size:13px; font-weight:600; color:var(--text2); }
+.outlook-toggle { width:52px; height:28px; border-radius:14px; background:#9CA3AF; position:relative; transition:background 0.22s; flex-shrink:0; }
+.outlook-toggle.on { background:#1A7A4A; }
+.outlook-toggle-knob { position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.28); transition:left 0.22s; }
+.outlook-toggle.on .outlook-toggle-knob { left:27px; }
 </style>
 </head>
 <body>
@@ -312,9 +316,11 @@ select option { background: var(--bg2); }
       <span class="page-sub" id="home-date-sub"></span>
     </div>
     <div class="topbar-right">
-      <div id="outlook-pill" onclick="toggleOutlook()" style="display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);">
-        <div id="outlook-dot" style="width:7px;height:7px;border-radius:50%;background:#9CA3AF;"></div>
-        <span id="outlook-label">Outlook</span>
+      <div class="outlook-toggle-wrap" onclick="toggleOutlook()" title="Clique para conectar/desconectar o Outlook">
+        <span class="outlook-toggle-label">Outlook</span>
+        <div id="outlook-toggle" class="outlook-toggle">
+          <div class="outlook-toggle-knob"></div>
+        </div>
       </div>
       <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Limpando...';setTimeout(()=>{this.textContent='Recarregar emails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Reprocessar todos os emails">
         Recarregar emails
@@ -2170,14 +2176,10 @@ async function checkOutlookStatus(){
   try{
     const res=await fetch(WORKER_URL+'/health');
     const data=await res.json();
-    const dot=document.getElementById('outlook-dot');
-    const lbl=document.getElementById('outlook-label');
-    if(!dot||!lbl) return false;
-    if(data.outlook==='conectado'){
-      dot.style.background='#1A7A4A'; lbl.textContent='Outlook conectado'; return true;
-    } else {
-      dot.style.background='#9CA3AF'; lbl.textContent='Outlook'; return false;
-    }
+    const tog=document.getElementById('outlook-toggle');
+    if(!tog) return false;
+    if(data.outlook==='conectado'){ tog.classList.add('on'); return true; }
+    else { tog.classList.remove('on'); return false; }
   } catch{ return false; }
 }
 
