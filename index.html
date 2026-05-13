@@ -191,7 +191,7 @@ select option { background: var(--bg2); }
 .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── HOME COCKPIT ── */
-.home-acao-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
+.home-acao-item { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
 .home-acao-item:hover { border-color: var(--border2); box-shadow: var(--shadow); transform: translateX(2px); }
 .home-acao-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .home-stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; transition: all 0.15s; }
@@ -207,6 +207,13 @@ select option { background: var(--bg2); }
 /* ── CARD DATA/HORA ── */
 .kcard-date { font-size: 10.5px; color: var(--text3); margin-top: 4px; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
+.col-filter-btn:hover,.col-filter-btn.has-filter { color:var(--action); }
+.col-filter-menu { position:absolute; top:calc(100% + 4px); right:0; z-index:150; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; min-width:168px; box-shadow:0 8px 24px rgba(0,0,0,0.13); }
+.col-filter-sect { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text3); margin:8px 0 4px; }
+.col-filter-sect:first-child { margin-top:0; }
+.col-filter-opt { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text2); padding:3px 0; cursor:pointer; }
+.col-filter-reset { margin-top:8px; width:100%; padding:4px; font-size:11px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; }
 
 /* ── OUTLOOK BTN ── */
 .outlook-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #0078D4; color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: opacity 0.15s; }
@@ -1237,6 +1244,11 @@ const DEFAULT_CONTATOS=[
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
 let crmCurrentTab='vagas', contatoFilter='todos';
+let colFilters={};
+function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
+function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
+function resetColFilter(col){ colFilters[col]={pri:'all',canal:'all',sort:'default'}; renderCRM(); }
+function toggleColFilter(col,e){ e.stopPropagation(); const m=document.getElementById('cf-'+col); if(!m)return; const open=m.style.display!=='none'; document.querySelectorAll('.col-filter-menu').forEach(x=>x.style.display='none'); if(!open)m.style.display='block'; }
 
 function loadCRM(){
   try{
@@ -1321,13 +1333,32 @@ function renderCRM(){
   const listaBase = vagasFiltradas || vagas;
   const cols=['lead','aplicado','contato','entrevista','proposta','aceito','negado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
-    const cards=listaBase.filter(v=>v.status===col);
+    const cf=getColFilter(col);
+    const hasFilter=cf.pri!=='all'||cf.canal!=='all'||cf.sort!=='default';
+    const CANAL_MAP={linkedin:'LinkedIn',headhunter:'Headhunter',email:'Email',indicacao:'Indicação'};
+    let cards=listaBase.filter(v=>v.status===col);
+    if(cf.pri!=='all') cards=cards.filter(c=>c.prioridade===cf.pri);
+    if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
+    if(cf.sort==='newer') cards=[...cards].sort((a,b)=>b.id-a.id);
+    if(cf.sort==='older') cards=[...cards].sort((a,b)=>a.id-b.id);
     const corPri={'alta':'#DC2626','media':'#D97706','baixa':'#2563EB'};
+    const totalCol=listaBase.filter(v=>v.status===col).length;
+    const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
+      <div class="col-filter-sect">Prioridade</div>
+      ${[['all','Todas'],['alta','🔴 Alta'],['media','🟡 Média'],['baixa','🔵 Baixa']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="pri-${col}" value="${v}" ${cf.pri===v?'checked':''} onchange="setColFilter('${col}','pri','${v}',event)"> ${l}</label>`).join('')}
+      <div class="col-filter-sect">Canal</div>
+      ${[['all','Todos'],['linkedin','LinkedIn'],['headhunter','Headhunter'],['email','Email'],['indicacao','Indicação']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="can-${col}" value="${v}" ${cf.canal===v?'checked':''} onchange="setColFilter('${col}','canal','${v}',event)"> ${l}</label>`).join('')}
+      <div class="col-filter-sect">Ordenar</div>
+      ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
+      ${hasFilter?`<button class="col-filter-reset" onclick="resetColFilter('${col}')">Limpar filtros</button>`:''}
+    </div>`;
     return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
-      <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]}">
-        ${COL_STATUS[col]}<span class="col-count">${cards.length}</span>
+      <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]};position:relative;">
+        ${COL_STATUS[col]}<span class="col-count">${cards.length}${hasFilter?'/'+totalCol:''}</span>
+        <button class="col-filter-btn${hasFilter?' has-filter':''}" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>
+        ${filterMenu}
       </div>
-      ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">—</div>':''}
+      ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
       ${cards.map(c=>{
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${corPri[c.prioridade]||'#ccc'}">
@@ -1986,6 +2017,7 @@ function downloadPDFExecutivo(){
   }
   doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
 }
+document.addEventListener('click',()=>document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none'));
 loadCRM();
 showPage('home');
 checkOutlookStatus();
