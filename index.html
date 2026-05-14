@@ -1279,7 +1279,7 @@ function candidatarVagaATS() {
   const score    = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const keywords = crmTxt.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
   const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
-  const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const hoje = dataAtualFormatada();
   if(idx>=0){
     vagas[idx].status='aplicado';
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
@@ -1311,7 +1311,7 @@ function declinarVagaATS() {
   const crmTxt  = document.getElementById('crm-txt')?.innerText||'';
   const score   = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas   = [score?'Match ATS: '+score+'/100':'','Declinada',motivo].filter(Boolean).join(' — ');
-  const hoje = new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const hoje = dataAtualFormatada();
   if(idx>=0){
     vagas[idx].status='negado';
     vagas[idx].proxima='Declinada'+(motivo?' — '+motivo:'');
@@ -1331,7 +1331,7 @@ function saveVagaFromCV() {
   const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
   const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas = score?`Match ATS: ${score}/100`:'';
-  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas:notas,data:new Date().toLocaleDateString('pt-BR')});
+  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas:notas,data:dataAtualFormatada()});
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva! Acesse Processos para acompanhar.`);
 }
@@ -1619,9 +1619,19 @@ function parseDateBR(s){
 const MESES_PT=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 function formatDataCard(s){
   if(!s) return '';
-  const m=s.match(/^(\d{1,2})\/(\d{2})\/(\d{4})/);
+  // 'dd/mm/yyyy' or 'dd/mm/yyyy HH:MM' (numeric month, any locale padding)
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(m) return `${m[1].padStart(2,'0')}/${MESES_PT[parseInt(m[2],10)-1]}/${m[3]}`;
-  return s.split(' ')[0]; // strip time from other formats
+  // 'dd/mmm/yyyy' or 'mmm/yyyy' — strip time only, return as-is
+  return s.split(' ')[0];
+}
+function dataAtualFormatada(){
+  const n=new Date();
+  const d=String(n.getDate()).padStart(2,'0');
+  const m=String(n.getMonth()+1).padStart(2,'0');
+  const h=String(n.getHours()).padStart(2,'0');
+  const mi=String(n.getMinutes()).padStart(2,'0');
+  return `${d}/${m}/${n.getFullYear()} ${h}:${mi}`;
 }
 function isInativo(v){
   if(!v.updatedAt||v.status==='negado'||v.status==='aceito') return false;
@@ -1902,7 +1912,7 @@ function saveVaga(){
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
     timeline:existing?.timeline||[],
-    data:new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    data:existing?.data?.match(/^\d{1,2}\//) ? existing.data : dataAtualFormatada(),
     updatedAt:Date.now()
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
@@ -2334,7 +2344,7 @@ async function carregarEmails(forcar){
     _sinaisEmails={classificados:emailsVaga.length,leads:0};
     // Importar emails relevantes como Leads no Pipeline
     if(emailsVaga.length>0){
-      const novaData=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const novaData=dataAtualFormatada();
       emailsVaga.forEach(e=>{
         const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
         const emailAddr=e.from||e.de_email||'';
