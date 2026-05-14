@@ -225,6 +225,19 @@ select option { background: var(--bg2); }
 .tl-form textarea { font-size:14px; resize:vertical; }
 .tl-lembrar-label { font-size:13px; font-weight:600; color:var(--text2); margin:10px 0 4px; display:block; }
 
+/* ── CENTRAL DE SINAIS ── */
+.sinal-item { display:flex; align-items:center; gap:10px; padding:10px 16px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; transition:all 0.15s; }
+.sinal-item:hover { border-color:var(--border2); transform:translateX(2px); box-shadow:var(--shadow); }
+.sinal-icon { font-size:16px; flex-shrink:0; line-height:1; }
+.sinal-txt { flex:1; font-size:14px; font-weight:500; color:var(--text); }
+/* ── PAINEL ALERTAS ── */
+.alerta-item { padding:10px 0; border-bottom:1px solid var(--border); }
+.alerta-item:last-child { border-bottom:none; }
+.alerta-assunto { font-size:13.5px; font-weight:600; color:var(--navy); margin-bottom:4px; line-height:1.4; }
+.alerta-link { font-size:12px; color:var(--action); text-decoration:underline; cursor:pointer; word-break:break-all; display:block; }
+/* ── CRM FILTRO INATIVO ── */
+.crm-filtro-banner { display:flex; align-items:center; gap:10px; padding:8px 20px; background:#FFF3CD; border-bottom:1px solid #E6C000; font-size:13px; color:#5A4000; font-weight:500; }
+
 /* ── OUTLOOK BTN ── */
 .outlook-toggle-wrap { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
 .outlook-toggle-label { font-size:13px; font-weight:600; color:var(--text2); }
@@ -351,6 +364,25 @@ select option { background: var(--bg2); }
       </div>
     </div>
 
+    <!-- Central de Sinais -->
+    <div id="sinais-section" style="margin-bottom:18px;display:flex;flex-direction:column;gap:6px;">
+      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="showPage('crm')">
+        <span class="sinal-icon">📧</span>
+        <span id="sinal-emails-txt" class="sinal-txt"></span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+      </div>
+      <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
+        <span class="sinal-icon">🔔</span>
+        <span id="sinal-alertas-txt" class="sinal-txt"></span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+      </div>
+      <div id="sinal-inativos" class="sinal-item" style="display:none;" onclick="irParaInativos()">
+        <span class="sinal-icon">⚠</span>
+        <span id="sinal-inativos-txt" class="sinal-txt"></span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+      </div>
+    </div>
+
     <!-- Próximas Ações (coluna unica) -->
     <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span class="section-title">Próximas Ações</span>
@@ -378,18 +410,21 @@ select option { background: var(--bg2); }
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list">
-      <!-- item email novos dinamico -->
-      <div id="home-email-action" style="display:none;" class="home-acao-item" onclick="showPage('crm')" style="border-left:3px solid var(--action);">
-        <div class="home-acao-dot" style="background:var(--action);"></div>
-        <div style="flex:1;">
-          <div style="font-size:13.5px;font-weight:600;color:var(--navy);" id="home-email-action-text">Voce tem novos emails no pipeline</div>
-          <div style="font-size:12px;color:var(--text3);">Clique para ver na coluna Lead do Pipeline</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
       <!-- acoes dinamicas geradas por renderHomeAcoes() -->
     </div>
   </div>
+</div>
+
+<!-- ═══ PAINEL GOOGLE ALERTAS (fixed overlay) ══════════════════════════ -->
+<div id="painel-alertas" style="display:none;position:fixed;top:0;right:0;width:360px;height:100%;background:var(--bg2);border-left:1px solid var(--border);z-index:400;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.13);">
+  <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--navy);">🔔 Google Alertas</div>
+      <div id="painel-alertas-sub" style="font-size:12px;color:var(--text3);margin-top:2px;"></div>
+    </div>
+    <button onclick="fecharPainelAlertas()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;padding:4px;">✕</button>
+  </div>
+  <div id="painel-alertas-lista" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
 </div>
 
 <!-- ┌─────────────────────────────┐
@@ -664,6 +699,10 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
+      <div id="crm-inativo-banner" class="crm-filtro-banner" style="display:none;">
+        <span>⚠ Mostrando apenas cards inativos (7+ dias sem atualização)</span>
+        <button onclick="limparFiltroInativo()" style="margin-left:auto;background:none;border:1px solid #C09000;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;color:#5A4000;">✕ Limpar filtro</button>
+      </div>
       <div class="kanban" id="kanban-vagas"></div>
     </div>
 
@@ -1030,7 +1069,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display='flex'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); carregarEmails(false); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
 
@@ -1571,7 +1610,7 @@ function loadCRM(){
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
 }
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); }
+function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
@@ -1592,6 +1631,9 @@ const PROXIMA_SUGESTAO={
   negado:'Registrar aprendizado — reativar contato em 3 meses'
 };
 let _proximaIdx=-1;
+let _crmFiltroInativo=false;
+let _sinaisEmails={classificados:0,leads:0};
+let _sinaisAlertas=[];
 
 function dropVaga(newStatus, event) {
   event.preventDefault();
@@ -1680,7 +1722,9 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
     <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
 
-  const listaBase = vagasFiltradas || vagas;
+  const listaBase = _crmFiltroInativo ? vagas.filter(isInativo) : (vagasFiltradas || vagas);
+  const bannerInativo = document.getElementById('crm-inativo-banner');
+  if(bannerInativo) bannerInativo.style.display = _crmFiltroInativo ? 'flex' : 'none';
   const cols=['lead','aplicado','contato','entrevista','proposta','aceito','negado'];
   document.getElementById('kanban-vagas').innerHTML=cols.map(col=>{
     const cf=getColFilter(col);
@@ -2169,6 +2213,61 @@ async function checkOutlookStatus(){
   } catch{ return false; }
 }
 
+function atualizarSinais(){
+  // Sinal 1 — emails classificados
+  const s1=document.getElementById('sinal-emails');
+  const s1txt=document.getElementById('sinal-emails-txt');
+  if(s1){
+    if(_sinaisEmails.classificados>0){
+      s1.style.display='flex';
+      s1txt.textContent=`${_sinaisEmails.classificados} email${_sinaisEmails.classificados===1?'':'s'} classificado${_sinaisEmails.classificados===1?'':'s'} → ${_sinaisEmails.leads} novo${_sinaisEmails.leads===1?'':'s'} lead${_sinaisEmails.leads===1?'':'s'} criado${_sinaisEmails.leads===1?'':'s'}`;
+    } else { s1.style.display='none'; }
+  }
+  // Sinal 2 — Google Alertas
+  const s2=document.getElementById('sinal-alertas');
+  const s2txt=document.getElementById('sinal-alertas-txt');
+  if(s2){
+    if(_sinaisAlertas.length>0){
+      s2.style.display='flex';
+      s2txt.textContent=`Google Alertas de hoje → ${_sinaisAlertas.length} movimento${_sinaisAlertas.length===1?'':'s'} detectado${_sinaisAlertas.length===1?'':'s'}`;
+    } else { s2.style.display='none'; }
+  }
+  // Sinal 3 — inativos (sempre computado localmente)
+  const s3=document.getElementById('sinal-inativos');
+  const s3txt=document.getElementById('sinal-inativos-txt');
+  if(s3){
+    const n=vagas.filter(isInativo).length;
+    if(n>0){
+      s3.style.display='flex';
+      s3txt.textContent=`${n} card${n===1?'':'s'} sem atualização há 7+ dias`;
+    } else { s3.style.display='none'; }
+  }
+}
+function irParaInativos(){
+  _crmFiltroInativo=true;
+  showPage('crm');
+}
+function limparFiltroInativo(){
+  _crmFiltroInativo=false;
+  renderCRM();
+}
+function abrirPainelAlertas(){
+  const lista=document.getElementById('painel-alertas-lista');
+  const sub=document.getElementById('painel-alertas-sub');
+  if(sub) sub.textContent=_sinaisAlertas.length+' alerta'+(_sinaisAlertas.length===1?'':'s')+' recebido'+(_sinaisAlertas.length===1?'':'s');
+  if(lista){
+    lista.innerHTML=_sinaisAlertas.length?_sinaisAlertas.map(e=>{
+      const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const link=e.link_vaga||e.origemUrl||'';
+      return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
+    }).join(''):'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum alerta disponível.</div>';
+  }
+  document.getElementById('painel-alertas').style.display='flex';
+}
+function fecharPainelAlertas(){
+  document.getElementById('painel-alertas').style.display='none';
+}
+
 function conectarOutlook(){
   window.open(WORKER_URL+'/api/auth/outlook','_blank','width=500,height=600');
   setTimeout(async()=>{ const ok=await checkOutlookStatus(); if(ok) carregarEmails(true); },10000);
@@ -2190,28 +2289,19 @@ async function carregarEmails(forcar){
     if(data.reauth){ conectarOutlook(); return; }
     const emails=data.emails||data.novos||[];
     const total=emails.length;
-    // Atualiza stat
     const statEl=document.getElementById('stat-emails');
     if(statEl) statEl.textContent=total;
-    // Atualiza badge
     const badge=document.getElementById('home-badge');
     if(badge){ badge.textContent=total; badge.style.display=total>0?'':'none'; }
-    // Mostra item de acao se tiver emails novos
-    const actionEl=document.getElementById('home-email-action');
-    const actionTxt=document.getElementById('home-email-action-text');
-    if(actionEl){
-      if(total>0){
-        actionEl.style.display='flex';
-        if(actionTxt) actionTxt.textContent='Voce tem '+total+' emails novos no pipeline';
-      } else {
-        actionEl.style.display='none';
-      }
-    }
-    // Salva emails relevantes no Pipeline como Lead
-    if(emails.length>0){
+    // Separar alertas Google dos demais
+    const isAlerta=e=>{ const f=(e.from||e.de_email||'').toLowerCase(); return f.includes('googlealerts-noreply')||f.includes('google-alerts'); };
+    _sinaisAlertas=emails.filter(isAlerta);
+    const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante'&&!isAlerta(e));
+    _sinaisEmails={classificados:emailsVaga.length,leads:0};
+    // Importar emails relevantes como Leads no Pipeline
+    if(emailsVaga.length>0){
       const novaData=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      emails.forEach(e=>{
-        if(e.categoria==='irrelevante') return;
+      emailsVaga.forEach(e=>{
         const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
         const emailAddr=e.from||e.de_email||'';
         const assunto=e.subject||e.assunto||'A definir';
@@ -2220,24 +2310,13 @@ async function carregarEmails(forcar){
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
         const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
         if(!jaExiste){
-          vagas.push({
-            id:Date.now()+Math.random(),
-            empresa:nome,
-            cargo:assunto,
-            canal:'Email',
-            prioridade:'media',
-            status:'lead',
-            salario:'',
-            proxima:'Analisar no Análise CV',
-            notas:conteudoVaga,
-            emailDest:emailAddr,
-            origemUrl:linkVaga||emailAddr,
-            data:novaData
-          });
+          vagas.push({id:Date.now()+Math.random(),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,updatedAt:Date.now()});
+          _sinaisEmails.leads++;
         }
       });
-      saveVagas();
+      if(_sinaisEmails.leads>0) saveVagas();
     }
+    atualizarSinais();
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 
