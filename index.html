@@ -232,6 +232,13 @@ select option { background: var(--bg2); }
 .contact-empresa { font-size:11.5px; color:var(--text3); margin-top:1px; }
 .contact-last { font-size:11px; color:var(--text3); margin-top:2px; }
 .badge-ct-inativo { display:inline-flex; align-items:center; gap:3px; background:#FFF3E0; color:#E65100; border-radius:5px; font-size:10.5px; font-weight:700; padding:1px 6px; white-space:nowrap; margin-left:5px; }
+/* ── COMUNICAÇÃO MODAL ── */
+.com-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.com-tab { height:30px; padding:0 12px; border-radius:15px; border:1.5px solid var(--border); background:var(--bg2); color:var(--text2); font-size:12.5px; font-family:var(--font); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.com-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+.com-output-box { font-family:var(--font); font-size:13.5px; line-height:1.55; border-radius:var(--radius); border:1.5px solid var(--border); padding:10px 12px; resize:vertical; background:var(--bg); color:var(--text1); width:100%; box-sizing:border-box; }
+.com-resumo-box { margin-top:8px; padding:10px 12px; background:#F0F7FF; border:1px solid #C3D9F5; border-radius:var(--radius); font-size:12.5px; color:var(--text2); line-height:1.6; }
+.tl-canal-tag { font-size:10.5px; font-weight:600; color:var(--text3); background:var(--bg3); border-radius:4px; padding:1px 6px; margin-right:4px; white-space:nowrap; }
 .col-filter-btn:hover,.col-filter-btn.has-filter { color:var(--action); }
 .col-filter-menu { position:fixed; z-index:300; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; width:172px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
 .col-filter-sect { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text3); margin:8px 0 4px; }
@@ -1032,6 +1039,11 @@ select option { background: var(--bg2); }
         <label class="field-label">Notas</label>
         <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
       </div>
+      <!-- Vinculado a vaga -->
+      <div class="form-row">
+        <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
+        <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
+      </div>
       <!-- Timeline de interações -->
       <div class="form-row" id="mc-timeline-section" style="margin-bottom:0;display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -1039,6 +1051,17 @@ select option { background: var(--bg2); }
           <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
         </div>
         <div id="mc-timeline-form" class="tl-form" style="display:none;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
+            <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
+              <option value="LinkedIn">💼 LinkedIn</option>
+              <option value="WhatsApp">📱 WhatsApp</option>
+              <option value="Email">📧 Email</option>
+              <option value="Reunião">🤝 Reunião</option>
+              <option value="Telefone">📞 Telefone</option>
+              <option value="Outro">💬 Outro</option>
+            </select>
+          </div>
           <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
           <div style="margin-top:10px;">
             <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
@@ -1054,11 +1077,54 @@ select option { background: var(--bg2); }
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
-      <button class="btn btn-ghost" id="mc-linkedin-btn" onclick="gerarNotaLinkedIn()" style="display:none;">✨ Nota LinkedIn</button>
+      <button class="btn btn-ghost" id="mc-com-btn" onclick="abrirModalComunicacao()" style="display:none;">✨ Comunicação</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL COMUNICAÇÃO ══ -->
+<div class="modal-overlay" id="modal-comunicacao" style="display:none;" onclick="if(event.target===this)fecharModalComunicacao()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div class="modal-title">✨ Comunicação — <span id="mc-com-nome" style="font-weight:500;"></span></div>
+    <div class="modal-body">
+      <div class="com-tabs">
+        <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
+        <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
+        <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
+      </div>
+      <!-- Área de mensagem recebida (só no modo Responder) -->
+      <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
+        <label class="field-label">Mensagem recebida</label>
+        <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
+          <select id="com-canal" style="height:30px;font-size:13px;">
+            <option value="LinkedIn">💼 LinkedIn</option>
+            <option value="WhatsApp">📱 WhatsApp</option>
+            <option value="Email">📧 Email</option>
+          </select>
+        </div>
+      </div>
+      <!-- Botão gerar -->
+      <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
+      <!-- Saída -->
+      <div id="com-output-wrap" style="display:none;">
+        <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
+        <textarea id="com-output" class="com-output-box" rows="4"></textarea>
+        <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
+        <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
+          <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharModalComunicacao()" style="margin-left:auto;">Fechar</button>
     </div>
   </div>
 </div>
@@ -1975,18 +2041,21 @@ function renderCRM(){
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
   });
-  const _30d=30*24*3600*1000;
+  const CANAL_ICON_MAP={LinkedIn:'💼',WhatsApp:'📱',Email:'📧','Reunião':'🤝',Telefone:'📞',Outro:'💬'};
   document.getElementById('contact-list').innerHTML=filtered.length?filtered.map(c=>{
     const dias=c.lastContact?Math.floor((Date.now()-c.lastContact)/86400000):null;
     const inativo=(c.temp==='hot'||c.temp==='warm')&&dias!==null&&dias>30;
     const empresaTxt=c.empresa||(c.cargo&&c.cargo.includes('·')?c.cargo.split('·').slice(1).join('·').trim():'');
     const cargoTxt=c.cargo&&c.cargo.includes('·')?c.cargo.split('·')[0].trim():c.cargo;
+    const lastCanal=(c.timeline||[]).find(e=>e.canal)?.canal;
+    const canalIcon=lastCanal?(CANAL_ICON_MAP[lastCanal]||'💬'):null;
+    const diasTxt=dias===null?'':dias===0?'hoje':dias===1?'ontem':`${dias}d atrás`;
     return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
       <div style="flex:1;min-width:0;">
         <div class="contact-name">${TEMP_LABEL[c.temp]||''} ${c.nome}${inativo?`<span class="badge-ct-inativo">⚠ ${dias}d</span>`:''}</div>
         <div class="contact-role">${cargoTxt}${empresaTxt?' · <em style="font-style:normal;color:var(--text2)">'+empresaTxt+'</em>':''}</div>
-        ${dias!==null?`<div class="contact-last">📅 Último contato: ${dias===0?'hoje':dias===1?'ontem':dias+'d atrás'}</div>`:''}
+        ${dias!==null?`<div class="contact-last">${canalIcon?canalIcon+' ':'📅 '}Último contato: ${diasTxt}${lastCanal?' via '+lastCanal:''}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
@@ -2158,7 +2227,13 @@ function openContatoModal(id){
   const isNew=id==='new';
   document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
-  document.getElementById('mc-linkedin-btn').style.display=isNew?'none':'inline-flex';
+  document.getElementById('mc-com-btn').style.display=isNew?'none':'inline-flex';
+  // Populate vaga dropdown
+  const vagaSel=document.getElementById('mc-vaga-id');
+  if(vagaSel){
+    const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
+    vagaSel.innerHTML='<option value="">— Nenhuma —</option>'+ativas.map(v=>`<option value="${v.id}">${v.empresa}${v.cargo?' — '+v.cargo:''}</option>`).join('');
+  }
   const tlSection=document.getElementById('mc-timeline-section');
   const tlForm=document.getElementById('mc-timeline-form');
   const tlLista=document.getElementById('mc-timeline-lista');
@@ -2174,6 +2249,7 @@ function openContatoModal(id){
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-next').value=c.next||'';
     document.getElementById('mc-notas').value=c.notas||'';
+    if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
     if(tlSection) tlSection.style.display='';
     if(tlForm) tlForm.style.display='none';
     renderTimelineListaCt(c.timeline||[]);
@@ -2181,6 +2257,7 @@ function openContatoModal(id){
     ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
+    if(vagaSel) vagaSel.value='';
     if(tlSection) tlSection.style.display='none';
     if(tlLista) tlLista.innerHTML='';
   }
@@ -2203,6 +2280,7 @@ function saveContato(){
     plano:document.getElementById('mc-plano').value,
     next:document.getElementById('mc-next').value.trim(),
     notas:document.getElementById('mc-notas').value.trim(),
+    vagaId:document.getElementById('mc-vaga-id')?.value||null,
     lastContact:now,
     createdAt:existing?.createdAt||now,
     timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
@@ -2221,6 +2299,7 @@ function abrirFormTimelineCt(){
   document.getElementById('mc-timeline-form').style.display='block';
   document.getElementById('mc-timeline-texto').value='';
   document.getElementById('mc-tl-lembrar-data').value='';
+  const canalSel=document.getElementById('mc-tl-canal'); if(canalSel) canalSel.value='LinkedIn';
   setTimeout(()=>document.getElementById('mc-timeline-texto').focus(),60);
 }
 function fecharFormTimelineCt(){ document.getElementById('mc-timeline-form').style.display='none'; }
@@ -2231,8 +2310,9 @@ async function salvarEntradaTimelineCt(){
   const idx=contatos.findIndex(c=>c.id===editingContatoId);
   if(idx<0) return;
   if(!contatos[idx].timeline) contatos[idx].timeline=[];
+  const canal=document.getElementById('mc-tl-canal')?.value||'Outro';
   const now=Date.now();
-  contatos[idx].timeline.unshift({ts:now,texto});
+  contatos[idx].timeline.unshift({ts:now,texto,canal});
   contatos[idx].lastContact=now;
   saveContatos(); renderCRM();
   fecharFormTimelineCt();
@@ -2257,10 +2337,12 @@ function renderTimelineListaCt(timeline){
     lista.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma interação registrada.</div>';
     return;
   }
+  const CANAL_ICON_CT={LinkedIn:'💼',WhatsApp:'📱',Email:'📧','Reunião':'🤝',Telefone:'📞',Outro:'💬'};
   lista.innerHTML=timeline.map(e=>{
     const d=new Date(e.ts);
     const ts=`${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    return `<div class="tl-entry"><span class="tl-ts">${ts}</span><span class="tl-txt">${e.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span></div>`;
+    const canalTag=e.canal?`<span class="tl-canal-tag">${CANAL_ICON_CT[e.canal]||'💬'} ${e.canal}</span>`:'';
+    return `<div class="tl-entry"><span class="tl-ts">${ts}</span><span class="tl-txt">${canalTag}${e.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span></div>`;
   }).join('');
 }
 // Busca de contatos
@@ -2275,34 +2357,99 @@ function limparBuscaContato(){
   const clr=document.getElementById('ct-busca-clear'); if(clr) clr.style.display='none';
   renderCRM();
 }
-// Gerador de nota LinkedIn via IA
-async function gerarNotaLinkedIn(){
-  const btn=document.getElementById('mc-linkedin-btn');
-  const nome=document.getElementById('mc-nome').value.trim();
-  const cargo=document.getElementById('mc-cargo').value.trim();
-  const empresa=document.getElementById('mc-empresa').value.trim();
-  if(!nome){alert('Preencha o nome antes de gerar a nota.');return;}
+// ── MODAL COMUNICAÇÃO ──
+let _comunicacaoMode='linkedin';
+function abrirModalComunicacao(){
+  const c=editingContatoId&&editingContatoId!=='new'?contatos.find(x=>x.id===editingContatoId):null;
+  if(!c){alert('Salve o contato antes de usar Comunicação.');return;}
+  document.getElementById('mc-com-nome').textContent=c.nome;
+  document.getElementById('com-output-wrap').style.display='none';
+  document.getElementById('com-resumo').style.display='none';
+  document.getElementById('com-recebida').value='';
+  document.getElementById('com-output').value='';
+  setComunicacaoMode('linkedin');
+  document.getElementById('modal-comunicacao').style.display='flex';
+}
+function fecharModalComunicacao(){ document.getElementById('modal-comunicacao').style.display='none'; }
+function setComunicacaoMode(mode){
+  _comunicacaoMode=mode;
+  ['linkedin','responder','followup'].forEach(m=>{
+    const b=document.getElementById('com-tab-'+m); if(b) b.classList.toggle('active',m===mode);
+  });
+  document.getElementById('com-recebida-wrap').style.display=mode==='responder'?'block':'none';
+  const labels={linkedin:'Gerar nota',responder:'Gerar resposta',followup:'Gerar follow-up'};
+  document.getElementById('com-gerar-btn').textContent=labels[mode]||'Gerar';
+  document.getElementById('com-output-wrap').style.display='none';
+  document.getElementById('com-resumo').style.display='none';
+  document.getElementById('com-char-count').style.display='none';
+}
+async function gerarComunicacao(){
+  const c=editingContatoId&&editingContatoId!=='new'?contatos.find(x=>x.id===editingContatoId):null;
+  if(!c) return;
+  const btn=document.getElementById('com-gerar-btn');
   btn.textContent='Gerando…'; btn.disabled=true;
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-5',
-        max_tokens:200,
-        system:'Você gera notas de conexão para LinkedIn em português. Seja natural, profissional, direto. Máximo 300 caracteres. Retorne APENAS o texto da nota, sem aspas nem explicações.',
-        messages:[{role:'user',content:`Gere uma nota de conexão LinkedIn para enviar para ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}. Marcos Franco é executivo de negócios baseado em Curitiba (gestão, marketing, estratégia). A nota deve ser personalizada, calorosa e curta.`}]
-      })
-    });
-    const data=await res.json();
-    const nota=data.content?.[0]?.text||'';
-    if(nota){
-      const notas=document.getElementById('mc-notas');
-      notas.value=(notas.value?notas.value+'\n\n':'')+'[Nota LinkedIn]\n'+nota;
-      notas.focus();
+    const nome=c.nome, cargo=c.cargo||'', empresa=c.empresa||'';
+    const histStr=(c.timeline||[]).slice(0,6).filter(e=>e.texto!=='Contato registrado').map(e=>`[${e.canal||''}] ${e.texto}`).join('\n');
+    let system='',prompt='';
+    if(_comunicacaoMode==='linkedin'){
+      system='Você gera notas de conexão para LinkedIn em português. Máximo 300 caracteres, natural, profissional, personalizada. Retorne APENAS o texto, sem aspas.';
+      prompt=`Nota de conexão LinkedIn para enviar a ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}. Marcos Franco é executivo de negócios em Curitiba (gestão, marketing, estratégia corporativa). A nota deve ser calorosa, específica e curta.`;
+    } else if(_comunicacaoMode==='followup'){
+      system='Você gera mensagens de reativação de networking para executivos. Em português, tom natural e caloroso. Retorne APENAS a mensagem pronta para envio.';
+      prompt=`Mensagem de follow-up para ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}.\nHistórico:\n${histStr||'Sem interações anteriores registradas.'}\nMarcos Franco, executivo em Curitiba. Gere mensagem de reativação adequada ao histórico.`;
+    } else {
+      const recebida=document.getElementById('com-recebida').value.trim();
+      if(!recebida){alert('Cole a mensagem recebida antes de gerar.');btn.textContent='Gerar resposta';btn.disabled=false;return;}
+      const canal=document.getElementById('com-canal')?.value||'outro';
+      system='Você analisa mensagens recebidas e sugere respostas para executivos. Responda APENAS com JSON válido (sem markdown): {"summary":"resumo do que foi dito em 1 frase","response":"resposta sugerida no tom do canal","nextAction":"próxima ação recomendada em 1 frase"}';
+      prompt=`Canal: ${canal}\nRemetente: ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}\nMensagem recebida:\n"${recebida}"\n\nMarcos Franco é o destinatário.`;
     }
-  } catch(e){ console.error('Erro ao gerar nota LinkedIn:',e); alert('Erro ao gerar nota. Tente novamente.'); }
-  finally{ btn.textContent='✨ Nota LinkedIn'; btn.disabled=false; }
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,system,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+    if(_comunicacaoMode==='responder'){
+      try{
+        const json=JSON.parse(raw);
+        document.getElementById('com-output').value=json.response||raw;
+        const parts=[];
+        if(json.summary) parts.push('📝 '+json.summary);
+        if(json.nextAction) parts.push('→ '+json.nextAction);
+        const resumoEl=document.getElementById('com-resumo');
+        if(parts.length){resumoEl.innerHTML=parts.join('<br>');resumoEl.style.display='block';}
+      } catch{ document.getElementById('com-output').value=raw; }
+    } else {
+      document.getElementById('com-output').value=raw;
+      if(_comunicacaoMode==='linkedin'){
+        const cc=document.getElementById('com-char-count');
+        cc.textContent=raw.length+'/300 caracteres'; cc.style.color=raw.length>300?'#CC0000':'var(--text3)'; cc.style.display='block';
+      }
+    }
+    document.getElementById('com-output-wrap').style.display='block';
+  } catch(e){console.error('gerarComunicacao:',e);alert('Erro ao gerar. Tente novamente.');}
+  finally{const l={linkedin:'Gerar nota',responder:'Gerar resposta',followup:'Gerar follow-up'};btn.textContent=l[_comunicacaoMode]||'Gerar';btn.disabled=false;}
+}
+async function copiarComunicacao(btn){
+  const txt=document.getElementById('com-output').value;
+  try{await navigator.clipboard.writeText(txt);}catch{}
+  const orig=btn.textContent; btn.textContent='✓ Copiado!'; setTimeout(()=>btn.textContent=orig,1500);
+}
+async function registrarInteracaoCom(){
+  if(!editingContatoId||editingContatoId==='new') return;
+  const idx=contatos.findIndex(c=>c.id===editingContatoId); if(idx<0) return;
+  const canal=_comunicacaoMode==='linkedin'?'LinkedIn':_comunicacaoMode==='followup'?'Outro':(document.getElementById('com-canal')?.value||'Outro');
+  const texto=_comunicacaoMode==='linkedin'?'Nota de conexão LinkedIn enviada':
+               _comunicacaoMode==='followup'?'Follow-up enviado':
+               'Resposta enviada via '+canal;
+  if(!contatos[idx].timeline) contatos[idx].timeline=[];
+  const now=Date.now();
+  contatos[idx].timeline.unshift({ts:now,texto,canal});
+  contatos[idx].lastContact=now;
+  saveContatos(); renderCRM();
+  renderTimelineListaCt(contatos[idx].timeline);
+  const tlSection=document.getElementById('mc-timeline-section'); if(tlSection) tlSection.style.display='';
+  fecharModalComunicacao();
 }
 
 // ═══════════════════════════════════════════════
