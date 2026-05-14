@@ -1680,7 +1680,9 @@ function loadCRM(){
       const updatedAt = v.updatedAt || Date.now();
       const createdAt = v.createdAt || parseDateBR(v.data) || updatedAt;
       const timeline  = v.timeline?.length ? v.timeline : [{ts:createdAt, texto:'Card criado'}];
-      return {...v, updatedAt, createdAt, timeline};
+      const proxima   = v.proxima?.replace(/anti-ats/gi,'Análise CV');
+      const notas     = v.notas?.replace(/anti-ats/gi,'Análise CV');
+      return {...v, updatedAt, createdAt, timeline, proxima, notas};
     });
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
@@ -1780,10 +1782,10 @@ function aplicarFiltros() {
   const canal = document.getElementById('filter-canal')?.value||'';
   const ordem = document.getElementById('filter-ordem')?.value||'recente';
   const q = (document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
-  let lista = [...vagas];
+  let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
-  if(q) lista = lista.filter(v=>[v.empresa,v.cargo,v.proxima,v.notas].some(f=>(f||'').toLowerCase().includes(q)));
+  if(q) lista = lista.filter(v=>[v.empresa,v.cargo,v.proxima,v.notas].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
@@ -1818,15 +1820,15 @@ function setCrmTab(tab,btn){
 }
 
 function renderCRM(){
-  const ativas=vagas.filter(v=>v.status!=='negado').length;
+  const leads=vagas.filter(v=>v.status==='lead').length;
+  const cvEnviado=vagas.filter(v=>v.status==='aplicado').length;
   const processo=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
-  const quentes=contatos.filter(c=>c.temp==='hot').length;
   document.getElementById('crm-stats').innerHTML=`
-    <div class="stat"><div class="stat-val">${vagas.length}</div><div class="stat-label">Vagas no radar</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--action)">${processo}</div><div class="stat-label">Em Contato/Entrevista</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#DC2626">${quentes}</div><div class="stat-label">Contatos quentes</div></div>`;
+    <div class="stat"><div class="stat-val">${leads}</div><div class="stat-label">Leads / Radar</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--action)">${cvEnviado}</div><div class="stat-label">CV Enviado</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--navy)">${processo}</div><div class="stat-label">Em Contato / Entrevista</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>`;
 
   const listaBase = _crmFiltroInativo ? vagas.filter(isInativo) : (vagasFiltradas || vagas);
   const bannerInativo = document.getElementById('crm-inativo-banner');
