@@ -1295,7 +1295,7 @@ function candidatarVagaATS() {
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:Date.now(),updatedAt:Date.now()});
+    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   }
   const emailDest=atsEmailDest;
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
@@ -1327,7 +1327,7 @@ function declinarVagaATS() {
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
   } else {
-    vagas.push({id:Date.now(),empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje,createdAt:Date.now(),updatedAt:Date.now()});
+    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   }
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   saveVagas();
@@ -1339,7 +1339,7 @@ function saveVagaFromCV() {
   const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
   const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas = score?`Match ATS: ${score}/100`:'';
-  vagas.push({id:Date.now(),empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas:notas,data:dataAtualFormatada(),createdAt:Date.now(),updatedAt:Date.now()});
+  {const _t=Date.now();vagas.push({id:_t,empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas:notas,data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva! Acesse Processos para acompanhar.`);
 }
@@ -1655,11 +1655,14 @@ function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
     vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'contato'}:v.status==='processo'?{...v,status:'contato'}:v);
-    vagas=vagas.map(v=>({
-      ...v,
-      updatedAt: v.updatedAt || parseDateBR(v.data) || Date.now(),
-      createdAt: v.createdAt || parseDateBR(v.data) || v.updatedAt || Date.now(),
-    }));
+    vagas=vagas.map(v=>{
+      // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
+      // (evita que cards antigos apareçam como inativos por erro de migração)
+      const updatedAt = v.updatedAt || Date.now();
+      const createdAt = v.createdAt || parseDateBR(v.data) || updatedAt;
+      const timeline  = v.timeline?.length ? v.timeline : [{ts:createdAt, texto:'Card criado'}];
+      return {...v, updatedAt, createdAt, timeline};
+    });
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
   } catch{
@@ -1921,9 +1924,12 @@ function encerrarVaga(motivo){ document.getElementById('mv-status').value='negad
 function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
-  const existing=editingVagaId!=='new'?vagas.find(v=>v.id===editingVagaId):null;
+  const isNew=editingVagaId==='new';
+  const existing=isNew?null:vagas.find(v=>v.id===editingVagaId);
+  const now=Date.now();
+  const createdAt=existing?.createdAt||parseDateBR(existing?.data)||now;
   const obj={
-    id:editingVagaId==='new'?Date.now():editingVagaId,
+    id:isNew?now:editingVagaId,
     empresa,
     cargo:document.getElementById('mv-cargo').value,
     canal:document.getElementById('mv-canal').value,
@@ -1935,9 +1941,9 @@ function saveVaga(){
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
-    timeline:existing?.timeline||[],
-    createdAt: existing?.createdAt || parseDateBR(existing?.data) || Date.now(),
-    updatedAt: Date.now()
+    timeline:isNew?[{ts:now,texto:'Card criado'}]:(existing?.timeline||[{ts:createdAt,texto:'Card criado'}]),
+    createdAt,
+    updatedAt:now
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   saveVagas(); renderCRM(); closeVagaModal();
@@ -2378,7 +2384,7 @@ async function carregarEmails(forcar){
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
         const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
         if(!jaExiste){
-          vagas.push({id:Date.now()+Math.random(),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:Date.now(),updatedAt:Date.now()});
+          {const _t=Date.now();vagas.push({id:_t+Math.random(),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
