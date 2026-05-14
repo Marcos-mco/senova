@@ -221,6 +221,17 @@ select option { background: var(--bg2); }
 .kcard-updated { font-size:10px; color:var(--text3); opacity:0.7; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
+/* ── CONTATOS CRM ── */
+.ct-search-wrap { position:relative; display:flex; align-items:center; margin-bottom:12px; }
+.ct-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); pointer-events:none; color:#9CA3AF; width:14px; height:14px; }
+.ct-search-input { flex:1; height:32px; border-radius:16px; border:1.5px solid var(--border); background:var(--bg2); color:var(--text1); font-family:var(--font); font-size:13px; padding:0 30px 0 30px; transition:border-color 0.15s; }
+.ct-search-input::placeholder { color:#9CA3AF; }
+.ct-search-input:focus { outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(26,58,92,0.08); }
+.ct-search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#9CA3AF; font-size:14px; line-height:1; padding:0; display:none; }
+.ct-search-clear:hover { color:var(--text1); }
+.contact-empresa { font-size:11.5px; color:var(--text3); margin-top:1px; }
+.contact-last { font-size:11px; color:var(--text3); margin-top:2px; }
+.badge-ct-inativo { display:inline-flex; align-items:center; gap:3px; background:#FFF3E0; color:#E65100; border-radius:5px; font-size:10.5px; font-weight:700; padding:1px 6px; white-space:nowrap; margin-left:5px; }
 .col-filter-btn:hover,.col-filter-btn.has-filter { color:var(--action); }
 .col-filter-menu { position:fixed; z-index:300; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; width:172px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
 .col-filter-sect { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text3); margin:8px 0 4px; }
@@ -745,6 +756,11 @@ select option { background: var(--bg2); }
 
     <!-- Contatos List -->
     <div id="crm-contatos" style="display:none;">
+      <div class="ct-search-wrap">
+        <svg class="ct-search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input class="ct-search-input" type="text" id="ct-busca" placeholder="Buscar por nome ou empresa…" oninput="buscarContato()">
+        <button class="ct-search-clear" id="ct-busca-clear" onclick="limparBuscaContato()" title="Limpar">✕</button>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="lang-btn active" onclick="filterContato('todos',this)">Todos</button>
         <button class="lang-btn" onclick="filterContato('hot',this)">🔥 Quentes</button>
@@ -957,14 +973,37 @@ select option { background: var(--bg2); }
   <div class="modal">
     <div class="modal-title" id="modal-contato-title">Contato</div>
     <div class="modal-body">
+      <!-- Identidade -->
       <div class="form-row">
         <label class="field-label">Nome</label>
         <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
       </div>
-      <div class="form-row">
-        <label class="field-label">Cargo · Empresa</label>
-        <input type="text" id="mc-cargo" placeholder="Ex: CEO · RPC/Globo">
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Cargo</label>
+          <input type="text" id="mc-cargo" placeholder="Ex: CEO">
+        </div>
+        <div>
+          <label class="field-label">Empresa</label>
+          <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
+        </div>
       </div>
+      <!-- Contato -->
+      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+        <div>
+          <label class="field-label">Email</label>
+          <input type="email" id="mc-email" placeholder="email@empresa.com">
+        </div>
+        <div>
+          <label class="field-label">Telefone</label>
+          <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
+        </div>
+        <div>
+          <label class="field-label">LinkedIn</label>
+          <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
+        </div>
+      </div>
+      <!-- Classificação -->
       <div class="form-grid" style="margin-bottom:14px;">
         <div>
           <label class="field-label">Temperatura</label>
@@ -983,13 +1022,39 @@ select option { background: var(--bg2); }
           </select>
         </div>
       </div>
+      <!-- Próxima ação -->
       <div class="form-row">
         <label class="field-label">Próxima ação</label>
         <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
       </div>
+      <!-- Notas -->
+      <div class="form-row">
+        <label class="field-label">Notas</label>
+        <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
+      </div>
+      <!-- Timeline de interações -->
+      <div class="form-row" id="mc-timeline-section" style="margin-bottom:0;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="field-label" style="margin:0;">Histórico de interações</label>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
+        </div>
+        <div id="mc-timeline-form" class="tl-form" style="display:none;">
+          <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
+          <div style="margin-top:10px;">
+            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+            <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
+          </div>
+        </div>
+        <div id="mc-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
+      <button class="btn btn-ghost" id="mc-linkedin-btn" onclick="gerarNotaLinkedIn()" style="display:none;">✨ Nota LinkedIn</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
@@ -1600,17 +1665,18 @@ const DEFAULT_VAGAS=[
   {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
 ];
 
+const _ctNow=Date.now();
 const DEFAULT_CONTATOS=[
-  {id:1,nome:'Eduardo Bosquetti',cargo:'CEO · RPC/Globo',temp:'hot',plano:'A',next:'Convidar para missa 7h30 + café na semana'},
-  {id:2,nome:'Pedro Joanir Zonta',cargo:'Proprietário · Grupo Condor',temp:'warm',plano:'A',next:'WhatsApp enviado — aguardar'},
-  {id:3,nome:'Thiago Ayres',cargo:'Sócio · Consigliere Consultoria',temp:'hot',plano:'B',next:'Parceria confirmada — prospect em negociação'},
-  {id:4,nome:'Ronny Essert',cargo:'Superintendente · GERAR',temp:'warm',plano:'B',next:'Enviar material de societal marketing'},
-  {id:5,nome:'Augusto Michells',cargo:'Gerente Regional · AHK-PR',temp:'cold',plano:'B',next:'Aguardar retorno mensagem'},
-  {id:6,nome:'Dr. Charles London',cargo:'Neurocirurgião · FUNEF',temp:'warm',plano:'A',next:'Reativar via consulta médica'},
-  {id:7,nome:'Erlei Guimarães',cargo:'CEO · Beeotec',temp:'warm',plano:'A',next:'Aguardar momento certo'},
-  {id:8,nome:'Aldo Mallucelli',cargo:'Amigo estratégico',temp:'cold',plano:'A',next:'Ligar esta semana — pendente'},
-  {id:9,nome:'Priscilla Capellato',cargo:'Consultant · Korn Ferry',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn'},
-  {id:10,nome:'Aldo Bergamasco',cargo:'Practice Leader LatAm · Spencer Stuart',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn'},
+  {id:1,nome:'Eduardo Bosquetti',cargo:'CEO',empresa:'RPC/Globo',temp:'hot',plano:'A',next:'Convidar para missa 7h30 + café na semana',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:2,nome:'Pedro Joanir Zonta',cargo:'Proprietário',empresa:'Grupo Condor',temp:'warm',plano:'A',next:'WhatsApp enviado — aguardar',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:3,nome:'Thiago Ayres',cargo:'Sócio',empresa:'Consigliere Consultoria',temp:'hot',plano:'B',next:'Parceria confirmada — prospect em negociação',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:4,nome:'Ronny Essert',cargo:'Superintendente',empresa:'GERAR',temp:'warm',plano:'B',next:'Enviar material de societal marketing',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:5,nome:'Augusto Michells',cargo:'Gerente Regional',empresa:'AHK-PR',temp:'cold',plano:'B',next:'Aguardar retorno mensagem',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:6,nome:'Dr. Charles London',cargo:'Neurocirurgião',empresa:'FUNEF',temp:'warm',plano:'A',next:'Reativar via consulta médica',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:7,nome:'Erlei Guimarães',cargo:'CEO',empresa:'Beeotec',temp:'warm',plano:'A',next:'Aguardar momento certo',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:8,nome:'Aldo Mallucelli',cargo:'Amigo estratégico',empresa:'',temp:'cold',plano:'A',next:'Ligar esta semana — pendente',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:9,nome:'Priscilla Capellato',cargo:'Consultant',empresa:'Korn Ferry',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:10,nome:'Aldo Bergamasco',cargo:'Practice Leader LatAm',empresa:'Spencer Stuart',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
 ];
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
@@ -1686,6 +1752,13 @@ function loadCRM(){
     });
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
+    // Migração suave: adiciona campos novos sem perder dados existentes
+    contatos=contatos.map(c=>{
+      if(c.lastContact!==undefined) return c; // já migrado
+      const now=Date.now();
+      return {...c, empresa:c.empresa||'', email:c.email||'', telefone:c.telefone||'', linkedin:c.linkedin||'', notas:c.notas||'', lastContact:now, createdAt:now, timeline:[{ts:now,texto:'Contato registrado'}]};
+    });
+    try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{}
   } catch{
     vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
   }
@@ -1894,17 +1967,33 @@ function renderCRM(){
   renderKanbanCols(['lead','aplicado','contato','entrevista','proposta'],document.getElementById('kanban-vagas'));
   if(_mostrarArquivados) renderKanbanCols(colsArq,document.getElementById('kanban-arquivados'));
 
-  const filtered=contatoFilter==='todos'?contatos:contatos.filter(c=>c.temp===contatoFilter);
-  document.getElementById('contact-list').innerHTML=filtered.map(c=>`
-    <div class="contact-item" onclick="openContatoModal(${c.id})">
+  const _ctBusca=(document.getElementById('ct-busca')?.value||'').toLowerCase().trim();
+  const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
+  let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
+  if(_ctBusca) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
+  filtered.sort((a,b)=>{
+    const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
+    return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
+  });
+  const _30d=30*24*3600*1000;
+  document.getElementById('contact-list').innerHTML=filtered.length?filtered.map(c=>{
+    const dias=c.lastContact?Math.floor((Date.now()-c.lastContact)/86400000):null;
+    const inativo=(c.temp==='hot'||c.temp==='warm')&&dias!==null&&dias>30;
+    const empresaTxt=c.empresa||(c.cargo&&c.cargo.includes('·')?c.cargo.split('·').slice(1).join('·').trim():'');
+    const cargoTxt=c.cargo&&c.cargo.includes('·')?c.cargo.split('·')[0].trim():c.cargo;
+    return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
-      <div>
-        <div class="contact-name">${TEMP_LABEL[c.temp]||''} ${c.nome}</div>
-        <div class="contact-role">${c.cargo}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="contact-name">${TEMP_LABEL[c.temp]||''} ${c.nome}${inativo?`<span class="badge-ct-inativo">⚠ ${dias}d</span>`:''}</div>
+        <div class="contact-role">${cargoTxt}${empresaTxt?' · <em style="font-style:normal;color:var(--text2)">'+empresaTxt+'</em>':''}</div>
+        ${dias!==null?`<div class="contact-last">📅 Último contato: ${dias===0?'hoje':dias===1?'ontem':dias+'d atrás'}</div>`:''}
       </div>
-      <div class="contact-next">${c.next}</div>
-      <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;">P.${c.plano}</span>
-    </div>`).join('');
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+        <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
+        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
+      </div>
+    </div>`;
+  }).join(''):'<div style="padding:20px;color:var(--text3);font-size:13.5px;text-align:center;">Nenhum contato encontrado.</div>';
 }
 
 function filterContato(filter,btn){
@@ -2069,30 +2158,54 @@ function openContatoModal(id){
   const isNew=id==='new';
   document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
+  document.getElementById('mc-linkedin-btn').style.display=isNew?'none':'inline-flex';
+  const tlSection=document.getElementById('mc-timeline-section');
+  const tlForm=document.getElementById('mc-timeline-form');
+  const tlLista=document.getElementById('mc-timeline-lista');
   if(!isNew){
     const c=contatos.find(x=>x.id===id); if(!c)return;
-    document.getElementById('mc-nome').value=c.nome;
-    document.getElementById('mc-cargo').value=c.cargo;
-    document.getElementById('mc-temp').value=c.temp;
-    document.getElementById('mc-plano').value=c.plano;
-    document.getElementById('mc-next').value=c.next;
+    document.getElementById('mc-nome').value=c.nome||'';
+    document.getElementById('mc-cargo').value=c.cargo||'';
+    document.getElementById('mc-empresa').value=c.empresa||'';
+    document.getElementById('mc-email').value=c.email||'';
+    document.getElementById('mc-telefone').value=c.telefone||'';
+    document.getElementById('mc-linkedin').value=c.linkedin||'';
+    document.getElementById('mc-temp').value=c.temp||'warm';
+    document.getElementById('mc-plano').value=c.plano||'A';
+    document.getElementById('mc-next').value=c.next||'';
+    document.getElementById('mc-notas').value=c.notas||'';
+    if(tlSection) tlSection.style.display='';
+    if(tlForm) tlForm.style.display='none';
+    renderTimelineListaCt(c.timeline||[]);
   } else {
-    ['mc-nome','mc-cargo','mc-next'].forEach(i=>document.getElementById(i).value='');
+    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
+    if(tlSection) tlSection.style.display='none';
+    if(tlLista) tlLista.innerHTML='';
   }
   document.getElementById('modal-contato').style.display='flex';
 }
 function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
 function saveContato(){
   const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+  const existing=editingContatoId==='new'?null:contatos.find(c=>c.id===editingContatoId);
+  const now=Date.now();
   const obj={
-    id:editingContatoId==='new'?Date.now():editingContatoId,
+    id:editingContatoId==='new'?now:editingContatoId,
     nome,
-    cargo:document.getElementById('mc-cargo').value,
+    cargo:document.getElementById('mc-cargo').value.trim(),
+    empresa:document.getElementById('mc-empresa').value.trim(),
+    email:document.getElementById('mc-email').value.trim(),
+    telefone:document.getElementById('mc-telefone').value.trim(),
+    linkedin:document.getElementById('mc-linkedin').value.trim(),
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
-    next:document.getElementById('mc-next').value
+    next:document.getElementById('mc-next').value.trim(),
+    notas:document.getElementById('mc-notas').value.trim(),
+    lastContact:now,
+    createdAt:existing?.createdAt||now,
+    timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
   };
   if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
   saveContatos(); renderCRM(); closeContatoModal();
@@ -2102,6 +2215,94 @@ function deleteContato(){
   if(!confirm('Remover este contato?'))return;
   contatos=contatos.filter(c=>c.id!==editingContatoId);
   saveContatos(); renderCRM(); closeContatoModal();
+}
+// Timeline de interações do contato
+function abrirFormTimelineCt(){
+  document.getElementById('mc-timeline-form').style.display='block';
+  document.getElementById('mc-timeline-texto').value='';
+  document.getElementById('mc-tl-lembrar-data').value='';
+  setTimeout(()=>document.getElementById('mc-timeline-texto').focus(),60);
+}
+function fecharFormTimelineCt(){ document.getElementById('mc-timeline-form').style.display='none'; }
+async function salvarEntradaTimelineCt(){
+  const texto=document.getElementById('mc-timeline-texto').value.trim();
+  if(!texto){document.getElementById('mc-timeline-texto').focus();return;}
+  if(!editingContatoId||editingContatoId==='new') return;
+  const idx=contatos.findIndex(c=>c.id===editingContatoId);
+  if(idx<0) return;
+  if(!contatos[idx].timeline) contatos[idx].timeline=[];
+  const now=Date.now();
+  contatos[idx].timeline.unshift({ts:now,texto});
+  contatos[idx].lastContact=now;
+  saveContatos(); renderCRM();
+  fecharFormTimelineCt();
+  renderTimelineListaCt(contatos[idx].timeline);
+  const lembrarData=document.getElementById('mc-tl-lembrar-data').value;
+  if(lembrarData){
+    const nome=contatos[idx].nome||'Contato';
+    try{
+      const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({titulo:`Follow-up: ${nome}`,data:lembrarData})
+      });
+      if(!res.ok) console.warn('Erro ao criar evento Outlook:',await res.json().catch(()=>{}));
+    } catch(e){ console.warn('Erro ao criar evento Outlook:',e); }
+  }
+}
+function renderTimelineListaCt(timeline){
+  const lista=document.getElementById('mc-timeline-lista');
+  if(!lista) return;
+  if(!timeline||!timeline.length){
+    lista.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma interação registrada.</div>';
+    return;
+  }
+  lista.innerHTML=timeline.map(e=>{
+    const d=new Date(e.ts);
+    const ts=`${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="tl-entry"><span class="tl-ts">${ts}</span><span class="tl-txt">${e.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span></div>`;
+  }).join('');
+}
+// Busca de contatos
+function buscarContato(){
+  const inp=document.getElementById('ct-busca');
+  const clr=document.getElementById('ct-busca-clear');
+  if(clr) clr.style.display=inp?.value?'block':'none';
+  renderCRM();
+}
+function limparBuscaContato(){
+  const inp=document.getElementById('ct-busca'); if(inp) inp.value='';
+  const clr=document.getElementById('ct-busca-clear'); if(clr) clr.style.display='none';
+  renderCRM();
+}
+// Gerador de nota LinkedIn via IA
+async function gerarNotaLinkedIn(){
+  const btn=document.getElementById('mc-linkedin-btn');
+  const nome=document.getElementById('mc-nome').value.trim();
+  const cargo=document.getElementById('mc-cargo').value.trim();
+  const empresa=document.getElementById('mc-empresa').value.trim();
+  if(!nome){alert('Preencha o nome antes de gerar a nota.');return;}
+  btn.textContent='Gerando…'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:200,
+        system:'Você gera notas de conexão para LinkedIn em português. Seja natural, profissional, direto. Máximo 300 caracteres. Retorne APENAS o texto da nota, sem aspas nem explicações.',
+        messages:[{role:'user',content:`Gere uma nota de conexão LinkedIn para enviar para ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}. Marcos Franco é executivo de negócios baseado em Curitiba (gestão, marketing, estratégia). A nota deve ser personalizada, calorosa e curta.`}]
+      })
+    });
+    const data=await res.json();
+    const nota=data.content?.[0]?.text||'';
+    if(nota){
+      const notas=document.getElementById('mc-notas');
+      notas.value=(notas.value?notas.value+'\n\n':'')+'[Nota LinkedIn]\n'+nota;
+      notas.focus();
+    }
+  } catch(e){ console.error('Erro ao gerar nota LinkedIn:',e); alert('Erro ao gerar nota. Tente novamente.'); }
+  finally{ btn.textContent='✨ Nota LinkedIn'; btn.disabled=false; }
 }
 
 // ═══════════════════════════════════════════════
