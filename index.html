@@ -1345,8 +1345,11 @@ async function analyzeJob() {
 }
 
 let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
+let _atsAnalise='',_cartaLang='PT';
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
+  _atsAnalise = analise;
+  _cartaLang = cvLang;
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
   if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
 
@@ -1397,6 +1400,40 @@ function renderATSResult(analise,cv,crm) {
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="copy-btn" onclick="copyEl('crm-txt',this)">📋 Copiar CRM</button></div>
       <div class="result-box mono" id="crm-txt">${crm}</div>
     </div>
+
+    <!-- ── Carta de Apresentação ── -->
+    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
+        <div class="lang-toggle" style="margin-left:auto;">
+          <button class="lang-btn ${_cartaLang==='PT'?'active':''}" onclick="setCartaLang('PT',this)">🇧🇷 PT</button>
+          <button class="lang-btn ${_cartaLang==='EN'?'active':''}" onclick="setCartaLang('EN',this)">🇺🇸 EN</button>
+          <button class="lang-btn ${_cartaLang==='ES'?'active':''}" onclick="setCartaLang('ES',this)">🇪🇸 ES</button>
+        </div>
+        <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
+      </div>
+      <div id="ats-carta-out" style="display:none;">
+        <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-carta-txt',this)">📋 Copiar carta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Responder Email / Mensagem ── -->
+    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">💬 Responder Email / Mensagem</div>
+      <textarea id="ats-email-input" rows="4" placeholder="Cole aqui o email ou mensagem recebida sobre esta vaga…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:10px;">
+        <button class="copy-btn" id="ats-resp-btn" onclick="sugerirRespostaATS(this)">Sugerir resposta</button>
+      </div>
+      <div id="ats-resposta-out" style="display:none;">
+        <textarea id="ats-resposta-txt" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-resposta-txt',this)">📋 Copiar resposta</button>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1409,6 +1446,59 @@ function copyEl(id,btn) {
   const el=document.getElementById(id); if(!el)return;
   navigator.clipboard.writeText(el.textContent||el.innerText);
   const orig=btn.textContent; btn.textContent='Copiado ✓'; setTimeout(()=>btn.textContent=orig,2000);
+}
+// \u2500\u2500 Carta & Resposta ATS \u2500\u2500
+function setCartaLang(lang,btn){
+  _cartaLang=lang;
+  btn.closest('.lang-toggle').querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+async function gerarCartaATS(btn){
+  const empresa=atsEmpresa||'a empresa';
+  const cargo=atsCargo||'a posi\u00e7\u00e3o';
+  const resumo=_atsAnalise.slice(0,600);
+  const langLabel={PT:'portugu\u00eas (Brasil)',EN:'English',ES:'espa\u00f1ol'};
+  btn.textContent='Gerando\u2026'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:900,
+        system:`Voc\u00ea escreve cartas de apresenta\u00e7\u00e3o executivas em ${langLabel[_cartaLang]||'portugu\u00eas'}. Tom formal, personalizado, persuasivo. M\u00e1ximo 3 par\u00e1grafos concisos. Retorne APENAS o texto da carta, sem t\u00edtulos nem cabe\u00e7alhos.`,
+        messages:[{role:'user',content:`Escreva uma carta de apresenta\u00e7\u00e3o em ${langLabel[_cartaLang]||'portugu\u00eas'} para a vaga de ${cargo} na empresa ${empresa}.\n\nContexto da an\u00e1lise de compatibilidade:\n${resumo}\n\nO candidato \u00e9 Marcos Franco, executivo de neg\u00f3cios em Curitiba com background em gest\u00e3o, marketing e transforma\u00e7\u00e3o estrat\u00e9gica. A carta deve mencionar especificamente ${empresa} e ${cargo}, mostrar interesse genu\u00edno e destacar fit cultural.`}]
+      })
+    });
+    const data=await res.json();
+    const carta=(data.content?.[0]?.text||'').trim();
+    const el=document.getElementById('ats-carta-txt');
+    const out=document.getElementById('ats-carta-out');
+    if(el&&out){el.value=carta;out.style.display='block';}
+  } catch(e){console.error('gerarCartaATS:',e);alert('Erro ao gerar carta. Tente novamente.');}
+  finally{btn.textContent='Gerar carta';btn.disabled=false;}
+}
+async function sugerirRespostaATS(btn){
+  const msg=(document.getElementById('ats-email-input')?.value||'').trim();
+  if(!msg){alert('Cole o email ou mensagem antes de continuar.');return;}
+  const empresa=atsEmpresa||'a empresa';
+  const cargo=atsCargo||'a posi\u00e7\u00e3o';
+  btn.textContent='Gerando\u2026'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+        system:'Voc\u00ea sugere respostas profissionais a emails e mensagens sobre processos seletivos para executivos. Tom adequado ao contexto (formal se RH corporativo, mais direto se headhunter). Retorne APENAS o texto da resposta, sem t\u00edtulo.',
+        messages:[{role:'user',content:`Mensagem recebida sobre a vaga de ${cargo} na ${empresa}:\n\n"${msg}"\n\nSuggira uma resposta profissional para Marcos Franco, executivo candidato. Seja conciso, mostre interesse e disponibilidade.`}]
+      })
+    });
+    const data=await res.json();
+    const resp=(data.content?.[0]?.text||'').trim();
+    const el=document.getElementById('ats-resposta-txt');
+    const out=document.getElementById('ats-resposta-out');
+    if(el&&out){el.value=resp;out.style.display='block';}
+  } catch(e){console.error('sugerirRespostaATS:',e);alert('Erro ao gerar resposta. Tente novamente.');}
+  finally{btn.textContent='Sugerir resposta';btn.disabled=false;}
+}
+function copyAtsField(id,btn){
+  const el=document.getElementById(id); if(!el)return;
+  navigator.clipboard.writeText(el.value||el.textContent||'').catch(()=>{});
+  const orig=btn.textContent; btn.textContent='\u2713 Copiado!'; setTimeout(()=>btn.textContent=orig,2000);
 }
 function downloadDoc() {
   if(!window.htmlDocx){alert('html-docx-js n\u00e3o carregado \u2014 recarregue a p\u00e1gina e tente novamente.');return;}
