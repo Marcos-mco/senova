@@ -223,9 +223,7 @@ select option { background: var(--bg2); }
 .tl-txt { font-size:14px; color:var(--text1); line-height:1.4; word-break:break-word; }
 .tl-form { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:10px; }
 .tl-form textarea { font-size:14px; resize:vertical; }
-.tl-check-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); cursor:pointer; margin-top:8px; }
-.tl-check-row input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:var(--navy); }
-.tl-extra-input { margin-top:6px; font-size:14px; }
+.tl-lembrar-label { font-size:13px; font-weight:600; color:var(--text2); margin:10px 0 4px; display:block; }
 
 /* ── OUTLOOK BTN ── */
 .outlook-toggle-wrap { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
@@ -847,14 +845,10 @@ select option { background: var(--bg2); }
         </div>
         <div id="mv-timeline-form" class="tl-form" style="display:none;">
           <textarea id="mv-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Liguei para recrutador, entrevista agendada para sexta..."></textarea>
-          <label class="tl-check-row">
-            <input type="checkbox" id="mv-tl-upd-proxima" onchange="toggleTimelineExtra()"> Atualizar próxima ação
-          </label>
-          <input type="text" id="mv-tl-proxima" class="tl-extra-input" style="display:none;" placeholder="Nova próxima ação...">
-          <label class="tl-check-row">
-            <input type="checkbox" id="mv-tl-upd-data" onchange="toggleTimelineExtra()"> Atualizar data prevista
-          </label>
-          <input type="date" id="mv-tl-data" class="tl-extra-input" style="display:none;">
+          <div id="mv-tl-lembrar-row" style="margin-top:10px;">
+            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+            <input type="date" id="mv-tl-lembrar-data" style="font-size:14px;">
+          </div>
           <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
             <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimeline()">Cancelar</button>
             <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimeline()">Salvar</button>
@@ -1847,22 +1841,16 @@ function deleteVaga(){
 function abrirFormTimeline(){
   document.getElementById('mv-timeline-form').style.display='block';
   document.getElementById('mv-timeline-texto').value='';
-  document.getElementById('mv-tl-upd-proxima').checked=false;
-  document.getElementById('mv-tl-upd-data').checked=false;
-  document.getElementById('mv-tl-proxima').style.display='none';
-  document.getElementById('mv-tl-data').style.display='none';
+  document.getElementById('mv-tl-lembrar-data').value='';
+  const vaga=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>v.id===editingVagaId):null;
+  const ocultarLembrar=vaga&&(vaga.status==='negado'||vaga.status==='aceito');
+  document.getElementById('mv-tl-lembrar-row').style.display=ocultarLembrar?'none':'';
   setTimeout(()=>document.getElementById('mv-timeline-texto').focus(),60);
 }
 function fecharFormTimeline(){
   document.getElementById('mv-timeline-form').style.display='none';
 }
-function toggleTimelineExtra(){
-  document.getElementById('mv-tl-proxima').style.display=
-    document.getElementById('mv-tl-upd-proxima').checked?'block':'none';
-  document.getElementById('mv-tl-data').style.display=
-    document.getElementById('mv-tl-upd-data').checked?'block':'none';
-}
-function salvarEntradaTimeline(){
+async function salvarEntradaTimeline(){
   const texto=document.getElementById('mv-timeline-texto').value.trim();
   if(!texto){document.getElementById('mv-timeline-texto').focus();return;}
   if(!editingVagaId||editingVagaId==='new') return;
@@ -1870,24 +1858,22 @@ function salvarEntradaTimeline(){
   if(idx<0) return;
   if(!vagas[idx].timeline) vagas[idx].timeline=[];
   vagas[idx].timeline.unshift({ts:Date.now(),texto});
-  if(document.getElementById('mv-tl-upd-proxima').checked){
-    const nova=document.getElementById('mv-tl-proxima').value.trim();
-    if(nova){
-      vagas[idx].proxima=nova;
-      document.getElementById('mv-proxima').value=nova;
-    }
-  }
-  if(document.getElementById('mv-tl-upd-data').checked){
-    const dateVal=document.getElementById('mv-tl-data').value;
-    if(dateVal){
-      const [y,m,d]=dateVal.split('-');
-      vagas[idx].data=`${d}/${m}/${y}`;
-    }
-  }
   vagas[idx].updatedAt=Date.now();
   saveVagas(); renderCRM();
   fecharFormTimeline();
   renderTimelineLista(vagas[idx].timeline);
+  const lembrarData=document.getElementById('mv-tl-lembrar-data').value;
+  if(lembrarData){
+    const empresa=vagas[idx].empresa||'Empresa';
+    try{
+      const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({titulo:`Follow-up: ${empresa}`,data:lembrarData})
+      });
+      if(!res.ok) console.warn('Erro ao criar evento no Outlook:',await res.json().catch(()=>{}));
+    } catch(e){ console.warn('Erro ao criar evento no Outlook:',e); }
+  }
 }
 function renderTimelineLista(timeline){
   const lista=document.getElementById('mv-timeline-lista');

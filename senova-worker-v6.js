@@ -660,7 +660,33 @@ export default {
       return jsonResp({ ok: true, mensagem: 'Histórico limpo. Todos os emails serão reanalisados.' });
     }
 
-    //  10. Whitelist — listar 
+    //  10. Calendar — criar evento no Outlook
+    if (path === '/api/calendar/evento' && request.method === 'POST') {
+      const token = await getValidToken(env);
+      if (!token) return jsonResp({ erro: 'Outlook não conectado.' }, 401);
+      const { titulo, data } = await request.json();
+      if (!titulo || !data) return jsonResp({ erro: 'titulo e data são obrigatórios' }, 400);
+      const evento = {
+        subject: titulo,
+        start: { dateTime: `${data}T09:00:00`, timeZone: 'America/Sao_Paulo' },
+        end:   { dateTime: `${data}T09:30:00`, timeZone: 'America/Sao_Paulo' },
+        isReminderOn: true,
+        reminderMinutesBeforeStart: 30,
+      };
+      const res = await fetch('https://graph.microsoft.com/v1.0/me/events', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(evento),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        return jsonResp({ erro: 'Erro ao criar evento', detalhe: err }, res.status);
+      }
+      const criado = await res.json();
+      return jsonResp({ ok: true, id: criado.id });
+    }
+
+    //  11. Whitelist — listar
     if (path === '/api/whitelist' && request.method === 'GET') {
       return jsonResp({ dominios: await getWhitelist(env) });
     }
