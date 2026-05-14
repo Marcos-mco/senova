@@ -207,6 +207,13 @@ select option { background: var(--bg2); }
 .filter-select:focus { outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(26,58,92,0.08); }
 .btn-filter-limpar { height:32px; padding:0 14px; border-radius:16px; border:1.5px solid var(--border); background:var(--bg2); color:var(--text3); font-size:13px; font-family:var(--font); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
 .btn-filter-limpar:hover { border-color:#CC0000; color:#CC0000; background:#FFF5F5; }
+.crm-search-wrap { position:relative; display:flex; align-items:center; flex-shrink:0; }
+.crm-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); pointer-events:none; color:#9CA3AF; width:14px; height:14px; }
+.crm-search-input { width:200px; height:32px; border-radius:16px; border:1.5px solid var(--border); background:var(--bg2); color:var(--text1); font-family:var(--font); font-size:13px; padding:0 30px 0 30px; transition:border-color 0.15s; }
+.crm-search-input::placeholder { color:#9CA3AF; }
+.crm-search-input:focus { outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(26,58,92,0.08); }
+.crm-search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#9CA3AF; font-size:14px; line-height:1; padding:0; display:none; }
+.crm-search-clear:hover { color:var(--text1); }
 
 /* ── CARD DATAS ── */
 .kcard-dates { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px; }
@@ -693,6 +700,11 @@ select option { background: var(--bg2); }
     <div class="stats" id="crm-stats"></div>
     <!-- Filtros -->
     <div class="filter-bar" id="crm-filter-bar">
+      <div class="crm-search-wrap">
+        <svg class="crm-search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input class="crm-search-input" type="text" id="crm-busca" placeholder="Buscar empresa, cargo…" oninput="buscarCRM()">
+        <button class="crm-search-clear" id="crm-busca-clear" onclick="limparBuscaCRM()" title="Limpar busca">✕</button>
+      </div>
       <select class="filter-select" id="filter-prioridade" onchange="aplicarFiltros()">
         <option value="">Todas as prioridades</option>
         <option value="alta">Alta prioridade</option>
@@ -1739,14 +1751,31 @@ function proximaSkip(){
   _proximaIdx=-1;
 }
 
+function buscarCRM() {
+  const inp = document.getElementById('crm-busca');
+  const clr = document.getElementById('crm-busca-clear');
+  if(clr) clr.style.display = inp?.value ? 'block' : 'none';
+  aplicarFiltros();
+}
+
+function limparBuscaCRM() {
+  const inp = document.getElementById('crm-busca');
+  if(inp) inp.value = '';
+  const clr = document.getElementById('crm-busca-clear');
+  if(clr) clr.style.display = 'none';
+  aplicarFiltros();
+}
+
 function aplicarFiltros() {
   filtroAtivo = true;
   const pri = document.getElementById('filter-prioridade')?.value||'';
   const canal = document.getElementById('filter-canal')?.value||'';
   const ordem = document.getElementById('filter-ordem')?.value||'recente';
+  const q = (document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
   let lista = [...vagas];
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
+  if(q) lista = lista.filter(v=>[v.empresa,v.cargo,v.proxima,v.notas].some(f=>(f||'').toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
@@ -1760,6 +1789,8 @@ function limparFiltros() {
   vagasFiltradas = null;
   ['filter-prioridade','filter-canal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const fo = document.getElementById('filter-ordem'); if(fo) fo.value='recente';
+  const inp = document.getElementById('crm-busca'); if(inp) inp.value='';
+  const clr = document.getElementById('crm-busca-clear'); if(clr) clr.style.display='none';
   renderCRM();
 }
 
