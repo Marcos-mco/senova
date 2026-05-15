@@ -795,11 +795,20 @@ select option { background: var(--bg2); }
         <input class="ct-search-input" type="text" id="ct-busca" placeholder="Buscar por nome ou empresa…" oninput="buscarContato()">
         <button class="ct-search-clear" id="ct-busca-clear" onclick="limparBuscaContato()" title="Limpar">✕</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
         <button class="lang-btn active" onclick="filterContato('todos',this)">Todos</button>
         <button class="lang-btn" onclick="filterContato('hot',this)">🔥 Quentes</button>
         <button class="lang-btn" onclick="filterContato('warm',this)">🌤 Mornos</button>
         <button class="lang-btn" onclick="filterContato('cold',this)">❄️ Frios</button>
+        <select class="filter-select" id="ct-filter-tipo" onchange="filterContatoTipo(this.value)" style="margin-left:auto;">
+          <option value="todos">Todos os tipos</option>
+          <option value="Executivo">Executivo</option>
+          <option value="Headhunter">Headhunter</option>
+          <option value="Consultor">Consultor</option>
+          <option value="Investidor">Investidor</option>
+          <option value="Parceiro">Parceiro</option>
+          <option value="Outro">Outro</option>
+        </select>
       </div>
       <div class="contact-list" id="contact-list"></div>
     </div>
@@ -1061,7 +1070,7 @@ select option { background: var(--bg2); }
         </div>
       </div>
       <!-- Classificação -->
-      <div class="form-grid" style="margin-bottom:14px;">
+      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
         <div>
           <label class="field-label">Temperatura</label>
           <select id="mc-temp">
@@ -1076,6 +1085,17 @@ select option { background: var(--bg2); }
             <option value="A">Plano A — Emprego</option>
             <option value="B">Plano B — Consultoria</option>
             <option value="C">Plano C — Senova</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Tipo</label>
+          <select id="mc-tipo">
+            <option value="Executivo">Executivo</option>
+            <option value="Headhunter">Headhunter</option>
+            <option value="Consultor">Consultor</option>
+            <option value="Investidor">Investidor</option>
+            <option value="Parceiro">Parceiro</option>
+            <option value="Outro">Outro</option>
           </select>
         </div>
       </div>
@@ -1896,7 +1916,7 @@ const DEFAULT_CONTATOS=[
 ];
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
-let crmCurrentTab='vagas', contatoFilter='todos';
+let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos';
 let colFilters={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
@@ -2186,6 +2206,7 @@ function renderCRM(){
   const _ctBusca=(document.getElementById('ct-busca')?.value||'').toLowerCase().trim();
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
   let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
+  if(contatoTipoFilter!=='todos') filtered=filtered.filter(c=>(c.tipo||'Executivo')===contatoTipoFilter);
   if(_ctBusca && _ctBusca.length>=3) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
@@ -2209,6 +2230,7 @@ function renderCRM(){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
+        ${c.tipo&&c.tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${c.tipo}</span>`:''}
         ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
       </div>
     </div>`;
@@ -2217,8 +2239,12 @@ function renderCRM(){
 
 function filterContato(filter,btn){
   contatoFilter=filter;
-  document.querySelectorAll('#crm-contatos .lang-toggle .lang-btn, #crm-contatos .lang-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#crm-contatos .lang-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  renderCRM();
+}
+function filterContatoTipo(val){
+  contatoTipoFilter=val;
   renderCRM();
 }
 
@@ -2435,6 +2461,7 @@ function openContatoModal(id){
     document.getElementById('mc-linkedin').value=c.linkedin||'';
     document.getElementById('mc-temp').value=c.temp||'warm';
     document.getElementById('mc-plano').value=c.plano||'A';
+    document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
     document.getElementById('mc-notas').value=c.notas||'';
     if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
@@ -2445,6 +2472,7 @@ function openContatoModal(id){
     ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
+    document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
     if(tlSection) tlSection.style.display='none';
     if(tlLista) tlLista.innerHTML='';
@@ -2466,6 +2494,7 @@ function saveContato(){
     linkedin:document.getElementById('mc-linkedin').value.trim(),
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
+    tipo:document.getElementById('mc-tipo').value,
     next:document.getElementById('mc-next').value.trim(),
     notas:document.getElementById('mc-notas').value.trim(),
     vagaId:document.getElementById('mc-vaga-id')?.value||null,
