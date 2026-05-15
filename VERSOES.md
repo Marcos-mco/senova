@@ -12,7 +12,18 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.5 — 15/mai/2026 (ATUAL)
+### v3.6 — 15/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026e.html (pré-edição)
+
+#### Fix: Busca CRM Contatos
+- Causa raiz: `crm-filter-bar` (campo "Buscar empresa, cargo…" do Pipeline) permanecia visível ao alternar para a aba Contatos, fazendo o usuário digitar no campo errado sem efeito na lista
+- `setCrmTab('contatos')` agora esconde `crm-filter-bar`; `setCrmTab('vagas')` a restaura
+- Mínimo de caracteres para busca de contatos reduzido de 3 para 2
+
+---
+
+### v3.5 — 15/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_15mai2026e.html (pré-edição)
 
