@@ -938,10 +938,6 @@ select option { background: var(--bg2); }
         <label class="field-label">Notas</label>
         <textarea id="mv-notas" rows="4" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
-      <div class="form-row" style="margin-bottom:8px;">
-        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise CV)</span></label>
-        <textarea id="mv-job-desc" rows="3" placeholder="Cole o texto completo da vaga aqui…"></textarea>
-      </div>
       <div id="mv-datas-info" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--text3);">📅 Criado em: <strong id="mv-criado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
@@ -965,25 +961,6 @@ select option { background: var(--bg2); }
           </div>
         </div>
         <div id="mv-timeline-lista" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-      <div id="mv-docs-section" style="display:none;margin-top:16px;border-top:1.5px solid var(--border);padding-top:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-          <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Análise CV gerada</span>
-          <span id="mv-ats-score-badge" style="display:none;font-size:13px;font-weight:700;padding:2px 12px;border-radius:20px;"></span>
-        </div>
-        <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="copy-btn" id="mv-docs-cv-btn" onclick="mvToggleDoc('cv',this)" style="font-size:12px;">Ver CV otimizado</button>
-          <button class="copy-btn" id="mv-docs-carta-btn" onclick="mvToggleDoc('carta',this)" style="font-size:12px;display:none;">Ver carta de apresentação</button>
-        </div>
-        <div id="mv-ats-cv-expand" style="display:none;margin-top:10px;">
-          <textarea id="mv-ats-cv-txt" rows="8" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)" style="font-size:12px;">📋 Copiar CV</button></div>
-        </div>
-        <div id="mv-ats-carta-expand" style="display:none;margin-top:10px;">
-          <textarea id="mv-ats-carta-modal-txt" rows="6" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)" style="font-size:12px;">📋 Copiar carta</button></div>
-        </div>
       </div>
       <input type="hidden" id="mv-motivo">
     </div>
@@ -1380,7 +1357,6 @@ function renderATSResult(analise,cv,crm) {
   lastCRM = crm;
   _atsAnalise = analise;
   _cartaLang = cvLang;
-  const campoVaga=document.getElementById('vaga-input');if(campoVaga)campoVaga.value='';
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
   if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
 
@@ -1495,7 +1471,6 @@ async function gerarCartaATS(btn){
     const el=document.getElementById('ats-carta-txt');
     const out=document.getElementById('ats-carta-out');
     if(el&&out){el.value=carta;out.style.display='block';}
-    if(carta&&atsOrigemVagaId!=null){const vi=vagas.findIndex(v=>v.id===atsOrigemVagaId);if(vi>=0){vagas[vi].atsCarta=carta;saveVagas();}}
   } catch(e){console.error('gerarCartaATS:',e);alert('Erro ao gerar carta. Tente novamente.');}
   finally{btn.textContent='Gerar carta';btn.disabled=false;}
 }
@@ -1569,12 +1544,6 @@ function candidatarVagaATS() {
   } else {
     {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   }
-  const savedIdx=idx>=0?idx:vagas.length-1;
-  vagas[savedIdx].atsScore=score;
-  vagas[savedIdx].atsKeywords=keywords;
-  vagas[savedIdx].atsAnalise=_atsAnalise;
-  vagas[savedIdx].atsCV=lastCV;
-  vagas[savedIdx].atsCarta=document.getElementById('ats-carta-txt')?.value||'';
   const emailDest=atsEmailDest;
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   saveVagas();
@@ -2214,34 +2183,9 @@ function openVagaModal(id){
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
-    document.getElementById('mv-job-desc').value=v.jobDescription||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
-    // Docs section
-    const docsSec=document.getElementById('mv-docs-section');
-    const scoreEl=document.getElementById('mv-ats-score-badge');
-    const keyEl=document.getElementById('mv-ats-keywords');
-    const cvTxt=document.getElementById('mv-ats-cv-txt');
-    const cartaTxt=document.getElementById('mv-ats-carta-modal-txt');
-    const cartaBtn=document.getElementById('mv-docs-carta-btn');
-    const cvExp=document.getElementById('mv-ats-cv-expand');
-    const cartaExp=document.getElementById('mv-ats-carta-expand');
-    const cvBtn=document.getElementById('mv-docs-cv-btn');
-    if(docsSec){
-      if(v.atsScore||v.atsCV){
-        docsSec.style.display='';
-        if(scoreEl){const s=parseInt(v.atsScore||0);const c=s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';const bg=s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';scoreEl.style.cssText+=`;color:${c};background:${bg};border:1px solid ${c}33;`;scoreEl.textContent=v.atsScore?'Score ATS: '+v.atsScore+'/100':'';scoreEl.style.display=v.atsScore?'':'none';}
-        if(keyEl) keyEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
-        if(cvTxt) cvTxt.value=v.atsCV||'';
-        if(cartaTxt) cartaTxt.value=v.atsCarta||'';
-        if(cartaBtn) cartaBtn.style.display=v.atsCarta?'':'none';
-        if(cvExp) cvExp.style.display='none';
-        if(cartaExp) cartaExp.style.display='none';
-        if(cvBtn) cvBtn.textContent='Ver CV otimizado';
-        if(cartaBtn) cartaBtn.textContent='Ver carta de apresentação';
-      } else { docsSec.style.display='none'; }
-    }
     document.getElementById('mv-timeline-section').style.display='';
     document.getElementById('mv-timeline-form').style.display='none';
     renderTimelineLista(v.timeline||[]);
@@ -2252,8 +2196,7 @@ function openVagaModal(id){
       document.getElementById('mv-atualizado-em').textContent=formatTs(v.updatedAt)||'—';
     }
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
-    const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
+    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='lead';
     document.getElementById('mv-motivo').value='';
@@ -2267,12 +2210,6 @@ function openVagaModal(id){
   atualizarBotoes();
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
-function mvToggleDoc(which,btn){
-  const cvEl=document.getElementById('mv-ats-cv-expand');
-  const cartaEl=document.getElementById('mv-ats-carta-expand');
-  if(which==='cv'){const show=cvEl.style.display==='none';cvEl.style.display=show?'':'none';if(btn)btn.textContent=show?'Ocultar CV':'Ver CV otimizado';}
-  else{const show=cartaEl.style.display==='none';cartaEl.style.display=show?'':'none';if(btn)btn.textContent=show?'Ocultar carta':'Ver carta de apresentação';}
-}
 function avancarEstagio(){
   const seq=['lead','aplicado','contato','entrevista','proposta','aceito'];
   const sel=document.getElementById('mv-status');
@@ -2311,12 +2248,6 @@ function saveVaga(){
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
-    jobDescription:document.getElementById('mv-job-desc').value,
-    atsScore:existing?.atsScore||'',
-    atsKeywords:existing?.atsKeywords||'',
-    atsAnalise:existing?.atsAnalise||'',
-    atsCV:existing?.atsCV||'',
-    atsCarta:existing?.atsCarta||'',
     timeline:isNew?[{ts:now,texto:'Card criado'}]:(existing?.timeline||[{ts:createdAt,texto:'Card criado'}]),
     createdAt,
     updatedAt:now
@@ -3045,7 +2976,6 @@ function abrirAntiATSModal(){
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const notas=document.getElementById('mv-notas')?.value||'';
   const origemUrl=document.getElementById('mv-origem-url')?.value||'';
-  const jobDesc=document.getElementById('mv-job-desc')?.value||'';
   atsEmailDest=document.getElementById('mv-email-dest')?.value||'';
   atsEmpresa=empresa; atsCargo=cargo;
   atsOrigemVagaId=editingVagaId;
@@ -3061,9 +2991,7 @@ function abrirAntiATSModal(){
   setTimeout(()=>{
     const campo=document.getElementById('vaga-input');
     if(!campo) return;
-    if(jobDesc.length>50){
-      campo.value=jobDesc;
-    } else if(notas.length>100){
+    if(notas && notas.length > 100){
       campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n\n${notas}`;
     } else if(empresa||cargo){
       campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
