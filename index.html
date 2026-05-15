@@ -2048,7 +2048,7 @@ function aplicarFiltros() {
   let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
-  if(q) lista = lista.filter(v=>[v.empresa,v.cargo,v.proxima,v.notas].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
+  if(q && q.length>=3) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
@@ -2160,7 +2160,7 @@ function renderCRM(){
   const _ctBusca=(document.getElementById('ct-busca')?.value||'').toLowerCase().trim();
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
   let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
-  if(_ctBusca) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
+  if(_ctBusca && _ctBusca.length>=3) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
