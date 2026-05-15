@@ -422,11 +422,12 @@ select option { background: var(--bg2); }
 
     <!-- Central de Sinais -->
     <div id="sinais-section" style="margin-bottom:18px;display:flex;flex-direction:column;gap:6px;">
-      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="showPage('crm')">
+      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="toggleEmailsAvulsos()">
         <span class="sinal-icon">📧</span>
         <span id="sinal-emails-txt" class="sinal-txt"></span>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        <svg id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
       </div>
+      <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;"></div>
       <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
         <span class="sinal-icon">🔔</span>
         <span id="sinal-alertas-txt" class="sinal-txt"></span>
@@ -1028,6 +1029,36 @@ select option { background: var(--bg2); }
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
       <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
       <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL RESPONDER EMAIL AVULSO
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-email-responder" style="display:none;" onclick="if(event.target===this)fecharModalEmailResponder()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">↩ Responder Email</div>
+      <div id="mer-de" style="font-size:12px;color:var(--text3);margin-top:5px;"></div>
+      <div id="mer-assunto" style="font-size:13px;color:var(--text2);font-weight:600;margin-top:3px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label class="field-label">Email recebido</label>
+        <textarea id="mer-corpo" rows="4" placeholder="Conteúdo do email recebido…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">Sua resposta</label>
+          <button class="btn btn-ghost btn-sm" style="font-size:12px;gap:4px;" onclick="gerarRespostaEmailAvulso(this)">✨ Gerar com IA</button>
+        </div>
+        <textarea id="mer-resposta" rows="6" placeholder="Gere uma sugestão com IA ou escreva diretamente…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+    </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Cancelar</button>
+      <button class="btn btn-primary" id="mer-enviar-btn" onclick="enviarRespostaEmailAvulso(this)">Enviar pelo Outlook</button>
     </div>
   </div>
 </div>
@@ -2043,6 +2074,8 @@ let _crmFiltroInativo=false;
 let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
+let _emailsAvulsos=[];
+let _emailAtual=null;
 let _diasInativo=Math.max(3,Math.min(30,parseInt(localStorage.getItem('senova_dias_inativo')||'7')));
 
 function dropVaga(newStatus, event) {
@@ -3040,6 +3073,106 @@ function atualizarSinais(){
     } else { s3.style.display='none'; }
   }
 }
+// ── Emails Avulsos — resposta via Outlook ──
+function toggleEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  const chevron=document.getElementById('sinal-emails-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display!=='none'&&lista.style.display!=='';
+  if(aberto){
+    lista.style.display='none';
+    if(chevron) chevron.style.transform='';
+  } else {
+    lista.style.display='flex';
+    if(chevron) chevron.style.transform='rotate(90deg)';
+    renderEmailsAvulsos();
+  }
+}
+function renderEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  if(!lista||lista.style.display==='none') return;
+  if(!_emailsAvulsos.length){
+    lista.innerHTML='<div style="padding:8px 0;font-size:13px;color:var(--text3);">Nenhum email para exibir.</div>';
+    return;
+  }
+  lista.innerHTML=_emailsAvulsos.map((e,i)=>{
+    const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const remetente=e.from_name||e.from||'(remetente)';
+    const preview=(e.resumo||e.preview||'').slice(0,100);
+    return `<div class="home-acao-item" style="cursor:default;align-items:flex-start;">
+      <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+          <span style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
+          <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+        </div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.subject||'(sem assunto)')}</div>
+        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}${e.from&&e.from!==remetente?' &lt;'+escHtml(e.from)+'&gt;':''}</div>
+        ${preview?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="abrirModalResponder(${i})">↩ Responder</button>
+    </div>`;
+  }).join('');
+}
+function abrirModalResponder(idx){
+  const e=_emailsAvulsos[idx]; if(!e) return;
+  _emailAtual=e;
+  const deEl=document.getElementById('mer-de');
+  const assEl=document.getElementById('mer-assunto');
+  if(deEl) deEl.textContent=`De: ${e.from_name||''}${e.from?' <'+e.from+'>':''}`;
+  if(assEl) assEl.textContent=e.subject||'(sem assunto)';
+  const corpo=document.getElementById('mer-corpo'); if(corpo) corpo.value=e.body||e.preview||'';
+  const resp=document.getElementById('mer-resposta'); if(resp) resp.value='';
+  const btn=document.getElementById('mer-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-email-responder').style.display='flex';
+}
+function fecharModalEmailResponder(){
+  document.getElementById('modal-email-responder').style.display='none';
+  _emailAtual=null;
+}
+async function gerarRespostaEmailAvulso(btn){
+  const corpo=(document.getElementById('mer-corpo')?.value||'').trim();
+  if(!corpo){alert('Nenhum conteúdo de email para gerar resposta.');return;}
+  const assunto=_emailAtual?.subject||'';
+  const remetente=_emailAtual?.from_name||_emailAtual?.from||'recrutador';
+  btn.textContent='Gerando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+        system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
+        messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de marketing/negócios (Curitiba, PR, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
+      })
+    });
+    const data=await res.json();
+    const resposta=(data.content?.[0]?.text||'').trim();
+    if(resposta){const el=document.getElementById('mer-resposta');if(el)el.value=resposta;}
+  }catch(err){console.error('gerarRespostaEmailAvulso:',err);alert('Erro ao gerar resposta. Tente novamente.');}
+  finally{btn.textContent='✨ Gerar com IA';btn.disabled=false;}
+}
+async function enviarRespostaEmailAvulso(btn){
+  const resposta=(document.getElementById('mer-resposta')?.value||'').trim();
+  if(!resposta){alert('Escreva ou gere uma resposta antes de enviar.');return;}
+  if(!_emailAtual?.id){alert('ID do email não encontrado. Não é possível enviar via Outlook.');return;}
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/responder',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messageId:_emailAtual.id,comentario:resposta})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      btn.textContent='✓ Enviado!';btn.style.color='var(--green)';
+      setTimeout(()=>fecharModalEmailResponder(),1200);
+    }else if(res.status===401&&json.reauth){
+      btn.textContent='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+}
+
 function irParaInativos(){
   _crmFiltroInativo=true;
   showPage('crm');
@@ -3113,7 +3246,9 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
+    _emailsAvulsos=emailsVaga;
     atualizarSinais();
+    renderEmailsAvulsos();
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 

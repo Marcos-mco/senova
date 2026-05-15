@@ -660,6 +660,24 @@ export default {
       return jsonResp({ ok: true, mensagem: 'Histórico limpo. Todos os emails serão reanalisados.' });
     }
 
+    //  9.5 Emails — responder via Microsoft Graph
+    if (path === '/api/emails/responder' && request.method === 'POST') {
+      const token = await getValidToken(env);
+      if (!token) return jsonResp({ erro: 'Outlook não conectado.', reauth: true, url_auth: `${REDIRECT_URI.replace('/api/auth/callback', '')}/api/auth/outlook` }, 401);
+      const { messageId, comentario } = await request.json();
+      if (!messageId || !comentario) return jsonResp({ erro: 'messageId e comentario são obrigatórios' }, 400);
+      const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}/reply`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: comentario }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return jsonResp({ erro: 'Erro ao enviar resposta', detalhe: err }, res.status);
+      }
+      return jsonResp({ ok: true });
+    }
+
     //  10. Calendar — criar evento no Outlook
     if (path === '/api/calendar/evento' && request.method === 'POST') {
       const token = await getValidToken(env);
