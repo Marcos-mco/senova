@@ -1069,6 +1069,43 @@ select option { background: var(--bg2); }
 </div>
 
 <!-- ═══════════════════════════════
+     MODAL CANDIDATURA
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-candidatura" style="display:none;" onclick="if(event.target===this)fecharModalCandidatura()">
+  <div class="modal" style="width:min(580px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">✉️ Enviar Candidatura</div>
+      <div id="mcand-empresa-cargo" style="font-size:12px;color:var(--text3);margin-top:4px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Para (email do recrutador)</label>
+        <input type="email" id="mcand-email" placeholder="recrutador@empresa.com">
+      </div>
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Assunto</label>
+        <input type="text" id="mcand-assunto">
+      </div>
+      <div>
+        <label class="field-label">Mensagem (carta de apresentação)</label>
+        <textarea id="mcand-carta" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">CV Otimizado (incluso no corpo)</label>
+          <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
+        </div>
+        <textarea id="mcand-cv" rows="5" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
+      </div>
+    </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalCandidatura()">Cancelar</button>
+      <button class="btn btn-primary" id="mcand-enviar-btn" onclick="enviarCandidaturaOutlook(this)">Enviar pelo Outlook</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      MODAL CONTATOS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
@@ -1472,7 +1509,7 @@ async function analyzeJob() {
 }
 
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
-let _atsAnalise='',_cartaLang='PT';
+let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
@@ -1650,43 +1687,41 @@ function _atsMostrarMsg(html,delay){
   const t=setTimeout(_atsRestaurarEmpty,delay);
   ra.firstElementChild?.addEventListener('click',()=>{clearTimeout(t);_atsRestaurarEmpty();},{once:true});
 }
-function candidatarVagaATS() {
-  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const vagaRef = idx>=0 ? vagas[idx] : null;
-  const empresa = vagaRef?.empresa || atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
-  const cargo   = vagaRef?.cargo   || atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()  || 'A definir';
-  const score    = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const keywords = _atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
-  const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
-  const hoje = dataAtualFormatada();
+async function candidatarVagaATS(){
+  if(!lastCV){
+    const vTxt=(document.getElementById('vaga-input')?.value||'').trim();
+    if(vTxt.length>=80) await analyzeJob();
+  }
+  const idx=atsOrigemVagaId!=null?vagas.findIndex(v=>v.id===atsOrigemVagaId):-1;
+  const vagaRef=idx>=0?vagas[idx]:null;
+  const empresa=vagaRef?.empresa||atsEmpresa||lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo=vagaRef?.cargo||atsCargo||lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score=_atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const keywords=_atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const notasAts=[score?'Match ATS: '+score+'/100':'',keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
+  const hoje=dataAtualFormatada();
+  const carta=document.getElementById('ats-carta-txt')?.value||'';
   if(idx>=0){
     vagas[idx].status='aplicado';
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
-    if(notasAts) vagas[idx].notas=notasAts;
+    if(notasAts)vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
-  } else {
-    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+  }else{
+    const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});
   }
   const savedIdx=idx>=0?idx:vagas.length-1;
   vagas[savedIdx].atsScore=score;
   vagas[savedIdx].atsKeywords=keywords;
   vagas[savedIdx].atsAnalise=_atsAnalise;
   vagas[savedIdx].atsCV=lastCV;
-  vagas[savedIdx].atsCarta=document.getElementById('ats-carta-txt')?.value||'';
+  vagas[savedIdx].atsCarta=carta;
   const emailDest=idx>=0?(vagas[idx].emailDest||atsEmailDest):atsEmailDest;
-  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
+  atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada — '+hoje; }
-  const _sofiaFrases=['Candidatura registrada! Estou torcendo por você, Marcos. 🌟','Feito! Você tem muito a oferecer. Boa sorte nessa. 💛','Candidatura enviada! Conte comigo para o que precisar. 🚀'];
-  const _frase=_sofiaFrases[Math.floor(Math.random()*_sofiaFrases.length)];
-  _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${_frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
-  if(emailDest){
-    const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
-    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
-    setTimeout(()=>{ window.location.href='mailto:'+emailDest+'?subject='+assunto+'&body='+corpo; },300);
-  }
+  if(bar){bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';});const lbl=document.getElementById('ats-decisao-label');if(lbl)lbl.textContent='✓ Candidatura registrada — '+hoje;}
+  abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx:savedIdx});
 }
 
 function declinarVagaATS() {
@@ -3182,6 +3217,60 @@ async function enviarRespostaEmailAvulso(btn){
       btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;
     }
   }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+}
+
+function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx}){
+  _candidaturaVagaIdx=savedVagaIdx;
+  document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
+  document.getElementById('mcand-email').value=emailDest||'';
+  document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
+  const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
+  document.getElementById('mcand-carta').value=carta||cartaDefault;
+  document.getElementById('mcand-cv').value=lastCV||'';
+  document.getElementById('mcand-cv-status').textContent=lastCV?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
+  const btn=document.getElementById('mcand-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-candidatura').style.display='flex';
+}
+function fecharModalCandidatura(){
+  document.getElementById('modal-candidatura').style.display='none';
+  _candidaturaVagaIdx=-1;
+}
+async function enviarCandidaturaOutlook(btn){
+  const para=(document.getElementById('mcand-email')?.value||'').trim();
+  const assunto=(document.getElementById('mcand-assunto')?.value||'').trim();
+  const carta=(document.getElementById('mcand-carta')?.value||'').trim();
+  const cv=(document.getElementById('mcand-cv')?.value||'').trim();
+  if(!para){alert('Preencha o email do recrutador.');return;}
+  if(!assunto){alert('Preencha o assunto.');return;}
+  const corpo=carta+(cv?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cv:'');
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/enviar',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({para,assunto,corpo})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
+        const v=vagas[_candidaturaVagaIdx];
+        if(!v.timeline)v.timeline=[];
+        v.timeline.unshift({ts:Date.now(),texto:'CV enviado por Outlook para '+para});
+        saveVagas();
+      }
+      btn.textContent='✓ Enviado!';
+      const frase=['CV enviado! Estou torcendo por você, Marcos. 🌟','Candidatura a caminho! Você tem muito a oferecer. 💛','Enviado pelo Outlook! Conte comigo para o que precisar. 🚀'][Math.floor(Math.random()*3)];
+      setTimeout(()=>{
+        fecharModalCandidatura();
+        _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
+      },1200);
+    }else if(res.status===401&&json.reauth){
+      btn.innerHTML='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.disabled=false;}
 }
 
 function irParaInativos(){

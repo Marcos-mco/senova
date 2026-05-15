@@ -678,6 +678,31 @@ export default {
       return jsonResp({ ok: true });
     }
 
+    //  9.5. Emails — enviar novo email pelo Outlook (candidatura)
+    if (path === '/api/emails/enviar' && request.method === 'POST') {
+      const token = await getValidToken(env);
+      if (!token) return jsonResp({ erro: 'Outlook não conectado.', reauth: true, url_auth: `${REDIRECT_URI.replace('/api/auth/callback', '')}/api/auth/outlook` }, 401);
+      const { para, assunto, corpo } = await request.json();
+      if (!para || !assunto || !corpo) return jsonResp({ erro: 'para, assunto e corpo são obrigatórios' }, 400);
+      const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            subject: assunto,
+            body: { contentType: 'Text', content: corpo },
+            toRecipients: [{ emailAddress: { address: para } }],
+          },
+          saveToSentItems: true,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return jsonResp({ erro: 'Erro ao enviar email', detalhe: err }, res.status);
+      }
+      return jsonResp({ ok: true });
+    }
+
     //  10. Calendar — criar evento no Outlook
     if (path === '/api/calendar/evento' && request.method === 'POST') {
       const token = await getValidToken(env);
