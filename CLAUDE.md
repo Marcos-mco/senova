@@ -101,7 +101,8 @@ KV binding: `SENOVA_KV` (id: `e0f1fc09836b48d1be86fcdf217ef7dd`)
 
 ## Antes de qualquer edição
 
-1. Ler `PROJETO.md` para contexto de decisões de arquitetura e roadmap
-2. Ler `VERSOES.md` para entender o estado da versão atual
-3. Salvar backup com nome `senova_v[N]_[data].html` antes de modificar o `index.html`
-4. Nunca refatorar CSS/layout junto com correção de bug — mudanças devem ser isoladas
+1. Ler `VIRGILIO.md` para contexto permanente, regras invioláveis e estado do projeto
+2. Ler `PROJETO.md` para contexto de decisões de arquitetura e roadmap
+3. Ler `VERSOES.md` para entender o estado da versão atual
+4. Salvar backup com nome `senova_v[N]_[data].html` antes de modificar o `index.html`
+5. Nunca refatorar CSS/layout junto com correção de bug — mudanças devem ser isoladas
