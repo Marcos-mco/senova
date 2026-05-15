@@ -1516,16 +1516,6 @@ function downloadPDF() {
   linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
   doc.save(lastCVFilename+'.pdf');
 }
-function _atsRestaurarEmpty(){
-  const ra=document.getElementById('result-area'); if(!ra)return;
-  ra.innerHTML=`<div class="card"><div class="empty"><div class="empty-icon">🎯</div><div class="empty-title">Pronto para analisar</div><div class="empty-sub">Cole a descrição de uma vaga ao lado<br>e clique em <strong>Analisar vaga + gerar CV</strong></div></div></div>`;
-}
-function _atsMostrarMsg(html,delay){
-  const ra=document.getElementById('result-area'); if(!ra)return;
-  ra.innerHTML=html;
-  const t=setTimeout(_atsRestaurarEmpty,delay);
-  ra.firstElementChild?.addEventListener('click',()=>{clearTimeout(t);_atsRestaurarEmpty();},{once:true});
-}
 function candidatarVagaATS() {
   const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
   const vagaRef = idx>=0 ? vagas[idx] : null;
@@ -1549,9 +1539,6 @@ function candidatarVagaATS() {
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
   if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada — '+hoje; }
-  const _sofiaFrases=['Candidatura registrada! Estou torcendo por você, Marcos. 🌟','Feito! Você tem muito a oferecer. Boa sorte nessa. 💛','Candidatura enviada! Conte comigo para o que precisar. 🚀'];
-  const _frase=_sofiaFrases[Math.floor(Math.random()*_sofiaFrases.length)];
-  _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${_frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
   if(emailDest){
     const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
     const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
@@ -1570,12 +1557,18 @@ function declinarVagaATS() {
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
+    atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
     saveVagas();
+    showPage('crm');
+  } else {
+    // Análise direta sem card de origem — apenas limpa o resultado
+    atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
+    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:32px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:10px;">✕</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;">Vaga descartada</div>
+      <div style="font-size:13px;color:var(--text3);">Cole uma nova vaga para analisar.</div>
+    </div>`;
   }
-  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
-  const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); }
-  _atsMostrarMsg(`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:36px 24px;text-align:center;cursor:pointer;"><div style="font-size:32px;font-weight:700;color:var(--text2);margin-bottom:12px;">✓</div><div style="font-size:15px;font-weight:700;color:var(--text2);margin-bottom:8px;">Vaga arquivada.</div><div style="font-size:13.5px;color:var(--text2);line-height:1.7;">Cada "não" te aproxima do "sim" certo.<br>Siga em frente.</div><div style="font-size:11px;color:var(--text3);margin-top:16px;">clique para fechar</div></div>`,4000);
 }
 function saveVagaFromCV() {
   const empresa = atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
