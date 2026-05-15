@@ -12,8 +12,35 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.2 — 15/mai/2026 (ATUAL)
+### v3.4 — 15/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026d.html (pré-edição)
+
+#### CRM Contatos — Próxima Ação obrigatória + Outlook
+- Campo Próxima Ação obrigatório: impede salvar sem preencher, exibe erro inline e foca o campo
+- Campo de data ao lado da próxima ação (input type=date, 148px)
+- Botão 📅 Agendar no Outlook aparece dinamicamente quando ambos os campos estão preenchidos
+- `salvarEAgendarOutlook()`: salva contato silenciosamente e cria evento de 30min no Outlook Calendar via `/api/calendar/evento`
+- Badges de urgência no card da lista: ⚠ Atrasado (vermelho #CC0000) se data ultrapassada, ⏰ Urgente (âmbar #B8670A) se ≤3 dias
+- Data formatada DD/MM/YYYY exibida ao lado do texto da próxima ação no card
+
+---
+
+### v3.3 — 15/mai/2026
+**Status:** Superada ✅  
+**Backup:** senova_v3_15mai2026.html (pré-edição)
+
+#### Dashboard Pipeline — Home
+- Funil visual: Lead → CV Enviado → Em Contato → Entrevista → Proposta com barras proporcionais, contagem e %
+- Total ativas vs arquivadas no header do funil
+- Taxa de retorno por canal (retorno = chegou a contato/entrevista/proposta/aceito): mostra X/Y e taxa%, exige ≥2 vagas por canal, "—" se insuficiente
+- Tempo médio por estágio: dias desde última movimentação por estágio ativo, código de cores (verde ≤7d, âmbar ≤14d, vermelho >14d)
+- Seção renderizada por `renderDashboardPipeline()`, chamada automaticamente em `atualizarStatsHome()`
+
+---
+
+### v3.2 — 15/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_14mai2026g.html (pré-edição)
 
 #### Modal Editar Vaga
