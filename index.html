@@ -1117,8 +1117,12 @@ select option { background: var(--bg2); }
           </div>
         </div>
         <div class="form-row">
-          <label class="field-label">Próxima ação</label>
-          <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
+          <label class="field-label">Próxima ação <span style="color:var(--red);">*</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook()">
+            <input type="date" id="mc-next-data" style="width:148px;flex-shrink:0;" onchange="atualizarBtnOutlook()">
+          </div>
+          <div id="mc-next-err" style="display:none;font-size:12px;color:var(--red);margin-top:4px;">Próxima ação é obrigatória</div>
         </div>
         <div class="form-row">
           <label class="field-label">Notas</label>
@@ -1203,6 +1207,7 @@ select option { background: var(--bg2); }
 
     <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
+      <button class="btn btn-ghost" id="mc-outlook-btn" onclick="salvarEAgendarOutlook()" style="display:none;color:var(--action);border-color:var(--action);" title="Salva o contato e cria evento no Outlook Calendar">📅 Agendar no Outlook</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
@@ -2233,6 +2238,15 @@ function renderCRM(){
     const lastCanal=(c.timeline||[]).find(e=>e.canal)?.canal;
     const canalIcon=lastCanal?(CANAL_ICON_MAP[lastCanal]||'💬'):null;
     const diasTxt=dias===null?'':dias===0?'hoje':dias===1?'ontem':`${dias}d atrás`;
+    const today=new Date(); today.setHours(0,0,0,0);
+    const nextDataMs=c.nextData?new Date(c.nextData).setHours(0,0,0,0):null;
+    let urgBadge='';
+    if(nextDataMs!==null){
+      const diffDays=Math.round((nextDataMs-today.getTime())/86400000);
+      if(diffDays<0) urgBadge='<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⚠ Atrasado</span>';
+      else if(diffDays<=3) urgBadge='<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⏰ Urgente</span>';
+    }
+    const nextDataFmt=c.nextData?c.nextData.split('-').reverse().join('/'):'';
     return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
       <div style="flex:1;min-width:0;">
@@ -2243,7 +2257,8 @@ function renderCRM(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
         ${c.tipo&&c.tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${c.tipo}</span>`:''}
-        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
+        ${urgBadge}
+        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}${nextDataFmt?' <span style="color:var(--text3);font-size:11px;">'+nextDataFmt+'</span>':''}</div>`:''}
       </div>
     </div>`;
   }).join(''):'<div style="padding:20px;color:var(--text3);font-size:13.5px;text-align:center;">Nenhum contato encontrado.</div>';
@@ -2471,12 +2486,13 @@ function openContatoModal(id){
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
+    document.getElementById('mc-next-data').value=c.nextData||'';
     document.getElementById('mc-notas').value=c.notas||'';
     if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
     if(tlForm) tlForm.style.display='none';
     renderTimelineListaCt(c.timeline||[]);
   } else {
-    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
     document.getElementById('mc-tipo').value='Executivo';
@@ -2484,6 +2500,7 @@ function openContatoModal(id){
     if(tlLista) tlLista.innerHTML='';
   }
   setCTTab('dados');
+  atualizarBtnOutlook();
   atualizarHeaderContato();
   document.getElementById('modal-contato').style.display='flex';
 }
@@ -2530,8 +2547,17 @@ function atualizarHeaderContato(){
   }
 }
 
-function saveContato(){
-  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+function saveContato(silent=false){
+  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return null;
+  const next=document.getElementById('mc-next').value.trim();
+  const errEl=document.getElementById('mc-next-err');
+  if(!next){
+    setCTTab('dados');
+    if(errEl) errEl.style.display='block';
+    document.getElementById('mc-next')?.focus();
+    return null;
+  }
+  if(errEl) errEl.style.display='none';
   const existing=editingContatoId==='new'?null:contatos.find(c=>c.id===editingContatoId);
   const now=Date.now();
   const obj={
@@ -2545,7 +2571,8 @@ function saveContato(){
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
     tipo:document.getElementById('mc-tipo').value,
-    next:document.getElementById('mc-next').value.trim(),
+    next,
+    nextData:document.getElementById('mc-next-data')?.value||'',
     notas:document.getElementById('mc-notas').value.trim(),
     vagaId:document.getElementById('mc-vaga-id')?.value||null,
     lastContact:now,
@@ -2553,13 +2580,40 @@ function saveContato(){
     timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
   };
   if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
-  saveContatos(); renderCRM(); closeContatoModal();
+  saveContatos(); renderCRM();
+  if(!silent) closeContatoModal();
+  return obj;
 }
 function deleteContato(){
   if(!editingContatoId||editingContatoId==='new')return;
   if(!confirm('Remover este contato?'))return;
   contatos=contatos.filter(c=>c.id!==editingContatoId);
   saveContatos(); renderCRM(); closeContatoModal();
+}
+function atualizarBtnOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim();
+  const data=document.getElementById('mc-next-data')?.value||'';
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn) btn.style.display=(next&&data)?'inline-flex':'none';
+}
+async function salvarEAgendarOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim(); if(!next) return;
+  const data=document.getElementById('mc-next-data')?.value||''; if(!data) return;
+  const nome=(document.getElementById('mc-nome')?.value||'').trim(); if(!nome) return;
+  const obj=saveContato(true); if(!obj) return;
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn){btn.textContent='Agendando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:`Senova: ${next} — ${nome}`,data,duracao:30})
+    });
+    if(btn){btn.textContent=res.ok?'✓ Agendado!':'Erro ao agendar';btn.style.color=res.ok?'var(--green)':'var(--red)';}
+  } catch{
+    if(btn){btn.textContent='Erro ao agendar';btn.style.color='var(--red)';}
+  }
+  setTimeout(()=>closeContatoModal(),1000);
 }
 // Timeline de interações do contato
 function abrirFormTimelineCt(){
