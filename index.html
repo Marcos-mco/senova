@@ -515,6 +515,40 @@ select option { background: var(--bg2); }
         </div>
       </div>
     </div>
+
+    <!-- ── Carta de Apresentação ── -->
+    <div id="ats-carta-section" style="display:none;margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
+        <div class="lang-toggle" style="margin-left:auto;">
+          <button class="lang-btn active" onclick="setCartaLang('PT',this)">🇧🇷 PT</button>
+          <button class="lang-btn" onclick="setCartaLang('EN',this)">🇺🇸 EN</button>
+          <button class="lang-btn" onclick="setCartaLang('ES',this)">🇪🇸 ES</button>
+        </div>
+        <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
+      </div>
+      <div id="ats-carta-out" style="display:none;">
+        <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-carta-txt',this)">📋 Copiar carta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Responder Email / Mensagem ── -->
+    <div id="ats-resposta-section" style="display:none;margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;margin-bottom:24px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">💬 Responder Email / Mensagem</div>
+      <textarea id="ats-email-input" rows="4" placeholder="Cole aqui o email ou mensagem recebida sobre esta vaga…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:10px;">
+        <button class="copy-btn" id="ats-resp-btn" onclick="sugerirRespostaATS(this)">Sugerir resposta</button>
+      </div>
+      <div id="ats-resposta-out" style="display:none;">
+        <textarea id="ats-resposta-txt" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-resposta-txt',this)">📋 Copiar resposta</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1308,19 +1342,23 @@ PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
 OBSERVAÇÕES: [contexto relevante em 1 linha]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
+function _hideAtsExtras(){['ats-carta-section','ats-resposta-section'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
 async function analyzeJob() {
   const vaga = document.getElementById('vaga-input').value.trim();
   if(!vaga) {
+    _hideAtsExtras();
     document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;">Cole o texto da vaga</div><div style="font-size:13px;color:var(--text3);">Copie a descrição completa da vaga (título, requisitos, responsabilidades) e cole no campo ao lado.</div></div>`;
     return;
   }
   if(vaga.length < 80) {
+    _hideAtsExtras();
     document.getElementById('result-area').innerHTML=`<div class="card" style="padding:24px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:6px;">Conteúdo insuficiente</div><div style="font-size:13px;color:var(--text3);line-height:1.6;">O texto da vaga está muito curto para análise precisa. <br><br>Se este email é um convite ou alerta (não uma vaga), abra o email original, copie a descrição completa da vaga e cole aqui.</div></div>`;
     return;
   }
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
+  _hideAtsExtras();
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
@@ -1346,6 +1384,7 @@ async function analyzeJob() {
 
 let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
 let _atsAnalise='',_cartaLang='PT';
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   _atsAnalise = analise;
@@ -1394,47 +1433,35 @@ function renderATSResult(analise,cv,crm) {
         <button class="copy-btn" onclick="downloadPDFExecutivo()" style="background:var(--navy);color:#fff;border-color:var(--navy);">PDF Executivo</button>
         <button class="copy-btn" onclick="saveVagaFromCV()">💾 Salvar no CRM</button>
       </div>
-      <div class="result-box" id="cv-txt">${cv}</div>
+      <div class="result-box" id="cv-txt">${escHtml(cv)}</div>
     </div>
     <div id="tab-crm" style="display:none;">
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="copy-btn" onclick="copyEl('crm-txt',this)">📋 Copiar CRM</button></div>
-      <div class="result-box mono" id="crm-txt">${crm}</div>
-    </div>
-
-    <!-- ── Carta de Apresentação ── -->
-    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-        <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
-        <div class="lang-toggle" style="margin-left:auto;">
-          <button class="lang-btn ${_cartaLang==='PT'?'active':''}" onclick="setCartaLang('PT',this)">🇧🇷 PT</button>
-          <button class="lang-btn ${_cartaLang==='EN'?'active':''}" onclick="setCartaLang('EN',this)">🇺🇸 EN</button>
-          <button class="lang-btn ${_cartaLang==='ES'?'active':''}" onclick="setCartaLang('ES',this)">🇪🇸 ES</button>
-        </div>
-        <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
-      </div>
-      <div id="ats-carta-out" style="display:none;">
-        <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
-          <button class="copy-btn" onclick="copyAtsField('ats-carta-txt',this)">📋 Copiar carta</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Responder Email / Mensagem ── -->
-    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;margin-bottom:8px;">
-      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">💬 Responder Email / Mensagem</div>
-      <textarea id="ats-email-input" rows="4" placeholder="Cole aqui o email ou mensagem recebida sobre esta vaga…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:10px;">
-        <button class="copy-btn" id="ats-resp-btn" onclick="sugerirRespostaATS(this)">Sugerir resposta</button>
-      </div>
-      <div id="ats-resposta-out" style="display:none;">
-        <textarea id="ats-resposta-txt" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
-          <button class="copy-btn" onclick="copyAtsField('ats-resposta-txt',this)">📋 Copiar resposta</button>
-        </div>
-      </div>
+      <div class="result-box mono" id="crm-txt">${escHtml(crm)}</div>
     </div>
   </div>`;
+
+  // Reveal static extra sections and reset their state
+  const cartaSec = document.getElementById('ats-carta-section');
+  const respostaSec = document.getElementById('ats-resposta-section');
+  if(cartaSec) {
+    cartaSec.style.display = '';
+    cartaSec.querySelectorAll('.lang-btn').forEach((b,i)=>{
+      b.classList.toggle('active', ['PT','EN','ES'][i]===_cartaLang);
+    });
+    document.getElementById('ats-carta-out').style.display = 'none';
+    document.getElementById('ats-carta-txt').value = '';
+    const cb = document.getElementById('ats-carta-btn');
+    cb.textContent = 'Gerar carta'; cb.disabled = false;
+  }
+  if(respostaSec) {
+    respostaSec.style.display = '';
+    document.getElementById('ats-email-input').value = '';
+    document.getElementById('ats-resposta-out').style.display = 'none';
+    document.getElementById('ats-resposta-txt').value = '';
+    const rb = document.getElementById('ats-resp-btn');
+    rb.textContent = 'Sugerir resposta'; rb.disabled = false;
+  }
 }
 
 function switchTab(tab,btn) {
