@@ -12,7 +12,21 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.7 — 15/mai/2026 (ATUAL)
+### v3.8 — 15/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026f.html (pré-edição)
+
+#### Resposta a emails avulsos via Outlook
+- Worker: novo endpoint `POST /api/emails/responder` — chama Graph API `POST /v1.0/me/messages/{id}/reply` com `{ comment }` para envio direto (sem rascunho)
+- `sinal-emails` na Central de Sinais agora expande/colapsa lista inline (toggle com chevron) em vez de navegar para o CRM
+- `_emailsAvulsos[]` armazena emails relevantes após `carregarEmails()` para exibição persistente
+- Cada email card exibe: categoria com emoji IA, data/hora, assunto, remetente, prévia do resumo
+- Botão ↩ Responder abre modal com corpo do email pré-preenchido, geração de resposta via IA (mesmo padrão Análise CV) e envio direto pelo Outlook
+- Em sucesso: "✓ Enviado!" fecha modal após 1,2s; em erro: botão ativo para retry
+
+---
+
+### v3.7 — 15/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_15mai2026e.html (pré-edição)
 
