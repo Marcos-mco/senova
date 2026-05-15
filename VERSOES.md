@@ -12,7 +12,25 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.4 — 15/mai/2026 (ATUAL)
+### v3.5 — 15/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026e.html (pré-edição)
+
+#### Agendar no Outlook — chamada real à Microsoft Graph API
+- Worker: `/api/calendar/evento` retorna `reauth: true` + `url_auth` no 401 (sem token ou token expirado)
+- Frontend: lê JSON da resposta; em sucesso mostra "✓ Agendado!" e fecha modal após 1,2s
+- Em 401/reauth: botão muda para "🔑 Conectar Outlook" + `confirm()` abre fluxo OAuth
+- Em erro genérico: "Erro — tentar novamente" — modal permanece aberto para retry
+
+#### Home — Próximas Ações inclui contatos CRM
+- Contatos com `nextData` ≤ 3 dias aparecem abaixo das vagas com separador "CRM — Contatos"
+- Badge **⚠ Atrasado** (vermelho) se data passou, **Hoje** (azul) se é hoje, **⏰ Urgente** (âmbar) se ≤3 dias
+- Exibe nome do contato, texto da próxima ação, data DD/MM/YYYY
+- Clicar abre modal do contato diretamente
+
+---
+
+### v3.4 — 15/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_15mai2026d.html (pré-edição)
 
