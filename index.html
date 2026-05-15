@@ -2141,6 +2141,7 @@ function setCrmTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
+  document.getElementById('crm-filter-bar').style.display=tab==='vagas'?'flex':'none';
   document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
   renderCRM();
 }
@@ -2224,7 +2225,7 @@ function renderCRM(){
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
   let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
   if(contatoTipoFilter!=='todos') filtered=filtered.filter(c=>(c.tipo||'Executivo')===contatoTipoFilter);
-  if(_ctBusca && _ctBusca.length>=3) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
+  if(_ctBusca && _ctBusca.length>=2) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
