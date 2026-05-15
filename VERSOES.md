@@ -12,8 +12,21 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.8 — 15/mai/2026 (ATUAL)
+### v3.9 — 15/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026f.html (pré-edição)
+
+#### Fix: Central de Sinais sempre visível na Home
+- Causa raiz: `sinal-emails` ficava oculto quando `_sinaisEmails.classificados === 0`, mesmo após fetch concluído
+- Adicionada flag `_emailsCarregados`: falsa até o primeiro `carregarEmails` completar — enquanto isso o item fica oculto (sem Outlook conectado = sem sinal)
+- Após primeiro fetch: exibe "Nenhum email novo" (0 emails), "N emails aguardando resposta" (avulsos sem novos leads) ou contagem normal
+- `_emailsAvulsos[]` preservado entre navegações: só sobrescreve se chegarem novos emails (evita lista sumir ao voltar à Home)
+- Título "Central de Sinais" fixo no header da seção, independente do estado
+
+---
+
+### v3.8 — 15/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_15mai2026f.html (pré-edição)
 
 #### Resposta a emails avulsos via Outlook

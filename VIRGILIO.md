@@ -1,6 +1,6 @@
 # VIRGILIO.md — Contexto Permanente para Claude Code
 
-## Senova · Versão 3.x · Atualizado 15/mai/2026
+## Senova · Versão 3.8 · Atualizado 15/mai/2026
 
 ---
 
@@ -76,7 +76,15 @@ questionar a origem — já foi validado por mim.
 
 - Kanban Pipeline com 7 colunas
 
-- CRM Contatos
+- CRM Contatos: modal janela única com 3 abas (Dados, Comunicação, Timeline)
+
+- CRM Contatos: campo Tipo de contato
+
+- CRM Contatos: Próxima Ação obrigatória com data + badges Atrasado/Urgente/Hoje
+
+- CRM Contatos: botão Agendar no Outlook via Microsoft Graph (POST /v1.0/me/events)
+
+- CRM Contatos: aparecem nas Próximas Ações da Home (nextData ≤ 3 dias)
 
 - Análise CV com Anti-ATS (score, keywords, CV otimizado, carta)
 
@@ -88,13 +96,21 @@ questionar a origem — já foi validado por mim.
 
 - Documentos ATS salvos no card (score, CV, carta, análise)
 
-- Busca Pipeline: empresa+cargo, mínimo 3 caracteres
+- Busca Pipeline: empresa+cargo, mínimo 3 caracteres (corrigida v3.7)
+
+- Busca CRM Contatos: mínimo 2 caracteres (corrigida v3.6)
 
 - Dashboard Home: funil visual, taxa por canal, tempo médio por estágio
 
 - Outlook OAuth + varredura de emails
 
 - Worker v6 com filtro IA PT/EN/ES/DE
+
+- Central de Sinais: sempre visível na Home, estado vazio "Nenhum email novo"
+
+- Central de Sinais: emails avulsos com botão Responder — AI draft + envio direto Outlook
+
+- Worker: endpoint POST /api/emails/responder (Graph API reply)
 
 ---
 
