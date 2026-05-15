@@ -12,7 +12,19 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.6 — 15/mai/2026 (ATUAL)
+### v3.7 — 15/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026e.html (pré-edição)
+
+#### Fix: busca Pipeline quebrada ao navegar entre páginas e voltar ao CRM
+- Causa raiz: `showPage('crm')` forçava `crm-filter-bar` para `display:flex` sem verificar `crmCurrentTab`
+- Se o usuário estava na aba Contatos, saía para outra página e voltava ao CRM, o Pipeline filter bar ficava visível mas o kanban permanecia oculto (`display:none` do `setCrmTab` anterior)
+- Digitar no campo de busca filtrava vagas internamente mas o kanban não aparecia → aparência de busca quebrada
+- Fix: `showPage('crm')` agora restaura `crm-filter-bar`, `crm-vagas` e `crm-contatos` de acordo com `crmCurrentTab`
+
+---
+
+### v3.6 — 15/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_15mai2026e.html (pré-edição)
 
