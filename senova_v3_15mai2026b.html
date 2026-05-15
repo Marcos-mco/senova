@@ -1349,12 +1349,11 @@ async function analyzeJob() {
   btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV`;
 }
 
-let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
+let lastCV='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
 let _atsAnalise='',_cartaLang='PT';
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
-  lastCRM = crm;
   _atsAnalise = analise;
   _cartaLang = cvLang;
   const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
@@ -1390,40 +1389,9 @@ function renderATSResult(analise,cv,crm) {
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('analise',this)">Analise</button>
       <button class="tab-btn" onclick="switchTab('cv',this)">CV Otimizado</button>
+      <button class="tab-btn" onclick="switchTab('crm',this)">Entrada CRM</button>
     </div>
-    <div id="tab-analise">
-      <div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div>
-      <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-          <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
-          <div class="lang-toggle" style="margin-left:auto;">
-            <button class="lang-btn ${_cartaLang==='PT'?'active':''}" onclick="setCartaLang('PT',this)">🇧🇷 PT</button>
-            <button class="lang-btn ${_cartaLang==='EN'?'active':''}" onclick="setCartaLang('EN',this)">🇺🇸 EN</button>
-            <button class="lang-btn ${_cartaLang==='ES'?'active':''}" onclick="setCartaLang('ES',this)">🇪🇸 ES</button>
-          </div>
-          <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
-        </div>
-        <div id="ats-carta-out" style="display:none;">
-          <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;">
-            <button class="copy-btn" onclick="copyAtsField('ats-carta-txt',this)">📋 Copiar carta</button>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;margin-bottom:8px;">
-        <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">💬 Responder Email / Mensagem</div>
-        <textarea id="ats-email-input" rows="4" placeholder="Cole aqui o email ou mensagem recebida sobre esta vaga…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:10px;">
-          <button class="copy-btn" id="ats-resp-btn" onclick="sugerirRespostaATS(this)">Sugerir resposta</button>
-        </div>
-        <div id="ats-resposta-out" style="display:none;">
-          <textarea id="ats-resposta-txt" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;">
-            <button class="copy-btn" onclick="copyAtsField('ats-resposta-txt',this)">📋 Copiar resposta</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="tab-analise"><div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div></div>
     <div id="tab-cv" style="display:none;">
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
@@ -1434,11 +1402,45 @@ function renderATSResult(analise,cv,crm) {
       </div>
       <div class="result-box" id="cv-txt">${escHtml(cv)}</div>
     </div>
+    <div id="tab-crm" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button class="copy-btn" onclick="copyEl('crm-txt',this)">📋 Copiar CRM</button></div>
+      <div class="result-box mono" id="crm-txt">${escHtml(crm)}</div>
+    </div>
+    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
+        <div class="lang-toggle" style="margin-left:auto;">
+          <button class="lang-btn ${_cartaLang==='PT'?'active':''}" onclick="setCartaLang('PT',this)">🇧🇷 PT</button>
+          <button class="lang-btn ${_cartaLang==='EN'?'active':''}" onclick="setCartaLang('EN',this)">🇺🇸 EN</button>
+          <button class="lang-btn ${_cartaLang==='ES'?'active':''}" onclick="setCartaLang('ES',this)">🇪🇸 ES</button>
+        </div>
+        <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
+      </div>
+      <div id="ats-carta-out" style="display:none;">
+        <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-carta-txt',this)">📋 Copiar carta</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">💬 Responder Email / Mensagem</div>
+      <textarea id="ats-email-input" rows="4" placeholder="Cole aqui o email ou mensagem recebida sobre esta vaga…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:10px;">
+        <button class="copy-btn" id="ats-resp-btn" onclick="sugerirRespostaATS(this)">Sugerir resposta</button>
+      </div>
+      <div id="ats-resposta-out" style="display:none;">
+        <textarea id="ats-resposta-txt" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="copy-btn" onclick="copyAtsField('ats-resposta-txt',this)">📋 Copiar resposta</button>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
 
 function switchTab(tab,btn) {
-  ['analise','cv'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
+  ['analise','cv','crm'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#result-area .tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
@@ -1517,12 +1519,15 @@ function downloadPDF() {
   doc.save(lastCVFilename+'.pdf');
 }
 function candidatarVagaATS() {
+  // Fonte primária: vaga pelo ID (funciona antes ou depois da análise ATS)
   const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
   const vagaRef = idx>=0 ? vagas[idx] : null;
-  const empresa = vagaRef?.empresa || atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
-  const cargo   = vagaRef?.cargo   || atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()  || 'A definir';
-  const score    = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const keywords = _atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const empresa = vagaRef?.empresa || atsEmpresa || 'A definir';
+  const cargo   = vagaRef?.cargo   || atsCargo   || 'A definir';
+  // Enriquece notas com score ATS se análise já foi rodada
+  const crmTxt  = document.getElementById('crm-txt')?.innerText||'';
+  const score    = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const keywords = crmTxt.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
   const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
   const hoje = dataAtualFormatada();
   if(idx>=0){
@@ -1547,35 +1552,36 @@ function candidatarVagaATS() {
 }
 
 function declinarVagaATS() {
+  const motivo=prompt('Motivo do declínio (opcional — deixe em branco para pular):')||'';
+  // Fonte primária: vaga pelo ID (funciona antes ou depois da análise ATS)
   const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const score = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const notas = [score?'Match ATS: '+score+'/100':'','Declinada'].filter(Boolean).join(' — ');
-  const hoje  = dataAtualFormatada();
-  if(idx>=0) {
+  const vagaRef = idx>=0 ? vagas[idx] : null;
+  const empresa = vagaRef?.empresa || atsEmpresa || 'A definir';
+  const cargo   = vagaRef?.cargo   || atsCargo   || 'A definir';
+  const crmTxt  = document.getElementById('crm-txt')?.innerText||'';
+  const score   = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas   = [score?'Match ATS: '+score+'/100':'','Declinada',motivo].filter(Boolean).join(' — ');
+  const hoje = dataAtualFormatada();
+  if(idx>=0){
     vagas[idx].status='negado';
-    vagas[idx].proxima='Declinada';
+    vagas[idx].proxima='Declinada'+(motivo?' — '+motivo:'');
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
-    atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
-    saveVagas();
-    showPage('crm');
   } else {
-    // Análise direta sem card de origem — apenas limpa o resultado
-    atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
-    document.getElementById('result-area').innerHTML=`<div class="card" style="padding:32px;text-align:center;">
-      <div style="font-size:28px;margin-bottom:10px;">✕</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;">Vaga descartada</div>
-      <div style="font-size:13px;color:var(--text3);">Cole uma nova vaga para analisar.</div>
-    </div>`;
+    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'baixa',status:'negado',salario:'',proxima:'Declinada'+(motivo?' — '+motivo:''),notas,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   }
+  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
+  saveVagas();
+  showPage('crm');
 }
 function saveVagaFromCV() {
-  const empresa = atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
-  const cargo   = atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim() || 'A definir';
-  const score   = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const notas   = score?`Match ATS: ${score}/100`:'';
-  {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas,data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+  const crmTxt = document.getElementById('crm-txt')?.innerText||'';
+  const empresa = crmTxt.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo = crmTxt.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score = crmTxt.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const notas = score?`Match ATS: ${score}/100`:'';
+  {const _t=Date.now();vagas.push({id:_t,empresa:empresa,cargo:cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k CLT',proxima:'Gerar .docx final e candidatar',notas:notas,data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva! Acesse Processos para acompanhar.`);
 }
