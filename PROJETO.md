@@ -1,5 +1,5 @@
 # Senova Suite — Documento de Projeto
-**Versão:** 2.0 · **Atualizado:** 11/mai/2026 · **Responsável:** Marcos Franco
+**Versão:** 3.0 · **Atualizado:** 15/mai/2026 · **Responsável:** Marcos Franco
 
 ---
 
@@ -53,18 +53,79 @@
 
 ---
 
-## 3. Módulos Atuais (v3.0 — maio/2026)
+## 3. Módulos Atuais (v3.1 — mai/2026)
 
 | Módulo | Status | Descrição |
 |--------|--------|-----------|
-| Anti-ATS | ✅ Funcional | Analisa vaga, gera CV adaptado, score ATS, keywords |
+| Anti-ATS (agora "Análise CV") | ✅ Funcional | Analisa vaga, gera CV adaptado, score ATS, keywords |
 | LinkedIn | ✅ Funcional | Otimiza headline, about e experiência em PT/EN/ES |
-| Pipeline CRM | ✅ Funcional | Kanban 5 colunas + lista de contatos, persistido no KV |
+| Pipeline CRM (Kanban) | ✅ Funcional | Kanban 5 colunas + drag-and-drop + arquivamento |
 | Simulador de Entrevista | ✅ Funcional | 5 perguntas calibradas + feedback por resposta |
+| CRM Contatos | ✅ Funcional | Módulo completo com modal, canal e vaga vinculada |
+| Central de Sinais | ✅ Funcional | Alertas de mercado classificados por IA na Home |
+| Carta de Apresentação | ✅ Funcional | Gerada via IA, visível na aba Análise CV após análise |
+| Timeline por card | ✅ Funcional | Histórico de movimentações + eventos Outlook por vaga |
+| Toggle Outlook | ✅ Funcional | Liga/desliga integração Outlook direto no header da Home |
+| Sofia (esboço) | 🔶 Esboçado | Seção de entrada do CV na aba Perfil — implementação pendente |
+
+### Funcionalidades implementadas por sessão (mai/2026)
+
+#### 13/mai/2026 — Kanban e UX
+- **Drag-and-drop** funcional no Kanban — arrastar card muda status e salva no KV
+- **Modal Editar Vaga corrigido** — cabe na tela sem scroll, campos organizados
+- **Geração de CV em .docx real** via html-docx-js (CDN) — substituiu Word 97 quebrado
+- **Campo Notas expandido** (rows 2→4) no modal de edição
+- **Fluxo Analisar→Candidatar corrigido** — usa ID da vaga, não match por nome
+- **Cards com data e hora** — formatação completa
+
+#### 13–14/mai/2026 — Rastreabilidade e filtros
+- **createdAt / updatedAt separados** — `createdAt` imutável, `updatedAt` atualizado a cada mudança
+- **Retroatividade de datas** — migração automática de vagas sem data
+- **Filtros pill** no Pipeline — prioridade, canal, coluna, com contador de resultados
+- **Busca em tempo real** no Pipeline — filtra por empresa/cargo sem mostrar arquivados
+- **Alerta de inatividade 7 dias** — badge vermelho automático nos cards parados
+- **Inatividade configurável** — threshold ajustável por usuário
+- **Data completa nos cards** — dia, mês, hora visíveis sem hover
+
+#### 14/mai/2026 — Timeline e Outlook
+- **Timeline por card** — histórico de eventos: criado, movido, email enviado, candidatura
+- **OAuth Calendars.ReadWrite** — acesso ampliado para criar eventos no Outlook Calendar
+- **Toggle switch Outlook** no header da Home — conecta/desconecta sem sair da tela
+- **Evento Outlook via Graph API** — criar lembrete de follow-up direto do card
+- **Timeline simplificada** — só eventos relevantes, sem ruído
+- **Mini-modal próxima ação obrigatória** ao mover card no Kanban
+
+#### 14/mai/2026 — Home e sinais
+- **Central de Sinais na Home** — alertas RSS classificados por IA (Oportunidade/Sinal/Radar)
+- **Cockpit da Home** redesenhado — Próximas Ações como item de ação clicável
+- **Arquivar Aceito/Negado** — cards dessas colunas movidos para arquivo, fora da busca
+- **Contador no header** do Pipeline — total de vagas ativas
+
+#### 14–15/mai/2026 — CRM Contatos e Comunicação
+- **CRM Contatos evoluído** — módulo completo com lista, busca, filtros por canal e vaga
+- **Modal de contato** — campos: nome, empresa, cargo, canal, vaga vinculada, notas, LinkedIn
+- **Central de Comunicação por contato** — histórico de interações por canal (LinkedIn, Email, WhatsApp)
+- **Carta de Apresentação** gerada por IA na aba Análise CV — aparece sempre após análise
+- **Responder Email** — botão permanente na aba Análise CV para redigir resposta ao recrutador
+- **Carta de Apresentação e Responder Email** sempre visíveis após análise (fix visibility)
+- **Renomear menu lateral** — Anti-ATS → "Análise CV", Networking → "Contatos"
+- **Seção entrada CV com Sofia** esboçada no Perfil
 
 ---
 
-## 4. Infraestrutura e Credenciais
+## 4. Pendências Abertas (15/mai/2026)
+
+| Item | Descrição | Prioridade |
+|------|-----------|------------|
+| Remote Control | Módulo para envio de comandos remotos / automações — ainda não implementado | Alta |
+| Falso positivo na busca | Busca do Pipeline às vezes retorna vagas que não deveriam aparecer — investigar filtro | Média |
+| Dashboard rico | Home com gráficos reais: funil, taxas de conversão, canal vs resposta | Média |
+| Carta de Apresentação — testes | Validar resultado da IA com vagas reais antes de dar como funcional | Média |
+| Sofia — implementação | Esboço existe na aba Perfil; lógica de entrada e análise do CV do Marcos ainda ausente | Alta |
+
+---
+
+## 5. Infraestrutura e Credenciais
 
 | Item | Valor | Onde gerenciar |
 |------|-------|----------------|
@@ -81,7 +142,7 @@
 
 ---
 
-## 5. Ferramentas Externas Instaladas (11/mai/2026)
+## 6. Ferramentas Externas Instaladas (11/mai/2026)
 
 | Ferramenta | Status | Observação |
 |---|---|---|
@@ -101,7 +162,7 @@
 
 ---
 
-## 6. Processo de Atualização (como fazer deploy)
+## 7. Processo de Atualização (como fazer deploy)
 
 1. Editar o arquivo `index.html` localmente ou via Claude
 2. Acessar **github.com/marcos-mco/senova**
@@ -115,39 +176,66 @@
 
 ---
 
-## 7. Roadmap de Melhorias
+## 8. Roadmap (atualizado 15/mai/2026)
 
-### Fase 1 — Imediato (mai/2026)
+### Fase 1 — Validar e aprovar tudo o que foi implementado (mai/2026)
 
-- [x] **Varredura automática de vagas:** RSS LinkedIn, Indeed BR/DE/ES, Gupy — cron trigger diário às 7h — resolvido 12/mai/2026 (commit 517fc79) — **requer `npx wrangler deploy` para ativar o cron**
-- [x] **Varredura de sinais de mercado:** Google News RSS de empresas-alvo — detecta saídas, expansões, fusões — resolvido 12/mai/2026 (commit 28550c0)
-- [x] **Integração Hunter.io:** busca automática de email do contato ao detectar sinal — resolvido 12/mai/2026 (commit 70fadd7)
-- [x] **Coluna "Lead" no Kanban:** vagas da varredura entram aqui antes de "Radar" — resolvido 12/mai/2026 (commit 2e6e348)
-- [x] **Aba "Central de Sinais":** classifica alertas em Oportunidade / Sinal / Radar — resolvido 12/mai/2026 (commit 70fadd7)
-- [x] **Fix: modal Editar Vaga** caber na tela sem rolar — resolvido 12/mai/2026 (commit fc6dae6)
-- [x] **Fix: botão Enviar CV** com email correto do recrutador — resolvido 12/mai/2026 (commit ba6e5d2)
-- [x] **Fix: URL LinkedIn** abre vaga correta — resolvido 12/mai/2026: campo origemUrl adicionado, aviso de login exibido no card (commit dd68145)
+- [ ] Testar Carta de Apresentação com vagas reais — validar qualidade do output da IA
+- [ ] Testar drag-and-drop em mobile e Safari — confirmar compatibilidade
+- [ ] Corrigir falso positivo na busca do Pipeline
+- [ ] Validar Timeline — eventos aparecem corretamente ao mover cards
+- [ ] Confirmar toggle Outlook estável — conectar/desconectar sem bugs
+- [ ] Revisar CRM Contatos — fluxo completo de adicionar contato + registrar interação
+- [ ] Testar Central de Sinais com dados RSS reais
+- [ ] Avaliar e aprovar módulo Remote Control antes de implementar
 
-### Fase 2 — Próximo ciclo (jun/2026)
+#### Itens concluídos (referência)
+- [x] Drag-and-drop Kanban (13/mai)
+- [x] Modal Editar Vaga corrigido (13/mai)
+- [x] Timeline por card (14/mai)
+- [x] Central de Sinais na Home (14/mai)
+- [x] CRM Contatos evoluído — modal, canal, vaga vinculada (14–15/mai)
+- [x] Carta de Apresentação na aba Análise CV (15/mai)
+- [x] Toggle Outlook no header da Home (14/mai)
+- [x] Filtros pill no Pipeline (14/mai)
+- [x] Busca em tempo real no Pipeline (14/mai)
+- [x] Colunas Aceito/Negado arquivadas (14/mai)
+- [x] Sofia esboçada na aba Perfil (14/mai)
+- [x] Varredura automática de vagas via RSS (12/mai)
+- [x] Varredura de sinais de mercado (12/mai)
+- [x] Integração Hunter.io (12/mai)
+- [x] Dashboard estratégico (12/mai)
+- [x] Alertas de follow-up 7/14/21 dias (12/mai)
 
-- [x] **Campo "Negativados":** coluna ou filtro para vagas com resposta negativa — resolvido 12/mai/2026 (commit 89d8d47)
-- [x] **Filtros de busca no CRM:** por empresa, status, prioridade, data — resolvido 12/mai/2026 (commit e8a08cf)
-- [x] **Próximos passos com datas:** follow-up com prazo, alerta de vencimento — resolvido 12/mai/2026 (commit 6678177)
-- [x] **Dashboard estratégico:** funil visual, taxas de conversão, breakdown por canal/prioridade — resolvido 12/mai/2026 (commit 28a2490)
-- [x] **Relatórios consolidados:** exportar PDF com resumo do processo seletivo — resolvido 12/mai/2026 (commit 55ec965)
-- [x] **Alertas de follow-up:** 7/14/21 dias sem resposta — resolvido 12/mai/2026 (commit e3857d5)
+### Fase 2 — Business Plan Senova (jun/2026)
 
-### Fase 3 — Médio prazo (jul–ago/2026)
+- [ ] **Definir modelo de negócio:** assinatura mensal, freemium, ou licença anual
+- [ ] **Precificação:** referência atual R$47/mês — validar com público 50+
+- [ ] **Landing page Senova** separada do app pessoal
+- [ ] **Registro do domínio senova.com.br** (~R$47/ano)
+- [ ] **Estrutura multi-usuário:** KV por usuário, autenticação, isolamento de dados
+- [ ] **Definir MVP para terceiros:** quais módulos incluir na versão paga
 
-- [ ] **Análise de resultados:** IA analisa padrões (quais vagas têm mais retorno, quais headhunters respondem mais)
-- [ ] **PMV Senova para outros usuários:** validar R$47/mês com público 50+
-- [ ] **Registro domínio senova.com.br** (~R$47/mês)
-- [ ] **Avaliar migração para Cowork** quando o app tiver múltiplos usuários
-- [ ] **Gmail OAuth** para monitorar emails candidaturas
+### Fase 3 — Sofia (jul/2026)
+
+Sofia é a assistente IA integrada ao Senova que analisa o CV do Marcos e personaliza todo o fluxo.
+
+- [ ] **Entrada do CV:** upload ou cole o CV na aba Perfil (seção já esboçada)
+- [ ] **Análise inicial:** Sofia lê o CV e extrai perfil executivo — cargo-alvo, diferenciais, setores
+- [ ] **Personalização automática:** Anti-ATS, LinkedIn Optimizer e Carta de Apresentação usam o perfil do CV como contexto
+- [ ] **Sugestões proativas:** Sofia identifica gaps entre o CV e as vagas em pipeline
+- [ ] **Memória de sessão:** Sofia lembra o contexto entre módulos sem repedir perguntas
+
+### Fase 4 — MVP Multi-usuário (ago/2026)
+
+- [ ] Migrar de GitHub Pages para infraestrutura com autenticação real
+- [ ] Avaliar migração para Cowork ou Vercel para suportar múltiplos usuários
+- [ ] Gmail OAuth para monitorar e-mails de candidaturas
+- [ ] Análise de padrões por IA: quais vagas têm mais retorno, quais headhunters respondem
 
 ---
 
-## 8. Arquitetura de Inteligência de Mercado (definida 11/mai/2026)
+## 9. Arquitetura de Inteligência de Mercado (definida 11/mai/2026)
 
 ### Varredura 1 — Oportunidades de emprego
 ```
@@ -175,12 +263,9 @@ Hunter.io API busca email do decisor
 "Central de Sinais" no Senova com mensagem sugerida pronta
 ```
 
-### Variável a adicionar no Cloudflare Worker
-- `HUNTER_API_KEY` → obter em hunter.io → Settings → API
-
 ---
 
-## 9. Headhunters Contatados (mai/2026)
+## 10. Headhunters Contatados (mai/2026)
 
 | Nome | Firma | Status | Próximo passo |
 |---|---|---|---|
@@ -199,18 +284,19 @@ Hunter.io API busca email do decisor
 
 ---
 
-## 10. Arquivos no Repositório
+## 11. Arquivos no Repositório
 
 | Arquivo | Status | Ação |
 |---------|--------|------|
 | `index.html` | ✅ Ativo — versão de produção | Nunca excluir |
 | `PROJETO.md` | ✅ Ativo | Manter atualizado a cada sessão |
+| `VERSOES.md` | ✅ Ativo | Manter atualizado a cada sessão |
 | `README.md` | ✅ Ativo | Manter atualizado |
-| `senova-worker.js` | ✅ Referência | Versão de produção está no Cloudflare |
+| `senova-worker-v6.js` | ✅ Referência | Versão de produção está no Cloudflare |
 
 ---
 
-## 11. Análise de Riscos
+## 12. Análise de Riscos
 
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|--------------|---------|-----------|
@@ -222,7 +308,7 @@ Hunter.io API busca email do decisor
 
 ---
 
-## 12. Glossário
+## 13. Glossário
 
 | Termo | Significado |
 |-------|-------------|
@@ -234,8 +320,10 @@ Hunter.io API busca email do decisor
 | Cron trigger | Tarefa agendada — executa automaticamente em horário definido |
 | RSS | Feed de conteúdo estruturado — permite leitura automática de notícias e vagas |
 | Social listening | Monitoramento de sinais públicos (notícias, LinkedIn) para detectar oportunidades |
+| Sofia | Assistente IA integrada ao Senova — lê o CV do Marcos e personaliza o fluxo |
+| Remote Control | Módulo planejado para automações e comandos remotos no Senova |
 
 ---
 
 *Documento mantido no repositório GitHub e no Projeto Claude de Marcos Franco.*  
-*Versão 1.0: 04/mai/2026 · Versão 2.0: 11/mai/2026*
+*Versão 1.0: 04/mai/2026 · Versão 2.0: 11/mai/2026 · Versão 3.0: 15/mai/2026*
