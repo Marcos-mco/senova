@@ -2602,18 +2602,26 @@ async function salvarEAgendarOutlook(){
   const nome=(document.getElementById('mc-nome')?.value||'').trim(); if(!nome) return;
   const obj=saveContato(true); if(!obj) return;
   const btn=document.getElementById('mc-outlook-btn');
-  if(btn){btn.textContent='Agendando…';btn.disabled=true;}
+  if(btn){btn.innerHTML='Agendando…';btn.disabled=true;}
   try{
     const res=await fetch(WORKER_URL+'/api/calendar/evento',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:`Senova: ${next} — ${nome}`,data,duracao:30})
     });
-    if(btn){btn.textContent=res.ok?'✓ Agendado!':'Erro ao agendar';btn.style.color=res.ok?'var(--green)':'var(--red)';}
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(btn){btn.innerHTML='✓ Agendado!';btn.style.color='var(--green)';btn.disabled=true;}
+      setTimeout(()=>closeContatoModal(),1200);
+    } else if(res.status===401&&json.reauth){
+      if(btn){btn.innerHTML='🔑 Conectar Outlook';btn.style.color='var(--action)';btn.disabled=false;}
+      if(confirm('Outlook não conectado. Conectar agora?')) window.open(json.url_auth,'_blank','noopener,noreferrer');
+    } else {
+      if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+    }
   } catch{
-    if(btn){btn.textContent='Erro ao agendar';btn.style.color='var(--red)';}
+    if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
   }
-  setTimeout(()=>closeContatoModal(),1000);
 }
 // Timeline de interações do contato
 function abrirFormTimelineCt(){
@@ -3253,6 +3261,36 @@ function renderHomeAcoes(){
     el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${inativoBadge}${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     list.appendChild(el);
   });
+
+  // Contatos CRM com próxima ação hoje, atrasada ou urgente (≤3 dias)
+  const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
+  const contatosAcao=(contatos||[]).filter(c=>c.next&&c.nextData).map(c=>{
+    const ms=new Date(c.nextData).setHours(0,0,0,0);
+    const diff=Math.round((ms-todayCRM.getTime())/86400000);
+    return {...c,_diff:diff};
+  }).filter(c=>c._diff<=3).sort((a,b)=>a._diff-b._diff);
+  if(contatosAcao.length){
+    const sep=document.createElement('div');
+    sep.className='home-vaga-acao';
+    sep.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 0 2px;';
+    sep.textContent='CRM — Contatos';
+    list.appendChild(sep);
+    contatosAcao.forEach(c=>{
+      let badgeTxt='',badgeBg='',badgeColor='';
+      if(c._diff<0){badgeTxt='⚠ Atrasado';badgeBg='#FEF0EF';badgeColor='#CC0000';}
+      else if(c._diff===0){badgeTxt='Hoje';badgeBg='#EFF6FF';badgeColor='#1D4ED8';}
+      else{badgeTxt='⏰ Urgente';badgeBg='#FFF8EC';badgeColor='#B8670A';}
+      const dataFmt=c.nextData.split('-').reverse().join('/');
+      const bordaCRM=c._diff<0?'#CC0000':c._diff===0?'#1D4ED8':'#B8670A';
+      const el=document.createElement('div');
+      el.className='home-acao-item home-vaga-acao';
+      el.style.borderLeftColor=bordaCRM;
+      if(c._diff<0) el.style.background='#FEF0EF';
+      el.onclick=()=>openContatoModal(c.id);
+      el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCRM};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Contato</span><span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">${badgeTxt}</span><span style="font-size:11px;color:var(--text3);">📅 ${dataFmt}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.next}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+      list.appendChild(el);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════

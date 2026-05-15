@@ -663,7 +663,7 @@ export default {
     //  10. Calendar — criar evento no Outlook
     if (path === '/api/calendar/evento' && request.method === 'POST') {
       const token = await getValidToken(env);
-      if (!token) return jsonResp({ erro: 'Outlook não conectado.' }, 401);
+      if (!token) return jsonResp({ erro: 'Outlook não conectado.', reauth: true, url_auth: `${REDIRECT_URI.replace('/api/auth/callback', '')}/api/auth/outlook` }, 401);
       const { titulo, data } = await request.json();
       if (!titulo || !data) return jsonResp({ erro: 'titulo e data são obrigatórios' }, 400);
       const evento = {
