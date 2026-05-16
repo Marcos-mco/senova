@@ -12,8 +12,48 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.10 — 16/mai/2026 (ATUAL)
+### v3.3 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_16mai2026d.html (pré-edição)
+
+#### Worker v7.3 — Varredura automática de vagas
+- Cron diário às 07h BRT (`0 10 * * *`) — busca passiva sem intervenção manual
+- **Adzuna API** integrada: BR, ES, DE, PT — vagas formais com salário e empresa
+- **Jobicy RSS** integrado: oportunidades remotas globais sem cadastro
+- Rotação de países: 1 país por dia (índice salvo no KV) para respeitar free tier Cloudflare Workers
+- Score ATS automático na importação: paralelo para todas as vagas, barra de progresso em tempo real
+- Score mínimo por região configurável no Perfil (BR: 70 · ES/PT: 55 · DE: 50 · Remoto: 60 · EUA: 65)
+- Modal de revisão de vagas abaixo do limiar com botão `+ Adicionar` individual
+- Widget **Vagas para revisar** na Home — exibe contagem e lista das vagas pendentes de revisão
+
+#### Deduplicação inteligente na importação
+- Ao importar vaga ao Pipeline, compara empresa + título com cards existentes via similaridade de tokens
+- Limiar ≥ 60%: exibe modal "Vaga possivelmente duplicada" com botões Sim (ignorar) / Não (adicionar mesmo assim)
+- Fila de duplicatas processada sequencialmente — não bloqueia importação das demais vagas
+
+#### OAuth Outlook restaurado (tenant consumers)
+- Worker v7.3 restaura todas as rotas OAuth: `/api/auth/outlook`, `/api/auth/callback`, `/api/emails`
+- Tenant hardcoded para `consumers` — compatível com conta pessoal Hotmail/Outlook.com
+- Auto-refresh de token com `refresh_token` salvo no KV
+
+#### Home redesenhada em duas colunas responsivas
+- Coluna esquerda: KPIs (2×2) + Funil + Taxa por canal + Tempo médio por estágio
+- Coluna direita: Central de Sinais (topo) → Vagas para revisar → Próximas Ações
+- Layout CSS Grid `5fr 7fr`, colapsa para 1 coluna em `< 960px`
+
+#### Próximas Ações — filtro por data concreta
+- Exibe apenas cards com data específica definida no modal de drag (formato dd/mm/yyyy)
+- Timestamps de criação e datas mês/ano ignorados — evitam falsos positivos
+- Ordenação fixa por urgência: ⚠ Vencido (vermelho) → Hoje (azul) → Futuros próximos (âmbar)
+- Cards CV Enviado sem prazo não aparecem: já contabilizados no KPI Candidaturas
+
+#### KPIs com tooltips descritivos
+- Leads: "vagas identificadas" · Candidaturas: "CV enviado aguardando" · Em processo: "entrevista/contato ativo" · Propostas: "oferta recebida"
+
+---
+
+### v3.10 — 16/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_15mai2026g.html (pré-edição)
 
 #### Fluxo completo Candidatar — envio via Outlook
@@ -223,12 +263,13 @@ Para restaurar qualquer versão anterior:
 
 ---
 
-## Worker v6 — Cloudflare
+## Worker v7.3 — Cloudflare
 - URL: senova-proxy.marcos-mco.workers.dev
 - KV binding: SENOVA_KV
 - OAuth: /consumers/ (conta pessoal Hotmail marcos_mco@hotmail.com)
 - Vars obrigatórias: ANTHROPIC_API_KEY, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_TENANT_ID
-- Scopes OAuth ativos: Mail.Read + Calendars.ReadWrite + offline_access
+- Scopes OAuth ativos: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
+- Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
 
 ## Regra de ouro
 **Antes de qualquer sessão de desenvolvimento:**
