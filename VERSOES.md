@@ -12,8 +12,28 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.9 — 15/mai/2026 (ATUAL)
+### v3.10 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_15mai2026g.html (pré-edição)
+
+#### Fluxo completo Candidatar — envio via Outlook
+- `candidatarVagaATS()` agora é `async`: se `lastCV` vazio e `vaga-input` tem ≥80 chars, gera CV automaticamente antes de prosseguir
+- Salva card como "CV Enviado" com score ATS, CV e carta antes de abrir modal
+- Novo `modal-candidatura`: Para (email recrutador pré-preenchido do card), Assunto pré-preenchido ("Candidatura — [Cargo] — Marcos Franco"), Carta editável (usa carta gerada ou texto padrão), CV otimizado editável (monospace)
+- Botão "Enviar pelo Outlook" → `POST /api/emails/enviar` → Graph API `POST /v1.0/me/sendMail` (email novo, não reply; salva em Enviados)
+- Após envio: registra "CV enviado por Outlook para [email]" na timeline do card + mensagem da Sofia
+- 401/reauth: botão muda para "🔑 Conectar Outlook" + `confirm()` abre OAuth; erro genérico: retry ativo
+- Worker: novo endpoint `POST /api/emails/enviar`
+
+#### Fixes Pipeline (v3.10 junto)
+- Modal Editar Vaga: `padding-bottom: 140px → 24px` no `.modal-body` — elimina scroll desnecessário
+- Botão Candidatar: email lido de `vagas[idx].emailDest` (valor salvo) em vez de `atsEmailDest` stale
+- URL LinkedIn/vaga: `verOrigem()` e `verOrigemCard()` normalizam para `https://` se protocolo ausente — fix "abre página de login"
+
+---
+
+### v3.9 — 15/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_15mai2026f.html (pré-edição)
 
 #### Fix: Central de Sinais sempre visível na Home
