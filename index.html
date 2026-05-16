@@ -394,6 +394,23 @@ select option { background: var(--bg2); }
       </div>
     </div>
 
+    <!-- ── Widget: Vagas para revisar ── -->
+    <div id="home-revisao-widget" style="display:none;margin-bottom:18px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;">
+          <div>
+            <span style="font-size:13.5px;font-weight:700;color:var(--navy);">⚡ Vagas para revisar</span>
+            <span id="revisao-widget-count" style="font-size:12px;color:var(--text3);margin-left:8px;"></span>
+          </div>
+          <button onclick="descartarTodasRejeitadas()"
+            style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
+            Descartar todas
+          </button>
+        </div>
+        <div id="home-revisao-lista"></div>
+      </div>
+    </div>
+
     <!-- ── Dashboard Pipeline ── -->
     <div id="dash-pipeline-section" style="margin-bottom:18px;">
 
@@ -1483,7 +1500,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); }
   if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; carregarStatusVarredura(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
@@ -2325,11 +2342,18 @@ async function importarVagasLead(){
 
 function _scoreMinParaVaga(v, config){
   const smr = config.score_minimo_por_regiao || {};
+  const url   = (v.url   || '').toLowerCase();
   const local = (v.local || '').toLowerCase();
   const fonte = (v.fonte || '').toLowerCase();
-  if(local.includes('brasil')) return smr.br ?? 70;
-  if(local.includes('espan') || local.includes('portug')) return smr.espt ?? 55;
-  if(local.includes('alemanha') || local.includes('austria') || local.includes('áustria')) return smr.de ?? 50;
+  // URL do Adzuna revela o país com precisão
+  if(url.includes('adzuna.com.br'))  return smr.br    ?? 70;
+  if(url.includes('adzuna.es') || url.includes('adzuna.pt')) return smr.espt ?? 55;
+  if(url.includes('adzuna.de'))      return smr.de    ?? 50;
+  if(url.includes('adzuna.com') && !url.includes('.br') && !url.includes('.es') && !url.includes('.pt') && !url.includes('.de')) return smr.us ?? 65;
+  // Jobicy e RSS: campo local vem do label da config (Brasil, Espanha…)
+  if(local.includes('brasil') || local.includes('brazil')) return smr.br    ?? 70;
+  if(local.includes('espan')  || local.includes('spain') || local.includes('portug')) return smr.espt ?? 55;
+  if(local.includes('alemanha') || local.includes('germany') || local.includes('deutsch')) return smr.de ?? 50;
   if(local.includes('remoto') || local.includes('remote') || fonte==='jobicy') return smr.remoto ?? 60;
   if(local.includes('eua') || local.includes('usa') || local.includes('estados')) return smr.us ?? 65;
   return smr.br ?? 70;
@@ -2349,42 +2373,65 @@ function _montarCardVarredura(v, agora){
   };
 }
 
-let _rejeitadasPendentes=[];
-function mostrarRevisaoRejeitadas(lista){
-  _rejeitadasPendentes=lista;
-  const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
-  const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
-  const rows=lista.map((v,i)=>`
-    <div id="rej-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
-        <div style="font-size:12px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
-      </div>
-      <span style="font-size:12px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 10px;border-radius:10px;white-space:nowrap;">${v.score}/100${v._limiar?` (limiar ${v._limiar})`:''}
-      </span>
-      <button onclick="adicionarVagaRejeitada(${i})" id="rej-add-${i}"
-        style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
-        + Adicionar
-      </button>
-    </div>`).join('');
+// ── Widget "Vagas para revisar" na Home ─────────────────────────
+const _REVISAO_KEY = 'senova_revisao_pendente';
 
-  document.getElementById('modal-revisao-lista').innerHTML=rows;
-  document.getElementById('modal-revisao-titulo').textContent=
-    `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar. Quer revisar?`;
-  document.getElementById('modal-revisao').style.display='flex';
+function mostrarRevisaoRejeitadas(lista){
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+  showToast(`${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar — revise na Home`);
 }
 
-function fecharRevisao(){ document.getElementById('modal-revisao').style.display='none'; _rejeitadasPendentes=[]; }
+function renderWidgetRevisao(){
+  const widget = document.getElementById('home-revisao-widget');
+  if(!widget) return;
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  if(lista.length === 0){ widget.style.display='none'; return; }
+  widget.style.display='block';
+  const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
+  const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
+  document.getElementById('revisao-widget-count').textContent =
+    `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar configurado`;
+  document.getElementById('home-revisao-lista').innerHTML = lista.map((v,i)=>`
+    <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
+        <div style="font-size:11.5px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
+      </div>
+      <span style="font-size:11.5px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 9px;border-radius:10px;white-space:nowrap;">${v.score}/100${v._limiar?` · limiar ${v._limiar}`:''}</span>
+      <button onclick="adicionarVagaRejeitada(${i})" id="rev-add-${i}"
+        style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Adicionar</button>
+      <button onclick="descartarVagaRejeitada(${i})"
+        style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
+    </div>`).join('');
+}
 
 function adicionarVagaRejeitada(idx){
-  const v=_rejeitadasPendentes[idx];
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  const v = lista[idx];
   if(!v) return;
-  const agora=Date.now();
+  const agora = Date.now();
   vagas.push(_montarCardVarredura(v, agora));
-  saveVagas(); renderCRM();
-  // Desabilita botão e marca linha como adicionada
-  const btn=document.getElementById(`rej-add-${idx}`);
-  if(btn){ btn.textContent='✅ Adicionada'; btn.disabled=true; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
+  saveVagas();
+  lista.splice(idx, 1);
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+  showToast('✅ Vaga adicionada ao Pipeline');
+}
+
+function descartarVagaRejeitada(idx){
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  lista.splice(idx, 1);
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+}
+
+function descartarTodasRejeitadas(){
+  try{ localStorage.removeItem(_REVISAO_KEY); }catch{}
+  renderWidgetRevisao();
 }
 
 function showToast(msg, duration=4000){
