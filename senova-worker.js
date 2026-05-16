@@ -89,8 +89,7 @@ async function getValidToken(env) {
   if (Date.now() < data.expires_at - 300000) return data.access_token;
   // Renova via refresh_token
   try {
-    const tenant = env.MS_TENANT_ID || 'consumers';
-    const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
+    const res = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -295,7 +294,6 @@ export default {
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
     if (path === '/api/auth/outlook' && request.method === 'GET') {
-      const tenant = env.MS_TENANT_ID || 'consumers';
       const redirectUri = env.MS_REDIRECT_URI || 'https://senova-proxy.marcos-mco.workers.dev/api/auth/callback';
       const params = new URLSearchParams({
         client_id: env.MS_CLIENT_ID,
@@ -305,16 +303,15 @@ export default {
         response_mode: 'query',
         prompt: 'consent',
       });
-      return Response.redirect(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize?${params}`, 302);
+      return Response.redirect(`https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?${params}`, 302);
     }
 
     // ── Auth Callback ────────────────────────────────────────────────
     if (path === '/api/auth/callback' && request.method === 'GET') {
       const code = url.searchParams.get('code');
       if (!code) return htmlResp('<h2>Erro: código OAuth não recebido.</h2>', 400);
-      const tenant = env.MS_TENANT_ID || 'consumers';
       const redirectUri = env.MS_REDIRECT_URI || 'https://senova-proxy.marcos-mco.workers.dev/api/auth/callback';
-      const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
+      const res = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
