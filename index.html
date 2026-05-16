@@ -2589,6 +2589,7 @@ let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _emailsAvulsos=[];
+let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
 let _emailsCarregados=false;
 let _diasInativo=Math.max(3,Math.min(30,parseInt(localStorage.getItem('senova_dias_inativo')||'7')));
@@ -3554,43 +3555,69 @@ async function checkOutlookStatus(){
     const res=await fetch(WORKER_URL+'/health');
     const data=await res.json();
     const tog=document.getElementById('outlook-toggle');
-    if(!tog) return false;
-    if(data.outlook==='conectado'){ tog.classList.add('on'); return true; }
-    else { tog.classList.remove('on'); return false; }
-  } catch{ return false; }
+    if(data.outlook==='conectado'){
+      _outlookStatus='conectado';
+      if(tog) tog.classList.add('on');
+      return true;
+    } else {
+      _outlookStatus='desconectado';
+      if(tog) tog.classList.remove('on');
+      return false;
+    }
+  } catch{
+    _outlookStatus='desconectado';
+    return false;
+  }
 }
 
 function atualizarSinais(){
-  // Sinal 1 — emails classificados (sempre visível após primeiro fetch)
+  // Sinal 1 — emails: sempre visível, estado varia com conexão Outlook
   const s1=document.getElementById('sinal-emails');
   const s1txt=document.getElementById('sinal-emails-txt');
   if(s1){
-    if(!_emailsCarregados){
-      s1.style.display='none';
+    s1.style.display='flex';
+    if(_outlookStatus==='desconectado'){
+      s1txt.textContent='Conectar Outlook para ver emails classificados';
+      s1.onclick=conectarOutlook;
+      s1.style.opacity='0.7';
+    } else if(!_emailsCarregados){
+      s1txt.textContent='Verificando emails...';
+      s1.onclick=null;
+      s1.style.opacity='0.7';
     } else if(_sinaisEmails.classificados>0){
-      s1.style.display='flex';
       s1txt.textContent=`${_sinaisEmails.classificados} email${_sinaisEmails.classificados===1?'':'s'} classificado${_sinaisEmails.classificados===1?'':'s'} → ${_sinaisEmails.leads} novo${_sinaisEmails.leads===1?'':'s'} lead${_sinaisEmails.leads===1?'':'s'} criado${_sinaisEmails.leads===1?'':'s'}`;
+      s1.onclick=toggleEmailsAvulsos;
+      s1.style.opacity='1';
     } else {
-      s1.style.display='flex';
       s1txt.textContent=_emailsAvulsos.length?`${_emailsAvulsos.length} email${_emailsAvulsos.length===1?'':'s'} aguardando resposta`:'Nenhum email novo';
+      s1.onclick=_emailsAvulsos.length?toggleEmailsAvulsos:null;
+      s1.style.opacity='1';
     }
   }
-  // Sinal 2 — Google Alertas
+  // Sinal 2 — Google Alertas: visível quando há alertas OU quando conectado (estado "sem alertas")
   const s2=document.getElementById('sinal-alertas');
   const s2txt=document.getElementById('sinal-alertas-txt');
   if(s2){
     if(_sinaisAlertas.length>0){
       s2.style.display='flex';
+      s2.style.opacity='1';
       s2txt.textContent=`Google Alertas de hoje → ${_sinaisAlertas.length} movimento${_sinaisAlertas.length===1?'':'s'} detectado${_sinaisAlertas.length===1?'':'s'}`;
-    } else { s2.style.display='none'; }
+    } else if(_emailsCarregados){
+      s2.style.display='flex';
+      s2.style.opacity='0.5';
+      s2txt.textContent='Nenhum alerta de mercado hoje';
+    } else {
+      s2.style.display='none';
+    }
   }
-  // Sinal 3 — inativos (sempre computado localmente)
+  // Sinal 3 — inativos: sempre computado localmente
   const s3=document.getElementById('sinal-inativos');
   const s3txt=document.getElementById('sinal-inativos-txt');
   if(s3){
     const n=vagas.filter(isInativo).length;
     if(n>0){
       s3.style.display='flex';
+      s3.style.opacity='1';
       s3txt.textContent=`${n} card${n===1?'':'s'} sem atualização há ${_diasInativo}+ dias`;
     } else { s3.style.display='none'; }
   }
@@ -3787,7 +3814,7 @@ async function toggleOutlook(){
 
 async function carregarEmails(forcar){
   const connected=await checkOutlookStatus();
-  if(!connected) return;
+  if(!connected){ atualizarSinais(); return; }
   try{
     const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
     const res=await fetch(url);
