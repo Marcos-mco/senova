@@ -384,24 +384,24 @@ select option { background: var(--bg2); }
         <!-- KPIs -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div class="home-stat-box" onclick="showPage('crm')">
-            <div class="home-stat-label">Leads / Radar</div>
+            <div class="home-stat-label">Leads</div>
             <div class="home-stat-num" id="stat-lead">—</div>
-            <div style="font-size:12px;color:var(--text3);">vagas para analisar</div>
+            <div style="font-size:12px;color:var(--text3);">vagas identificadas</div>
           </div>
           <div class="home-stat-box" onclick="showPage('crm')">
             <div class="home-stat-label">Candidaturas</div>
             <div class="home-stat-num" id="stat-candidatados">—</div>
-            <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
+            <div style="font-size:12px;color:var(--text3);">CV enviado aguardando</div>
           </div>
           <div class="home-stat-box" onclick="showPage('crm')">
             <div class="home-stat-label">Em processo</div>
             <div class="home-stat-num" id="stat-pipeline">—</div>
-            <div style="font-size:12px;color:var(--text3);">contato + entrevista</div>
+            <div style="font-size:12px;color:var(--text3);">entrevista/contato ativo</div>
           </div>
           <div class="home-stat-box" onclick="showPage('crm')">
             <div class="home-stat-label">Propostas</div>
             <div class="home-stat-num" id="stat-proposta">—</div>
-            <div style="font-size:12px;color:var(--text3);">para decidir</div>
+            <div style="font-size:12px;color:var(--text3);">oferta recebida</div>
           </div>
         </div>
 
@@ -498,14 +498,7 @@ select option { background: var(--bg2); }
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list"></div>
-          <div id="home-espera-section" style="display:none;margin-top:4px;">
-            <div onclick="toggleEsperaSection()" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;background:var(--bg4);border-radius:8px;user-select:none;">
-              <svg id="home-espera-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2" style="transition:transform 0.2s;"><path d="M4 6l4 4 4-4"/></svg>
-              <span style="font-size:12px;font-weight:600;color:var(--text2);">Em espera</span>
-              <span id="home-espera-count" style="background:#9CA3AF;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;">0</span>
-            </div>
-            <div id="home-espera-body" style="display:none;flex-direction:column;gap:8px;margin-top:6px;"></div>
-          </div>
+
         </div>
 
       </div><!-- /coluna direita -->
@@ -3963,8 +3956,7 @@ function renderHomeAcoes(){
     if(/^[a-z]{3,}\/\d{4}$/i.test(d)) return null; // month-only (abr/2026)
     return parseDateBR(d); // ms or null
   }
-  function _isAguardando(v){ return /aguardar\s+retorno/i.test(v.proxima||''); }
-  const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
+const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
   const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'CV Enviado',lead:'Lead'};
   const corPriH={alta:'#CC0000',media:'#0066CC',baixa:'#008800'};
   const priOrder={alta:0,media:1,baixa:2};
@@ -3975,9 +3967,8 @@ function renderHomeAcoes(){
   if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
   const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
-  // cards with specific date → Próximas Ações; aguardando sem data → Em espera
+  // só cards com data específica definida no modal de drag
   const comData=base.map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
-  const aguardando=base.filter(v=>_getNextActionDate(v)===null&&_isAguardando(v));
   comData.sort((a,b)=>a.dt-b.dt); // overdue first, then today, then future nearest
   function _buildCardVaga(v,badgeHtml,bordaCor,bgColor){
     const inativo=isInativo(v);
@@ -4021,28 +4012,6 @@ function renderHomeAcoes(){
       list.appendChild(_buildCardVaga(v,badgeHtml,bordaCor,bgColor));
     });
   }
-  // ── Em espera (collapsible) ──
-  const esperaSection=document.getElementById('home-espera-section');
-  if(esperaSection){
-    if(!aguardando.length){ esperaSection.style.display='none'; }
-    else {
-      esperaSection.style.display='';
-      document.getElementById('home-espera-count').textContent=aguardando.length;
-      const body=document.getElementById('home-espera-body');
-      if(body){
-        const wasOpen=body.style.display==='flex';
-        body.innerHTML='';
-        const sorted=[...aguardando].sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-        sorted.forEach(v=>{
-          const badgeHtml=`<span style="background:#F3F4F6;color:var(--text3);font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:4px;">Em espera</span>`;
-          body.appendChild(_buildCardVaga(v,badgeHtml,corPriH[v.prioridade]||'#9CA3AF',null));
-        });
-        body.style.display=wasOpen?'flex':'none';
-        const chevron=document.getElementById('home-espera-chevron');
-        if(chevron) chevron.style.transform=wasOpen?'rotate(180deg)':'';
-      }
-    }
-  }
   // ── CRM Contatos ──
   const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
   const contatosAcao=(contatos||[]).filter(c=>c.next&&c.nextData).map(c=>{
@@ -4071,14 +4040,6 @@ function renderHomeAcoes(){
       list.appendChild(el);
     });
   }
-}
-function toggleEsperaSection(){
-  const body=document.getElementById('home-espera-body');
-  const chevron=document.getElementById('home-espera-chevron');
-  if(!body) return;
-  const open=body.style.display==='flex';
-  body.style.display=open?'none':'flex';
-  if(chevron) chevron.style.transform=open?'':'rotate(180deg)';
 }
 
 // ═══════════════════════════════════════════════
