@@ -777,6 +777,7 @@ select option { background: var(--bg2); }
         <option value="az">Empresa A-Z</option>
       </select>
       <button class="btn-filter-limpar" onclick="limparFiltros()">Limpar filtros</button>
+      <button id="btn-importar-vagas" class="btn-filter-limpar" onclick="importarVagasLead()" style="background:var(--navy);color:#fff;border-color:var(--navy);">⬇ Importar vagas</button>
     </div>
 
     <!-- Vagas Kanban -->
@@ -2089,6 +2090,82 @@ function loadCRM(){
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
 }
+async function importarVagasLead(){
+  const btn=document.getElementById('btn-importar-vagas');
+  if(btn){btn.textContent='⏳ Importando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/vagas-lead');
+    const data=await res.json();
+    const lead=data.vagas||[];
+    const idsExistentes=new Set(vagas.map(v=>String(v.id)));
+    let novas=0;
+    const agora=Date.now();
+    lead.forEach(v=>{
+      if(idsExistentes.has(String(v.id))) return;
+      vagas.push({
+        id:v.id,
+        empresa:v.empresa||'—',
+        cargo:v.titulo||'—',
+        canal:'Varredura IA',
+        prioridade:'media',
+        status:'lead',
+        salario:'',
+        proxima:'Analisar compatibilidade',
+        notas:v.descricao||'',
+        data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
+        createdAt:agora,
+        updatedAt:agora,
+        timeline:[{ts:agora,texto:'Importado via varredura automática'}],
+        origemUrl:v.url||'',
+        score:v.score,
+        classificacao:v.classificacao,
+        resumo:v.resumo,
+        pontos_fortes:v.pontos_fortes||[],
+        descricao:v.descricao||'',
+        fonte:v.fonte||'',
+      });
+      novas++;
+    });
+    if(novas>0){ saveVagas(); renderCRM(); }
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Sem novidades';btn.disabled=false;}
+    setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
+  }catch(e){
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
+  }
+}
+
+async function analisarCardVaga(vagaId, btn){
+  const vaga=vagas.find(v=>String(v.id)===String(vagaId));
+  if(!vaga) return;
+  if(btn){btn.textContent='⏳ Analisando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:vaga.cargo||'',empresa:vaga.empresa||'',descricao:vaga.notas||vaga.descricao||''}),
+    });
+    const analise=await res.json();
+    vaga.score=analise.score??null;
+    vaga.classificacao=analise.classificacao||null;
+    vaga.resumo=analise.resumo||null;
+    vaga.pontos_fortes=analise.pontos_fortes||[];
+    vaga.salario_compativel=analise.salario_compativel??null;
+    vaga.updatedAt=Date.now();
+    saveVagas();
+    // Salva no KV se for vaga de varredura (tem id com prefixo vaga_)
+    if(String(vagaId).startsWith('vaga_')){
+      fetch(WORKER_URL+'/api/vagas-lead/score',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:vagaId,score:vaga.score,classificacao:vaga.classificacao,resumo:vaga.resumo,pontos_fortes:vaga.pontos_fortes,salario_compativel:vaga.salario_compativel}),
+      }).catch(()=>{});
+    }
+    renderCRM();
+  }catch(e){
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;}
+  }
+}
+
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
@@ -2287,6 +2364,8 @@ function renderCRM(){
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';const cl={'candidatar':'Candidatar','analisar':'Analisar','recusar':'Recusar'}[c.classificacao]||c.classificacao||'';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">⚡ ${sc}/100</span>${cl?`<span style="font-size:11px;color:${cor};font-weight:600;">${cl}</span>`:''}</div>`;})():''}
+          ${c.score===null?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);"><button id="btn-analisar-${c.id}" onclick="event.stopPropagation();analisarCardVaga('${c.id}',this)" style="font-size:11.5px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:2px 10px;cursor:pointer;font-family:var(--font);">⚡ Analisar IA</button></div>`:''}
         </div>`;
       }).join('')}
     </div>`;

@@ -1,5 +1,5 @@
 name = "senova-proxy"
-main = "senova-worker-v6.js"
+main = "senova-worker.js"
 compatibility_date = "2026-04-30"
 
 [[kv_namespaces]]
