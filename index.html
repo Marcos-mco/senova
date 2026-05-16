@@ -724,6 +724,46 @@ select option { background: var(--bg2); }
           </div>
         </div>
       </div>
+
+      <!-- ── VARREDURA AUTOMÁTICA ── -->
+      <div class="card" style="margin-top:24px;border-top:3px solid var(--gold);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:var(--radius);background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">⚡</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--navy);">Varredura automática de vagas</div>
+            <div style="font-size:12.5px;color:var(--text3);">Adzuna · Jobicy — cron diário 07:00 BRT</div>
+          </div>
+          <div id="varredura-status-pill" style="margin-left:auto;font-size:12px;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:20px;">Carregando…</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+          <!-- Score mínimo -->
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Score mínimo para importar</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="range" id="varredura-score-min" min="0" max="100" value="70" step="5"
+                style="flex:1;accent-color:var(--navy);"
+                oninput="document.getElementById('varredura-score-min-val').textContent=this.value">
+              <span id="varredura-score-min-val" style="font-size:14px;font-weight:700;color:var(--navy);min-width:28px;">70</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Vagas abaixo deste score não entram no Pipeline</div>
+          </div>
+
+          <!-- Status última execução -->
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Última varredura</label>
+            <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;">—</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="salvarConfigVarredura()" style="font-size:13px;padding:8px 16px;">Salvar configuração</button>
+          <button class="btn btn-ghost" onclick="dispararVarreduraManual()" id="btn-varredura-manual" style="font-size:13px;padding:8px 16px;">▶ Varrer agora</button>
+        </div>
+        <div id="varredura-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1405,7 +1445,7 @@ function showPage(page) {
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); }
-  if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; }
+  if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; carregarStatusVarredura(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
 
@@ -2090,79 +2130,144 @@ function loadCRM(){
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
 }
-async function importarVagasLead(){
-  const btn=document.getElementById('btn-importar-vagas');
-  if(btn){btn.textContent='⏳ Importando…';btn.disabled=true;}
+// ── Varredura: carrega status e config ao abrir Perfil ──────────
+async function carregarStatusVarredura(){
   try{
-    const res=await fetch(WORKER_URL+'/api/vagas-lead');
-    const data=await res.json();
-    const lead=data.vagas||[];
-    const idsExistentes=new Set(vagas.map(v=>String(v.id)));
-    let novas=0;
-    const agora=Date.now();
-    lead.forEach(v=>{
-      if(idsExistentes.has(String(v.id))) return;
-      vagas.push({
-        id:v.id,
-        empresa:v.empresa||'—',
-        cargo:v.titulo||'—',
-        canal:'Varredura IA',
-        prioridade:'media',
-        status:'lead',
-        salario:'',
-        proxima:'Analisar compatibilidade',
-        notas:v.descricao||'',
-        data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
-        createdAt:agora,
-        updatedAt:agora,
-        timeline:[{ts:agora,texto:'Importado via varredura automática'}],
-        origemUrl:v.url||'',
-        score:v.score,
-        classificacao:v.classificacao,
-        resumo:v.resumo,
-        pontos_fortes:v.pontos_fortes||[],
-        descricao:v.descricao||'',
-        fonte:v.fonte||'',
-      });
-      novas++;
+    const [resStatus, resConfig] = await Promise.all([
+      fetch(WORKER_URL+'/api/varredura-status'),
+      fetch(WORKER_URL+'/api/config-varredura'),
+    ]);
+    const status = await resStatus.json();
+    const config = await resConfig.json();
+
+    // Preenche score mínimo
+    const scoreMin = config.score_minimo ?? 70;
+    const sliderEl = document.getElementById('varredura-score-min');
+    const valEl    = document.getElementById('varredura-score-min-val');
+    if(sliderEl){ sliderEl.value = scoreMin; }
+    if(valEl)   { valEl.textContent = scoreMin; }
+
+    // Status pill
+    const pill = document.getElementById('varredura-status-pill');
+    if(pill){
+      if(status.nunca_executada){ pill.textContent='Nunca executada'; }
+      else if(status.status==='ok'){ pill.textContent='✅ OK'; pill.style.color='var(--green)'; }
+      else{ pill.textContent='⚠ Erro'; pill.style.color='#C0281E'; }
+    }
+
+    // Última execução info
+    const info = document.getElementById('varredura-ultima-info');
+    if(info && !status.nunca_executada){
+      const dt = status.ultima_execucao ? new Date(status.ultima_execucao).toLocaleString('pt-BR') : '—';
+      info.innerHTML = `${dt}<br><span style="color:var(--text3);">País: ${status.pais_varrido||'—'} · ${status.total_novas??0} novas</span>`;
+    }
+  }catch{}
+}
+
+async function salvarConfigVarredura(){
+  const scoreMin = parseInt(document.getElementById('varredura-score-min')?.value||'70');
+  const btn = document.querySelector('[onclick="salvarConfigVarredura()"]');
+  if(btn){btn.textContent='Salvando…';btn.disabled=true;}
+  try{
+    // Lê config atual e mescla score_minimo
+    const resConfig = await fetch(WORKER_URL+'/api/config-varredura');
+    const config = await resConfig.json();
+    config.score_minimo = scoreMin;
+    await fetch(WORKER_URL+'/api/config-varredura',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(config),
     });
-    if(novas>0){ saveVagas(); renderCRM(); }
-    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Sem novidades';btn.disabled=false;}
-    setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
-  }catch(e){
-    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
+    const ok = document.getElementById('varredura-save-ok');
+    if(ok){ ok.textContent='✅ Configuração salva'; ok.style.display='block'; setTimeout(()=>ok.style.display='none',3000); }
+  }catch{}
+  if(btn){btn.textContent='Salvar configuração';btn.disabled=false;}
+}
+
+async function dispararVarreduraManual(){
+  const btn = document.getElementById('btn-varredura-manual');
+  if(btn){btn.textContent='⏳ Varrendo…';btn.disabled=true;}
+  try{
+    await fetch(WORKER_URL+'/api/varredura-manual',{method:'POST'});
+    setTimeout(async()=>{
+      await carregarStatusVarredura();
+      if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
+    }, 8000);
+  }catch{
+    if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
   }
 }
 
-async function analisarCardVaga(vagaId, btn){
-  const vaga=vagas.find(v=>String(v.id)===String(vagaId));
-  if(!vaga) return;
-  if(btn){btn.textContent='⏳ Analisando…';btn.disabled=true;}
+async function importarVagasLead(){
+  const btn = document.getElementById('btn-importar-vagas');
+  if(btn){btn.textContent='⏳ Buscando…';btn.disabled=true;}
   try{
-    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:vaga.cargo||'',empresa:vaga.empresa||'',descricao:vaga.notas||vaga.descricao||''}),
-    });
-    const analise=await res.json();
-    vaga.score=analise.score??null;
-    vaga.classificacao=analise.classificacao||null;
-    vaga.resumo=analise.resumo||null;
-    vaga.pontos_fortes=analise.pontos_fortes||[];
-    vaga.salario_compativel=analise.salario_compativel??null;
-    vaga.updatedAt=Date.now();
-    saveVagas();
-    // Salva no KV se for vaga de varredura (tem id com prefixo vaga_)
-    if(String(vagaId).startsWith('vaga_')){
-      fetch(WORKER_URL+'/api/vagas-lead/score',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:vagaId,score:vaga.score,classificacao:vaga.classificacao,resumo:vaga.resumo,pontos_fortes:vaga.pontos_fortes,salario_compativel:vaga.salario_compativel}),
-      }).catch(()=>{});
+    // Busca config para pegar score_minimo
+    const [resLead, resConfig] = await Promise.all([
+      fetch(WORKER_URL+'/api/vagas-lead'),
+      fetch(WORKER_URL+'/api/config-varredura'),
+    ]);
+    const data   = await resLead.json();
+    const config = await resConfig.json();
+    const scoreMin = config.score_minimo ?? 70;
+    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)));
+
+    if(lead.length===0){
+      if(btn){btn.textContent='✅ Sem novidades';btn.disabled=false;}
+      setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
+      return;
     }
-    renderCRM();
+
+    // Analisa em paralelo com progresso
+    if(btn) btn.textContent=`⏳ Analisando 0/${lead.length}…`;
+    let analisadas=0;
+    const resultados = await Promise.all(lead.map(async v=>{
+      try{
+        const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||''}),
+        });
+        const analise = await res.json();
+        analisadas++;
+        if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
+        // Salva score no KV em background
+        fetch(WORKER_URL+'/api/vagas-lead/score',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,salario_compativel:analise.salario_compativel}),
+        }).catch(()=>{});
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], salario_compativel:analise.salario_compativel??null};
+      }catch{
+        analisadas++;
+        return {...v, score:null};
+      }
+    }));
+
+    // Filtra pelo limiar e adiciona ao Pipeline
+    const agora=Date.now();
+    let novas=0;
+    resultados.forEach(v=>{
+      if(typeof v.score==='number' && v.score < scoreMin) return;
+      vagas.push({
+        id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
+        canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
+        proxima:'Avaliar candidatura', notas:v.descricao||'',
+        data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
+        createdAt:agora, updatedAt:agora,
+        timeline:[{ts:agora,texto:`Importado via varredura (score ${v.score??'—'}/100)`}],
+        origemUrl:v.url||'',
+        score:v.score, classificacao:v.classificacao, resumo:v.resumo,
+        pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
+      });
+      novas++;
+    });
+
+    if(novas>0){ saveVagas(); renderCRM(); }
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''} (≥${scoreMin})`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
+    setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
   }catch(e){
-    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;}
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
   }
 }
 
@@ -2365,7 +2470,6 @@ function renderCRM(){
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
           ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';const cl={'candidatar':'Candidatar','analisar':'Analisar','recusar':'Recusar'}[c.classificacao]||c.classificacao||'';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">⚡ ${sc}/100</span>${cl?`<span style="font-size:11px;color:${cor};font-weight:600;">${cl}</span>`:''}</div>`;})():''}
-          ${c.score===null?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);"><button id="btn-analisar-${c.id}" onclick="event.stopPropagation();analisarCardVaga('${c.id}',this)" style="font-size:11.5px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:2px 10px;cursor:pointer;font-family:var(--font);">⚡ Analisar IA</button></div>`:''}
         </div>`;
       }).join('')}
     </div>`;
