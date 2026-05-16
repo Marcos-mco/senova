@@ -2248,14 +2248,14 @@ async function importarVagasLead(){
     const agora=Date.now();
     let novas=0;
     resultados.forEach(v=>{
-      if(typeof v.score==='number' && v.score < scoreMin) return;
+      if(typeof v.score !== 'number' || v.score < scoreMin) return;
       vagas.push({
         id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
         canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
         proxima:'Avaliar candidatura', notas:v.descricao||'',
         data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
         createdAt:agora, updatedAt:agora,
-        timeline:[{ts:agora,texto:`Importado via varredura (score ${v.score??'—'}/100)`}],
+        timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
         origemUrl:v.url||'',
         score:v.score, classificacao:v.classificacao, resumo:v.resumo,
         pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
@@ -2263,7 +2263,15 @@ async function importarVagasLead(){
       novas++;
     });
 
-    if(novas>0){ saveVagas(); renderCRM(); }
+    if(novas>0){
+      saveVagas();
+      showPage('crm');
+      setTimeout(()=>{
+        renderCRM();
+        const leadCol = document.querySelector('#kanban-vagas .kanban-col-drop');
+        if(leadCol) leadCol.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }, 80);
+    }
     if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''} (≥${scoreMin})`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
     setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
   }catch(e){
@@ -2464,6 +2472,7 @@ function renderCRM(){
           <div class="kcard-role">${c.cargo}</div>
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
+            ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
             ${inativo?`<span class="badge badge-inativo">⚠ ${_diasInativo}d</span>`:''}
           </div>
