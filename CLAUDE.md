@@ -25,18 +25,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Repo:** https://github.com/marcos-mco/senova
 - **Modelo IA:** `claude-sonnet-4-5` — único modelo testado e funcional no endpoint atual
 
-O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker-v6.js` e é gerenciado pelo `wrangler.toml`.
+O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.3) e é gerenciado pelo `wrangler.toml`.
 
 ## Deploy
 
-Não há comando de build. O deploy é manual:
+Não há comando de build. O deploy do frontend é via git:
 
-1. Editar `index.html` localmente
-2. Acessar github.com/marcos-mco/senova → clicar em `index.html` → ícone lápis ✏️
-3. Selecionar tudo → colar novo conteúdo → **Commit changes**
-4. Aguardar ~30s → recarregar com `Ctrl+Shift+R`
+```
+git add index.html
+git commit -m "descrição"
+git push origin main
+```
 
-**Para o Worker** (quando `senova-worker-v6.js` mudar):
+GitHub Pages publica automaticamente em ~30s. Recarregar com `Ctrl+Shift+R`.
+
+**Para o Worker** (quando `senova-worker.js` mudar):
 ```
 npx wrangler deploy
 ```
@@ -64,19 +67,28 @@ Antes de qualquer commit do `index.html`, verificar:
 
 Público-alvo 40+: mínimo 16px no corpo, alto contraste.
 
-## Worker — rotas disponíveis (`senova-worker-v6.js`)
+## Worker — rotas disponíveis (`senova-worker.js` v7.3)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/health` | Status do worker + status Outlook |
 | POST | `/api/claude` | Proxy genérico para Anthropic API |
-| POST | `/api/analisar-vaga` | Anti-ATS — análise de vaga para o perfil de Marcos |
+| POST | `/api/analisar-vaga` | Análise CV — score ATS para o perfil de Marcos |
+| POST | `/api/varredura-manual` | Dispara varredura de vagas agora |
+| POST | `/api/varredura-pais` | Dispara varredura de país específico |
+| GET | `/api/vagas-lead` | Retorna vagas coletadas pelo cron |
+| POST | `/api/vagas-lead/clear` | Limpa vagas do KV |
+| GET/POST | `/api/config-varredura` | Configurações de score mínimo por região |
+| GET | `/api/varredura-status` | Status e log da última execução |
 | GET | `/api/auth/outlook` | Inicia OAuth Microsoft |
 | GET | `/api/auth/callback` | Callback OAuth, salva token no KV |
 | DELETE | `/api/auth/outlook` | Desconecta Outlook |
 | GET | `/api/emails` | Busca e-mails novos + classifica via IA |
 | POST | `/api/emails/marcar-visto` | Marca e-mails como vistos no KV |
 | DELETE | `/api/emails/limpar-vistos` | Limpa histórico de vistos |
+| POST | `/api/emails/responder` | Responde e-mail via Graph API (reply) |
+| POST | `/api/emails/enviar` | Envia e-mail novo via Graph API (sendMail) |
+| POST | `/api/calendar/evento` | Cria evento no Outlook Calendar |
 | GET/POST/DELETE | `/api/whitelist` | Gerencia domínios prioritários para classificação |
 
 ## Variáveis de ambiente do Worker (Cloudflare → Workers → senova-proxy → Settings)
@@ -85,19 +97,27 @@ Público-alvo 40+: mínimo 16px no corpo, alto contraste.
 - `MS_CLIENT_ID` — Azure App Client ID: `eaf69797-def3-4f6a-a103-8bcb3ed0f79e`
 - `MS_CLIENT_SECRET` — Azure App Secret
 - `MS_REDIRECT_URI` — URI de redirecionamento OAuth
-- `MS_TENANT_ID` — Azure Tenant: `b7fdfe9f-441d-4571-90f1-6882e06fb8a7`
+- `MS_TENANT_ID` — hardcoded `consumers` no código (conta pessoal Hotmail)
+- `ADZUNA_APP_ID` — `65c2a129`
+- `ADZUNA_APP_KEY` — chave Adzuna para busca de vagas
 - `HUNTER_API_KEY` — Hunter.io (a integrar)
 
 KV binding: `SENOVA_KV` (id: `e0f1fc09836b48d1be86fcdf217ef7dd`)
 
-## Módulos ativos (v3.0 — mai/2026)
+Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
+
+## Módulos ativos (v3.3 — 16/mai/2026)
 
 | Módulo | Status |
 |--------|--------|
-| Anti-ATS | ✅ Funcional |
+| Análise CV (Anti-ATS) | ✅ Funcional |
 | LinkedIn Optimizer | ✅ Funcional |
 | Pipeline CRM (Kanban 5 colunas) | ✅ Funcional |
 | Simulador de Entrevista | ✅ Funcional |
+| Varredura automática de vagas (Adzuna + Jobicy) | ✅ Funcional |
+| OAuth Outlook (Mail + Calendar) | ✅ Funcional |
+| Candidatura via Outlook | ✅ Funcional |
+| CRM Contatos | ✅ Funcional |
 
 ## Antes de qualquer edição
 
