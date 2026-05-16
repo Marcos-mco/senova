@@ -736,25 +736,43 @@ select option { background: var(--bg2); }
           <div id="varredura-status-pill" style="margin-left:auto;font-size:12px;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:20px;">Carregando…</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-
-          <!-- Score mínimo -->
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Score mínimo para importar</label>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <input type="range" id="varredura-score-min" min="0" max="100" value="70" step="5"
-                style="flex:1;accent-color:var(--navy);"
-                oninput="document.getElementById('varredura-score-min-val').textContent=this.value">
-              <span id="varredura-score-min-val" style="font-size:14px;font-weight:700;color:var(--navy);min-width:28px;">70</span>
+        <!-- Score mínimo por região -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:10px;">Score mínimo por região</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇧🇷 Brasil</span>
+              <input type="range" id="vsm-br" min="0" max="100" value="70" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-br-v').textContent=this.value">
+              <span id="vsm-br-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">70</span>
             </div>
-            <div style="font-size:11.5px;color:var(--text3);margin-top:4px;">Vagas abaixo deste score não entram no Pipeline</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇪🇸 Espanha / 🇵🇹 Portugal</span>
+              <input type="range" id="vsm-espt" min="0" max="100" value="55" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-espt-v').textContent=this.value">
+              <span id="vsm-espt-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">55</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇩🇪 Alemanha</span>
+              <input type="range" id="vsm-de" min="0" max="100" value="50" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-de-v').textContent=this.value">
+              <span id="vsm-de-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">50</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🌐 Remoto</span>
+              <input type="range" id="vsm-remoto" min="0" max="100" value="60" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-remoto-v').textContent=this.value">
+              <span id="vsm-remoto-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">60</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇺🇸 EUA</span>
+              <input type="range" id="vsm-us" min="0" max="100" value="65" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-us-v').textContent=this.value">
+              <span id="vsm-us-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">65</span>
+            </div>
           </div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Vagas abaixo do limiar da região não entram no Pipeline</div>
+        </div>
 
-          <!-- Status última execução -->
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Última varredura</label>
-            <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;">—</div>
-          </div>
+        <!-- Status última execução -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:4px;">Última varredura</label>
+          <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;">—</div>
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -2161,12 +2179,16 @@ async function carregarStatusVarredura(){
     const status = await resStatus.json();
     const config = await resConfig.json();
 
-    // Preenche score mínimo
-    const scoreMin = config.score_minimo ?? 70;
-    const sliderEl = document.getElementById('varredura-score-min');
-    const valEl    = document.getElementById('varredura-score-min-val');
-    if(sliderEl){ sliderEl.value = scoreMin; }
-    if(valEl)   { valEl.textContent = scoreMin; }
+    // Preenche scores por região
+    const smr = config.score_minimo_por_regiao || {};
+    const DEFAULTS = { br:70, espt:55, de:50, remoto:60, us:65 };
+    Object.entries(DEFAULTS).forEach(([k,def])=>{
+      const v = smr[k] ?? def;
+      const sl = document.getElementById(`vsm-${k}`);
+      const sp = document.getElementById(`vsm-${k}-v`);
+      if(sl) sl.value = v;
+      if(sp) sp.textContent = v;
+    });
 
     // Status pill
     const pill = document.getElementById('varredura-status-pill');
@@ -2186,14 +2208,17 @@ async function carregarStatusVarredura(){
 }
 
 async function salvarConfigVarredura(){
-  const scoreMin = parseInt(document.getElementById('varredura-score-min')?.value||'70');
+  const DEFAULTS = { br:70, espt:55, de:50, remoto:60, us:65 };
+  const smr = {};
+  Object.keys(DEFAULTS).forEach(k=>{
+    smr[k] = parseInt(document.getElementById(`vsm-${k}`)?.value || DEFAULTS[k]);
+  });
   const btn = document.querySelector('[onclick="salvarConfigVarredura()"]');
   if(btn){btn.textContent='Salvando…';btn.disabled=true;}
   try{
-    // Lê config atual e mescla score_minimo
     const resConfig = await fetch(WORKER_URL+'/api/config-varredura');
     const config = await resConfig.json();
-    config.score_minimo = scoreMin;
+    config.score_minimo_por_regiao = smr;
     await fetch(WORKER_URL+'/api/config-varredura',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2230,7 +2255,6 @@ async function importarVagasLead(){
     ]);
     const data   = await resLead.json();
     const config = await resConfig.json();
-    const scoreMin = config.score_minimo ?? 70;
     const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)));
 
     if(lead.length===0){
@@ -2265,13 +2289,14 @@ async function importarVagasLead(){
       }
     }));
 
-    // Separa aprovadas e rejeitadas
+    // Separa aprovadas e rejeitadas usando limiar por região
     const agora=Date.now();
     let novas=0;
     const rejeitadas=[];
     resultados.forEach(v=>{
-      if(typeof v.score !== 'number' || v.score < scoreMin){
-        if(typeof v.score === 'number') rejeitadas.push(v); // só as que têm score (não as que falharam)
+      const limiar = _scoreMinParaVaga(v, config);
+      if(typeof v.score !== 'number' || v.score < limiar){
+        if(typeof v.score === 'number') rejeitadas.push({...v, _limiar:limiar});
         return;
       }
       vagas.push(_montarCardVarredura(v, agora));
@@ -2288,14 +2313,26 @@ async function importarVagasLead(){
         showToast(`✅ ${novas} vaga${novas>1?'s':''} importada${novas>1?'s':''} — veja na coluna Lead`);
       }, 150);
     }
-    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''} (≥${scoreMin})`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
     setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
 
     // Oferta de revisão das rejeitadas
-    if(rejeitadas.length>0) mostrarRevisaoRejeitadas(rejeitadas, scoreMin);
+    if(rejeitadas.length>0) mostrarRevisaoRejeitadas(rejeitadas);
   }catch(e){
     if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
   }
+}
+
+function _scoreMinParaVaga(v, config){
+  const smr = config.score_minimo_por_regiao || {};
+  const local = (v.local || '').toLowerCase();
+  const fonte = (v.fonte || '').toLowerCase();
+  if(local.includes('brasil')) return smr.br ?? 70;
+  if(local.includes('espan') || local.includes('portug')) return smr.espt ?? 55;
+  if(local.includes('alemanha') || local.includes('austria') || local.includes('áustria')) return smr.de ?? 50;
+  if(local.includes('remoto') || local.includes('remote') || fonte==='jobicy') return smr.remoto ?? 60;
+  if(local.includes('eua') || local.includes('usa') || local.includes('estados')) return smr.us ?? 65;
+  return smr.br ?? 70;
 }
 
 function _montarCardVarredura(v, agora){
@@ -2313,7 +2350,7 @@ function _montarCardVarredura(v, agora){
 }
 
 let _rejeitadasPendentes=[];
-function mostrarRevisaoRejeitadas(lista, scoreMin){
+function mostrarRevisaoRejeitadas(lista){
   _rejeitadasPendentes=lista;
   const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
   const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
@@ -2323,7 +2360,8 @@ function mostrarRevisaoRejeitadas(lista, scoreMin){
         <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
         <div style="font-size:12px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
       </div>
-      <span style="font-size:12px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 10px;border-radius:10px;white-space:nowrap;">${v.score}/100</span>
+      <span style="font-size:12px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 10px;border-radius:10px;white-space:nowrap;">${v.score}/100${v._limiar?` (limiar ${v._limiar})`:''}
+      </span>
       <button onclick="adicionarVagaRejeitada(${i})" id="rej-add-${i}"
         style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
         + Adicionar
@@ -2332,7 +2370,7 @@ function mostrarRevisaoRejeitadas(lista, scoreMin){
 
   document.getElementById('modal-revisao-lista').innerHTML=rows;
   document.getElementById('modal-revisao-titulo').textContent=
-    `${lista.length} vaga${lista.length>1?'s':''} abaixo do score ${scoreMin}. Quer revisar?`;
+    `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar. Quer revisar?`;
   document.getElementById('modal-revisao').style.display='flex';
 }
 
