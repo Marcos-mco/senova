@@ -375,35 +375,36 @@ select option { background: var(--bg2); }
     </div>
   </div>
   <div class="content">
-    <!-- Stats clicáveis -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;">
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Leads / Radar</div>
-        <div class="home-stat-num" id="stat-lead">—</div>
-        <div style="font-size:12px;color:var(--text3);">vagas para analisar</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Candidaturas</div>
-        <div class="home-stat-num" id="stat-candidatados">—</div>
-        <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Em processo</div>
-        <div class="home-stat-num" id="stat-pipeline">—</div>
-        <div style="font-size:12px;color:var(--text3);">contato + entrevista</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Propostas</div>
-        <div class="home-stat-num" id="stat-proposta">—</div>
-        <div style="font-size:12px;color:var(--text3);">para decidir</div>
-      </div>
-    </div>
-
     <!-- ── Duas colunas ── -->
     <div class="home-grid">
 
-      <!-- COLUNA ESQUERDA: funil + canal + tempo -->
-      <div>
+      <!-- COLUNA ESQUERDA: KPIs + funil + canal + tempo -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Leads / Radar</div>
+            <div class="home-stat-num" id="stat-lead">—</div>
+            <div style="font-size:12px;color:var(--text3);">vagas para analisar</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Candidaturas</div>
+            <div class="home-stat-num" id="stat-candidatados">—</div>
+            <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Em processo</div>
+            <div class="home-stat-num" id="stat-pipeline">—</div>
+            <div style="font-size:12px;color:var(--text3);">contato + entrevista</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Propostas</div>
+            <div class="home-stat-num" id="stat-proposta">—</div>
+            <div style="font-size:12px;color:var(--text3);">para decidir</div>
+          </div>
+        </div>
+
         <div id="dash-pipeline-section">
 
           <!-- Funil visual -->
@@ -430,40 +431,10 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
-      <!-- COLUNA DIREITA: ações + sinais + revisão -->
+      <!-- COLUNA DIREITA: sinais + revisão + ações -->
       <div class="home-right-col">
 
-        <!-- Próximas Ações -->
-        <div>
-          <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-            <span class="section-title">Próximas Ações</span>
-            <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
-              <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
-                <option value="all">Prioridade</option>
-                <option value="alta">Alta</option>
-                <option value="media">Média</option>
-                <option value="baixa">Baixa</option>
-              </select>
-              <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
-                <option value="all">Canal</option>
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="email">E-mail</option>
-                <option value="headhunter">Headhunter</option>
-                <option value="indicacao">Indicação</option>
-                <option value="direto">Direto</option>
-              </select>
-              <select class="filter-select" id="hf-ordem" onchange="renderHomeAcoes()">
-                <option value="default">Ordenar</option>
-                <option value="data-asc">Data ↑</option>
-                <option value="data-desc">Data ↓</option>
-                <option value="pri">Prioridade</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list"></div>
-        </div>
-
-        <!-- Central de Sinais -->
+        <!-- Central de Sinais (topo) -->
         <div id="sinais-section">
           <div class="section-head" style="margin-bottom:8px;">
             <span class="section-title" style="font-size:13px;">Central de Sinais</span>
@@ -503,6 +474,36 @@ select option { background: var(--bg2); }
             </div>
             <div id="home-revisao-lista"></div>
           </div>
+        </div>
+
+        <!-- Próximas Ações (base) -->
+        <div>
+          <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <span class="section-title">Próximas Ações</span>
+            <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
+              <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
+                <option value="all">Prioridade</option>
+                <option value="alta">Alta</option>
+                <option value="media">Média</option>
+                <option value="baixa">Baixa</option>
+              </select>
+              <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
+                <option value="all">Canal</option>
+                <option value="LinkedIn">LinkedIn</option>
+                <option value="email">E-mail</option>
+                <option value="headhunter">Headhunter</option>
+                <option value="indicacao">Indicação</option>
+                <option value="direto">Direto</option>
+              </select>
+              <select class="filter-select" id="hf-ordem" onchange="renderHomeAcoes()">
+                <option value="default">Ordenar</option>
+                <option value="data-asc">Data ↑</option>
+                <option value="data-desc">Data ↓</option>
+                <option value="pri">Prioridade</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list"></div>
         </div>
 
       </div><!-- /coluna direita -->
