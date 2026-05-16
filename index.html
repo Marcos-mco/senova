@@ -1080,6 +1080,27 @@ select option { background: var(--bg2); }
 </div>
 
 <!-- ═══════════════════════════════
+     MODAL REVISÃO VAGAS REJEITADAS
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-revisao" style="display:none;" onclick="if(event.target===this)fecharRevisao()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div style="padding:24px 28px 0;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);" id="modal-revisao-titulo"></div>
+        <button onclick="fecharRevisao()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;flex-shrink:0;padding:0;">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Estas vagas tiveram score abaixo do limiar configurado. Você pode adicioná-las individualmente.</div>
+    </div>
+    <div class="modal-body" style="padding:0 28px 8px;overflow-y:auto;max-height:50vh;">
+      <div id="modal-revisao-lista"></div>
+    </div>
+    <div style="padding:16px 28px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="fecharRevisao()" class="btn btn-ghost" style="flex:1;justify-content:center;">Descartar todas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      MODAL RESPONDER EMAIL AVULSO
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-email-responder" style="display:none;" onclick="if(event.target===this)fecharModalEmailResponder()">
@@ -2244,22 +2265,16 @@ async function importarVagasLead(){
       }
     }));
 
-    // Filtra pelo limiar e adiciona ao Pipeline
+    // Separa aprovadas e rejeitadas
     const agora=Date.now();
     let novas=0;
+    const rejeitadas=[];
     resultados.forEach(v=>{
-      if(typeof v.score !== 'number' || v.score < scoreMin) return;
-      vagas.push({
-        id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
-        canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
-        proxima:'Avaliar candidatura', notas:v.descricao||'',
-        data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
-        createdAt:agora, updatedAt:agora,
-        timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
-        origemUrl:v.url||'',
-        score:v.score, classificacao:v.classificacao, resumo:v.resumo,
-        pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
-      });
+      if(typeof v.score !== 'number' || v.score < scoreMin){
+        if(typeof v.score === 'number') rejeitadas.push(v); // só as que têm score (não as que falharam)
+        return;
+      }
+      vagas.push(_montarCardVarredura(v, agora));
       novas++;
     });
 
@@ -2274,9 +2289,63 @@ async function importarVagasLead(){
     }
     if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''} (≥${scoreMin})`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
     setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
+
+    // Oferta de revisão das rejeitadas
+    if(rejeitadas.length>0) mostrarRevisaoRejeitadas(rejeitadas, scoreMin);
   }catch(e){
     if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
   }
+}
+
+function _montarCardVarredura(v, agora){
+  return {
+    id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
+    canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
+    proxima:'Avaliar candidatura', notas:v.descricao||'',
+    data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
+    createdAt:agora, updatedAt:agora,
+    timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
+    origemUrl:v.url||'',
+    score:v.score, classificacao:v.classificacao, resumo:v.resumo,
+    pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
+  };
+}
+
+let _rejeitadasPendentes=[];
+function mostrarRevisaoRejeitadas(lista, scoreMin){
+  _rejeitadasPendentes=lista;
+  const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
+  const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
+  const rows=lista.map((v,i)=>`
+    <div id="rej-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
+        <div style="font-size:12px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 10px;border-radius:10px;white-space:nowrap;">${v.score}/100</span>
+      <button onclick="adicionarVagaRejeitada(${i})" id="rej-add-${i}"
+        style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
+        + Adicionar
+      </button>
+    </div>`).join('');
+
+  document.getElementById('modal-revisao-lista').innerHTML=rows;
+  document.getElementById('modal-revisao-titulo').textContent=
+    `${lista.length} vaga${lista.length>1?'s':''} abaixo do score ${scoreMin}. Quer revisar?`;
+  document.getElementById('modal-revisao').style.display='flex';
+}
+
+function fecharRevisao(){ document.getElementById('modal-revisao').style.display='none'; _rejeitadasPendentes=[]; }
+
+function adicionarVagaRejeitada(idx){
+  const v=_rejeitadasPendentes[idx];
+  if(!v) return;
+  const agora=Date.now();
+  vagas.push(_montarCardVarredura(v, agora));
+  saveVagas(); renderCRM();
+  // Desabilita botão e marca linha como adicionada
+  const btn=document.getElementById(`rej-add-${idx}`);
+  if(btn){ btn.textContent='✅ Adicionada'; btn.disabled=true; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
 }
 
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
