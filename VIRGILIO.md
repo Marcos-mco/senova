@@ -1,6 +1,6 @@
 # VIRGILIO.md — Contexto Permanente para Claude Code
 
-## Senova · Versão 3.8 · Atualizado 15/mai/2026
+## Senova · Versão 3.10 · Atualizado 16/mai/2026
 
 ---
 
@@ -62,9 +62,9 @@ questionar a origem — já foi validado por mim.
 
 ## ARQUITETURA ATUAL
 
-- index.html: arquivo único, ~3200 linhas, toda a aplicação
+- index.html: arquivo único, ~3700 linhas, toda a aplicação
 
-- Worker: OAuth Outlook, varredura emails, proxy IA
+- Worker v6: OAuth Outlook, varredura emails, proxy IA, sendMail, calendar
 
 - KV: persistência de vagas, contatos, perfil, documentos ATS
 
@@ -110,7 +110,17 @@ questionar a origem — já foi validado por mim.
 
 - Central de Sinais: emails avulsos com botão Responder — AI draft + envio direto Outlook
 
-- Worker: endpoint POST /api/emails/responder (Graph API reply)
+- Worker: POST /api/emails/responder (Graph API reply a email existente)
+
+- Worker: POST /api/emails/enviar (Graph API sendMail — email novo, salva em Enviados)
+
+- Candidatar na Análise CV: async, auto-gera CV se ausente, abre modal-candidatura
+
+- modal-candidatura: Para, Assunto, Carta, CV editáveis — envia via Outlook direto
+
+- URL vaga/LinkedIn: normalizada para https:// antes de abrir (fix login page)
+
+- Modal Editar Vaga: padding-body reduzido, todos os campos visíveis sem scroll excessivo
 
 ---
 
