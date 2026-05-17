@@ -12,7 +12,30 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.7 — 16/mai/2026 (ATUAL)
+### v3.8 — 17/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_17mai2026.html (pré-edição)
+
+#### Limpeza em lote de leads antigos
+- Botão "🗂 Limpeza em lote" no topbar do Pipeline (aba Vagas, dourado)
+- Painel com filtro por inatividade (padrão 30 dias, editável) + checkboxes de estágio
+- Lista scrollável com empresa, cargo, estágio e dias sem atualização (vermelho se >60d)
+- "Selecionar todos" toggle + contador de selecionados em tempo real
+- Arquiva como `descartado`, registra na timeline de cada card
+- Bug corrigido: `parseInt` → `Number()` em `toggleTodosLimpeza` — vagas criadas via email tinham `id: Date.now() + Math.random()` (float); `parseInt` truncava o decimal, tornando o ID do Set diferente do `v.id` real → só cards com IDs inteiros puros eram arquivados
+- ID de email corrigido: `id:_t+Math.random()` → `id:_t+Math.floor(Math.random()*10000)` (sempre inteiro)
+
+#### Parsing inteligente de emails via Claude
+- `extrairEmpresasCargosBatch()`: uma chamada `/api/claude` para todos os emails do lote
+- Claude extrai `{ empresa, cargo, revisar }` por email — empresa contratante (não o remetente), cargo limpo (sem prefixos, sem nome da empresa)
+- `revisar: true` quando confiança baixa → fallback: usa assunto como cargo, adiciona `tags: ['Revisar']`
+- Badge `⚠ Revisar` (dourado) nos cards do Pipeline para indicar que precisam de revisão manual
+- Deduplicação corrigida: checa por `emailDest` em vez de `origemUrl + empresa` (evita duplicatas quando empresa muda pela extração)
+- Falha silenciosa: se Claude não responder, comportamento degradado graciosamente
+
+---
+
+### v3.7 — 16/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_16mai2026f.html (pré-edição)
 
