@@ -135,17 +135,15 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 4. ~~**`saveVaga()` perde campos de varredura e `data`**~~ — corrigido em `334441b` (18/mai/2026): `score`, `classificacao`, `resumo`, `fonte`, `pontos_fortes`, `data` preservados via `existing?.`.
 
-### Baixa prioridade (pendentes)
-5. **`extrairEmpresasCargosBatch` sem timeout** — chamada ao Claude sem timeout máximo. Se o Worker demorar, `carregarEmails` trava até o browser dar timeout padrão (~30s). Fix: `AbortController` com 10s.
+5. ~~**`extrairEmpresasCargosBatch` sem timeout**~~ — corrigido em `fb1dc58` (18/mai/2026): `AbortController` com 10s; `clearTimeout` se resposta chegar antes.
 
-6. **Deduplicação de emails muito agressiva** — checa só por `emailDest`. Se o mesmo recrutador enviar 2 vagas diferentes, só a primeira é importada. Fix: checar também por assunto ou adicionar lógica de "mesmo remetente + assunto diferente = nova vaga".
+6. ~~**Deduplicação de emails muito agressiva**~~ — corrigido em `f094bb8` (18/mai/2026): dedup agora checa `emailDest + emailAssunto`; mesmo remetente com assunto diferente = nova vaga importada.
 
 ---
 
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Baixa prioridade
-- Corrigir bugs #5 e #6 acima (timeout extração emails + dedup menos agressiva)
 - **senova.com.br** — domínio próprio (R$47/mês)
 - **Dashboard analytics** — métricas avançadas de recolocação
 
