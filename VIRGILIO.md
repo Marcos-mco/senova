@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 17/mai/2026 — v3.8*
+*Atualizado: 17/mai/2026 — v3.9*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,7 +16,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.8 (17/mai/2026)
+## ESTADO ATUAL — v3.9 (17/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
@@ -111,7 +111,7 @@ BR → ES → DE → PT → Remoto → BR → ...
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-1. **Fluxo Candidatar completo** — gerar CV → enviar via Outlook → registrar status no Pipeline automaticamente
+*(sem pendências críticas no momento)*
 
 ### Baixa prioridade
 7. **senova.com.br** — domínio próprio (R$47/mês)

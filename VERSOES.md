@@ -12,7 +12,33 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.8 — 17/mai/2026 (ATUAL)
+### v3.9 — 17/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_17mai2026b.html (pré-edição)
+
+#### Fluxo Candidatar completo
+
+**Botão "✉ Candidatar" no modal do Pipeline**
+- Aparece nos estágios Lead e Aplicado (`data-stages="lead,aplicado"`)
+- Card com `atsCV` salvo → salva modal e abre `modal-candidatura` diretamente (sem passar pela tela Análise CV)
+- Card sem CV → redireciona para Análise CV (mesmo comportamento do botão "Analisar CV")
+- `candidatarDoModal()`: captura `id` antes de `saveVaga()`, reencontra a vaga após save, passa `cv: saved.atsCV || lastCV`
+
+**Fallback `cv` em `abrirModalCandidatura`**
+- Novo parâmetro `cv` explícito na assinatura da função
+- Usa `cv || lastCV || ''` ao preencher o textarea do CV
+- Corrige caso em que `lastCV` zera após reload de página mas `atsCV` já está salvo no card
+- Caller `candidatarVagaATS()` atualizado para passar `cv: lastCV`
+
+**Follow-up automático após envio via Outlook**
+- Após `enviarCandidaturaOutlook` confirmar `res.ok`:
+  - `v.proxima` = `"Follow-up — verificar retorno"`
+  - `v.data` = `DD/MM/YYYY` (hoje + 7 dias) → card aparece em Próximas Ações na Home
+  - Timeline: `"Follow-up agendado para DD/MM/YYYY"` + `"CV enviado por Outlook para [email]"`
+
+---
+
+### v3.8 — 17/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_17mai2026.html (pré-edição)
 
