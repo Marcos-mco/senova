@@ -2870,7 +2870,7 @@ function renderCRM(){
   if(bannerInativo) bannerInativo.style.display = _crmFiltroInativo ? 'flex' : 'none';
   const bannerTxt = document.getElementById('crm-inativo-banner-txt');
   if(bannerTxt) bannerTxt.textContent = `⚠ Mostrando apenas cards inativos (${_diasInativo}+ dias sem atualização)`;
-  const colsArq=['aceito','negado'];
+  const colsArq=['aceito','negado','descartado'];
   const nArq=vagas.filter(v=>colsArq.includes(v.status)).length;
   const btnArq=document.getElementById('crm-arquivados-btn');
   if(btnArq){ btnArq.style.display=nArq>0?'inline-block':'none'; btnArq.textContent=`${nArq} arquivado${nArq===1?'':'s'}`; btnArq.style.color=_mostrarArquivados?'var(--navy)':'var(--text3)'; btnArq.style.borderColor=_mostrarArquivados?'var(--navy)':'var(--border)'; }
@@ -3947,8 +3947,10 @@ async function enviarCandidaturaOutlook(btn){
         const dd=String(fu.getDate()).padStart(2,'0');
         const mm=String(fu.getMonth()+1).padStart(2,'0');
         const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
+        v.status='aplicado';
         v.proxima='Follow-up — verificar retorno';
         v.data=fuStr;
+        v.updatedAt=ts;
         v.timeline.unshift({ts:ts+1,texto:'Follow-up agendado para '+fuStr});
         saveVagas();
       }
