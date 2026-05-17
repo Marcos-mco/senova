@@ -285,6 +285,9 @@ select option { background: var(--bg2); }
 @media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
 
+/* ── BADGE REVISAR ── */
+.badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
+
 /* ── LIMPEZA EM LOTE ── */
 #limpeza-lote-painel { background:linear-gradient(135deg,#FFFDF0 0%,#FFF9E6 100%); border:1.5px solid #C9A84C; border-radius:10px; padding:16px 20px 12px; margin-bottom:14px; }
 .limpeza-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background 0.1s; }
@@ -2916,6 +2919,7 @@ function renderCRM(){
             ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
             ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
+            ${c.tags?.includes('Revisar')?'<span class="badge-revisar">⚠ Revisar</span>':''}
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
@@ -4017,6 +4021,42 @@ async function carregarSinaisMercado(){
   }catch(e){ /* RSS opcional — falha silenciosa */ }
 }
 
+async function extrairEmpresasCargosBatch(emails){
+  if(!emails||emails.length===0) return null;
+  const lista=emails.map((e,i)=>({
+    idx:i,
+    assunto:(e.subject||e.assunto||'').substring(0,120),
+    preview:(e.resumo||e.preview||e.bodyPreview||'').substring(0,200),
+    remetente:(e.from_name||e.de_nome||'').substring(0,60)
+  }));
+  const prompt=`Analise os emails de recrutamento abaixo e extraia a empresa contratante e o cargo para cada um.
+
+Retorne APENAS um array JSON sem markdown, com um objeto por email:
+{"idx":N,"empresa":"Nome da empresa","cargo":"Título do cargo limpo","revisar":false}
+
+Regras:
+- empresa: nome da empresa contratante (não o nome do recrutador)
+- cargo: título da vaga limpo (sem prefixos como "Oportunidade:", sem nome da empresa, sem " | XYZ")
+- revisar: true se não conseguiu extrair empresa ou cargo com confiança suficiente
+
+Emails:
+${JSON.stringify(lista)}`;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'';
+    const match=text.match(/\[[\s\S]*\]/);
+    if(!match) return null;
+    const result=JSON.parse(match[0]);
+    const map={};
+    result.forEach(r=>{ if(typeof r.idx==='number') map[r.idx]=r; });
+    return map;
+  }catch{ return null; }
+}
+
 async function carregarEmails(forcar){
   const connected=await checkOutlookStatus();
   if(!connected){ atualizarSinais(); return; }
@@ -4039,16 +4079,22 @@ async function carregarEmails(forcar){
     // Importar emails relevantes como Leads no Pipeline
     if(emailsVaga.length>0){
       const novaData=dataAtualFormatada();
-      emailsVaga.forEach(e=>{
+      let extraidos=null;
+      try{ extraidos=await extrairEmpresasCargosBatch(emailsVaga); }catch{}
+      emailsVaga.forEach((e,i)=>{
         const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
         const emailAddr=e.from||e.de_email||'';
-        const assunto=e.subject||e.assunto||'A definir';
+        const assunto=e.subject||e.assunto||'';
         const preview=e.resumo||e.preview||e.bodyPreview||'';
         const conteudoVaga=e.conteudo_vaga||preview;
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
-        const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
+        const jaExiste=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr);
         if(!jaExiste){
-          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+          const ext=extraidos?.[i];
+          const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
+          const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
+          const tags=(!ext||ext.revisar)?['Revisar']:[];
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
