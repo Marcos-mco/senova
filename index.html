@@ -1923,6 +1923,10 @@ function declinarVagaATS() {
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
     saveVagas();
+  } else if(atsEmpresa||atsCargo) {
+    const _t=Date.now();
+    vagas.push({id:_t,empresa:atsEmpresa||'A definir',cargo:atsCargo||'A definir',canal:'Análise CV',prioridade:'media',status:'negado',salario:'',proxima:'Declinada',notas,emailDest:atsEmailDest||'',origemUrl:'',data:hoje,createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}]});
+    saveVagas();
   }
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   const bar=document.getElementById('ats-decisao-bar');
@@ -2704,7 +2708,7 @@ function aplicarFiltros() {
   let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
-  if(q && q.length>=3) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
+  if(q && q.length>=4) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
@@ -3006,7 +3010,7 @@ function openVagaModal(id){
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
-    document.getElementById('mv-job-desc').value=v.jobDescription||'';
+    document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
