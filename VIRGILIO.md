@@ -108,14 +108,52 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 ---
 
+## O QUE FOI ENTREGUE — sessão 17/mai/2026
+
+### v3.8
+- **Limpeza em lote** — botão "🗂 Limpeza em lote" no Pipeline; painel com filtro de inatividade (padrão 30d) + checkboxes de estágio; "Selecionar todos"; arquiva como `descartado` com entrada na timeline
+- **Bug fix IDs float** — `parseInt` → `Number()` em `toggleTodosLimpeza`; IDs de email trocados de `Date.now()+Math.random()` (float) para `Date.now()+Math.floor(Math.random()*10000)` (inteiro)
+- **Parsing emails via Claude** — `extrairEmpresasCargosBatch()`: uma chamada `/api/claude` por lote, extrai empresa contratante + cargo limpo; fallback gracioso com tag `Revisar`
+- **Badge "⚠ Revisar"** — aparece no kanban em cards de email com baixa confiança de extração
+- **Deduplicação emails** — corrigida para usar `emailDest` em vez de `origemUrl + empresa`
+
+### v3.9
+- **Botão "✉ Candidatar" no modal do Pipeline** — aparece em Lead e Aplicado; se card tem `atsCV` salvo → abre `modal-candidatura` direto; se não tem → redireciona para Análise CV
+- **Fallback `cv` em `abrirModalCandidatura`** — aceita parâmetro `cv` explícito; usa `cv || lastCV || ''`; corrige reload de página que zerava `lastCV`
+- **Follow-up automático após envio** — `v.data = DD/MM/YYYY` (hoje +7d); `v.proxima = "Follow-up — verificar retorno"`; card aparece em Próximas Ações na Home
+
+---
+
+## BUGS CONHECIDOS (identificados em 17/mai/2026)
+
+### Alta prioridade
+1. **Status não muda para 'aplicado' ao candidatar pelo Pipeline** — `candidatarDoModal()` chama `saveVaga()` que preserva o status atual ('lead'); `enviarCandidaturaOutlook` também não muda status. Só o fluxo via Análise CV (`candidatarVagaATS`) muda o status. Fix: adicionar `v.status='aplicado'` no bloco `res.ok` de `enviarCandidaturaOutlook`.
+
+2. **`descartado` invisível no kanban** — `colsArq=['aceito','negado']` não inclui `'descartado'`. Cards arquivados via Limpeza em Lote somem completamente (não aparecem em "X arquivados"). Dificulta reverter arquivamentos. Fix: adicionar `'descartado'` em `colsArq` no `renderCRM()`.
+
+### Média prioridade
+3. **`saveVaga()` perde o campo `tags`** — o objeto salvo em `saveVaga()` não inclui `tags`. Badge "⚠ Revisar" some quando o usuário abre e salva o card pelo modal de edição. Fix: adicionar `tags: existing?.tags||[]` ao obj de `saveVaga()`.
+
+4. **`saveVaga()` perde campos de varredura** — `score`, `classificacao`, `resumo`, `fonte`, `pontos_fortes` não estão no obj. Aparecem no kanban mas são perdidos ao salvar pelo modal. Fix: `score:existing?.score, classificacao:existing?.classificacao, fonte:existing?.fonte, resumo:existing?.resumo, pontos_fortes:existing?.pontos_fortes||[]`.
+
+### Baixa prioridade
+5. **`extrairEmpresasCargosBatch` sem timeout** — chamada ao Claude sem timeout máximo. Se o Worker demorar, `carregarEmails` trava até o browser dar timeout padrão (~30s). Fix: `AbortController` com 10s.
+
+6. **Deduplicação de emails muito agressiva** — checa só por `emailDest`. Se o mesmo recrutador enviar 2 vagas diferentes, só a primeira é importada. Fix: checar também por assunto ou adicionar lógica de "mesmo remetente + assunto diferente = nova vaga".
+
+---
+
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-*(sem pendências críticas no momento)*
+1. Corrigir bugs #1 e #2 acima (status 'aplicado' + descartado visível)
+
+### Média prioridade
+2. Corrigir bugs #3 e #4 (saveVaga preservar tags e campos de varredura)
 
 ### Baixa prioridade
-7. **senova.com.br** — domínio próprio (R$47/mês)
-8. **Dashboard analytics** — métricas avançadas de recolocação
+- **senova.com.br** — domínio próprio (R$47/mês)
+- **Dashboard analytics** — métricas avançadas de recolocação
 
 ---
 
