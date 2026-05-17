@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerar Ícones Senova</title>
+  <style>
+    body { font-family: sans-serif; padding: 32px; background: #F0F4F8; color: #2C2C2A; }
+    h2 { color: #1A3A5C; margin-bottom: 8px; }
+    p { color: #5A6A7A; margin-bottom: 24px; font-size: 14px; }
+    .icons { display: flex; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
+    .icon-wrap { text-align: center; }
+    .icon-wrap span { display: block; font-size: 12px; color: #5A6A7A; margin-top: 6px; }
+    button {
+      background: #2E6DA4; color: #fff; border: none; border-radius: 7px;
+      padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #1A3A5C; }
+    #status { margin-top: 16px; font-size: 13px; color: #1A5C2A; }
+  </style>
+</head>
+<body>
+  <h2>Gerar Ícones — Extensão Senova</h2>
+  <p>Clique no botão abaixo para baixar os 3 arquivos PNG. Mova-os para a pasta <code>icons/</code> dentro de <code>senova-extension/</code>.</p>
+
+  <div class="icons">
+    <div class="icon-wrap"><canvas id="c16" width="16" height="16"></canvas><span>16×16</span></div>
+    <div class="icon-wrap"><canvas id="c48" width="48" height="48"></canvas><span>48×48</span></div>
+    <div class="icon-wrap"><canvas id="c128" width="128" height="128"></canvas><span>128×128</span></div>
+  </div>
+
+  <button onclick="baixarTodos()">⬇ Baixar icon16.png, icon48.png, icon128.png</button>
+  <div id="status"></div>
+
+  <script>
+    function desenharIcone(canvas) {
+      const s = canvas.width;
+      const ctx = canvas.getContext('2d');
+
+      // Fundo navy com bordas arredondadas
+      const r = s * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(r, 0); ctx.lineTo(s - r, 0);
+      ctx.quadraticCurveTo(s, 0, s, r);
+      ctx.lineTo(s, s - r);
+      ctx.quadraticCurveTo(s, s, s - r, s);
+      ctx.lineTo(r, s);
+      ctx.quadraticCurveTo(0, s, 0, s - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#1A3A5C';
+      ctx.fill();
+
+      // "S" dourado
+      ctx.fillStyle = '#C9A84C';
+      ctx.font = `bold ${Math.round(s * 0.62)}px 'Georgia', serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('S', s / 2, s / 2 + s * 0.03);
+    }
+
+    // Desenhar prévia
+    ['c16', 'c48', 'c128'].forEach(id => {
+      desenharIcone(document.getElementById(id));
+    });
+
+    function baixar(canvas, nome) {
+      const link = document.createElement('a');
+      link.download = nome;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function baixarTodos() {
+      baixar(document.getElementById('c16'),  'icon16.png');
+      setTimeout(() => baixar(document.getElementById('c48'),  'icon48.png'),  300);
+      setTimeout(() => baixar(document.getElementById('c128'), 'icon128.png'), 600);
+      document.getElementById('status').textContent =
+        '✅ 3 arquivos baixados! Mova para senova-extension/icons/';
+    }
+  </script>
+</body>
+</html>

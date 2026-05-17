@@ -257,6 +257,32 @@ export default {
       return json({ vagas, total: vagas.length });
     }
 
+    if (path === '/api/vagas-lead' && request.method === 'POST') {
+      const { titulo, empresa, url, descricao } = await request.json();
+      if (!titulo) return json({ erro: 'titulo obrigatório' }, 400);
+      const raw = await env.SENOVA_KV.get('vagas_lead');
+      const vagas = raw ? JSON.parse(raw) : [];
+      const novaVaga = {
+        id: gerarId({ titulo, empresa: empresa || '', url: url || '' }),
+        titulo: titulo.trim(),
+        empresa: (empresa || '').trim(),
+        local: 'Brasil',
+        url: url || '',
+        descricao: descricao || '',
+        fonte: 'extensao_chrome',
+        data: new Date().toLocaleDateString('pt-BR'),
+        score_ats: 0,
+        pontos_fortes: [],
+        salario_compativel: null,
+        badge: 'Extensão Chrome',
+        criadoEm: new Date().toISOString(),
+        status: 'lead',
+      };
+      vagas.push(novaVaga);
+      await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagas));
+      return json({ ok: true, id: novaVaga.id });
+    }
+
     if (path === '/api/vagas-lead/clear' && request.method === 'POST') {
       await env.SENOVA_KV.put('vagas_lead', JSON.stringify([]));
       return json({ status: 'ok' });

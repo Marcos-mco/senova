@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Senova — Capturar Vaga",
+  "version": "1.0",
+  "description": "Captura vagas de qualquer site e envia para o Pipeline Senova com 1 clique.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Senova — Capturar Vaga",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
