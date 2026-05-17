@@ -2793,11 +2793,11 @@ function toggleItemLimpeza(id,el){
 
 function toggleTodosLimpeza(){
   const items=document.querySelectorAll('#limpeza-lista .limpeza-item');
-  const ids=[...items].map(el=>parseInt(el.dataset.lid));
+  const ids=[...items].map(el=>Number(el.dataset.lid));
   const todosMarcados=ids.length>0&&ids.every(id=>_limpezaSelecionados.has(id));
   ids.forEach(id=>todosMarcados?_limpezaSelecionados.delete(id):_limpezaSelecionados.add(id));
   items.forEach(el=>{
-    const id=parseInt(el.dataset.lid);
+    const id=Number(el.dataset.lid);
     const cb=el.querySelector('input[type=checkbox]');
     const sel=_limpezaSelecionados.has(id);
     if(cb) cb.checked=sel;
@@ -4048,7 +4048,7 @@ async function carregarEmails(forcar){
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
         const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
         if(!jaExiste){
-          {const _t=Date.now();vagas.push({id:_t+Math.random(),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
