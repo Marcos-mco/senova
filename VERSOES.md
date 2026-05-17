@@ -12,8 +12,31 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.6 — 16/mai/2026 (ATUAL)
+### v3.7 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_16mai2026f.html (pré-edição)
+
+#### Alertas follow-up — 3 níveis de urgência
+- `nivelInativo(v)`: retorna 0/1/2/3 baseado no threshold configurável do Perfil (`_diasInativo`, padrão 7d)
+  - 0 = ativo · 1 = `×1` (ex: 7d) · 2 = `×2` (ex: 14d) · 3 = `×3` (ex: 21d)
+  - Arquivados (aceito/negado/descartado) sempre retornam 0
+- `isInativo(v)` mantida como `return nivelInativo(v)>0` — todos os callers existentes sem alteração
+- CSS: `.badge-inativo-1` (laranja `#FF6600`) · `.badge-inativo-2` (vermelho `#CC0000`) · `.badge-inativo-3` (vermelho pulsante, `@keyframes pulseInativo`)
+
+#### Pipeline cards — badge e borda por nível
+- Nível 1: `⚠ 7d` laranja · borda laranja
+- Nível 2: `🔴 14d` vermelho · borda vermelha
+- Nível 3: `🚨 21d` vermelho pulsante · borda vermelha
+
+#### Home — Próximas Ações flutua nível 3
+- Cards nível 3 **sem data agendada** surfacem automaticamente no topo (antes de todos os outros)
+- Cards nível 3 **com data** reordenados antes dos cards de níveis inferiores
+- Badge pulsante + fundo `#FFF0F0` nos cards nível 3
+
+---
+
+### v3.6 — 16/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_16mai2026f.html (pré-edição)
 
 #### Extensão Chrome — Senova Capture (Manifest V3)

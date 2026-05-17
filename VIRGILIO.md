@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 16/mai/2026 — v3.6*
+*Atualizado: 16/mai/2026 — v3.7*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,7 +16,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.6 (16/mai/2026)
+## ESTADO ATUAL — v3.7 (16/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
@@ -111,11 +111,10 @@ BR → ES → DE → PT → Remoto → BR → ...
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-1. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
+1. **Limpeza leads antigos** — 298 leads, maioria desatualizada; criar fluxo de arquivamento em lote
 
 ### Média prioridade
-5. **Limpeza leads antigos** — 298 leads, maioria desatualizada; criar fluxo de arquivamento em lote
-6. **Fluxo Candidatar completo** — gerar CV → enviar via Outlook → registrar status no Pipeline automaticamente
+2. **Fluxo Candidatar completo** — gerar CV → enviar via Outlook → registrar status no Pipeline automaticamente
 
 ### Baixa prioridade
 7. **senova.com.br** — domínio próprio (R$47/mês)
