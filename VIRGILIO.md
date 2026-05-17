@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 16/mai/2026 — v3.3*
+*Atualizado: 16/mai/2026 — v3.4*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,11 +16,11 @@
 
 ---
 
-## ESTADO ATUAL — v3.3 (16/mai/2026)
+## ESTADO ATUAL — v3.4 (16/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.3)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.4)
 - **KV:** SENOVA_KV
 - **Cron:** 0 10 * * * (07:00 BRT) — varredura automática de vagas
 - **Último commit estável:** ver git log
@@ -34,7 +34,7 @@
 - ADZUNA_APP_ID = 65c2a129 ✅
 - ADZUNA_APP_KEY = b9337363bcd00298b081441121257059 ✅
 
-### Rotas do Worker v7.3
+### Rotas do Worker v7.4
 - POST /api/claude — proxy Anthropic
 - POST /api/analisar-vaga — score ATS
 - POST /api/varredura-manual — dispara varredura agora
@@ -51,6 +51,7 @@
 - POST /api/emails/enviar — envia email
 - POST /api/calendar/evento — cria evento Outlook
 - GET/POST/DELETE /api/whitelist — domínios prioritários
+- GET /api/sinais-mercado — notícias RSS analisadas por IA (cache diário)
 - GET /health — status do Worker
 
 ---
@@ -108,10 +109,9 @@ BR → ES → DE → PT → Remoto → BR → ...
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-1. **Varredura sinais de mercado** — Google News RSS → Central de Sinais
-2. **Integração Hunter.io** — achar email do decisor por empresa+nome
-3. **Campo Negativados** — coluna ou filtro no Pipeline para vagas recusadas
-4. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
+1. **Integração Hunter.io** — achar email do decisor por empresa+nome
+2. **Campo Negativados** — coluna ou filtro no Pipeline para vagas recusadas
+3. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
 
 ### Média prioridade
 5. **Limpeza leads antigos** — 298 leads, maioria desatualizada; criar fluxo de arquivamento em lote
