@@ -12,8 +12,29 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.3 — 16/mai/2026 (ATUAL)
+### v3.4 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_16mai2026f.html (pré-edição)
+
+#### Worker v7.4 — Sinais de mercado
+- Nova rota `GET /api/sinais-mercado` com cache diário no KV (`sinais_mercado_YYYY-MM-DD`, TTL 86400s)
+- `buscarGoogleNewsRSS()`: 4 queries temáticas (diretores nomeados, CEO/CMO contratado, expansão mídia, fusão/M&A), timeout 6s, falha silenciosa
+- `buscarSinaisMercado()`: deduplicação por título (primeiros 60 chars), filtro por keywords relevantes (`saiu`, `novo ceo`, `nomeou`, `contratou`, `expansão`, `fusão`, `reestruturação`…), limite 5 itens
+- `analisarSinaisMercado()`: Claude classifica tipo (movimento_exec / expansao / fusao / outro), relevância 1–5, resumo 1 frase e **sugestão de mensagem** executiva pronta para copiar
+
+#### Central de Sinais — Sinal 2 atualizado
+- Sinal 2 combina `_sinaisAlertas` (emails Google Alerts, primário) + `_sinaisMercado` (RSS, complemento)
+- Texto dinâmico: "X Google Alerts + Y notícias" ou só emails se RSS vazio
+- Se RSS falhar ou retornar vazio: sistema funciona normalmente com emails (Plano B como primário)
+
+#### Painel Alertas redesenhado em 2 blocos
+- **Bloco A — Notícias do mercado**: card por notícia com tipo, relevância colorida, empresa, resumo IA, caixa azul com sugestão de mensagem e botão "📋 Copiar mensagem"
+- **Bloco B — Google Alerts emails**: lista de alertas recebidos por email (comportamento anterior preservado)
+
+---
+
+### v3.3 — 16/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_16mai2026d.html (pré-edição)
 
 #### Worker v7.3 — Varredura automática de vagas
