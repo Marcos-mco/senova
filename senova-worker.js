@@ -823,12 +823,53 @@ async function buscarSinaisMercado(env) {
 
   if (!relevantes.length) return { sinais: [], status: rssOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'google_news' };
   const sinaisAnalisados = await analisarSinaisMercado(relevantes, env);
-  return { sinais: sinaisAnalisados, status: 'ok', fonte: 'google_news', total: sinaisAnalisados.length };
+
+  // Enriquecer com Hunter.io — só sinais de alta relevância com domínio conhecido
+  const enriched = await Promise.allSettled(
+    sinaisAnalisados.map(async s => {
+      if (s.relevancia >= 4 && s.dominio) {
+        s.email_decisor = await buscarEmailHunter(s.dominio, env);
+      }
+      return s;
+    })
+  );
+  const sinais = enriched.map(r => r.status === 'fulfilled' ? r.value : r.reason);
+  return { sinais, status: 'ok', fonte: 'google_news', total: sinais.length };
+}
+
+async function buscarEmailHunter(dominio, env) {
+  const cacheKey = `hunter_${dominio}`;
+  const cached = await env.SENOVA_KV.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  try {
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(dominio)}&api_key=${env.HUNTER_API_KEY}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) { await env.SENOVA_KV.put(cacheKey, 'null', { expirationTtl: 86400 * 7 }); return null; }
+    const data = await resp.json();
+    const emails = (data?.data?.emails || []).filter(e => e.type === 'personal' && e.value);
+    const prioridades = ['marketing','cmo','chief marketing','commercial','comercial','ceo','presidente','diretor','head','rh','recursos humanos','talent','people'];
+    const ordenados = emails.sort((a, b) => {
+      const posA = (a.position || '').toLowerCase();
+      const posB = (b.position || '').toLowerCase();
+      const rankA = prioridades.findIndex(p => posA.includes(p));
+      const rankB = prioridades.findIndex(p => posB.includes(p));
+      return (rankA === -1 ? 99 : rankA) - (rankB === -1 ? 99 : rankB);
+    });
+    const melhor = ordenados[0] || null;
+    const resultado = melhor ? {
+      email: melhor.value,
+      nome: [melhor.first_name, melhor.last_name].filter(Boolean).join(' '),
+      cargo: melhor.position || '',
+    } : null;
+    await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 86400 * 7 });
+    return resultado;
+  } catch { return null; }
 }
 
 async function analisarSinaisMercado(itens, env) {
   const lista = itens.map((it, i) => `[${i}] TÍTULO: ${it.titulo} | FONTE: ${it.empresa || it.local || ''}`).join('\n');
-  const prompt = `Você é assistente de inteligência de mercado para Marcos Franco, executivo sênior de marketing (CMO/Diretor) buscando recolocação C-Level no Brasil.\n\nAnalise cada notícia e retorne JSON. Para cada item relevante, identifique oportunidade de networking ou candidatura.\n\nNOTÍCIAS:\n${lista}\n\nResponda SOMENTE JSON:\n{"sinais":[{"indice":0,"empresa":"...","tipo":"movimento_exec|expansao|fusao|outro","relevancia":1-5,"resumo":"1 frase","sugestao_msg":"mensagem curta calorosa máx 2 linhas, tom executivo"}]}\n\nInclua apenas relevância ≥ 3.`;
+  const prompt = `Você é assistente de inteligência de mercado para Marcos Franco, executivo sênior de marketing (CMO/Diretor) buscando recolocação C-Level no Brasil.\n\nAnalise cada notícia e retorne JSON. Para cada item relevante, identifique oportunidade de networking ou candidatura.\n\nNOTÍCIAS:\n${lista}\n\nResponda SOMENTE JSON:\n{"sinais":[{"indice":0,"empresa":"...","dominio":"empresa.com.br","tipo":"movimento_exec|expansao|fusao|outro","relevancia":1-5,"resumo":"1 frase","sugestao_msg":"mensagem curta calorosa máx 2 linhas, tom executivo"}]}\n\nRegras:\n- Inclua apenas relevância ≥ 3.\n- "dominio": domínio web da empresa (ex: "globo.com", "itau.com.br"). Se não souber com certeza, use null.`;
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -840,10 +881,11 @@ async function analisarSinaisMercado(itens, env) {
     return (parsed.sinais || []).map(s => ({
       ...itens[s.indice],
       empresa: s.empresa || itens[s.indice]?.empresa || '',
+      dominio: s.dominio || null,
       tipo: s.tipo || 'outro',
       relevancia: s.relevancia || 3,
       resumo: s.resumo || '',
       sugestao_msg: s.sugestao_msg || '',
     }));
-  } catch { return itens.map(i => ({ ...i, tipo: 'outro', relevancia: 3, resumo: '', sugestao_msg: '' })); }
+  } catch { return itens.map(i => ({ ...i, dominio: null, tipo: 'outro', relevancia: 3, resumo: '', sugestao_msg: '' })); }
 }
