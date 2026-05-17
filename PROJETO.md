@@ -46,12 +46,9 @@
 
 ### ⬜ PENDENTE — Próximas prioridades
 
-1. **Varredura sinais de mercado** — Google News RSS por palavras-chave (M&A, transformação digital, movimentação executiva)
-2. **Integração Hunter.io** — busca automática de email de recrutador a partir de domínio da empresa
-3. **Campo "Negativados"** no Pipeline — coluna ou filtro separado para vagas onde candidatura foi recusada
-4. **Alertas follow-up** — lembrete automático em 7, 14 e 21 dias após CV enviado sem retorno
-5. **Limpeza de leads antigos** — 298 leads acumulados, maioria desatualizada; fluxo de arquivamento em lote
-6. **Fluxo Candidatar completo** — gerar CV otimizado → enviar via Outlook → registrar na timeline → follow-up agendado
+1. **Alertas follow-up** — lembrete automático em 7, 14 e 21 dias após CV enviado sem retorno
+2. **Limpeza de leads antigos** — 298 leads acumulados, maioria desatualizada; fluxo de arquivamento em lote
+3. **Fluxo Candidatar completo** — gerar CV otimizado → enviar via Outlook → registrar na timeline → follow-up agendado
 
 ### ROADMAP
 

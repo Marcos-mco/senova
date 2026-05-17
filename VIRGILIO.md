@@ -111,8 +111,7 @@ BR → ES → DE → PT → Remoto → BR → ...
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-1. **Campo Negativados** — coluna ou filtro no Pipeline para vagas recusadas
-2. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
+1. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
 
 ### Média prioridade
 5. **Limpeza leads antigos** — 298 leads, maioria desatualizada; criar fluxo de arquivamento em lote
