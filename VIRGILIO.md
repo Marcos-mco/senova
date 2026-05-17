@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 17/mai/2026 — v3.9*
+*Atualizado: 18/mai/2026 — v3.10*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,11 +16,11 @@
 
 ---
 
-## ESTADO ATUAL — v3.9 (17/mai/2026)
+## ESTADO ATUAL — v3.10 (18/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.6)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.7)
 - **KV:** SENOVA_KV
 - **Cron:** 0 10 * * * (07:00 BRT) — varredura automática de vagas
 - **Último commit estável:** ver git log
@@ -121,6 +121,11 @@ BR → ES → DE → PT → Remoto → BR → ...
 - **Botão "✉ Candidatar" no modal do Pipeline** — aparece em Lead e Aplicado; se card tem `atsCV` salvo → abre `modal-candidatura` direto; se não tem → redireciona para Análise CV
 - **Fallback `cv` em `abrirModalCandidatura`** — aceita parâmetro `cv` explícito; usa `cv || lastCV || ''`; corrige reload de página que zerava `lastCV`
 - **Follow-up automático após envio** — `v.data = DD/MM/YYYY` (hoje +7d); `v.proxima = "Follow-up — verificar retorno"`; card aparece em Próximas Ações na Home
+
+### v3.10 — sessão 18/mai/2026
+- **Busca automática de descrição por URL** — `analyzeJob()`: quando descrição < 80 chars e card tem `origemUrl`, exibe botão "🔍 Buscar descrição em [domínio]" em vez de mensagem estática; `buscarDescricaoAuto(url)` → `POST /api/fetch-descricao` → Worker faz fetch + strip HTML → popula `vaga-input` → dispara análise automaticamente; fallback com mensagem de erro se URL inacessível ou conteúdo < 200 chars; sem URL: comportamento anterior preservado
+- **Worker v7.7** — nova rota `POST /api/fetch-descricao`: fetch com User-Agent browser, timeout 8s, strip script/style/nav/header/footer, decodifica entidades HTML, limite 4000 chars — commit `6a2a2cb`, deploy `fe350991`
+- **9 bugs corrigidos** (Fase 0) — status/aplicado, descartado visível, saveVaga preserva campos, timeout extração emails, dedup emails, descrição varredura, busca threshold, declinar sem card
 
 ---
 
