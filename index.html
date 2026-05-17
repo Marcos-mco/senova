@@ -123,6 +123,10 @@ select option { background: var(--bg2); }
 .badge-media { background: #E8F0FF; color: #0066CC; }
 .badge-baixa { background: #E8FFE8; color: #008800; }
 .badge-inativo { background: #FF6600; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-1 { background: #FF6600; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-2 { background: #CC0000; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-3 { background: #CC0000; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; animation: pulseInativo 1.4s ease-in-out infinite; }
+@keyframes pulseInativo { 0%,100%{ box-shadow:0 0 0 0 #CC000066; opacity:1; } 60%{ box-shadow:0 0 0 5px #CC000000; opacity:.85; } }
 
 /* ── MODAL ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -2200,10 +2204,15 @@ function formatTs(ts){
   const d=new Date(ts);
   return `${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()}`;
 }
-function isInativo(v){
-  if(!v.updatedAt||v.status==='negado'||v.status==='aceito') return false;
-  return Date.now()-v.updatedAt > _diasInativo*24*3600*1000;
+function nivelInativo(v){
+  if(!v.updatedAt||['negado','aceito','descartado'].includes(v.status)) return 0;
+  const dias=(Date.now()-v.updatedAt)/(24*3600*1000);
+  if(dias>=_diasInativo*3) return 3;
+  if(dias>=_diasInativo*2) return 2;
+  if(dias>=_diasInativo)   return 1;
+  return 0;
 }
+function isInativo(v){ return nivelInativo(v)>0; }
 
 function loadCRM(){
   try{
@@ -2744,8 +2753,9 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
       ${cards.map(c=>{
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
-        const inativo = isInativo(c);
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${inativo?'#FF6600':corPri[c.prioridade]||'#ccc'}${inativo?';box-shadow:0 0 0 1px #FF660022':''}">
+        const nv=nivelInativo(c);
+        const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
+        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div class="kcard-name">${c.empresa}</div>
             ${(c.createdAt||c.updatedAt)?`<div class="kcard-dates"><span class="kcard-created">📅 ${formatTs(c.createdAt||c.updatedAt)}</span>${(c.updatedAt&&c.createdAt&&Math.floor(c.updatedAt/86400000)!==Math.floor(c.createdAt/86400000))?`<span class="kcard-updated">· ↻ ${formatTs(c.updatedAt)}</span>`:''}</div>`:''}
@@ -2755,7 +2765,7 @@ function renderCRM(){
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
             ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
-            ${inativo?`<span class="badge badge-inativo">⚠ ${_diasInativo}d</span>`:''}
+            ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
@@ -4017,30 +4027,46 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
   const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
-  // só cards com data específica definida no modal de drag
-  const comData=base.map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
-  comData.sort((a,b)=>a.dt-b.dt); // overdue first, then today, then future nearest
+  // nível 3 sem data → surfacem no topo independentemente de data agendada
+  const nivel3SemData=base.filter(v=>nivelInativo(v)===3&&_getNextActionDate(v)===null);
+  // cards com data específica definida no modal de drag
+  const nivel3Ids=new Set(nivel3SemData.map(v=>v.id));
+  const comData=base.filter(v=>!nivel3Ids.has(v.id)).map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
+  // nível 3 com data sobe para antes dos outros; dentro do nível 3 ordena por data
+  comData.sort((a,b)=>{
+    const n3a=nivelInativo(a.v)===3, n3b=nivelInativo(b.v)===3;
+    if(n3a&&!n3b) return -1; if(!n3a&&n3b) return 1;
+    return a.dt-b.dt;
+  });
   function _buildCardVaga(v,badgeHtml,bordaCor,bgColor){
-    const inativo=isInativo(v);
+    const nv=nivelInativo(v);
+    const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
     const cor=corSt[v.status]||'#9CA3AF';
     const lbl=lblSt[v.status]||v.status;
     const priCor=corPriH[v.prioridade]||'#9CA3AF';
     const priLbl=v.prioridade==='alta'?'Alta':v.prioridade==='media'?'Média':'Baixa';
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
     const acaoTxt=v.proxima||'';
-    const borda=inativo?'#FF6600':bordaCor;
-    const inativoBadge=inativo?`<span style="background:#FF6600;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;flex-shrink:0;">⚠ ${_diasInativo}d</span>`:'';
+    const borda=nv>0?nvColor:bordaCor;
+    const inativoBadge=nv===1?`<span class="badge badge-inativo-1" style="flex-shrink:0;">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2" style="flex-shrink:0;">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${_diasInativo*3}d</span>`:'';
     const el=document.createElement('div');
     el.className='home-acao-item';
     el.style.borderLeftColor=borda;
     if(bgColor) el.style.background=bgColor;
-    else if(inativo) el.style.background='#FFF8F5';
+    else if(nv===3) el.style.background='#FFF0F0';
+    else if(nv>0) el.style.background='#FFF8F5';
     el.onclick=()=>openVagaModal(v.id);
     el.innerHTML=`<div class="home-acao-dot" style="background:${borda};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${badgeHtml}${inativoBadge}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     return el;
   }
   list.innerHTML='';
-  if(!comData.length){
+  // Renderizar nível 3 sem data no topo
+  nivel3SemData.forEach(v=>{
+    const diasSem=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
+    const badge=`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${diasSem}d</span>`;
+    list.appendChild(_buildCardVaga(v,badge,'#CC0000','#FFF0F0'));
+  });
+  if(!comData.length&&!nivel3SemData.length){
     const el=document.createElement('div');
     el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
     el.textContent='Nenhuma ação agendada.';
