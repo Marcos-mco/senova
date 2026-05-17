@@ -12,8 +12,29 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.5 — 16/mai/2026 (ATUAL)
+### v3.6 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_16mai2026f.html (pré-edição)
+
+#### Extensão Chrome — Senova Capture (Manifest V3)
+- `senova-extension/` — pasta standalone, sem frameworks, sem build
+- `manifest.json`: MV3, permissions `activeTab` + `scripting`
+- `popup.html`: UI navy/gold (340px), campos Cargo, Empresa, URL editáveis antes de salvar
+- `popup.js`: extração automática por site via `chrome.scripting.executeScript`:
+  - LinkedIn Jobs, Gupy, Indeed/Indeed.com.br, Vagas.com.br, Catho — seletores específicos
+  - Fallback genérico: `h1` + `document.title` — funciona em qualquer site
+- `generate-icons.html`: Canvas desenha "S" dourado (#C9A84C) em fundo navy (#1A3A5C), auto-download icon16/48/128.png
+- Instalação local: `chrome://extensions` → Modo dev → "Carregar sem compactação" → `senova-extension/`
+
+#### Worker v7.6 — POST /api/vagas-lead
+- Nova rota `POST /api/vagas-lead`: recebe `{ titulo, empresa, url, descricao }`, cria vaga com `fonte: 'extensao_chrome'` e `badge: 'Extensão Chrome'`, append no array `vagas_lead` do KV
+- Vaga capturada aparece no widget "Vagas para revisar" → 1 clique "Importar vagas" → Lead no Pipeline com ATS scoring automático
+- Sem autenticação extra — Worker já é público para uso pessoal
+
+---
+
+### v3.5 — 16/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_16mai2026f.html (pré-edição)
 
 #### Worker v7.5 — Hunter.io: email do decisor nos sinais de mercado
