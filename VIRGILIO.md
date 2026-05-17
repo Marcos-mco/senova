@@ -124,7 +124,7 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 ---
 
-## BUGS CONHECIDOS (identificados em 17/mai/2026)
+## BUGS CONHECIDOS (identificados em 17–18/mai/2026)
 
 ### ✅ Resolvidos
 1. ~~**Status não muda para 'aplicado' ao candidatar pelo Pipeline**~~ — corrigido em `0d89670` (18/mai/2026): `v.status='aplicado'` no bloco `res.ok` de `enviarCandidaturaOutlook`.
@@ -138,6 +138,15 @@ BR → ES → DE → PT → Remoto → BR → ...
 5. ~~**`extrairEmpresasCargosBatch` sem timeout**~~ — corrigido em `fb1dc58` (18/mai/2026): `AbortController` com 10s; `clearTimeout` se resposta chegar antes.
 
 6. ~~**Deduplicação de emails muito agressiva**~~ — corrigido em `f094bb8` (18/mai/2026): dedup agora checa `emailDest + emailAssunto`; mesmo remetente com assunto diferente = nova vaga importada.
+
+7. ~~**Descrição da vaga não carrega nos cards importados via varredura**~~ — corrigido em `21236aa` (18/mai/2026): modal lê `v.jobDescription||v.descricao` — mismatch de campo entre varredura (`descricao`) e modal (`jobDescription`) resolvido.
+
+8. ~~**Falso positivo na busca Pipeline com strings curtas**~~ — corrigido em `21236aa` (18/mai/2026): threshold de 3 → 4 caracteres; "omi" não dispara busca.
+
+9. ~~**Botão Declinar sem efeito quando não há card no Pipeline**~~ — corrigido em `21236aa` (18/mai/2026): `declinarVagaATS()` quando `atsOrigemVagaId==null` cria card novo com `status:'negado'` + timeline em vez de mostrar sucesso silenciosamente.
+
+### Pendente (aguarda cenário específico)
+- **Card não atualiza em tempo real no modal aberto** — sem binding reativo por design; aguardar descrição exata do cenário para avaliar se é bug ou limitação.
 
 ---
 
