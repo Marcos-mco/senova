@@ -12,8 +12,25 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.4 — 16/mai/2026 (ATUAL)
+### v3.5 — 16/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_16mai2026f.html (pré-edição)
+
+#### Worker v7.5 — Hunter.io: email do decisor nos sinais de mercado
+- `analisarSinaisMercado()`: prompt atualizado — Claude infere e retorna `"dominio": "empresa.com.br"` junto com a análise; retorna `null` se não souber com certeza
+- `buscarEmailHunter(dominio, env)`: chama `GET /v2/domain-search` do Hunter.io, filtra `type === 'personal'`, ordena por prioridade de cargo (Marketing/CMO → CEO/Presidente → Diretor/Head → RH/People → qualquer pessoal)
+- Cache KV `hunter_DOMINIO` com TTL 7 dias — evita repetir buscas e protege o free tier (25 buscas/mês)
+- `buscarSinaisMercado()`: enriquece sinais com `relevancia >= 4` e `dominio` presente; anexa `email_decisor: { email, nome, cargo }` ao objeto do sinal antes de salvar no KV diário
+- Falha silenciosa: se domínio errado ou empresa ausente no Hunter.io, `email_decisor` fica `null` e o card aparece normalmente
+
+#### Frontend — card de email do decisor
+- `abrirPainelAlertas()` Bloco A: quando `s.email_decisor` presente, exibe card verde com `📧 email` + nome + cargo + botão "Copiar email"
+- Aparece abaixo da caixa azul de sugestão de mensagem — fluxo natural: ver contexto → copiar mensagem → copiar email
+
+---
+
+### v3.4 — 16/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_16mai2026f.html (pré-edição)
 
 #### Worker v7.4 — Sinais de mercado

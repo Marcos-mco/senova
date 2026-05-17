@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 16/mai/2026 — v3.4*
+*Atualizado: 16/mai/2026 — v3.5*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,11 +16,11 @@
 
 ---
 
-## ESTADO ATUAL — v3.4 (16/mai/2026)
+## ESTADO ATUAL — v3.5 (16/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.4)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.5)
 - **KV:** SENOVA_KV
 - **Cron:** 0 10 * * * (07:00 BRT) — varredura automática de vagas
 - **Último commit estável:** ver git log
@@ -33,8 +33,9 @@
 - MS_TENANT_ID = consumers ✅
 - ADZUNA_APP_ID = 65c2a129 ✅
 - ADZUNA_APP_KEY = b9337363bcd00298b081441121257059 ✅
+- HUNTER_API_KEY ✅
 
-### Rotas do Worker v7.4
+### Rotas do Worker v7.5
 - POST /api/claude — proxy Anthropic
 - POST /api/analisar-vaga — score ATS
 - POST /api/varredura-manual — dispara varredura agora
@@ -109,9 +110,8 @@ BR → ES → DE → PT → Remoto → BR → ...
 ## PENDÊNCIAS — Por ordem de prioridade
 
 ### Alta prioridade
-1. **Integração Hunter.io** — achar email do decisor por empresa+nome
-2. **Campo Negativados** — coluna ou filtro no Pipeline para vagas recusadas
-3. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
+1. **Campo Negativados** — coluna ou filtro no Pipeline para vagas recusadas
+2. **Alertas follow-up** — 7/14/21 dias sem resposta → notificação na Home
 
 ### Média prioridade
 5. **Limpeza leads antigos** — 298 leads, maioria desatualizada; criar fluxo de arquivamento em lote
