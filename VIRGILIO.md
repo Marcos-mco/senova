@@ -35,25 +35,29 @@
 - ADZUNA_APP_KEY = b9337363bcd00298b081441121257059 ✅
 - HUNTER_API_KEY ✅
 
-### Rotas do Worker v7.6
+### Rotas do Worker v7.7
 - POST /api/claude — proxy Anthropic
 - POST /api/analisar-vaga — score ATS
 - POST /api/varredura-manual — dispara varredura agora
 - POST /api/varredura-pais — dispara varredura de país específico
 - GET /api/vagas-lead — retorna vagas coletadas
+- POST /api/vagas-lead — adiciona vaga capturada pela extensão Chrome
 - POST /api/vagas-lead/clear — limpa vagas
+- POST /api/vagas-lead/score — atualiza score de vaga no KV
 - GET/POST /api/config-varredura — configurações do Perfil
 - GET /api/varredura-status — status e log da última execução
 - GET /api/auth/outlook — inicia OAuth Microsoft
 - GET /api/auth/callback — salva token
 - DELETE /api/auth/outlook — desconecta
 - GET /api/emails — busca e classifica emails
-- POST /api/emails/responder — responde email
-- POST /api/emails/enviar — envia email
-- POST /api/calendar/evento — cria evento Outlook
+- POST /api/emails/marcar-visto — marca emails como vistos no KV
+- DELETE /api/emails/limpar-vistos — limpa histórico de vistos
+- POST /api/emails/responder — responde email via Graph API
+- POST /api/emails/enviar — envia email novo via Graph API
+- POST /api/calendar/evento — cria evento no Outlook Calendar
 - GET/POST/DELETE /api/whitelist — domínios prioritários
 - GET /api/sinais-mercado — notícias RSS analisadas por IA (cache diário)
-- POST /api/vagas-lead — adiciona vaga capturada pela extensão Chrome
+- POST /api/fetch-descricao — fetch de URL externa + strip HTML (v7.7)
 - GET /health — status do Worker
 
 ---
@@ -150,16 +154,33 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 9. ~~**Botão Declinar sem efeito quando não há card no Pipeline**~~ — corrigido em `21236aa` (18/mai/2026): `declinarVagaATS()` quando `atsOrigemVagaId==null` cria card novo com `status:'negado'` + timeline em vez de mostrar sucesso silenciosamente.
 
-### Pendente (aguarda cenário específico)
-- **Card não atualiza em tempo real no modal aberto** — sem binding reativo por design; aguardar descrição exata do cenário para avaliar se é bug ou limitação.
 
 ---
 
 ## PENDÊNCIAS — Por ordem de prioridade
 
-### Baixa prioridade
-- **senova.com.br** — domínio próprio (R$47/mês)
+### FASE 1 — MVP para 5 usuários reais
+
+1. **Sofia** — entrevistadora com foto real, conversa guiada PT/EN/ES/DE, constrói CV por entrevista
+2. **Filtros Plano A/B/C no Pipeline** — verificar se já implementado antes de executar
+3. **Aba Perfil — otimização múltiplos portais** — Gupy, Indeed, Catho, Reed, StepStone
+4. **Comunidades 50+** — mapear e indicar no Senova
+5. **Cursos via Claude** — sugestões por lacuna no perfil
+6. **4 idiomas** — interface PT/EN/ES/DE
+7. **Michael Page automático** — remetente reconhecido, importação sem tag Revisar
+8. **Preenchimento automático nos portais** — autofill
+9. **Skill UI/UX-Pro-Max** — instalar no Code
+
+### FASE 2 — MVP Comercial
+
+10. **senova.com.br + multi-usuário** — domínio próprio (R$47/mês) + suporte a múltiplos perfis
+11. **Business Plan** — modelo de negócio, precificação, go-to-market, projeções
+12. **WhatsApp notificações** — alertas de follow-up, vagas e reuniões via WhatsApp
+13. **App mobile (iOS + Android)** — experiência nativa para profissionais 50+ com notificações push, captura de vagas mobile, acesso à Sofia
+
+### Bugs / melhorias menores
 - **Dashboard analytics** — métricas avançadas de recolocação
+- **Card não atualiza em tempo real no modal aberto** — aguardar cenário específico
 
 ---
 
