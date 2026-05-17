@@ -284,6 +284,12 @@ select option { background: var(--bg2); }
 .home-grid { display:grid; grid-template-columns:5fr 7fr; gap:16px; align-items:start; }
 @media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
+
+/* ── LIMPEZA EM LOTE ── */
+#limpeza-lote-painel { background:linear-gradient(135deg,#FFFDF0 0%,#FFF9E6 100%); border:1.5px solid #C9A84C; border-radius:10px; padding:16px 20px 12px; margin-bottom:14px; }
+.limpeza-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background 0.1s; }
+.limpeza-item:hover { background:rgba(26,58,92,0.05); }
+.limpeza-item.sel { background:rgba(26,58,92,0.07); }
 </style>
 </head>
 <body>
@@ -870,6 +876,7 @@ select option { background: var(--bg2); }
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
       </div>
       <button id="crm-arquivados-btn" onclick="toggleArquivados()" style="display:none;font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Mostrar/ocultar cards arquivados">0 arquivados</button>
+      <button id="btn-limpeza-lote" onclick="abrirLimpezaLote()" style="display:none;font-size:12px;color:#8B6914;background:#FFF9E6;border:1px solid #C9A84C;border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Arquivar leads antigos em lote">🗂 Limpeza em lote</button>
       <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:4px;">
         + Adicionar
       </button>
@@ -909,6 +916,33 @@ select option { background: var(--bg2); }
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
+      <!-- Painel Limpeza em Lote -->
+      <div id="limpeza-lote-painel" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:14px;font-weight:700;color:var(--navy);">🗂 Limpeza em Lote</span>
+          <span id="limpeza-count" style="font-size:12px;color:var(--text3);background:var(--bg3);border-radius:10px;padding:2px 10px;">0 encontrados</span>
+          <button onclick="abrirLimpezaLote()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;" title="Fechar">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+            Inativo há mais de
+            <input id="limpeza-dias" type="number" value="30" min="1" max="365" oninput="filtrarLimpezaLote()" style="width:58px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--font);">
+            dias
+          </label>
+          <span style="font-size:12px;color:var(--text3);margin-left:4px;">Estágios:</span>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="lead" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Lead</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="aplicado" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> CV Enviado</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="contato" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Em Contato</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="entrevista" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Entrevista</label>
+        </div>
+        <div id="limpeza-lista" style="max-height:280px;overflow-y:auto;border:1px solid rgba(201,168,76,0.35);border-radius:8px;background:#fff;margin-bottom:12px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button onclick="toggleTodosLimpeza()" style="font-size:12px;background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:4px 14px;font-family:var(--font);color:var(--text2);">Selecionar todos</button>
+          <span id="limpeza-sel-count" style="font-size:12.5px;color:var(--text3);">Nenhum selecionado</span>
+          <button id="btn-arquivar-lote" onclick="arquivarSelecionadosLote()" disabled style="margin-left:auto;font-size:13px;font-weight:600;background:#CC3300;color:#fff;border:none;border-radius:8px;cursor:pointer;padding:7px 18px;font-family:var(--font);opacity:0.35;transition:opacity 0.15s;">Arquivar selecionados</button>
+        </div>
+        <div id="limpeza-msg-sucesso" style="display:none;margin-top:10px;padding:8px 14px;background:#E8F5E9;border-radius:6px;font-size:13px;color:#2E7D32;"></div>
+      </div>
       <div id="crm-inativo-banner" class="crm-filtro-banner" style="display:none;">
         <span id="crm-inativo-banner-txt">⚠ Mostrando apenas cards inativos (7+ dias sem atualização)</span>
         <button onclick="limparFiltroInativo()" style="margin-left:auto;background:none;border:1px solid #C09000;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;color:#5A4000;">✕ Limpar filtro</button>
@@ -1551,7 +1585,7 @@ function showPage(page) {
     const nav = document.getElementById('nav-'+p);
     if(nav) nav.classList.toggle('active', p===page);
   });
-  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; }
+  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
   if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; carregarStatusVarredura(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
@@ -2154,6 +2188,7 @@ const DEFAULT_CONTATOS=[
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
 let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos';
+let _limpezaSelecionados=new Set();
 let colFilters={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
@@ -2689,6 +2724,118 @@ function toggleArquivados(){
   renderCRM();
 }
 
+function abrirLimpezaLote(){
+  const painel=document.getElementById('limpeza-lote-painel');
+  if(!painel) return;
+  const isOpen=painel.style.display!=='none';
+  if(isOpen){ painel.style.display='none'; return; }
+  painel.style.display='block';
+  _limpezaSelecionados.clear();
+  const diasInput=document.getElementById('limpeza-dias');
+  if(diasInput) diasInput.value='30';
+  document.querySelectorAll('.limpeza-stage-cb').forEach(cb=>{ cb.checked=(cb.value==='lead'||cb.value==='aplicado'); });
+  const msg=document.getElementById('limpeza-msg-sucesso');
+  if(msg) msg.style.display='none';
+  filtrarLimpezaLote();
+}
+
+function filtrarLimpezaLote(){
+  const dias=parseInt(document.getElementById('limpeza-dias')?.value||'30');
+  const limiar=dias*24*3600*1000;
+  const agora=Date.now();
+  const stages=Array.from(document.querySelectorAll('.limpeza-stage-cb:checked')).map(el=>el.value);
+  const ARQUIVADOS=['aceito','negado','descartado'];
+  const lista=vagas.filter(v=>{
+    if(ARQUIVADOS.includes(v.status)) return false;
+    if(stages.length>0&&!stages.includes(v.status)) return false;
+    return !v.updatedAt||(agora-v.updatedAt)>=limiar;
+  });
+  const listaIds=new Set(lista.map(v=>v.id));
+  for(const id of [..._limpezaSelecionados]){ if(!listaIds.has(id)) _limpezaSelecionados.delete(id); }
+  renderLimpezaLista(lista);
+}
+
+const _LIMPEZA_STATUS_LABEL={lead:'Lead',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta'};
+
+function renderLimpezaLista(lista){
+  const container=document.getElementById('limpeza-lista');
+  const countEl=document.getElementById('limpeza-count');
+  if(!container) return;
+  if(countEl) countEl.textContent=`${lista.length} encontrado${lista.length!==1?'s':''}`;
+  if(lista.length===0){
+    container.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px;">Nenhum card encontrado com esses critérios.</div>';
+    atualizarContadorLimpeza(); return;
+  }
+  container.innerHTML=lista.map(v=>{
+    const ago=v.updatedAt?Math.floor((Date.now()-v.updatedAt)/(24*3600*1000)):'?';
+    const sel=_limpezaSelecionados.has(v.id);
+    const stLabel=_LIMPEZA_STATUS_LABEL[v.status]||v.status;
+    const agoColor=typeof ago==='number'&&ago>60?'#CC0000':typeof ago==='number'&&ago>30?'#C09000':'var(--text3)';
+    return `<div class="limpeza-item${sel?' sel':''}" data-lid="${v.id}" onclick="toggleItemLimpeza(${v.id},this)">
+      <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleItemLimpeza(${v.id},this.parentElement);" style="width:16px;height:16px;accent-color:var(--navy);cursor:pointer;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.empresa}</div>
+        <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.cargo||'Cargo não definido'}</div>
+      </div>
+      <span style="font-size:11.5px;background:var(--bg3);color:var(--text3);border-radius:10px;padding:2px 8px;white-space:nowrap;">${stLabel}</span>
+      <span style="font-size:11.5px;color:${agoColor};white-space:nowrap;min-width:28px;text-align:right;">${ago}d</span>
+    </div>`;
+  }).join('');
+  atualizarContadorLimpeza();
+}
+
+function toggleItemLimpeza(id,el){
+  const cb=el.querySelector('input[type=checkbox]');
+  if(_limpezaSelecionados.has(id)){ _limpezaSelecionados.delete(id); if(cb)cb.checked=false; el.classList.remove('sel'); }
+  else{ _limpezaSelecionados.add(id); if(cb)cb.checked=true; el.classList.add('sel'); }
+  atualizarContadorLimpeza();
+}
+
+function toggleTodosLimpeza(){
+  const items=document.querySelectorAll('#limpeza-lista .limpeza-item');
+  const ids=[...items].map(el=>parseInt(el.dataset.lid));
+  const todosMarcados=ids.length>0&&ids.every(id=>_limpezaSelecionados.has(id));
+  ids.forEach(id=>todosMarcados?_limpezaSelecionados.delete(id):_limpezaSelecionados.add(id));
+  items.forEach(el=>{
+    const id=parseInt(el.dataset.lid);
+    const cb=el.querySelector('input[type=checkbox]');
+    const sel=_limpezaSelecionados.has(id);
+    if(cb) cb.checked=sel;
+    sel?el.classList.add('sel'):el.classList.remove('sel');
+  });
+  atualizarContadorLimpeza();
+}
+
+function atualizarContadorLimpeza(){
+  const el=document.getElementById('limpeza-sel-count');
+  const btn=document.getElementById('btn-arquivar-lote');
+  const n=_limpezaSelecionados.size;
+  if(el) el.textContent=n===0?'Nenhum selecionado':`${n} selecionado${n!==1?'s':''}`;
+  if(btn){ btn.disabled=n===0; btn.style.opacity=n===0?'0.35':'1'; btn.style.cursor=n===0?'default':'pointer'; }
+}
+
+function arquivarSelecionadosLote(){
+  const n=_limpezaSelecionados.size;
+  if(n===0) return;
+  if(!confirm(`Arquivar ${n} vaga${n!==1?'s':''} como descartadas?\n\nVocê pode ver os arquivados a qualquer momento pelo botão "X arquivados".`)) return;
+  const ts=Date.now();
+  vagas.forEach(v=>{
+    if(_limpezaSelecionados.has(v.id)){
+      v.status='descartado'; v.updatedAt=ts;
+      if(!v.timeline) v.timeline=[];
+      v.timeline.push({ts,texto:`Arquivado via limpeza em lote`});
+    }
+  });
+  saveVagas();
+  _limpezaSelecionados.clear();
+  const msg=document.getElementById('limpeza-msg-sucesso');
+  if(msg){ msg.textContent=`${n} vaga${n!==1?'s':''} arquivada${n!==1?'s':''} com sucesso.`; msg.style.display='block'; }
+  setTimeout(()=>{
+    const painel=document.getElementById('limpeza-lote-painel');
+    if(painel) painel.style.display='none';
+  },2000);
+}
+
 function setCrmTab(tab,btn){
   crmCurrentTab=tab;
   document.querySelectorAll('.topbar .lang-toggle .lang-btn').forEach(b=>b.classList.remove('active'));
@@ -2697,6 +2844,9 @@ function setCrmTab(tab,btn){
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
   document.getElementById('crm-filter-bar').style.display=tab==='vagas'?'flex':'none';
   document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
+  const btnLimpeza=document.getElementById('btn-limpeza-lote');
+  if(btnLimpeza) btnLimpeza.style.display=tab==='vagas'?'inline-block':'none';
+  if(tab!=='vagas'){ const painel=document.getElementById('limpeza-lote-painel'); if(painel) painel.style.display='none'; }
   renderCRM();
 }
 
