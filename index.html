@@ -4128,13 +4128,13 @@ async function carregarEmails(forcar){
         const preview=e.resumo||e.preview||e.bodyPreview||'';
         const conteudoVaga=e.conteudo_vaga||preview;
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
-        const jaExiste=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr);
+        const jaExiste=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr&&(v.emailAssunto||'')===(assunto||''));
         if(!jaExiste){
           const ext=extraidos?.[i];
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
-          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,emailAssunto:assunto,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
