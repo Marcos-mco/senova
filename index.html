@@ -1548,7 +1548,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
   if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; carregarStatusVarredura(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
@@ -2583,6 +2583,7 @@ let _crmFiltroInativo=false;
 let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
+let _sinaisMercado=[];
 let _emailsAvulsos=[];
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
@@ -3589,18 +3590,22 @@ function atualizarSinais(){
       s1.style.opacity='1';
     }
   }
-  // Sinal 2 — Google Alertas: visível quando há alertas OU quando conectado (estado "sem alertas")
+  // Sinal 2 — Sinais de mercado: Google Alerts emails (primário) + RSS (complemento)
   const s2=document.getElementById('sinal-alertas');
   const s2txt=document.getElementById('sinal-alertas-txt');
   if(s2){
-    if(_sinaisAlertas.length>0){
+    const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
+    if(totalSinais>0){
       s2.style.display='flex';
       s2.style.opacity='1';
-      s2txt.textContent=`Google Alertas de hoje → ${_sinaisAlertas.length} movimento${_sinaisAlertas.length===1?'':'s'} detectado${_sinaisAlertas.length===1?'':'s'}`;
+      const fontes=[];
+      if(_sinaisAlertas.length) fontes.push(`${_sinaisAlertas.length} Google Alert${_sinaisAlertas.length===1?'':'s'}`);
+      if(_sinaisMercado.length) fontes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
+      s2txt.textContent=`Sinais de mercado → ${fontes.join(' + ')}`;
     } else if(_emailsCarregados){
       s2.style.display='flex';
       s2.style.opacity='0.5';
-      s2txt.textContent='Nenhum alerta de mercado hoje';
+      s2txt.textContent='Nenhum sinal de mercado hoje';
     } else {
       s2.style.display='none';
     }
@@ -3782,13 +3787,47 @@ function limparFiltroInativo(){
 function abrirPainelAlertas(){
   const lista=document.getElementById('painel-alertas-lista');
   const sub=document.getElementById('painel-alertas-sub');
-  if(sub) sub.textContent=_sinaisAlertas.length+' alerta'+(_sinaisAlertas.length===1?'':'s')+' recebido'+(_sinaisAlertas.length===1?'':'s');
+  const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
+  if(sub) sub.textContent=totalSinais+' sinal'+(totalSinais===1?'':'s')+' de mercado hoje';
   if(lista){
-    lista.innerHTML=_sinaisAlertas.length?_sinaisAlertas.map(e=>{
-      const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const link=e.link_vaga||e.origemUrl||'';
-      return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
-    }).join(''):'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum alerta disponível.</div>';
+    let html='';
+    // Bloco A — Notícias RSS com análise IA
+    if(_sinaisMercado.length){
+      html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Notícias do mercado</div>`;
+      html+=_sinaisMercado.map(s=>{
+        const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const sugestao=(s.sugestao_msg||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const tipoLabel={movimento_exec:'👤 Movimento exec.',expansao:'📈 Expansão',fusao:'🔀 Fusão/M&A',outro:'📰 Notícia'}[s.tipo]||'📰 Notícia';
+        const rel=s.relevancia||3;
+        const relColor=rel>=5?'#CC0000':rel>=4?'#B8670A':'#0066CC';
+        const url=s.url||s.link||'';
+        return `<div class="alerta-item" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--borda);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:11px;background:var(--fundo2);padding:2px 6px;border-radius:10px;color:var(--text2);">${tipoLabel}</span>
+            <span style="font-size:11px;color:${relColor};font-weight:600;">Relevância ${rel}/5</span>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:3px;">${s.empresa||''}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:5px;">${resumo||titulo}</div>
+          ${sugestao?`<div style="font-size:12px;color:var(--navy);background:#EEF4FA;border-left:3px solid var(--action);padding:5px 8px;border-radius:0 4px 4px 0;margin-bottom:5px;">${sugestao}</div>`:''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${sugestao?`<button onclick="navigator.clipboard.writeText('${sugestao.replace(/'/g,"\\'")}').then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='📋 Copiar mensagem',1500)})" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;cursor:pointer;color:var(--action);">📋 Copiar mensagem</button>`:''}
+            ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;color:var(--text2);text-decoration:none;">🔗 Ver notícia</a>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    // Bloco B — Emails Google Alerts (primário)
+    if(_sinaisAlertas.length){
+      if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
+      html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Alerts — emails</div>`;
+      html+=_sinaisAlertas.map(e=>{
+        const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const link=e.link_vaga||e.origemUrl||'';
+        return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
+      }).join('');
+    }
+    lista.innerHTML=html||'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum sinal disponível.</div>';
   }
   document.getElementById('painel-alertas').style.display='flex';
 }
@@ -3805,6 +3844,16 @@ async function toggleOutlook(){
   const ok=await checkOutlookStatus();
   if(ok){ if(confirm('Desconectar o Outlook?')){ await fetch(WORKER_URL+'/api/auth/outlook',{method:'DELETE'}); checkOutlookStatus(); } }
   else conectarOutlook();
+}
+
+async function carregarSinaisMercado(){
+  try{
+    const resp=await fetch(WORKER_URL+'/api/sinais-mercado');
+    if(!resp.ok) return;
+    const data=await resp.json();
+    _sinaisMercado=(data.sinais||[]);
+    atualizarSinais();
+  }catch(e){ /* RSS opcional — falha silenciosa */ }
 }
 
 async function carregarEmails(forcar){

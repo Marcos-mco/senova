@@ -514,6 +514,16 @@ export default {
       return json({ ok: true, dominios: lista });
     }
 
+    if (path === '/api/sinais-mercado' && request.method === 'GET') {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const cacheKey = `sinais_mercado_${hoje}`;
+      const cached = await env.SENOVA_KV.get(cacheKey);
+      if (cached) return json(JSON.parse(cached));
+      const resultado = await buscarSinaisMercado(env);
+      await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 86400 });
+      return json(resultado);
+    }
+
     return json({ erro: 'Rota não encontrada' }, 404);
   },
 
@@ -765,4 +775,75 @@ function idiomaDoLocal(id) {
 
 async function salvarStatus(env, s) {
   await env.SENOVA_KV.put('varredura_status', JSON.stringify(s));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SINAIS DE MERCADO — Google News RSS + IA
+// ═══════════════════════════════════════════════════════════════════
+const QUERIES_SINAIS = [
+  'diretor marketing nomeado Brasil',
+  'CEO CMO contratado Brasil',
+  'expansão empresa mídia publicidade Brasil',
+  'fusão aquisição comunicação marketing',
+];
+const KEYWORDS_SINAL = ['saiu','novo ceo','nomeou','contratou','expansão','fusão','reestruturação','demitiu','lançou','cresce','adquiriu'];
+
+async function buscarGoogleNewsRSS(query) {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt`;
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)', 'Accept': 'application/rss+xml,text/xml' },
+      signal: AbortSignal.timeout(6000),
+      redirect: 'follow',
+    });
+    if (!resp.ok) return [];
+    return parsearRSS(await resp.text(), 'GoogleNews', { label: 'Brasil' });
+  } catch { return []; }
+}
+
+async function buscarSinaisMercado(env) {
+  const resultados = await Promise.allSettled(QUERIES_SINAIS.map(q => buscarGoogleNewsRSS(q)));
+  const itens = []; let rssOk = false;
+  for (const r of resultados) {
+    if (r.status === 'fulfilled' && r.value.length > 0) { rssOk = true; itens.push(...r.value); }
+  }
+  // dedup by title
+  const vistos = new Set();
+  const unicos = itens.filter(i => {
+    const k = (i.titulo || '').toLowerCase().slice(0, 60);
+    if (vistos.has(k)) return false;
+    vistos.add(k);
+    return true;
+  });
+  // keyword filter
+  const relevantes = unicos.filter(i => {
+    const txt = (i.titulo + ' ' + (i.descricao || '')).toLowerCase();
+    return KEYWORDS_SINAL.some(kw => txt.includes(kw));
+  }).slice(0, 5);
+
+  if (!relevantes.length) return { sinais: [], status: rssOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'google_news' };
+  const sinaisAnalisados = await analisarSinaisMercado(relevantes, env);
+  return { sinais: sinaisAnalisados, status: 'ok', fonte: 'google_news', total: sinaisAnalisados.length };
+}
+
+async function analisarSinaisMercado(itens, env) {
+  const lista = itens.map((it, i) => `[${i}] TÍTULO: ${it.titulo} | FONTE: ${it.empresa || it.local || ''}`).join('\n');
+  const prompt = `Você é assistente de inteligência de mercado para Marcos Franco, executivo sênior de marketing (CMO/Diretor) buscando recolocação C-Level no Brasil.\n\nAnalise cada notícia e retorne JSON. Para cada item relevante, identifique oportunidade de networking ou candidatura.\n\nNOTÍCIAS:\n${lista}\n\nResponda SOMENTE JSON:\n{"sinais":[{"indice":0,"empresa":"...","tipo":"movimento_exec|expansao|fusao|outro","relevancia":1-5,"resumo":"1 frase","sugestao_msg":"mensagem curta calorosa máx 2 linhas, tom executivo"}]}\n\nInclua apenas relevância ≥ 3.`;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const data = await resp.json();
+    const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
+    return (parsed.sinais || []).map(s => ({
+      ...itens[s.indice],
+      empresa: s.empresa || itens[s.indice]?.empresa || '',
+      tipo: s.tipo || 'outro',
+      relevancia: s.relevancia || 3,
+      resumo: s.resumo || '',
+      sugestao_msg: s.sugestao_msg || '',
+    }));
+  } catch { return itens.map(i => ({ ...i, tipo: 'outro', relevancia: 3, resumo: '', sugestao_msg: '' })); }
 }
