@@ -4078,10 +4078,14 @@ Regras:
 Emails:
 ${JSON.stringify(lista)}`;
   try{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),10000);
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
+      signal:ctrl.signal,
       body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
+    clearTimeout(timer);
     const data=await res.json();
     const text=data.content?.[0]?.text||'';
     const match=text.match(/\[[\s\S]*\]/);
