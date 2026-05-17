@@ -1198,6 +1198,7 @@ select option { background: var(--bg2); }
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
       <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
+      <button class="btn mv-btn" data-stages="lead,aplicado" onclick="candidatarDoModal()" style="background:#1A7A4A;color:#fff;">✉ Candidatar</button>
       <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
     </div>
   </div>
@@ -1907,7 +1908,7 @@ async function candidatarVagaATS(){
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
   if(bar){bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';});const lbl=document.getElementById('ats-decisao-label');if(lbl)lbl.textContent='✓ Candidatura registrada — '+hoje;}
-  abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx:savedIdx});
+  abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx:savedIdx,cv:lastCV});
 }
 
 function declinarVagaATS() {
@@ -3078,6 +3079,22 @@ function atualizarBotoes(){
   });
 }
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
+function candidatarDoModal(){
+  const id=editingVagaId;
+  const v=vagas.find(x=>x.id===id);
+  if(!v) return;
+  if(!(v.atsCV||lastCV)){
+    // sem CV salvo — redirecionar para Análise CV (lê campos do modal aberto)
+    abrirAntiATSModal();
+    return;
+  }
+  // tem CV — salvar modal, abrir modal-candidatura direto
+  saveVaga(); // fecha o modal Pipeline internamente
+  const vagaIdx=vagas.findIndex(x=>x.id===id);
+  if(vagaIdx<0) return;
+  const saved=vagas[vagaIdx];
+  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||''});
+}
 function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
 function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
@@ -3886,15 +3903,16 @@ async function enviarRespostaEmailAvulso(btn){
   }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
 }
 
-function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx}){
+function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv}){
   _candidaturaVagaIdx=savedVagaIdx;
   document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
   document.getElementById('mcand-email').value=emailDest||'';
   document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
   const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
   document.getElementById('mcand-carta').value=carta||cartaDefault;
-  document.getElementById('mcand-cv').value=lastCV||'';
-  document.getElementById('mcand-cv-status').textContent=lastCV?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
+  const cvContent=cv||lastCV||'';
+  document.getElementById('mcand-cv').value=cvContent;
+  document.getElementById('mcand-cv-status').textContent=cvContent?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
   const btn=document.getElementById('mcand-enviar-btn');
   if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
   document.getElementById('modal-candidatura').style.display='flex';
@@ -3921,8 +3939,17 @@ async function enviarCandidaturaOutlook(btn){
     if(res.ok){
       if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
         const v=vagas[_candidaturaVagaIdx];
+        const ts=Date.now();
         if(!v.timeline)v.timeline=[];
-        v.timeline.unshift({ts:Date.now(),texto:'CV enviado por Outlook para '+para});
+        v.timeline.unshift({ts,texto:'CV enviado por Outlook para '+para});
+        // follow-up automático em 7 dias
+        const fu=new Date(ts+7*24*3600*1000);
+        const dd=String(fu.getDate()).padStart(2,'0');
+        const mm=String(fu.getMonth()+1).padStart(2,'0');
+        const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
+        v.proxima='Follow-up — verificar retorno';
+        v.data=fuStr;
+        v.timeline.unshift({ts:ts+1,texto:'Follow-up agendado para '+fuStr});
         saveVagas();
       }
       btn.textContent='✓ Enviado!';
