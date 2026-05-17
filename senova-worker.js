@@ -550,6 +550,34 @@ export default {
       return json(resultado);
     }
 
+    if (path === '/api/fetch-descricao' && request.method === 'POST') {
+      const { url } = await request.json();
+      if (!url || !url.startsWith('http')) return json({ error: 'URL inválida' }, 400);
+      try {
+        const pageRes = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!pageRes.ok) return json({ error: `HTTP ${pageRes.status}` }, 502);
+        const html = await pageRes.text();
+        // Remove blocos não relevantes
+        const stripped = html
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+          .replace(/<header[\s\S]*?<\/header>/gi, '')
+          .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#\d+;/g, '')
+          .replace(/\s{2,}/g, ' ').trim();
+        const descricao = stripped.slice(0, 4000);
+        if (descricao.length < 200) return json({ error: 'Conteúdo insuficiente na URL' }, 422);
+        return json({ descricao });
+      } catch (e) {
+        return json({ error: 'Erro ao buscar URL: ' + (e.message||'timeout') }, 502);
+      }
+    }
+
     return json({ erro: 'Rota não encontrada' }, 404);
   },
 
