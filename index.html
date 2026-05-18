@@ -1334,24 +1334,22 @@ select option { background: var(--bg2); }
       <div id="mcand-empresa-cargo" style="font-size:12px;color:var(--text3);margin-top:4px;"></div>
     </div>
     <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
-      <div class="form-row" style="margin:0;">
-        <label class="field-label">Para (email do recrutador)</label>
-        <input type="email" id="mcand-email" placeholder="recrutador@empresa.com">
-      </div>
-      <div class="form-row" style="margin:0;">
-        <label class="field-label">Assunto</label>
-        <input type="text" id="mcand-assunto">
-      </div>
-      <div>
-        <label class="field-label">Mensagem (carta de apresentação)</label>
-        <textarea id="mcand-carta" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      <div class="form-grid" style="margin:0;">
+        <div>
+          <label class="field-label">Para</label>
+          <input type="email" id="mcand-email" placeholder="recrutador@empresa.com">
+        </div>
+        <div>
+          <label class="field-label">Assunto</label>
+          <input type="text" id="mcand-assunto">
+        </div>
       </div>
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <label class="field-label" style="margin:0;">CV Otimizado (incluso no corpo)</label>
+          <label class="field-label" style="margin:0;">Pré-visualização do email</label>
           <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
         </div>
-        <textarea id="mcand-cv" rows="5" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
+        <textarea id="mcand-preview" rows="14" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
       </div>
     </div>
     <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
@@ -1784,6 +1782,7 @@ function renderATSResult(analise,cv,crm) {
   if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
 
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
+  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>v.id===atsOrigemVagaId);if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';saveVagas();}}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
   const col = score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
   const bg = score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
@@ -4181,10 +4180,11 @@ function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv}){
   document.getElementById('mcand-email').value=emailDest||'';
   document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
   const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
-  document.getElementById('mcand-carta').value=carta||cartaDefault;
+  const cartaFinal=carta||cartaDefault;
   const cvContent=cv||lastCV||'';
-  document.getElementById('mcand-cv').value=cvContent;
-  document.getElementById('mcand-cv-status').textContent=cvContent?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
+  const preview=cartaFinal+(cvContent?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cvContent:'');
+  document.getElementById('mcand-preview').value=preview;
+  document.getElementById('mcand-cv-status').textContent=cvContent?'✓ CV incluído':'Sem CV — edite o corpo manualmente';
   const btn=document.getElementById('mcand-enviar-btn');
   if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
   document.getElementById('modal-candidatura').style.display='flex';
@@ -4196,11 +4196,10 @@ function fecharModalCandidatura(){
 async function enviarCandidaturaOutlook(btn){
   const para=(document.getElementById('mcand-email')?.value||'').trim();
   const assunto=(document.getElementById('mcand-assunto')?.value||'').trim();
-  const carta=(document.getElementById('mcand-carta')?.value||'').trim();
-  const cv=(document.getElementById('mcand-cv')?.value||'').trim();
+  const corpo=(document.getElementById('mcand-preview')?.value||'').trim();
   if(!para){alert('Preencha o email do recrutador.');return;}
   if(!assunto){alert('Preencha o assunto.');return;}
-  const corpo=carta+(cv?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cv:'');
+  if(!corpo){alert('O corpo do email está vazio.');return;}
   btn.textContent='Enviando…';btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/emails/enviar',{method:'POST',
