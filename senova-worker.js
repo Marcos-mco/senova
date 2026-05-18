@@ -377,7 +377,7 @@ export default {
       const apenasNovos = url.searchParams.get('apenas_novos') !== 'false';
 
       const msRes = await fetch(
-        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=isRead eq false&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body`,
+        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=isRead eq false&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body`,
         { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
       );
       if (!msRes.ok) {
