@@ -2704,11 +2704,9 @@ let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _emailsAvulsos=[];
-const _sinaisHojeKey='sinais_hoje_'+new Date().toISOString().slice(0,10);
-const _sinaisHoje=(()=>{try{const d=JSON.parse(localStorage.getItem(_sinaisHojeKey)||'{}');return{novos:d.novos||0,alertas:d.alertas||0};}catch{return{novos:0,alertas:0};}})();
-let _emailsNovosHoje=_sinaisHoje.novos;
-let _alertasHoje=_sinaisHoje.alertas;
-let _emailsContadosEstaSessao=false;
+const _sinaisKey='sinais_'+new Date().toISOString().slice(0,10);
+function _sinaisGet(){try{return JSON.parse(localStorage.getItem(_sinaisKey)||'{}');}catch{return{};}}
+function _sinaisSalvar(novos,alertas){try{const d=_sinaisGet();const obj={novos:Math.max(d.novos||0,novos!=null?novos:0),alertas:Math.max(d.alertas||0,alertas!=null?alertas:0)};localStorage.setItem(_sinaisKey,JSON.stringify(obj));}catch{}}
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
 let _emailsCarregados=false;
@@ -3841,8 +3839,7 @@ function atualizarSinais(){
       s1.onclick=conectarOutlook;
       s1.style.opacity='0.6';
     } else {
-      const total=_emailsAvulsos.length;
-      const novos=_emailsNovosHoje;
+      const novos=_sinaisGet().novos||0;
       s1txt.textContent=`Emails — ${novos} novo${novos===1?'':'s'} hoje`;
       s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
@@ -3860,8 +3857,9 @@ function atualizarSinais(){
       if(_sinaisAlertas.length) fontes.push(`${_sinaisAlertas.length} Google Alert${_sinaisAlertas.length===1?'':'s'}`);
       if(_sinaisMercado.length) fontes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
       s2txt.textContent=`Alertas — ${fontes.join(' + ')}`;
-    } else if(_alertasHoje>0){
-      s2txt.textContent=`Alertas — ${_alertasHoje} Google Alert${_alertasHoje===1?'':'s'} hoje`;
+    } else if((_sinaisGet().alertas||0)>0){
+      const ah=_sinaisGet().alertas;
+      s2txt.textContent=`Alertas — ${ah} Google Alert${ah===1?'':'s'} hoje`;
     } else {
       s2txt.textContent='Alertas — nenhum sinal hoje';
     }
@@ -4313,7 +4311,7 @@ async function carregarEmails(forcar){
     // Separar alertas Google dos demais
     const isAlerta=e=>{ const f=(e.from||e.de_email||'').toLowerCase(); return f.includes('googlealerts-noreply')||f.includes('google-alerts'); };
     _sinaisAlertas=emails.filter(isAlerta);
-    if(_sinaisAlertas.length){_alertasHoje=Math.max(_alertasHoje,_sinaisAlertas.length);try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje,alertas:_alertasHoje}));}catch{}}
+    if(_sinaisAlertas.length){_sinaisSalvar(null,_sinaisAlertas.length);}
     const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante'&&!isAlerta(e));
     _sinaisEmails={classificados:emailsVaga.length,leads:0};
     // Importar emails relevantes como Leads no Pipeline
@@ -4340,7 +4338,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; if(!_emailsContadosEstaSessao){_emailsNovosHoje+=emailsVaga.length;_emailsContadosEstaSessao=true;try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje,alertas:_alertasHoje}));}catch{}} }
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _sinaisSalvar(emailsVaga.length,null); }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
