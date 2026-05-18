@@ -1211,8 +1211,8 @@ select option { background: var(--bg2); }
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
-      <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
-      <button class="btn mv-btn" data-stages="lead,aplicado" onclick="candidatarDoModal()" style="background:#1A7A4A;color:#fff;">✉ Candidatar</button>
+      <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar Candidatura</button>
+      <button id="btn-candidatar-modal" class="btn mv-btn" data-stages="lead,aplicado" onclick="candidatarDoModal()" style="background:#1A7A4A;color:#fff;display:none;">✉ Candidatar</button>
       <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
     </div>
   </div>
@@ -3161,6 +3161,8 @@ function openVagaModal(id){
     const di=document.getElementById('mv-datas-info'); if(di) di.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
+  const btnCand=document.getElementById('btn-candidatar-modal');
+  if(btnCand){const v2=isNew?null:vagas.find(x=>x.id===id);btnCand.style.display=(v2&&(v2.atsCV||lastCV))||(!isNew&&lastCV)?'inline-flex':'none';}
   atualizarBotoes();
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
