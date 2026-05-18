@@ -213,10 +213,12 @@ export default {
     if (path === '/health') {
       const token = await getValidToken(env);
       const wl = await getWhitelist(env);
+      const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
         status: 'ok', worker: 'senova-proxy', versao: '7.3',
         outlook: token ? 'conectado' : 'desconectado',
         whitelist_dominios: wl.length,
+        statsHoje,
       });
     }
 
@@ -442,6 +444,17 @@ export default {
           body: JSON.stringify({ isRead: true }),
         })
       ));
+
+      // Stats do dia no KV
+      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
+      const totalAlertas = classificados.filter(isAlertaFn).length;
+      const totalNovos = classificados.filter(e => e.categoria !== 'irrelevante' && !isAlertaFn(e)).length;
+      const hoje = new Date().toISOString().slice(0, 10);
+      const statsKey = 'stats_' + hoje;
+      const statsAtuais = await env.SENOVA_KV.get(statsKey, 'json') || { novos: 0, alertas: 0 };
+      statsAtuais.novos = Math.max(statsAtuais.novos, totalNovos);
+      statsAtuais.alertas = Math.max(statsAtuais.alertas, totalAlertas);
+      await env.SENOVA_KV.put(statsKey, JSON.stringify(statsAtuais), { expirationTtl: 86400 });
 
       return json({
         emails: classificados, total_lidos: emails.length,

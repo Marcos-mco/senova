@@ -3812,13 +3812,19 @@ async function checkOutlookStatus(){
     const res=await fetch(WORKER_URL+'/health');
     const data=await res.json();
     const tog=document.getElementById('outlook-toggle');
+    if(data.statsHoje){
+      _emailsNovosHoje=Math.max(_emailsNovosHoje,data.statsHoje.novos||0);
+      _alertasHoje=Math.max(_alertasHoje,data.statsHoje.alertas||0);
+    }
     if(data.outlook==='conectado'){
       _outlookStatus='conectado';
       if(tog) tog.classList.add('on');
+      atualizarSinais();
       return true;
     } else {
       _outlookStatus='desconectado';
       if(tog) tog.classList.remove('on');
+      atualizarSinais();
       return false;
     }
   } catch{
