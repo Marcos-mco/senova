@@ -377,7 +377,7 @@ export default {
       const apenasNovos = url.searchParams.get('apenas_novos') !== 'false';
 
       const msRes = await fetch(
-        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body`,
+        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=isRead eq false&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body`,
         { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
       );
       if (!msRes.ok) {
@@ -433,6 +433,15 @@ export default {
       const whitelist = await getWhitelist(env);
       const classificados = await classificarEmails(novosComConteudo, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
+
+      // Marcar como lido no Outlook após processar
+      await Promise.allSettled(novos.map(e =>
+        fetch(`https://graph.microsoft.com/v1.0/me/messages/${e.id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isRead: true }),
+        })
+      ));
 
       return json({
         emails: classificados, total_lidos: emails.length,
