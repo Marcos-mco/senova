@@ -1247,13 +1247,32 @@ select option { background: var(--bg2); }
         </div>
         <textarea id="mer-resposta" rows="6" placeholder="Gere uma sugestão com IA ou escreva diretamente…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
       </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:8px;">📋 Registrar no Pipeline</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <select id="mer-stage" style="flex:1;font-size:13px;font-family:var(--font);padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text1);">
+            <option value="">Estágio…</option>
+            <option value="lead">Lead</option>
+            <option value="aplicado">CV Enviado</option>
+            <option value="contato">Em Contato</option>
+            <option value="entrevista">Entrevista</option>
+            <option value="proposta">Proposta</option>
+          </select>
+          <input type="date" id="mer-data" style="width:148px;font-size:13px;font-family:var(--font);padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text1);">
+        </div>
+        <textarea id="mer-notas" rows="2" placeholder="Notas (opcional)…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+          <a id="mer-weblink" href="#" target="_blank" style="font-size:12px;color:var(--action);display:none;">↗ Ver email original</a>
+          <div style="flex:1;"></div>
+          <button class="btn btn-primary" onclick="atualizarPipelineEmail(document.getElementById('mer-stage').value,document.getElementById('mer-data').value,document.getElementById('mer-notas').value)">Confirmar</button>
+        </div>
+      </div>
     </div>
     <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Cancelar</button>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" style="color:#C0281E;" onclick="arquivarEmailAvulso()">🗑 Arquivar</button>
         <button class="btn btn-ghost" id="mer-enviar-btn" onclick="enviarRespostaEmailAvulso(this)">↩ Responder</button>
-        <button class="btn btn-primary" onclick="abrirModalVagaFromEmail()">📋 Registrar no Pipeline</button>
       </div>
     </div>
   </div>
@@ -3906,7 +3925,12 @@ function abrirModalResponder(idx){
   const corpo=document.getElementById('mer-corpo'); if(corpo) corpo.value=e.body||e.preview||'';
   const resp=document.getElementById('mer-resposta'); if(resp) resp.value='';
   const btn=document.getElementById('mer-enviar-btn');
-  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  if(btn){btn.textContent='↩ Responder pelo Outlook';btn.disabled=false;btn.style.color='';}
+  const stageEl=document.getElementById('mer-stage'); if(stageEl) stageEl.value='';
+  const dataEl=document.getElementById('mer-data'); if(dataEl) dataEl.value='';
+  const notasEl=document.getElementById('mer-notas'); if(notasEl) notasEl.value='';
+  const wl=document.getElementById('mer-weblink');
+  if(wl){ if(e.webLink){wl.href=e.webLink;wl.style.display='inline';}else{wl.style.display='none';} }
   document.getElementById('modal-email-responder').style.display='flex';
 }
 function fecharModalEmailResponder(){
@@ -3927,6 +3951,31 @@ function abrirModalVagaFromEmail(){
   const _t=Date.now();
   vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:'aplicado',salario:'',proxima:'',notas:'',emailDest:_emailAtual.from||'',emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Registrado via email: '+assunto}]});
   saveVagas();
+  showPage('crm');
+}
+async function atualizarPipelineEmail(stage, data, notas){
+  if(!_emailAtual) return;
+  if(!stage){ alert('Selecione um estágio.'); return; }
+  const emailAddr=_emailAtual.from||'';
+  const assunto=_emailAtual.subject||'';
+  const empresa=_emailAtual.from_name||emailAddr||'A definir';
+  const _t=Date.now();
+  let card=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr&&(v.emailAssunto||'')===(assunto||''));
+  if(card){
+    card.status=stage;
+    card.updatedAt=_t;
+    if(notas) card.timeline.push({ts:_t,texto:notas});
+  } else {
+    vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:stage,salario:'',proxima:data||'',notas:notas||'',emailDest:emailAddr,emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Registrado via email'+(notas?': '+notas:'')}]});
+  }
+  saveVagas();
+  if(data){
+    try{
+      const titulo=`Senova: ${stage} — ${empresa}`;
+      await fetch(WORKER_URL+'/api/calendar/evento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,data,descricao:notas||assunto})});
+    }catch{}
+  }
+  fecharModalEmailResponder();
   showPage('crm');
 }
 async function gerarRespostaEmailAvulso(btn){
