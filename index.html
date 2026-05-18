@@ -2613,18 +2613,21 @@ function renderWidgetRevisao(){
   if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
   const cor=s=>s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';
   const bg=s=>s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';
-  listaEl.innerHTML = lista.map((v,i)=>`
-    <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+  listaEl.innerHTML = lista.map((v,i)=>{
+    const vagaUrl=v.url||v.link||v.origemUrl||'';
+    return `<div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
         <div style="font-size:11.5px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
       </div>
       <span style="font-size:11.5px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 9px;border-radius:10px;white-space:nowrap;">${v.score}/100${v._limiar?` · limiar ${v._limiar}`:''}</span>
+      ${vagaUrl?`<a href="${vagaUrl}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">🔗 Ver vaga</a>`:''}
       <button onclick="adicionarVagaRejeitada(${i})" id="rev-add-${i}"
         style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Adicionar</button>
       <button onclick="descartarVagaRejeitada(${i})"
         style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function toggleRevisaoLista(){
@@ -4193,10 +4196,28 @@ function abrirPainelAlertas(){
     if(_sinaisAlertas.length){
       if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
       html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Alerts — emails</div>`;
+      const _alertLink=e=>{
+        // Tenta links array: primeiro não-google
+        if(e.links&&e.links.length){
+          const direto=e.links.find(l=>l.startsWith('http')&&!/google\.com/.test(l));
+          if(direto) return direto;
+          // Google redirect: extrai url= do parâmetro
+          const redir=e.links.find(l=>/google\.com\/url/.test(l));
+          if(redir){const m=redir.match(/[?&]url=([^&]+)/);if(m)return decodeURIComponent(m[1]);}
+        }
+        // Fallback: parse body/preview
+        const txt=e.body||e.preview||'';
+        const ms=txt.match(/https?:\/\/(?!(?:www\.)?google\.com)[^\s"'<>)\]]+/g);
+        if(ms&&ms.length) return ms[0];
+        return '';
+      };
       html+=_sinaisAlertas.map(e=>{
         const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-        const link=e.link_vaga||e.origemUrl||'';
-        return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
+        const link=_alertLink(e);
+        return `<div class="alerta-item" style="padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">${assunto}</div>
+          ${link?`<a href="${link}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;">Ver notícias →</a>`:'<span style="font-size:12px;color:var(--text3);">Sem link disponível</span>'}
+        </div>`;
       }).join('');
     }
     lista.innerHTML=html||'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum sinal disponível.</div>';
