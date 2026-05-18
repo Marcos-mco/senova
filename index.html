@@ -1070,35 +1070,17 @@ select option { background: var(--bg2); }
   <div class="modal">
     <div class="modal-title" id="modal-vaga-title">Nova Vaga</div>
     <div class="modal-body">
-      <div class="form-row">
-        <label class="field-label">Empresa</label>
-        <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
-      </div>
-      <div class="form-row">
-        <label class="field-label">Cargo</label>
-        <input type="text" id="mv-cargo" placeholder="Ex: CMO — Chief Marketing Officer">
-      </div>
       <div class="form-grid" style="margin-bottom:14px;">
         <div>
-          <label class="field-label">Canal</label>
-          <select id="mv-canal">
-            <option>LinkedIn</option>
-            <option>Indicação</option>
-            <option>Headhunter</option>
-            <option>Site da empresa</option>
-            <option>Gupy</option>
-            <option>Indeed</option>
-            <option>Email</option>
-          </select>
+          <label class="field-label">Empresa</label>
+          <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
         </div>
         <div>
-          <label class="field-label">Prioridade</label>
-          <select id="mv-prioridade">
-            <option value="alta">Alta</option>
-            <option value="media" selected>Média</option>
-            <option value="baixa">Baixa</option>
-          </select>
+          <label class="field-label">Cargo</label>
+          <input type="text" id="mv-cargo" placeholder="Ex: CMO">
         </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
         <div>
           <label class="field-label">Status</label>
           <select id="mv-status" onchange="atualizarBotoes()">
@@ -1112,30 +1094,50 @@ select option { background: var(--bg2); }
           </select>
         </div>
         <div>
-          <label class="field-label">Pretensão (R$)</label>
-          <input type="text" id="mv-salario" placeholder="Ex: 22.000 CLT">
+          <label class="field-label">Canal</label>
+          <select id="mv-canal">
+            <option>LinkedIn</option>
+            <option>Indicação</option>
+            <option>Headhunter</option>
+            <option>Site da empresa</option>
+            <option>Gupy</option>
+            <option>Indeed</option>
+            <option>Email</option>
+          </select>
         </div>
       </div>
       <div class="form-row">
-        <label class="field-label">Próxima ação</label>
-        <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+        <label class="field-label">URL da vaga</label>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/..." style="flex:1;" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();">
+          <button id="mv-ver-origem-btn" class="btn btn-ghost" style="flex-shrink:0;padding:0 16px;font-size:13px;" onclick="const u=document.getElementById('mv-origem-url').value.trim();if(u)window.open(u,'_blank');" disabled>Abrir</button>
+        </div>
       </div>
       <div class="form-row">
-        <label class="field-label">Email do destinatário</label>
+        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise CV)</span></label>
+        <textarea id="mv-job-desc" rows="4" placeholder="Cole o texto completo da vaga aqui…"></textarea>
+      </div>
+      <div class="form-row">
+        <label class="field-label">Email do recrutador</label>
         <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
-      </div>
-      <div class="form-row">
-        <label class="field-label">URL da vaga ou origem</label>
-        <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/... ou email@empresa.com" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.style.display=this.value?'flex':'none'">
       </div>
       <div class="form-row" style="margin-bottom:8px;">
         <label class="field-label">Notas</label>
-        <textarea id="mv-notas" rows="4" placeholder="Contexto relevante, contatos, observações..."></textarea>
+        <textarea id="mv-notas" rows="3" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
-      <div class="form-row" style="margin-bottom:8px;">
-        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise CV)</span></label>
-        <textarea id="mv-job-desc" rows="3" placeholder="Cole o texto completo da vaga aqui…"></textarea>
+      <hr style="border:none;border-top:1.5px solid var(--border);margin:14px 0 12px;">
+      <div class="form-grid" style="margin-bottom:8px;grid-template-columns:2fr 1fr;">
+        <div>
+          <label class="field-label">Próxima ação</label>
+          <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+        </div>
+        <div>
+          <label class="field-label">Data</label>
+          <input type="date" id="mv-proxima-data">
+        </div>
       </div>
+      <input type="hidden" id="mv-prioridade" value="media">
+      <input type="hidden" id="mv-salario">
       <div id="mv-datas-info" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--text3);">📅 Criado em: <strong id="mv-criado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
@@ -3076,13 +3078,14 @@ function openVagaModal(id){
     document.getElementById('mv-status').value=v.status;
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
+    document.getElementById('mv-proxima-data').value=v.proximaData||'';
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
-    if(btnOrigem) btnOrigem.style.display=v.origemUrl?'flex':'none';
+    if(btnOrigem) btnOrigem.disabled=!v.origemUrl;
     // Docs section
     const docsSec=document.getElementById('mv-docs-section');
     const scoreEl=document.getElementById('mv-ats-score-badge');
@@ -3117,13 +3120,13 @@ function openVagaModal(id){
       document.getElementById('mv-atualizado-em').textContent=formatTs(v.updatedAt)||'—';
     }
   } else {
-    ['mv-empresa','mv-cargo','mv-salario','mv-proxima','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='lead';
     document.getElementById('mv-motivo').value='';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
-    if(btnOrigem) btnOrigem.style.display='none';
+    if(btnOrigem) btnOrigem.disabled=true;
     document.getElementById('mv-timeline-section').style.display='none';
     document.getElementById('mv-timeline-lista').innerHTML='';
     const di=document.getElementById('mv-datas-info'); if(di) di.style.display='none';
@@ -3188,6 +3191,7 @@ function saveVaga(){
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
+    proximaData:document.getElementById('mv-proxima-data')?.value||'',
     data:existing?.data||'',
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
