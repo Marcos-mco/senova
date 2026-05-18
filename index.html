@@ -3841,7 +3841,7 @@ function atualizarSinais(){
     } else {
       const total=_emailsAvulsos.length;
       const novos=_emailsNovosHoje;
-      s1txt.textContent=`Emails — ${total} recebido${total===1?'':'s'} · ${novos} novo${novos===1?'':'s'} hoje`;
+      s1txt.textContent=`Emails — ${total} na fila · ${novos} novo${novos===1?'':'s'} hoje`;
       s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
     }
@@ -4335,7 +4335,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje,total:_emailsAvulsos.length}));}catch{} }
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje}));}catch{} }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
