@@ -2580,7 +2580,13 @@ function renderWidgetRevisao(){
   const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
   document.getElementById('revisao-widget-count').textContent =
     `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar configurado`;
-  document.getElementById('home-revisao-lista').innerHTML = lista.map((v,i)=>`
+  const listaEl = document.getElementById('home-revisao-lista');
+  const expandido = listaEl.dataset.expandido === '1';
+  if(!expandido){
+    listaEl.innerHTML = `<div style="padding:6px 0;"><button onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;">▶ Ver ${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar</button></div>`;
+    return;
+  }
+  listaEl.innerHTML = `<div style="padding:4px 0 8px;"><button onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">▼ Ocultar lista</button></div>` + lista.map((v,i)=>`
     <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
@@ -2592,6 +2598,12 @@ function renderWidgetRevisao(){
       <button onclick="descartarVagaRejeitada(${i})"
         style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
     </div>`).join('');
+}
+
+function toggleRevisaoLista(){
+  const listaEl = document.getElementById('home-revisao-lista');
+  listaEl.dataset.expandido = listaEl.dataset.expandido === '1' ? '0' : '1';
+  renderWidgetRevisao();
 }
 
 function adicionarVagaRejeitada(idx){
@@ -3865,7 +3877,7 @@ function renderEmailsAvulsos(){
     const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     const remetente=e.from_name||e.from||'(remetente)';
     const preview=(e.resumo||e.preview||'').slice(0,100);
-    return `<div class="home-acao-item" style="cursor:default;align-items:flex-start;">
+    return `<div class="home-acao-item" style="cursor:pointer;align-items:flex-start;" onclick="abrirModalResponder(${i})">
       <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
