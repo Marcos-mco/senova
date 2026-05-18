@@ -161,7 +161,31 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 ### FASE 1 — MVP para 5 usuários reais
 
-1. **Sofia** — entrevistadora com foto real, conversa guiada PT/EN/ES/DE, constrói CV por entrevista
+1. **Sofia — PRÓXIMA A EXECUTAR** (iniciar em sessão limpa — contexto estava em 10% ao encerrar)
+
+   **Opção A aprovada:** "Entrevistas" vira "Sofia" no menu, 4 tabs internas.
+   
+   **Diagnóstico feito (sessão 18/mai):**
+   - Tab 3 (Construir CV): já implementado em `#page-linkedin` — `iniciarSofia()`, 8 perguntas, gera perfil
+   - Tab 4 (Simular Entrevista): já implementado em `#page-interview` — PT/EN/ES, 5 perguntas, feedback
+   - Onboarding/Tutorial: não existem — tela em branco
+   - `PAGES = ['home','ats','linkedin','crm','interview']` — trocar `interview` por `sofia`
+   - `sofiaTransferirPerfil()` precisa de `showPage('linkedin')` adicionado ao final
+   - IDs existentes (`#sofia-chat`, `#int-chat`, etc.) são preservados — funções não precisam de ajuste
+
+   **10 passos de execução:**
+   1. Buscar foto real (Unsplash/Pexels) — mulher brasileira 35–45 anos, profissional, calorosa — validar URL antes de usar
+   2. CSS mínimo: `.sofia-tab-nav`, `.sofia-tab-btn`, `.sofia-tab-btn.active`, `.sofia-avatar`
+   3. Criar `#page-sofia` com topbar (avatar + "Sofia" + "Assistente de carreira") + tab-nav 4 botões
+   4. Tab 1 — Bem-vinda: HTML estático, avatar grande, frase calorosa, 4 cards de capacidades com botão "→ Abrir"
+   5. Tab 2 — Tutorial: HTML estático, 6 seções (Home · Análise CV · Pipeline · Perfil · Busca vagas · Fluxo completo)
+   6. Tab 3 — Construir CV: mover card "Não tenho CV" + `#sofia-chat-section` do `#page-linkedin` para aqui
+   7. Tab 4 — Simular Entrevista: mover conteúdo de `#page-interview` para aqui + `<option value="DE">Deutsch</option>`
+   8. Cleanup `#page-linkedin`: remover card "Não tenho CV" + `#sofia-chat-section`; adicionar card compacto "→ Construir CV com Sofia"
+   9. `PAGES`: trocar `'interview'` por `'sofia'`; sidebar: `showPage('sofia')`, label "Sofia", ícone atualizado; `sofiaTab(n)` para alternar tabs; `showPage('sofia')` ativa Tab 1 por padrão; `sofiaTransferirPerfil()` + `showPage('linkedin')` ao final
+   10. Remover `#page-interview` do HTML; backup `senova_v3_18mai2026f.html`; commit + push
+
+   **Não muda:** Worker, CSS global, cores, fontes, Perfil (upload/otimizador), funções do simulador e Sofia CV
 2. **Filtros Plano A/B/C no Pipeline** — verificar se já implementado antes de executar
 3. **Aba Perfil — otimização múltiplos portais** — Gupy, Indeed, Catho, Reed, StepStone
 4. **Comunidades 50+** — mapear e indicar no Senova

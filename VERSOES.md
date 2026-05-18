@@ -12,8 +12,30 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.9 — 17/mai/2026 (ATUAL)
+### v3.10 — 18/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Backup:** senova_v3_18mai2026d.html (pré-edição)
+
+#### 9 bugs corrigidos (Fase 0)
+- Status não mudava para 'aplicado' ao candidatar pelo Pipeline (`enviarCandidaturaOutlook` res.ok)
+- `descartado` invisível no kanban (`colsArq` agora inclui `'descartado'`)
+- `saveVaga()` perdia `tags`, campos de varredura (`score`, `classificacao`, `resumo`, `fonte`, `pontos_fortes`) e `data` de follow-up
+- `extrairEmpresasCargosBatch` sem timeout → `AbortController` 10s
+- Deduplicação de emails checa `emailDest + emailAssunto` (mesmo remetente, vaga diferente = importa)
+- Descrição de vagas da varredura não carregava no modal (`jobDescription || descricao`)
+- Busca Pipeline com strings curtas gerava falsos positivos (threshold 3 → 4 chars)
+- Botão Declinar sem efeito quando sem card: agora cria card `status:'negado'` com timeline
+
+#### Busca automática de descrição por URL
+- Quando descrição < 80 chars e card tem `origemUrl`: exibe botão "🔍 Buscar descrição em [domínio]"
+- `buscarDescricaoAuto(url)` → `POST /api/fetch-descricao` → Worker faz fetch + strip HTML → popula `vaga-input` → dispara análise
+- Worker v7.7: nova rota `POST /api/fetch-descricao` (fetch + strip script/style/nav/header/footer + limite 4000 chars + timeout 8s)
+- Fallback: mensagem de erro se URL inacessível ou conteúdo < 200 chars
+
+---
+
+### v3.9 — 17/mai/2026
+**Status:** Superada ✅  
 **Backup:** senova_v3_17mai2026b.html (pré-edição)
 
 #### Fluxo Candidatar completo
@@ -394,13 +416,14 @@ Para restaurar qualquer versão anterior:
 
 ---
 
-## Worker v7.3 — Cloudflare
+## Worker v7.7 — Cloudflare
 - URL: senova-proxy.marcos-mco.workers.dev
 - KV binding: SENOVA_KV
 - OAuth: /consumers/ (conta pessoal Hotmail marcos_mco@hotmail.com)
 - Vars obrigatórias: ANTHROPIC_API_KEY, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_TENANT_ID
 - Scopes OAuth ativos: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
 - Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
+- Deploy atual: `fe350991` (18/mai/2026)
 
 ## Regra de ouro
 **Antes de qualquer sessão de desenvolvimento:**
