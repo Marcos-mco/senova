@@ -2708,6 +2708,7 @@ const _sinaisHojeKey='sinais_hoje_'+new Date().toISOString().slice(0,10);
 const _sinaisHoje=(()=>{try{const d=JSON.parse(localStorage.getItem(_sinaisHojeKey)||'{}');return{novos:d.novos||0,alertas:d.alertas||0};}catch{return{novos:0,alertas:0};}})();
 let _emailsNovosHoje=_sinaisHoje.novos;
 let _alertasHoje=_sinaisHoje.alertas;
+let _emailsContadosEstaSessao=false;
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
 let _emailsCarregados=false;
@@ -3842,7 +3843,7 @@ function atualizarSinais(){
     } else {
       const total=_emailsAvulsos.length;
       const novos=_emailsNovosHoje;
-      s1txt.textContent=`Emails — ${total} na fila · ${novos} novo${novos===1?'':'s'} hoje`;
+      s1txt.textContent=`Emails — ${novos} novo${novos===1?'':'s'} hoje`;
       s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
     }
@@ -4339,7 +4340,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje}));}catch{} }
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; if(!_emailsContadosEstaSessao){_emailsNovosHoje+=emailsVaga.length;_emailsContadosEstaSessao=true;try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje,alertas:_alertasHoje}));}catch{}} }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
