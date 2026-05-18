@@ -2606,7 +2606,7 @@ function renderWidgetRevisao(){
   const qtd = lista.length;
   const expandido = listaEl.dataset.expandido === '1';
   if(qtd > 0){
-    sinalTxt.innerHTML = `Vagas abaixo do limiar — <strong>${qtd}</strong> para revisar &nbsp;·&nbsp; <button onclick="event.stopPropagation();toggleRevisaoLista()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">${expandido?'Ocultar':'Ver'}</button> &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
+    sinalTxt.innerHTML = `Vagas abaixo do limiar — <strong>${qtd}</strong> para revisar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
   } else {
     sinalTxt.textContent = 'Vagas abaixo do limiar — nenhuma para revisar';
   }
@@ -2704,7 +2704,9 @@ let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _emailsAvulsos=[];
-let _emailsNovosHoje=0;
+const _sinaisHojeKey='sinais_hoje_'+new Date().toISOString().slice(0,10);
+const _sinaisHoje=(()=>{try{const d=JSON.parse(localStorage.getItem(_sinaisHojeKey)||'{}');return{novos:d.novos||0,total:d.total||0};}catch{return{novos:0,total:0};}})();
+let _emailsNovosHoje=_sinaisHoje.novos;
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
 let _emailsCarregados=false;
@@ -4333,7 +4335,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; }
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; try{localStorage.setItem(_sinaisHojeKey,JSON.stringify({novos:_emailsNovosHoje,total:_emailsAvulsos.length}));}catch{} }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
