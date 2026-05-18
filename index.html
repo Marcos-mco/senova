@@ -1150,15 +1150,31 @@ select option { background: var(--bg2); }
         <label class="field-label">Notas</label>
         <textarea id="mv-notas" rows="3" placeholder="Contexto relevante, contatos, observações..."></textarea>
       </div>
-      <hr style="border:none;border-top:1.5px solid var(--border);margin:14px 0 12px;">
-      <div class="form-grid" style="margin-bottom:8px;grid-template-columns:2fr 1fr;">
-        <div>
-          <label class="field-label">Próxima ação</label>
-          <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+      <div id="mv-proxima-section">
+        <hr style="border:none;border-top:1.5px solid var(--border);margin:14px 0 12px;">
+        <div class="form-grid" style="margin-bottom:8px;grid-template-columns:2fr 1fr;">
+          <div>
+            <label class="field-label">Próxima ação</label>
+            <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+          </div>
+          <div>
+            <label class="field-label">Data</label>
+            <input type="date" id="mv-proxima-data">
+          </div>
         </div>
-        <div>
-          <label class="field-label">Data</label>
-          <input type="date" id="mv-proxima-data">
+      </div>
+      <div id="mv-declinar-panel" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:var(--radius);border:1.5px solid #C0281E33;">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">Motivo para declinar:</div>
+        <select id="mv-declinar-motivo" style="width:100%;padding:8px 10px;font-size:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:var(--font);">
+          <option value="Perfil não alinha">Perfil não alinha</option>
+          <option value="Salário abaixo">Salário abaixo</option>
+          <option value="Localização">Localização</option>
+          <option value="Processo encerrado">Processo encerrado</option>
+          <option value="Outro">Outro</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+          <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="cancelarDeclinar()">Cancelar</button>
+          <button class="btn" style="padding:6px 14px;font-size:13px;background:#C0281E;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;" onclick="confirmarDeclinar()">Confirmar declínio</button>
         </div>
       </div>
       <input type="hidden" id="mv-prioridade" value="media">
@@ -1212,9 +1228,7 @@ select option { background: var(--bg2); }
       <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
-      <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar Candidatura</button>
-      <button id="btn-candidatar-modal" class="btn mv-btn" data-stages="lead,aplicado" onclick="candidatarDoModal()" style="background:#1A7A4A;color:#fff;display:none;">✉ Candidatar</button>
-      <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
+      <div id="mv-footer-acoes" style="display:flex;gap:8px;"></div>
     </div>
   </div>
 </div>
@@ -3162,9 +3176,7 @@ function openVagaModal(id){
     const di=document.getElementById('mv-datas-info'); if(di) di.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
-  const btnCand=document.getElementById('btn-candidatar-modal');
-  if(btnCand){const v2=isNew?null:vagas.find(x=>x.id===id);btnCand.style.display=(v2&&v2.atsCV)?'inline-flex':'none';}
-  atualizarBotoes();
+  atualizarBotoesModal();
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function mvToggleDoc(which,btn){
@@ -3179,12 +3191,44 @@ function avancarEstagio(){
   const idx=seq.indexOf(sel.value);
   if(idx>=0&&idx<seq.length-1){ sel.value=seq[idx+1]; atualizarBotoes(); }
 }
-function atualizarBotoes(){
-  const status=document.getElementById('mv-status')?.value||'lead';
-  document.querySelectorAll('.mv-btn').forEach(btn=>{
-    const stages=(btn.dataset.stages||'').split(',');
-    btn.style.display=stages.includes(status)?'':'none';
-  });
+function atualizarBotoes(){ atualizarBotoesModal(); }
+function atualizarBotoesModal(statusOverride){
+  const status=statusOverride||document.getElementById('mv-status')?.value||'lead';
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>x.id===editingVagaId):null;
+  const temAtsCV=!!(v&&v.atsCV);
+  const proxSec=document.getElementById('mv-proxima-section');
+  if(proxSec) proxSec.style.display=(status==='lead'||status==='negado'||status==='aceito')?'none':'';
+  const decPanel=document.getElementById('mv-declinar-panel');
+  if(decPanel) decPanel.style.display='none';
+  const acoes=document.getElementById('mv-footer-acoes');
+  if(!acoes) return;
+  const isLead=status==='lead';
+  const isClosed=status==='negado'||status==='aceito';
+  let html='';
+  if(!isClosed) html+=`<button class="btn btn-ghost" style="color:#9B2226;border:1px solid #9B222622;" onclick="declinarVaga()">Declinar</button>`;
+  if(isLead&&!temAtsCV){
+    html+=`<button class="btn btn-primary" onclick="abrirAntiATSModal()">Analisar Candidatura →</button>`;
+  } else if(isLead&&temAtsCV){
+    html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Analisar Candidatura</button>`;
+    html+=`<button class="btn" style="background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;min-height:44px;padding:0 18px;font-size:15px;font-weight:600;" onclick="candidatarDoModal()">✉ Candidatar</button>`;
+  } else {
+    html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
+  }
+  acoes.innerHTML=html;
+}
+function declinarVaga(){
+  const p=document.getElementById('mv-declinar-panel');
+  if(p) p.style.display='';
+}
+function cancelarDeclinar(){
+  const p=document.getElementById('mv-declinar-panel');
+  if(p) p.style.display='none';
+}
+function confirmarDeclinar(){
+  const motivo=document.getElementById('mv-declinar-motivo')?.value||'Outro';
+  document.getElementById('mv-status').value='negado';
+  document.getElementById('mv-motivo').value=motivo;
+  saveVaga();
 }
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
 function candidatarDoModal(){
