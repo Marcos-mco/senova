@@ -3162,7 +3162,7 @@ function openVagaModal(id){
   }
   document.getElementById('modal-vaga').style.display='flex';
   const btnCand=document.getElementById('btn-candidatar-modal');
-  if(btnCand){const v2=isNew?null:vagas.find(x=>x.id===id);btnCand.style.display=(v2&&(v2.atsCV||lastCV))||(!isNew&&lastCV)?'inline-flex':'none';}
+  if(btnCand){const v2=isNew?null:vagas.find(x=>x.id===id);btnCand.style.display=(v2&&v2.atsCV)?'inline-flex':'none';}
   atualizarBotoes();
 }
 function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
