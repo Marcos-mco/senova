@@ -452,36 +452,28 @@ select option { background: var(--bg2); }
             <span class="section-title" style="font-size:13px;">Central de Sinais</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="toggleEmailsAvulsos()">
+            <div id="sinal-emails" class="sinal-item" onclick="toggleEmailsAvulsos()">
               <span class="sinal-icon">📧</span>
               <span id="sinal-emails-txt" class="sinal-txt"></span>
               <svg id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
             </div>
             <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;"></div>
-            <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
+            <div id="sinal-alertas" class="sinal-item" onclick="abrirPainelAlertas()">
               <span class="sinal-icon">🔔</span>
               <span id="sinal-alertas-txt" class="sinal-txt"></span>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
             </div>
+            <div id="sinal-vagas" class="sinal-item" onclick="toggleRevisaoLista()">
+              <span class="sinal-icon">📋</span>
+              <span id="sinal-vagas-txt" class="sinal-txt"></span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+            </div>
+            <div id="home-revisao-lista" style="padding:0 4px;"></div>
             <div id="sinal-inativos" class="sinal-item" style="display:none;" onclick="irParaInativos()">
               <span class="sinal-icon">⚠</span>
               <span id="sinal-inativos-txt" class="sinal-txt"></span>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
             </div>
-          </div>
-        </div>
-
-        <!-- Widget: Vagas para revisar -->
-        <div id="home-revisao-widget" style="display:none;">
-          <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-lg);padding:12px 20px;box-shadow:var(--shadow);">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="font-size:13.5px;font-weight:700;color:var(--navy);">⚡ Vagas para revisar</span>
-              <span style="font-size:12px;color:var(--text3);">·</span>
-              <button id="revisao-toggle-btn" onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;"></button>
-              <span style="font-size:12px;color:var(--text3);">·</span>
-              <button onclick="descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>
-            </div>
-            <div id="home-revisao-lista" style="margin-top:4px;"></div>
           </div>
         </div>
 
@@ -2606,19 +2598,21 @@ function mostrarRevisaoRejeitadas(lista){
 }
 
 function renderWidgetRevisao(){
-  const widget = document.getElementById('home-revisao-widget');
-  if(!widget) return;
+  const sinalTxt = document.getElementById('sinal-vagas-txt');
+  const listaEl = document.getElementById('home-revisao-lista');
+  if(!sinalTxt || !listaEl) return;
   let lista = [];
   try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
-  if(lista.length === 0){ widget.style.display='none'; return; }
-  widget.style.display='block';
-  const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
-  const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
-  const listaEl = document.getElementById('home-revisao-lista');
+  const qtd = lista.length;
   const expandido = listaEl.dataset.expandido === '1';
-  const toggleBtn = document.getElementById('revisao-toggle-btn');
-  if(toggleBtn) toggleBtn.textContent = expandido ? `▼ Ocultar ${lista.length} vaga${lista.length>1?'s':''}` : `▶ Ver ${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar`;
-  if(!expandido){ listaEl.innerHTML=''; return; }
+  if(qtd > 0){
+    sinalTxt.innerHTML = `Vagas abaixo do limiar — <strong>${qtd}</strong> para revisar &nbsp;·&nbsp; <button onclick="event.stopPropagation();toggleRevisaoLista()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">${expandido?'Ocultar':'Ver'}</button> &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
+  } else {
+    sinalTxt.textContent = 'Vagas abaixo do limiar — nenhuma para revisar';
+  }
+  if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
+  const cor=s=>s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';
+  const bg=s=>s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';
   listaEl.innerHTML = lista.map((v,i)=>`
     <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="flex:1;min-width:0;">
@@ -2707,6 +2701,7 @@ let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _emailsAvulsos=[];
+let _emailsNovosHoje=0;
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
 let _emailAtual=null;
 let _emailsCarregados=false;
@@ -3829,58 +3824,48 @@ async function checkOutlookStatus(){
 }
 
 function atualizarSinais(){
-  // Sinal 1 — emails: sempre visível, estado varia com conexão Outlook
+  // Sinal 1 — Emails
   const s1=document.getElementById('sinal-emails');
   const s1txt=document.getElementById('sinal-emails-txt');
   if(s1){
     s1.style.display='flex';
     if(_outlookStatus==='desconectado'){
-      s1txt.textContent='Conectar Outlook para ver emails classificados';
+      s1txt.textContent='Emails — Conectar Outlook';
       s1.onclick=conectarOutlook;
-      s1.style.opacity='0.7';
-    } else if(!_emailsCarregados){
-      s1txt.textContent='Verificando emails...';
-      s1.onclick=null;
-      s1.style.opacity='0.7';
-    } else if(_sinaisEmails.classificados>0){
-      s1txt.textContent=`${_sinaisEmails.classificados} email${_sinaisEmails.classificados===1?'':'s'} classificado${_sinaisEmails.classificados===1?'':'s'} → ${_sinaisEmails.leads} novo${_sinaisEmails.leads===1?'':'s'} lead${_sinaisEmails.leads===1?'':'s'} criado${_sinaisEmails.leads===1?'':'s'}`;
-      s1.onclick=toggleEmailsAvulsos;
-      s1.style.opacity='1';
+      s1.style.opacity='0.6';
     } else {
-      s1txt.textContent=_emailsAvulsos.length?`${_emailsAvulsos.length} email${_emailsAvulsos.length===1?'':'s'} aguardando resposta`:'Nenhum email novo';
-      s1.onclick=_emailsAvulsos.length?toggleEmailsAvulsos:null;
+      const total=_emailsAvulsos.length;
+      const novos=_emailsNovosHoje;
+      s1txt.textContent=`Emails — ${total} recebido${total===1?'':'s'} · ${novos} novo${novos===1?'':'s'} hoje`;
+      s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
     }
   }
-  // Sinal 2 — Sinais de mercado: Google Alerts emails (primário) + RSS (complemento)
+  // Sinal 2 — Alertas
   const s2=document.getElementById('sinal-alertas');
   const s2txt=document.getElementById('sinal-alertas-txt');
   if(s2){
+    s2.style.display='flex';
+    s2.style.opacity='1';
     const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
     if(totalSinais>0){
-      s2.style.display='flex';
-      s2.style.opacity='1';
       const fontes=[];
       if(_sinaisAlertas.length) fontes.push(`${_sinaisAlertas.length} Google Alert${_sinaisAlertas.length===1?'':'s'}`);
       if(_sinaisMercado.length) fontes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
-      s2txt.textContent=`Sinais de mercado → ${fontes.join(' + ')}`;
-    } else if(_emailsCarregados){
-      s2.style.display='flex';
-      s2.style.opacity='0.5';
-      s2txt.textContent='Nenhum sinal de mercado hoje';
+      s2txt.textContent=`Alertas — ${fontes.join(' + ')}`;
     } else {
-      s2.style.display='none';
+      s2txt.textContent='Alertas — nenhum sinal hoje';
     }
   }
-  // Sinal 3 — inativos: sempre computado localmente
+  // Sinal 3 — Inativos
   const s3=document.getElementById('sinal-inativos');
   const s3txt=document.getElementById('sinal-inativos-txt');
   if(s3){
-    const n=vagas.filter(isInativo).length;
-    if(n>0){
+    const ni=vagas.filter(isInativo).length;
+    if(ni>0){
       s3.style.display='flex';
       s3.style.opacity='1';
-      s3txt.textContent=`${n} card${n===1?'':'s'} sem atualização há ${_diasInativo}+ dias`;
+      s3txt.textContent=`${ni} card${ni===1?'':'s'} sem atualização há ${_diasInativo}+ dias`;
     } else { s3.style.display='none'; }
   }
 }
@@ -4327,7 +4312,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length) _emailsAvulsos=emailsVaga;
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
