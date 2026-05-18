@@ -474,18 +474,15 @@ select option { background: var(--bg2); }
 
         <!-- Widget: Vagas para revisar -->
         <div id="home-revisao-widget" style="display:none;">
-          <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;">
-              <div>
-                <span style="font-size:13.5px;font-weight:700;color:var(--navy);">⚡ Vagas para revisar</span>
-                <span id="revisao-widget-count" style="font-size:12px;color:var(--text3);margin-left:8px;"></span>
-              </div>
-              <button onclick="descartarTodasRejeitadas()"
-                style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
-                Descartar todas
-              </button>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-lg);padding:12px 20px;box-shadow:var(--shadow);">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:13.5px;font-weight:700;color:var(--navy);">⚡ Vagas para revisar</span>
+              <span style="font-size:12px;color:var(--text3);">·</span>
+              <button id="revisao-toggle-btn" onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;"></button>
+              <span style="font-size:12px;color:var(--text3);">·</span>
+              <button onclick="descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>
             </div>
-            <div id="home-revisao-lista"></div>
+            <div id="home-revisao-lista" style="margin-top:4px;"></div>
           </div>
         </div>
 
@@ -1239,6 +1236,7 @@ select option { background: var(--bg2); }
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <a id="mer-weblink" href="#" target="_blank" style="font-size:12px;color:var(--action);display:none;white-space:nowrap;">↗ Abrir no Outlook</a>
+          <button onclick="bloquearRemetente()" class="btn btn-ghost btn-sm" style="font-size:11.5px;color:#C0281E;padding:3px 8px;white-space:nowrap;">🚫 Bloquear</button>
           <button onclick="fecharModalEmailResponder()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1;padding:2px 4px;">×</button>
         </div>
       </div>
@@ -1249,12 +1247,15 @@ select option { background: var(--bg2); }
       <textarea id="mer-corpo" rows="8" readonly style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:#F7F8FA;"></textarea>
     </div>
 
-    <!-- Etapa 1: 3 botões de ação -->
-    <div id="mer-etapa1" style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex-shrink:0;">
+    <!-- Etapa 1: botões de ação -->
+    <div id="mer-etapa1" style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;flex-shrink:0;">
       <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Fechar</button>
-      <button class="btn btn-ghost" style="color:#C0281E;" onclick="arquivarEmailAvulso()">🗑 Arquivar</button>
-      <button class="btn btn-ghost" onclick="merMostrarEtapa('responder')">↩ Responder</button>
-      <button class="btn btn-primary" onclick="merMostrarEtapa('andamento')">📅 Atualizar andamento</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" style="color:#C0281E;" onclick="excluirEmailAvulso()">Excluir</button>
+        <button class="btn btn-ghost" style="color:#C0281E;" onclick="arquivarEmailAvulso()">🗑 Arquivar</button>
+        <button class="btn btn-ghost" onclick="merMostrarEtapa('responder')">↩ Responder</button>
+        <button class="btn btn-primary" onclick="merMostrarEtapa('andamento')">📅 Atualizar andamento</button>
+      </div>
     </div>
 
     <!-- Etapa 2A: Atualizar andamento -->
@@ -2614,15 +2615,12 @@ function renderWidgetRevisao(){
   widget.style.display='block';
   const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
   const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
-  document.getElementById('revisao-widget-count').textContent =
-    `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar configurado`;
   const listaEl = document.getElementById('home-revisao-lista');
   const expandido = listaEl.dataset.expandido === '1';
-  if(!expandido){
-    listaEl.innerHTML = `<div style="padding:6px 0;"><button onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;">▶ Ver ${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar</button></div>`;
-    return;
-  }
-  listaEl.innerHTML = `<div style="padding:4px 0 8px;"><button onclick="toggleRevisaoLista()" style="font-size:12.5px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">▼ Ocultar lista</button></div>` + lista.map((v,i)=>`
+  const toggleBtn = document.getElementById('revisao-toggle-btn');
+  if(toggleBtn) toggleBtn.textContent = expandido ? `▼ Ocultar ${lista.length} vaga${lista.length>1?'s':''}` : `▶ Ver ${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar`;
+  if(!expandido){ listaEl.innerHTML=''; return; }
+  listaEl.innerHTML = lista.map((v,i)=>`
     <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
@@ -3998,6 +3996,30 @@ function arquivarEmailAvulso(){
   fecharModalEmailResponder();
   renderEmailsAvulsos();
 }
+function excluirEmailAvulso(){
+  if(!_emailAtual) return;
+  const id=_emailAtual.id||_emailAtual.messageId||'';
+  if(id){
+    let excluidos=[];
+    try{excluidos=JSON.parse(localStorage.getItem('emails_excluidos')||'[]');}catch{}
+    if(!excluidos.includes(id)){ excluidos.push(id); try{localStorage.setItem('emails_excluidos',JSON.stringify(excluidos));}catch{} }
+  }
+  _emailsAvulsos=_emailsAvulsos.filter(e=>e!==_emailAtual);
+  fecharModalEmailResponder();
+  renderEmailsAvulsos();
+}
+function bloquearRemetente(){
+  if(!_emailAtual) return;
+  const from=(_emailAtual.from||'').toLowerCase().trim();
+  if(!from) return;
+  let bloqueados=[];
+  try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
+  if(!bloqueados.includes(from)){ bloqueados.push(from); try{localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}catch{} }
+  _emailsAvulsos=_emailsAvulsos.filter(e=>(e.from||'').toLowerCase()!==from);
+  fecharModalEmailResponder();
+  renderEmailsAvulsos();
+  showToast(`Remetente bloqueado: ${from}`);
+}
 function abrirModalVagaFromEmail(){
   if(!_emailAtual) return;
   const assunto=_emailAtual.subject||'';
@@ -4270,7 +4292,8 @@ async function carregarEmails(forcar){
     const res=await fetch(url);
     const data=await res.json();
     if(data.reauth){ conectarOutlook(); return; }
-    const emails=data.emails||data.novos||[];
+    let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
+    const emails=(data.emails||data.novos||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
     const total=emails.length;
     const statEl=document.getElementById('stat-emails');
     if(statEl) statEl.textContent=total;
