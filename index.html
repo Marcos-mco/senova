@@ -1107,6 +1107,30 @@ select option { background: var(--bg2); }
         </div>
       </div>
       <div class="form-row">
+        <label class="field-label">Localização</label>
+        <input type="text" id="mv-localizacao" placeholder="Ex: São Paulo, SP — Remoto Brasil">
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Modelo</label>
+          <select id="mv-modelo">
+            <option value="">—</option>
+            <option value="Presencial">Presencial</option>
+            <option value="Híbrido">Híbrido</option>
+            <option value="Remoto">Remoto</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Regime</label>
+          <select id="mv-regime">
+            <option value="">—</option>
+            <option value="CLT">CLT</option>
+            <option value="PJ">PJ</option>
+            <option value="CLT ou PJ">CLT ou PJ</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
         <label class="field-label">URL da vaga</label>
         <div style="display:flex;gap:8px;align-items:stretch;">
           <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/..." style="flex:1;" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();">
@@ -3079,6 +3103,9 @@ function openVagaModal(id){
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
     document.getElementById('mv-proxima-data').value=v.proximaData||'';
+    document.getElementById('mv-localizacao').value=v.localizacao||'';
+    document.getElementById('mv-modelo').value=v.modelo||'';
+    document.getElementById('mv-regime').value=v.regime||'';
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
@@ -3120,7 +3147,9 @@ function openVagaModal(id){
       document.getElementById('mv-atualizado-em').textContent=formatTs(v.updatedAt)||'—';
     }
   } else {
-    ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('mv-modelo').value='';
+    document.getElementById('mv-regime').value='';
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='lead';
@@ -3192,6 +3221,9 @@ function saveVaga(){
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
+    localizacao:document.getElementById('mv-localizacao').value,
+    modelo:document.getElementById('mv-modelo').value,
+    regime:document.getElementById('mv-regime').value,
     data:existing?.data||'',
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
@@ -4582,6 +4614,10 @@ function abrirAntiATSModal(){
   const notas=document.getElementById('mv-notas')?.value||'';
   const origemUrl=document.getElementById('mv-origem-url')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  const localizacao=document.getElementById('mv-localizacao')?.value||'';
+  const modelo=document.getElementById('mv-modelo')?.value||'';
+  const regime=document.getElementById('mv-regime')?.value||'';
+  const metaVaga=[localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
   atsEmailDest=document.getElementById('mv-email-dest')?.value||'';
   atsEmpresa=empresa; atsCargo=cargo;
   atsOrigemVagaId=editingVagaId;
@@ -4598,11 +4634,11 @@ function abrirAntiATSModal(){
     const campo=document.getElementById('vaga-input');
     if(!campo) return;
     if(jobDesc.length>50){
-      campo.value=jobDesc;
+      campo.value=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
     } else if(notas.length>100){
-      campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n\n${notas}`;
+      campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n`+(metaVaga?metaVaga+'\n':'')+`\n${notas}`;
     } else if(empresa||cargo){
-      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
+      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(metaVaga?metaVaga+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
     }
   },200);
 }
