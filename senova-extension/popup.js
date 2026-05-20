@@ -1,7 +1,7 @@
 const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
 
 // Função injetada no contexto da página — NÃO pode referenciar variáveis externas
-function extractJobData() {
+async function extractJobData() {
   const url = location.href;
   const host = location.hostname;
   let titulo = '', empresa = '', descricao = '';
@@ -65,6 +65,7 @@ function extractJobData() {
 
   // Inhire
   else if (host.includes('inhire.app')) {
+    await new Promise(r => setTimeout(r, 1500));
     titulo = document.querySelector('h1')?.innerText?.trim() || '';
     empresa = document.querySelector('[class*="company-name"], [class*="CompanyName"]')?.innerText?.trim() || '';
     const _htmlParser = document.querySelector('[data-component-name="HtmlParser"]');
