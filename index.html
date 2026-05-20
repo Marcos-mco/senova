@@ -2510,6 +2510,7 @@ async function importarVagasLead(){
 
     if(novas>0){
       saveVagas();
+      aplicarFiltros();
       crmCurrentTab='vagas';
       showPage('crm');
       setTimeout(()=>{
