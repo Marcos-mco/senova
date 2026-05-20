@@ -2334,7 +2334,7 @@ function dataAtualFormatada(){
 function formatTs(ts){
   if(!ts) return '';
   const d=new Date(ts);
-  return `${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 function nivelInativo(v){
   if(!v.updatedAt||['negado','aceito','descartado'].includes(v.status)) return 0;
