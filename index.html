@@ -4646,8 +4646,9 @@ function verOrigem(){
 
 function verOrigemCard(url){
   if(!url) return;
-  if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url.startsWith('http')?url:'https://'+url,'_blank','noopener,noreferrer');
+  if(url.includes('@')){window.location.href='mailto:'+url;return;}
+  try{const u=new URL(url.startsWith('http')?url:'https://'+url);['trackingId','refId','trk','utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid'].forEach(p=>u.searchParams.delete(p));url=u.toString();}catch{}
+  window.open(url,'_blank','noopener,noreferrer');
 }
 
 function abrirAntiATSModal(){
