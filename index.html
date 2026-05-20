@@ -3190,7 +3190,7 @@ function atualizarBotoes(){ atualizarBotoesModal(); }
 function atualizarBotoesModal(statusOverride){
   const status=statusOverride||document.getElementById('mv-status')?.value||'lead';
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>x.id===editingVagaId):null;
-  const temAtsCV=!!(v&&v.atsCV);
+  const temAtsCV=!!(v&&(v.atsCV||(typeof v.score==='number'&&v.score>0)));
   const proxSec=document.getElementById('mv-proxima-section');
   if(proxSec) proxSec.style.display=(status==='lead'||status==='negado'||status==='aceito')?'none':'';
   const decPanel=document.getElementById('mv-declinar-panel');
