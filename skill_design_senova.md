@@ -137,3 +137,24 @@ Brand Guide original: C:\Users\marco\OneDrive\Documentos\Senova\Senova___Brand_G
 
 Skill consolidado em 20/mai/2026 a partir do Brand Guide v1.0 (abr/2026)
 Atualizar a cada mudança de padrão aprovada pelo Marcos Franco.
+
+## 11. IDIOMAS
+
+Senova suporta 4 idiomas: Português (PT-BR), Inglês (EN), Espanhol (ES), Alemão (DE).
+
+Seletor global na Home — afeta toda a interface do produto.
+
+Regras de idioma por vaga:
+- O sistema detecta automaticamente o idioma da vaga (pelo texto da descrição)
+- Sugere o idioma do CV e carta no mesmo idioma da vaga
+- Usuário pode fazer override manual — ex: vaga em inglês, CV em português
+- CV e carta sempre gerados no idioma escolhido — nunca misturar idiomas
+
+Detecção automática: analisarVaga() deve retornar campo "idioma_vaga" ("pt","en","es","de")
+O campo idioma_cv no modal permite override — padrão = idioma_vaga detectado
+
+Países e idiomas padrão:
+- Brasil (BR): PT-BR
+- Espanha / Portugal (ES/PT): ES ou PT
+- Alemanha (DE): DE
+- Remoto / EUA: EN
