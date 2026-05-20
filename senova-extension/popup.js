@@ -80,7 +80,12 @@ function extractJobData() {
   }
   if (!empresa) {
     const titleParts = document.title.split(/\s[-|—]\s/);
-    empresa = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : host.replace('www.', '');
+    if (titleParts.length > 1) {
+      empresa = titleParts[titleParts.length - 1].trim();
+    } else {
+      const fromTitle = document.title.split(/\s[-|—]\s/)[0].trim();
+      empresa = (fromTitle && !fromTitle.includes('.')) ? fromTitle : host.replace('www.', '');
+    }
   }
   if (!descricao) {
     const CANDIDATOS = [
