@@ -2807,10 +2807,10 @@ function aplicarFiltros() {
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
   if(q && q.length>=4) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
-  if(ordem==='antigo') lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  if(ordem==='antigo') lista.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
-  else lista.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  else lista.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   vagasFiltradas = lista;
   renderCRM();
 }
@@ -2987,8 +2987,8 @@ function renderCRM(){
     let cards=listaBase.filter(v=>v.status===col);
     if(cf.pri!=='all') cards=cards.filter(c=>c.prioridade===cf.pri);
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
-    if(cf.sort==='newer') cards=[...cards].sort((a,b)=>b.id-a.id);
-    if(cf.sort==='older') cards=[...cards].sort((a,b)=>a.id-b.id);
+    if(cf.sort==='newer') cards=[...cards].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(cf.sort==='older') cards=[...cards].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
