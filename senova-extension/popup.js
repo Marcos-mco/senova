@@ -81,6 +81,15 @@ function extractJobData() {
   return { titulo, empresa, url, descricao };
 }
 
+function limparUrl(url) {
+  try {
+    const u = new URL(url);
+    ['trackingId','refId','trk','utm_source','utm_medium','utm_campaign',
+     'utm_term','utm_content','fbclid','gclid'].forEach(p => u.searchParams.delete(p));
+    return u.toString();
+  } catch { return url; }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const elTitulo  = document.getElementById('campo-titulo');
@@ -94,9 +103,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mostrar status de extração
   elStatus.style.display = 'block';
 
+  let _desc = '';
+
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    elUrl.value = tab.url || '';
+    elUrl.value = limparUrl(tab.url || '');
 
     // Injetar extrator na aba ativa
     const results = await chrome.scripting.executeScript({
@@ -108,7 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (data) {
       elTitulo.value  = data.titulo  || '';
       elEmpresa.value = data.empresa || '';
-      elUrl.value     = data.url     || tab.url || '';
+      elUrl.value     = limparUrl(data.url || tab.url || '');
+      _desc           = data.descricao || '';
     }
   } catch (e) {
     // Pode falhar em chrome://, extensões, etc — tudo bem
@@ -140,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const resp = await fetch(`${WORKER_URL}/api/vagas-lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo, empresa, url, descricao: '' }),
+        body: JSON.stringify({ titulo, empresa, url, descricao: _desc }),
       });
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
