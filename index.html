@@ -2492,18 +2492,12 @@ async function importarVagasLead(){
       }
     }));
 
-    // Separa aprovadas e rejeitadas usando limiar por região
+    // Todas as vagas novas entram como Lead — score registrado mas não bloqueia
     const agora=Date.now();
     let novas=0;
-    const rejeitadas=[];
     const dupsPendentes=[];
 
     resultados.forEach(v=>{
-      const limiar = _scoreMinParaVaga(v, config);
-      if(typeof v.score !== 'number' || v.score < limiar){
-        if(typeof v.score === 'number') rejeitadas.push({...v, _limiar:limiar});
-        return;
-      }
       // Checa deduplicação contra cards já no Pipeline
       const similar = _vagaSimilarExistente(v);
       if(similar){
@@ -2524,10 +2518,9 @@ async function importarVagasLead(){
         showToast(`✅ ${novas} vaga${novas>1?'s':''} importada${novas>1?'s':''} — veja na coluna Lead`);
       }, 150);
     }
-    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Sem novidades';btn.disabled=false;}
     setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
 
-    if(rejeitadas.length>0) mostrarRevisaoRejeitadas(rejeitadas);
     if(dupsPendentes.length>0) _iniciarFilaDeDups(dupsPendentes);
   }catch(e){
     if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
