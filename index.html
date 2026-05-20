@@ -1104,6 +1104,8 @@ select option { background: var(--bg2); }
             <option>Gupy</option>
             <option>Indeed</option>
             <option>Email</option>
+            <option>Varredura IA</option>
+            <option>Extensão Chrome</option>
           </select>
         </div>
       </div>
@@ -2607,7 +2609,7 @@ function _scoreMinParaVaga(v, config){
 function _montarCardVarredura(v, agora){
   return {
     id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
-    canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
+    canal:v.fonte==='extensao_chrome'?'Extensão Chrome':'Varredura IA', prioridade:'media', status:'lead', salario:'',
     proxima:'Avaliar candidatura', notas:'',
     data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
     createdAt:agora, updatedAt:agora,
