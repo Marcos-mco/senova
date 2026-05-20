@@ -809,6 +809,8 @@ CANDIDATO: ${PERFIL_MARCOS}
 
 VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,1500)}
 
+Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
+
 JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|"")}`;
 
   try {
