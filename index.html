@@ -2935,6 +2935,7 @@ function arquivarSelecionadosLote(){
     }
   });
   saveVagas();
+  aplicarFiltros();
   _limpezaSelecionados.clear();
   const msg=document.getElementById('limpeza-msg-sucesso');
   if(msg){ msg.textContent=`${n} vaga${n!==1?'s':''} arquivada${n!==1?'s':''} com sucesso.`; msg.style.display='block'; }
