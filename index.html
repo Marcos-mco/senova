@@ -3290,7 +3290,7 @@ function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
   if(!confirm('Remover esta vaga?'))return;
   vagas=vagas.filter(v=>v.id!==editingVagaId);
-  saveVagas(); renderCRM(); closeVagaModal();
+  saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
 // Timeline
