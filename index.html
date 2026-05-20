@@ -2607,7 +2607,7 @@ function _montarCardVarredura(v, agora){
   return {
     id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
     canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
-    proxima:'Avaliar candidatura', notas:v.descricao||'',
+    proxima:'Avaliar candidatura', notas:'',
     data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
     createdAt:agora, updatedAt:agora,
     timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
