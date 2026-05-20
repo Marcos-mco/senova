@@ -807,7 +807,7 @@ async function analisarVaga(titulo, empresa, descricao, env) {
 
 CANDIDATO: ${PERFIL_MARCOS}
 
-VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,600)}
+VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,1500)}
 
 JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|"")}`;
 
