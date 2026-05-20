@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: extractJobData,
+      world: 'MAIN',
     });
 
     const data = results?.[0]?.result;
