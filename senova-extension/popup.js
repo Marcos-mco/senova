@@ -65,10 +65,15 @@ async function extractJobData() {
 
   // Inhire
   else if (host.includes('inhire.app')) {
-    await new Promise(r => setTimeout(r, 1500));
+    const _deadline = Date.now() + 3000;
+    let _htmlParser = null;
+    while (Date.now() < _deadline) {
+      _htmlParser = document.querySelector('[data-component-name="HtmlParser"]');
+      if (_htmlParser && _htmlParser.innerText.trim().length > 300) break;
+      await new Promise(r => setTimeout(r, 200));
+    }
     titulo = document.querySelector('h1')?.innerText?.trim() || '';
     empresa = document.querySelector('[class*="company-name"], [class*="CompanyName"]')?.innerText?.trim() || '';
-    const _htmlParser = document.querySelector('[data-component-name="HtmlParser"]');
     if (_htmlParser && _htmlParser.innerText.trim().length > 300) {
       descricao = _htmlParser.innerText.trim().slice(0, 5000);
     } else {
