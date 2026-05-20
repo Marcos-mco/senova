@@ -67,7 +67,10 @@ function extractJobData() {
   else if (host.includes('inhire.app')) {
     titulo = document.querySelector('h1')?.innerText?.trim() || '';
     empresa = document.querySelector('[class*="company-name"], [class*="CompanyName"]')?.innerText?.trim() || '';
-    descricao = document.querySelector('[class*="job-description"], [class*="JobDescription"], [class*="vacancy"]')?.innerText?.trim().slice(0, 5000) || '';
+    const _els = [...document.querySelectorAll('section, div, article')]
+      .filter(el => !el.closest('nav, header, footer') && el.innerText.trim().length > 500)
+      .sort((a, b) => b.innerText.length - a.innerText.length);
+    descricao = _els[0] ? _els[0].innerText.trim().slice(0, 5000) : '';
   }
 
   // Fallback genérico — funciona em qualquer site
