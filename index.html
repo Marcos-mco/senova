@@ -2485,7 +2485,7 @@ async function importarVagasLead(){
           method:'POST', headers:{'Content-Type':'application/json'},
           body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,salario_compativel:analise.salario_compativel}),
         }).catch(()=>{});
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], salario_compativel:analise.salario_compativel??null};
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||''};
       }catch{
         analisadas++;
         return {...v, score:null};
@@ -2614,6 +2614,7 @@ function _montarCardVarredura(v, agora){
     origemUrl:v.url||'',
     score:v.score, classificacao:v.classificacao, resumo:v.resumo,
     pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
+    localizacao:v.localizacao||'', modelo:v.modelo||'', regime:v.regime||'',
   };
 }
 
