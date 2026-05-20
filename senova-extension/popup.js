@@ -63,6 +63,13 @@ function extractJobData() {
     descricao = document.querySelector('[class*="JobDescription"]')?.innerText?.trim().slice(0, 5000) || '';
   }
 
+  // Inhire
+  else if (host.includes('inhire.app')) {
+    titulo = document.querySelector('h1')?.innerText?.trim() || '';
+    empresa = document.querySelector('[class*="company-name"], [class*="CompanyName"]')?.innerText?.trim() || '';
+    descricao = document.querySelector('[class*="job-description"], [class*="JobDescription"], [class*="vacancy"]')?.innerText?.trim().slice(0, 5000) || '';
+  }
+
   // Fallback genérico — funciona em qualquer site
   if (!titulo) {
     titulo = document.querySelector('h1')?.innerText?.trim()
@@ -73,9 +80,20 @@ function extractJobData() {
     empresa = titleParts.length > 1 ? titleParts[titleParts.length - 1].trim() : host.replace('www.', '');
   }
   if (!descricao) {
-    // Tenta pegar a área principal de conteúdo
-    const main = document.querySelector('main, article, [role="main"], #content, .content');
-    descricao = (main || document.body).innerText.trim().slice(0, 5000);
+    const CANDIDATOS = [
+      '[class*="job-description"]','[class*="jobDescription"]','[class*="JobDescription"]',
+      '[class*="vacancy-description"]','[class*="position-description"]','[class*="job-detail"]',
+      '[class*="job-content"]','[class*="posting-content"]',
+      '[data-automation-id="jobPostingDescription"]',
+      'article','[role="main"]','main','#content','.content',
+    ];
+    for (const sel of CANDIDATOS) {
+      const el = document.querySelector(sel);
+      if (!el) continue;
+      const txt = el.innerText.trim();
+      if (txt.length > 300) { descricao = txt.slice(0, 5000); break; }
+    }
+    if (!descricao) descricao = document.body.innerText.trim().slice(0, 5000);
   }
 
   return { titulo, empresa, url, descricao };
