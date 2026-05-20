@@ -3018,7 +3018,7 @@ function renderCRM(){
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
         const nv=nivelInativo(c);
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
+        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div class="kcard-name">${c.empresa}</div>
             ${(c.createdAt||c.updatedAt)?`<div class="kcard-dates"><span class="kcard-created">📅 ${formatTs(c.createdAt||c.updatedAt)}</span>${(c.updatedAt&&c.createdAt&&Math.floor(c.updatedAt/86400000)!==Math.floor(c.createdAt/86400000))?`<span class="kcard-updated">· ↻ ${formatTs(c.updatedAt)}</span>`:''}</div>`:''}
