@@ -302,6 +302,19 @@ export default {
       return json({ status: 'ok', atualizado: idx >= 0 });
     }
 
+    // ── Perfil do usuário ────────────────────────────────────────────
+    if (path === '/api/perfil' && request.method === 'GET') {
+      const raw = await env.SENOVA_KV.get('perfil_usuario');
+      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7 };
+      return json(raw ? JSON.parse(raw) : padrao);
+    }
+
+    if (path === '/api/perfil' && request.method === 'POST') {
+      const dados = await request.json();
+      await env.SENOVA_KV.put('perfil_usuario', JSON.stringify(dados));
+      return json({ ok: true });
+    }
+
     // ── Config varredura ─────────────────────────────────────────────
     if (path === '/api/config-varredura' && request.method === 'GET') {
       const raw = await env.SENOVA_KV.get('config_varredura');
