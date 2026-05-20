@@ -3110,8 +3110,8 @@ function openVagaModal(id){
     document.getElementById('mv-proxima').value=v.proxima||'';
     document.getElementById('mv-proxima-data').value=v.proximaData||'';
     document.getElementById('mv-localizacao').value=v.localizacao||'';
-    document.getElementById('mv-modelo').value=v.modelo||'';
-    document.getElementById('mv-regime').value=v.regime||'';
+    document.getElementById('mv-modelo').value=({hibrido:'Híbrido',presencial:'Presencial',remoto:'Remoto'})[v.modelo?.toLowerCase()]||v.modelo||'';
+    document.getElementById('mv-regime').value=({clt:'CLT',pj:'PJ',ambos:'Ambos'})[v.regime?.toLowerCase()]||v.regime||'';
     document.getElementById('mv-notas').value=v.notas||'';
     document.getElementById('mv-email-dest').value=v.emailDest||'';
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
