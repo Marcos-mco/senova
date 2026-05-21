@@ -67,28 +67,69 @@ Deletar = Remover
 
 ## 6. ARQUITETURA DE TELAS
 
-Sidebar ordem: Home · Perfil · Processo · Análise de Vaga · Entrevistas · Contatos
+### Sidebar — ordem aprovada
+1. Home (cockpit diário)
+2. Perfil
+3. Processo (Kanban)
+4. Análise de Vaga
+5. Entrevistas
+6. Contatos
 
-Home blocos em ordem:
-1. Novas Oportunidades (vagas aprovadas nos critérios do Perfil)
-2. Para Considerar (link discreto — vagas abaixo dos critérios)
-3. Ações do Dia (follow-ups vencidos, entrevistas agendadas)
-4. Funil Resumido KPIs (Oportunidades / CV Enviado / Em Contato / Propostas)
-5. Sinais de Mercado
-6. Contatos Ativos
+### Home — blocos em ordem de prioridade visual
+1. Novas Oportunidades — vagas aprovadas nos critérios do Perfil (badge contador)
+2. Para Considerar — link discreto (vagas abaixo dos critérios)
+3. Ações do Dia — follow-ups vencidos, entrevistas agendadas
+4. Funil Resumido — KPIs: Oportunidades / CV Enviado / Em Contato / Propostas
+5. Sinais de Mercado — movimentações executivas relevantes
+6. Contatos Ativos — próximos follow-ups
 
-Perfil blocos em ordem:
-1. Quem sou (dados pessoais)
-2. CV Master (texto ou Sofia)
-3. O que busco (FONTE ÚNICA de critérios de triagem: cargo, salário, localização, modelo, países, score mínimo por região)
-4. Empresas-alvo (Central de Sinais)
-5. Ferramentas (LinkedIn, Outlook, configurações)
+### Perfil — 9 blocos em ordem (arquitetura v4.0)
 
-Processo colunas: Oportunidade → CV Enviado → Em Contato → Entrevista → Proposta → Fechado
+Bloco 1 — Quem sou
+Nome, cargo alvo, email, telefone, LinkedIn URL, foto, idioma preferido (PT-BR / EN / ES / DE). Alimenta preenchimento automático de formulários pela extensão Chrome.
 
-Fluxo de entrada único para todas as fontes:
-FONTE (Extensão Chrome / Varredura / Email / Manual) → Triagem pelos critérios do Perfil → Passa: entra em Oportunidade → Não passa: vai para Para Considerar
+Bloco 2 — Meu CV Master
+3 formas de entrada: upload (.docx/.pdf/.txt), importar do LinkedIn (colar URL ou texto), Sofia (conversa guiada). CV salvo no KV. Base para adaptações por vaga e idioma. Sofia fala PT/EN/ES/DE.
+
+Bloco 3 — O que busco (FONTE ÚNICA de critérios de triagem)
+Cargos alvo (palavras-chave), salário mínimo, localizações aceitas, modelo de trabalho (Presencial/Híbrido/Remoto), países/mercados (BR/ES/PT/DE/Remoto/EUA), score mínimo por região. Alimenta triagem automática — vagas que passam entram direto em Oportunidade no Pipeline.
+
+Bloco 4 — Onde estou presente
+4a. Plataformas de emprego: LinkedIn, Gupy, Indeed, Xing (DE), Wellfound, Catho, InfoJobs, StepStone, Vagas.com — status (cadastrado/atualizado/desatualizado) + data. Senova sugere novas plataformas baseado nos países alvo.
+4b. Headhunters ativos: lista com nome, firma, prática, status (conectado/em processo/aguardando), último contato, próxima ação. Monitorados via Central de Sinais — alerta quando publicam vagas ou mudam de firma.
+4c. Extensão Chrome: status de instalação. Se não instalada, guia a instalação em 3 cliques.
+
+Bloco 5 — Empresas que acompanho
+Lista de empresas-alvo. Alimenta Central de Sinais (Google News RSS) e alertas de movimentação executiva. Quando detecta saída de executivo ou expansão, sugere abordagem proativa — antes da vaga aparecer.
+
+Bloco 6 — Comunidades e rede
+Grupos onde o profissional está presente ou deveria estar: LinkedIn Groups, Slack, Discord, WhatsApp, associações setoriais, eventos. Senova sugere comunidades relevantes pelo setor, cargo alvo e países alvo. Porta de acesso ao mercado oculto (70-80% das vagas executivas nunca são publicadas).
+
+Bloco 7 — Radar (parâmetros centralizados)
+Configuração de varredura automática (palavras-chave, países, frequência), Google Alerts (termos monitorados), filtro de emails (domínios prioritários), alertas de follow-up (7/14/21 dias). Fonte única — hoje está espalhado em vários lugares.
+
+Bloco 8 — Idiomas e documentos
+Idiomas dominados com nível (nativo/avançado/intermediário). CV disponível por idioma (PT/EN/ES/DE). Carta modelo por idioma. Sofia pode gerar versões automaticamente. Detecção automática do idioma da vaga — sugere CV no idioma correto com opção de override manual.
+
+Bloco 9 — Ferramentas
+Otimizador LinkedIn (PT/EN/ES/DE), conexão Outlook/Microsoft 365, alerta de inatividade, configurações técnicas.
+
+### Processo (Pipeline) — colunas aprovadas
+Oportunidade → CV Enviado → Em Contato → Entrevista → Proposta → Fechado
+
+### Fluxo de entrada único para todas as fontes
+FONTE (Extensão Chrome / Varredura Adzuna+Jobicy / Email Outlook / Manual / Comunidades)
+→ Triagem automática pelos critérios do Bloco 3 do Perfil
+→ Passa: entra direto em Oportunidade no Processo (sem clique do usuário)
+→ Não passa: vai para fila Para Considerar
 Home avisa: "X novas oportunidades hoje" e "Y para considerar"
+
+### Diferencial Senova vs concorrentes
+- Huntr/Teal: organizam candidaturas públicas. Senova acessa o mercado oculto.
+- Simplify: preenche formulários nos EUA. Senova faz em BR/ES/DE/PT.
+- Nenhum concorrente: CV adaptado em 4 idiomas com detecção automática.
+- Nenhum concorrente: Sofia como consultora de carreira pessoal com avatar (Fase 3).
+- Nenhum concorrente: monitoramento de headhunters com alertas de movimentação.
 
 ## 7. PADRÕES DE COMPONENTE
 
