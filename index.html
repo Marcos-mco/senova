@@ -799,6 +799,159 @@ select option { background: var(--bg2); }
       <textarea id="perfil-empresas-alvo" rows="5" placeholder="Amazon&#10;Uber&#10;Nubank&#10;iFood&#10;Ambev" style="font-size:14px;resize:vertical;"></textarea>
     </div>
 
+    <!-- BLOCO A: Onde estou presente -->
+    <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Onde estou presente</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Plataformas, headhunters e sua presença digital</div>
+
+      <!-- Plataformas -->
+      <div style="margin-bottom:20px;">
+        <label class="field-label" style="margin-bottom:10px;display:block;">Plataformas de emprego</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <!-- LinkedIn -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-linkedin" style="accent-color:var(--navy);width:15px;height:15px;"> LinkedIn</label>
+            <input type="text" id="perfil-plat-linkedin-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Gupy -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-gupy" style="accent-color:var(--navy);width:15px;height:15px;"> Gupy</label>
+            <input type="text" id="perfil-plat-gupy-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Indeed -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-indeed" style="accent-color:var(--navy);width:15px;height:15px;"> Indeed</label>
+            <input type="text" id="perfil-plat-indeed-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Catho -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-catho" style="accent-color:var(--navy);width:15px;height:15px;"> Catho</label>
+            <input type="text" id="perfil-plat-catho-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Vagas.com -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-vagas" style="accent-color:var(--navy);width:15px;height:15px;"> Vagas.com</label>
+            <input type="text" id="perfil-plat-vagas-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- InfoJobs -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-infojobs" style="accent-color:var(--navy);width:15px;height:15px;"> InfoJobs</label>
+            <input type="text" id="perfil-plat-infojobs-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Xing -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-xing" style="accent-color:var(--navy);width:15px;height:15px;"> Xing</label>
+            <input type="text" id="perfil-plat-xing-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- Wellfound -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-wellfound" style="accent-color:var(--navy);width:15px;height:15px;"> Wellfound</label>
+            <input type="text" id="perfil-plat-wellfound-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+          <!-- StepStone -->
+          <div style="display:flex;flex-direction:column;gap:4px;padding:10px;background:var(--bg3);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text2);"><input type="checkbox" id="perfil-plat-stepstone" style="accent-color:var(--navy);width:15px;height:15px;"> StepStone</label>
+            <input type="text" id="perfil-plat-stepstone-data" placeholder="mai/2026" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-family:var(--font);color:var(--text2);">
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Marque as plataformas onde está cadastrado e informe quando atualizou o perfil</div>
+      </div>
+
+      <!-- Headhunters -->
+      <div style="margin-bottom:20px;">
+        <label class="field-label" style="margin-bottom:8px;display:block;">Headhunters em contato</label>
+        <textarea id="perfil-hunters" rows="4" placeholder="Um por linha: Nome — Firma — Prática — Status&#10;Ex: Priscilla Capellato — Korn Ferry — Consumer — Aguardando resposta&#10;Ex: Aldo Bergamasco — Spencer Stuart — Marketing — Em contato" style="font-size:14px;resize:vertical;"></textarea>
+      </div>
+
+      <!-- Extensão Chrome -->
+      <div>
+        <label class="field-label" style="margin-bottom:8px;display:block;">Extensão Senova</label>
+        <div id="perfil-extensao-status" style="font-size:13.5px;color:var(--text2);padding:12px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">⚠️ Não detectada — <a href="#" onclick="alert('1. Acesse chrome://extensions\n2. Ative o Modo desenvolvedor\n3. Arraste a pasta senova-extension para a janela');return false;" style="color:var(--action);font-weight:600;">Instalar em 3 cliques</a></div>
+      </div>
+    </div>
+
+    <!-- BLOCO B: Comunidades e rede -->
+    <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Comunidades e rede</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;">Onde as melhores oportunidades aparecem antes de virar vaga</div>
+      <textarea id="perfil-comunidades" rows="5" placeholder="Uma por linha: nome da comunidade e onde fica&#10;Ex: Grupo CMOs Brasil — LinkedIn&#10;Ex: Marketing Executives — Slack&#10;Ex: Diretores de Marketing BR — WhatsApp" style="font-size:14px;resize:vertical;margin-bottom:10px;"></textarea>
+      <div style="font-size:13px;color:var(--text3);line-height:1.65;padding:12px 14px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--gold);">70–80% das vagas executivas nunca são publicadas. Comunidades ativas são sua porta de entrada para o mercado oculto.</div>
+    </div>
+
+    <!-- BLOCO C: Idiomas e documentos -->
+    <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:18px;">Idiomas e documentos</div>
+
+      <!-- Níveis de idioma -->
+      <div style="margin-bottom:20px;">
+        <label class="field-label" style="margin-bottom:10px;display:block;">Idiomas que domino</label>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇧🇷 Português (BR)</span>
+            <select id="perfil-nivel-pt" style="flex:1;font-size:13px;">
+              <option value="nativo">Nativo</option>
+              <option value="avancado">Avançado</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="basico">Básico</option>
+              <option value="nao">Não falo</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇺🇸 English</span>
+            <select id="perfil-nivel-en" style="flex:1;font-size:13px;">
+              <option value="nativo">Nativo</option>
+              <option value="avancado">Avançado</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="basico">Básico</option>
+              <option value="nao">Não falo</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇪🇸 Español</span>
+            <select id="perfil-nivel-es" style="flex:1;font-size:13px;">
+              <option value="nativo">Nativo</option>
+              <option value="avancado">Avançado</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="basico">Básico</option>
+              <option value="nao">Não falo</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇩🇪 Deutsch</span>
+            <select id="perfil-nivel-de" style="flex:1;font-size:13px;">
+              <option value="nativo">Nativo</option>
+              <option value="avancado">Avançado</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="basico">Básico</option>
+              <option value="nao">Não falo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- CV por idioma -->
+      <div style="margin-bottom:20px;">
+        <label class="field-label" style="margin-bottom:10px;display:block;">CV disponível em</label>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2);"><input type="checkbox" id="perfil-cv-pt" style="accent-color:var(--navy);width:16px;height:16px;"> 🇧🇷 PT</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2);"><input type="checkbox" id="perfil-cv-en" style="accent-color:var(--navy);width:16px;height:16px;"> 🇺🇸 EN</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2);"><input type="checkbox" id="perfil-cv-es" style="accent-color:var(--navy);width:16px;height:16px;"> 🇪🇸 ES</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2);"><input type="checkbox" id="perfil-cv-de" style="accent-color:var(--navy);width:16px;height:16px;"> 🇩🇪 DE</label>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">A Sofia pode gerar versões do seu CV em cada idioma automaticamente</div>
+      </div>
+
+      <!-- Idioma padrão para candidaturas -->
+      <div>
+        <label class="field-label" style="margin-bottom:8px;display:block;">Quando a vaga não especifica o idioma, usar:</label>
+        <select id="perfil-idioma-candidatura" style="font-size:14px;">
+          <option value="pt">Português (BR)</option>
+          <option value="en">English</option>
+          <option value="auto">Seguir o idioma da vaga</option>
+        </select>
+      </div>
+    </div>
+
     <!-- BLOCO 5: Ferramentas -->
     <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
       <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:20px;">Ferramentas</div>
@@ -2246,6 +2399,14 @@ async function carregarPerfil(){
       const sp=document.getElementById(`vsm-${k}-v`); if(sp) sp.textContent=v;
     });
     document.getElementById('perfil-empresas-alvo').value=p.empresas_alvo||'';
+    const _PLATS=['linkedin','gupy','indeed','catho','vagas','infojobs','xing','wellfound','stepstone'];
+    const _plats=p.plataformas||{};
+    _PLATS.forEach(k=>{ const cb=document.getElementById(`perfil-plat-${k}`); const dt=document.getElementById(`perfil-plat-${k}-data`); if(cb) cb.checked=_plats[k]?.cadastrado||false; if(dt) dt.value=_plats[k]?.data||''; });
+    const _h=document.getElementById('perfil-hunters'); if(_h) _h.value=p.hunters||'';
+    const _com=document.getElementById('perfil-comunidades'); if(_com) _com.value=p.comunidades||'';
+    ['pt','en','es','de'].forEach(l=>{ const el=document.getElementById(`perfil-nivel-${l}`); if(el&&p[`nivel_${l}`]) el.value=p[`nivel_${l}`]; });
+    ['pt','en','es','de'].forEach(l=>{ const el=document.getElementById(`perfil-cv-${l}`); if(el) el.checked=p[`cv_disponivel_${l}`]||false; });
+    const _ic=document.getElementById('perfil-idioma-candidatura'); if(_ic&&p.idioma_candidatura) _ic.value=p.idioma_candidatura;
     if(p.dias_inativo){ _diasInativo=p.dias_inativo; const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=p.dias_inativo; }
     const pill=document.getElementById('outlook-status-perfil');
     if(pill) pill.textContent='';
@@ -2278,6 +2439,18 @@ async function salvarPerfil(){
     paises,
     score_minimo_br:smr.br,score_minimo_espt:smr.espt,score_minimo_de:smr.de,score_minimo_remoto:smr.remoto,score_minimo_us:smr.us,
     empresas_alvo:document.getElementById('perfil-empresas-alvo').value.trim(),
+    plataformas:(()=>{ const r={}; ['linkedin','gupy','indeed','catho','vagas','infojobs','xing','wellfound','stepstone'].forEach(k=>{ r[k]={cadastrado:document.getElementById(`perfil-plat-${k}`)?.checked||false,data:document.getElementById(`perfil-plat-${k}-data`)?.value.trim()||''}; }); return r; })(),
+    hunters:document.getElementById('perfil-hunters').value.trim(),
+    comunidades:document.getElementById('perfil-comunidades').value.trim(),
+    nivel_pt:document.getElementById('perfil-nivel-pt')?.value||'nativo',
+    nivel_en:document.getElementById('perfil-nivel-en')?.value||'nao',
+    nivel_es:document.getElementById('perfil-nivel-es')?.value||'nao',
+    nivel_de:document.getElementById('perfil-nivel-de')?.value||'nao',
+    cv_disponivel_pt:document.getElementById('perfil-cv-pt')?.checked||false,
+    cv_disponivel_en:document.getElementById('perfil-cv-en')?.checked||false,
+    cv_disponivel_es:document.getElementById('perfil-cv-es')?.checked||false,
+    cv_disponivel_de:document.getElementById('perfil-cv-de')?.checked||false,
+    idioma_candidatura:document.getElementById('perfil-idioma-candidatura')?.value||'auto',
     dias_inativo:parseInt(document.getElementById('config-dias-inativo')?.value)||7,
   };
   try{
