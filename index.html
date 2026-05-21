@@ -294,6 +294,12 @@ select option { background: var(--bg2); }
 .limpeza-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background 0.1s; }
 .limpeza-item:hover { background:rgba(26,58,92,0.05); }
 .limpeza-item.sel { background:rgba(26,58,92,0.07); }
+
+/* ── SOFIA ── */
+.sofia-tab-nav { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:0; }
+.sofia-tab-btn { padding:10px 20px; font-size:13px; font-weight:500; border:none; background:none; cursor:pointer; color:var(--text3); border-bottom:2px solid transparent; font-family:var(--font); transition:color 0.15s, border-color 0.15s; white-space:nowrap; }
+.sofia-tab-btn.active { color:var(--navy); font-weight:700; border-bottom-color:var(--navy); }
+.sofia-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--gold),#A8852E); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -341,12 +347,12 @@ select option { background: var(--bg2); }
       Processos
       <span class="nav-badge" id="crm-badge">—</span>
     </div>
-    <div class="nav-item" onclick="showPage('interview')" id="nav-interview">
+    <div class="nav-item" onclick="showPage('sofia')" id="nav-sofia">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M2 3.5h9a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H7l-3 2.5V10H3a1 1 0 0 1-1-1V3.5Z"/>
-        <path d="M12 5.5h1.5a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H13V12l-2-2"/>
+        <path d="M8 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
+        <path d="M3 13.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5"/>
       </svg>
-      Entrevistas
+      Sofia
     </div>
   </div>
 
@@ -680,7 +686,6 @@ select option { background: var(--bg2); }
           <span style="font-size:13px;color:var(--action);font-weight:500;" id="perfil-upload-nome">Upload (.docx · PDF · TXT)</span>
           <input type="file" accept=".docx,.pdf,.txt,.doc" style="display:none;" onchange="perfilCvUpload(this)">
         </label>
-        <button class="btn btn-ghost" onclick="iniciarSofia()" id="sofia-start-btn" style="flex:1;min-width:180px;justify-content:center;">✨ Sofia — Entrevista guiada</button>
         <button class="btn btn-ghost" onclick="abrirImportLinkedIn()" style="flex:1;min-width:180px;justify-content:center;">🔗 Importar do LinkedIn</button>
       </div>
       <div id="perfil-cv-ok" style="display:none;font-size:13px;color:var(--green);font-weight:600;">CV carregado ✓</div>
@@ -692,33 +697,14 @@ select option { background: var(--bg2); }
       </div>
     </div>
 
-    <!-- Sofia Chat -->
-    <div id="sofia-chat-section" style="display:none;margin-bottom:20px;">
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#A8852E);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">✨</div>
-            <div>
-              <div style="font-size:15px;font-weight:700;color:var(--navy);">Sofia</div>
-              <div style="font-size:12px;color:var(--text3);">Assistente de carreira</div>
-            </div>
-          </div>
-          <button onclick="fecharSofia()" style="padding:6px 14px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;background:var(--bg2);color:var(--text2);font-size:13px;font-family:var(--font);">Fechar</button>
-        </div>
-        <div id="sofia-chat" style="min-height:200px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;"></div>
-        <div id="sofia-input-area" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
-          <textarea id="sofia-answer" rows="3" placeholder="Digite sua resposta aqui..." style="margin-bottom:10px;resize:vertical;font-size:15px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sofiaEnviar();}"></textarea>
-          <div style="display:flex;gap:8px;justify-content:flex-end;">
-            <span style="font-size:12px;color:var(--text3);align-self:center;">Enter para enviar</span>
-            <button class="btn btn-primary" id="sofia-send-btn" onclick="sofiaEnviar()" style="padding:9px 20px;">Enviar →</button>
-          </div>
-        </div>
-        <div id="sofia-resultado-area" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
-          <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Perfil gerado pela Sofia</div>
-          <textarea id="sofia-resultado-texto" rows="8" style="font-size:14px;margin-bottom:12px;resize:vertical;"></textarea>
-          <button class="btn btn-primary" onclick="sofiaTransferirPerfil()" style="width:100%;justify-content:center;padding:13px;font-size:15px;">Usar este perfil →</button>
-        </div>
+    <!-- Card compacto Sofia -->
+    <div class="card-sm" style="margin-bottom:20px;display:flex;align-items:center;gap:14px;border-left:3px solid var(--gold);">
+      <div style="font-size:22px;flex-shrink:0;">✨</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:var(--navy);">Construir CV com Sofia</div>
+        <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Não tem CV pronto? A Sofia te guia passo a passo.</div>
       </div>
+      <button class="btn btn-ghost" onclick="showPage('sofia')" style="flex-shrink:0;padding:7px 16px;font-size:13px;">→ Abrir</button>
     </div>
 
     <!-- BLOCO 3: O que busco -->
@@ -1190,19 +1176,170 @@ select option { background: var(--bg2); }
 </div>
 
 <!-- ┌─────────────────────────────┐
-     │  PAGE: INTERVIEW           │
+     │  PAGE: SOFIA               │
      └─────────────────────────────┘ -->
-<div id="page-interview" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+<div id="page-sofia" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
-    <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Entrevistas</span>
-      <span class="page-sub">Simulador com feedback em tempo real</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="sofia-avatar">✨</div>
+      <div>
+        <span class="page-title" style="display:block;line-height:1.2;">Sofia</span>
+        <span class="page-sub">Assistente de carreira</span>
+      </div>
     </div>
     <div class="topbar-right">
       <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
     </div>
   </div>
-  <div class="content">
+  <div style="padding:0 24px;background:var(--bg2);flex-shrink:0;">
+    <div class="sofia-tab-nav">
+      <button class="sofia-tab-btn active" onclick="sofiaTab(1)" id="sofia-tab-btn-1">🌟 Bem-vinda</button>
+      <button class="sofia-tab-btn" onclick="sofiaTab(2)" id="sofia-tab-btn-2">📖 Tutorial</button>
+      <button class="sofia-tab-btn" onclick="sofiaTab(3)" id="sofia-tab-btn-3">📝 Construir CV</button>
+      <button class="sofia-tab-btn" onclick="sofiaTab(4)" id="sofia-tab-btn-4">🎤 Simular Entrevista</button>
+    </div>
+  </div>
+  <div id="sofia-tab-1" class="content">
+    <div style="text-align:center;padding:36px 0 28px;">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#A8852E);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;">✨</div>
+      <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--navy);margin-bottom:10px;">Olá, Marcos! Sou a Sofia.</div>
+      <div style="font-size:15px;color:var(--text3);max-width:480px;margin:0 auto;line-height:1.7;">Sua assistente de carreira pessoal. Estou aqui para te ajudar a se posicionar e conquistar a vaga certa — no Brasil ou no exterior.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px;margin:0 auto;">
+      <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:28px;">📝</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Construir CV</div>
+        <div style="font-size:13.5px;color:var(--text3);line-height:1.6;flex:1;">Monte ou atualize seu CV com minha ajuda, passo a passo.</div>
+        <button class="btn btn-primary" onclick="sofiaTab(3)" style="align-self:flex-start;padding:8px 18px;font-size:13px;">→ Abrir</button>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:28px;">🎤</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Simular Entrevista</div>
+        <div style="font-size:13.5px;color:var(--text3);line-height:1.6;flex:1;">Pratique com um entrevistador simulado e receba feedback em tempo real.</div>
+        <button class="btn btn-primary" onclick="sofiaTab(4)" style="align-self:flex-start;padding:8px 18px;font-size:13px;">→ Abrir</button>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:28px;">📖</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Tutorial do Senova</div>
+        <div style="font-size:13.5px;color:var(--text3);line-height:1.6;flex:1;">Aprenda a usar o Senova em 6 passos e extraia o máximo da plataforma.</div>
+        <button class="btn btn-ghost" onclick="sofiaTab(2)" style="align-self:flex-start;padding:8px 18px;font-size:13px;">→ Abrir</button>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:28px;">🎯</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Análise CV</div>
+        <div style="font-size:13.5px;color:var(--text3);line-height:1.6;flex:1;">Adapte seu CV para uma vaga específica e maximize o score ATS.</div>
+        <button class="btn btn-ghost" onclick="showPage('ats')" style="align-self:flex-start;padding:8px 18px;font-size:13px;">→ Abrir</button>
+      </div>
+    </div>
+  </div>
+  <div id="sofia-tab-2" class="content" style="display:none;">
+    <div style="max-width:680px;margin:0 auto;">
+      <div style="margin-bottom:24px;">
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--navy);margin-bottom:6px;">Tutorial do Senova</div>
+        <div style="font-size:14px;color:var(--text3);">Aprenda como usar cada módulo em poucos minutos.</div>
+      </div>
+      <div style="border-top:1px solid var(--border);">
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:20px;">🏠</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">1. Home</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Seu cockpit diário: KPIs de candidaturas, próximas ações com prazo, emails do Outlook e alertas de mercado — tudo num só lugar.</div>
+          </div>
+          <button class="btn btn-ghost" onclick="showPage('home')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:20px;">🎯</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">2. Análise CV</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Cole a descrição de uma vaga e receba seu CV otimizado com as palavras-chave certas + score ATS em segundos.</div>
+          </div>
+          <button class="btn btn-ghost" onclick="showPage('ats')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:20px;">📋</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">3. Pipeline</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Kanban de candidaturas com 5 colunas. Arraste cards entre estágios, defina próximas ações e acompanhe contatos do CRM.</div>
+          </div>
+          <button class="btn btn-ghost" onclick="showPage('crm')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:20px;">👤</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">4. Perfil</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Configure cargo alvo, idiomas, plataformas onde está cadastrado e score mínimo por região — esses dados alimentam a varredura automática.</div>
+          </div>
+          <button class="btn btn-ghost" onclick="showPage('linkedin')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:20px;">🔍</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">5. Busca de Vagas</span>
+            </div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Varredura automática diária às 07h BRT via Adzuna + Jobicy (BR · ES · DE · PT · Remoto). Importe os leads para o Pipeline com um clique.</div>
+          </div>
+          <button class="btn btn-ghost" onclick="showPage('crm')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
+        </div>
+
+        <div style="padding:18px 0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span style="font-size:20px;">🔄</span>
+            <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">6. Fluxo Completo</span>
+          </div>
+          <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">O caminho ideal: <strong style="color:var(--text2);">Perfil</strong> → <strong style="color:var(--text2);">Varredura</strong> → <strong style="color:var(--text2);">Análise CV</strong> → <strong style="color:var(--text2);">Pipeline</strong> → <strong style="color:var(--text2);">Candidatura via Outlook</strong> → <strong style="color:var(--text2);">Follow-up automático em 7 dias</strong>. Cada etapa registra uma entrada no histórico da vaga.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div id="sofia-tab-3" class="content" style="display:none;">
+    <div style="max-width:680px;margin:0 auto;">
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px;">Construir CV do zero</div>
+        <div style="font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:16px;">Não tem CV pronto? A Sofia faz uma entrevista guiada e monta o rascunho do seu perfil profissional com você — em poucos minutos.</div>
+        <button class="btn btn-primary" onclick="iniciarSofia()" id="sofia-start-btn" style="padding:10px 22px;">✨ Iniciar entrevista com Sofia</button>
+      </div>
+      <div id="sofia-chat-section" style="margin-bottom:20px;">
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#A8852E);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">✨</div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--navy);">Sofia</div>
+              <div style="font-size:12px;color:var(--text3);">Assistente de carreira</div>
+            </div>
+          </div>
+          <div id="sofia-chat" style="min-height:200px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;"></div>
+          <div id="sofia-input-area" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+            <textarea id="sofia-answer" rows="3" placeholder="Digite sua resposta aqui..." style="margin-bottom:10px;resize:vertical;font-size:15px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sofiaEnviar();}"></textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <span style="font-size:12px;color:var(--text3);align-self:center;">Enter para enviar</span>
+              <button class="btn btn-primary" id="sofia-send-btn" onclick="sofiaEnviar()" style="padding:9px 20px;">Enviar →</button>
+            </div>
+          </div>
+          <div id="sofia-resultado-area" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Perfil gerado pela Sofia</div>
+            <textarea id="sofia-resultado-texto" rows="8" style="font-size:14px;margin-bottom:12px;resize:vertical;"></textarea>
+            <button class="btn btn-primary" onclick="sofiaTransferirPerfil()" style="width:100%;justify-content:center;padding:13px;font-size:15px;">Usar este perfil →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="sofia-tab-4" class="content" style="display:none;">
     <div style="display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start;">
 
       <!-- Config -->
@@ -1237,6 +1374,7 @@ select option { background: var(--bg2); }
               <option value="PT">Português</option>
               <option value="EN">English</option>
               <option value="ES">Español</option>
+              <option value="DE">Deutsch</option>
             </select>
           </div>
           <button class="btn btn-gold" onclick="startInterview()" id="int-start-btn" style="width:100%;justify-content:center;padding:12px;">
@@ -1256,7 +1394,7 @@ select option { background: var(--bg2); }
         <div id="int-chat" style="flex:1;overflow-y:auto;max-height:460px;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;">
           <div class="empty">
             <div class="empty-icon">🎤</div>
-            <div class="empty-title">Entrevistas</div>
+            <div class="empty-title">Simular Entrevista</div>
             <div class="empty-sub">Configure o cenário ao lado e clique em<br><strong>Iniciar simulação</strong> para começar</div>
           </div>
         </div>
@@ -1864,7 +2002,14 @@ IDIOMAS: Portugués (nativo) · Inglés (avanzado) · Español (avanzado)`
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['home','ats','linkedin','crm','interview'];
+const PAGES = ['home','ats','linkedin','crm','sofia'];
+function sofiaTab(n){
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('sofia-tab-'+i).style.display = i===n ? 'block' : 'none';
+    const btn=document.getElementById('sofia-tab-btn-'+i);
+    if(btn) btn.classList.toggle('active', i===n);
+  });
+}
 function showPage(page) {
   PAGES.forEach(p => {
     const el = document.getElementById('page-'+p);
@@ -1876,6 +2021,7 @@ function showPage(page) {
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
+  if(page==='sofia') sofiaTab(1);
 }
 
 // ═══════════════════════════════════════════════
@@ -2273,9 +2419,9 @@ let sofiaState={msgs:[],step:0,respostas:[],active:false};
 const SOFIA_N=8;
 
 function iniciarSofia(){
+  showPage('sofia');
+  sofiaTab(3);
   sofiaState={msgs:[],step:0,respostas:[],active:true};
-  const sec=document.getElementById('sofia-chat-section');
-  sec.style.display='block';
   document.getElementById('sofia-chat').innerHTML='';
   document.getElementById('sofia-input-area').style.display='block';
   document.getElementById('sofia-resultado-area').style.display='none';
@@ -2346,18 +2492,16 @@ async function _sofiaGerarPerfil(){
 function sofiaTransferirPerfil(){
   const txt=document.getElementById('sofia-resultado-texto').value.trim();
   document.getElementById('perfil-cv-texto').value=txt;
-  document.getElementById('sofia-chat-section').style.display='none';
   const btn=document.getElementById('sofia-start-btn');
   btn.disabled=false; btn.textContent='✨ Iniciar entrevista com Sofia';
   document.getElementById('perfil-cv-ok').style.display='block';
-  document.querySelector('#page-linkedin .content').scrollTo({top:0,behavior:'smooth'});
+  showPage('linkedin');
 }
 
 function fecharSofia(){
-  document.getElementById('sofia-chat-section').style.display='none';
   sofiaState.active=false;
   const btn=document.getElementById('sofia-start-btn');
-  btn.disabled=false; btn.textContent='✨ Sofia — Entrevista guiada';
+  btn.disabled=false; btn.textContent='✨ Iniciar entrevista com Sofia';
 }
 
 function abrirImportLinkedIn(){
@@ -4178,7 +4322,7 @@ Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
 
 function resetInterview(){
   intState={questions:[],currentQ:0,answers:[],feedbacks:[],active:false};
-  document.getElementById('int-chat').innerHTML='<div class="empty"><div class="empty-icon">🎤</div><div class="empty-title">Entrevistas</div><div class="empty-sub">Configure o cenário ao lado e clique em<br><strong>Iniciar simulação</strong> para começar</div></div>';
+  document.getElementById('int-chat').innerHTML='<div class="empty"><div class="empty-icon">🎤</div><div class="empty-title">Simular Entrevista</div><div class="empty-sub">Configure o cenário ao lado e clique em<br><strong>Iniciar simulação</strong> para começar</div></div>';
   document.getElementById('int-input-area').style.display='none';
   document.getElementById('int-progress-card').style.display='none';
 }
