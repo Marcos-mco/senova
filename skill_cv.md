@@ -13,7 +13,10 @@ Sempre que Marcos precisar:
 - Nome: Marcos Franco (assina "Marcos Franco")
 - Localização: Curitiba, PR | Tel: (41) 99615-2224 | marcos_mco@hotmail.com
 - LinkedIn: linkedin.com/in/marcos-ribeiro-franco-69153a12
-- Pretensão: R$19–25k CLT (exceção AGTU/educação: R$15–20k)
+- Pretensão Brasil: R$19–25k CLT (exceção AGTU/educação: R$15–20k) | mínimo PJ: R$15k
+- Pretensão Europa (ES/PT): €3.500–5.500/mês — referência para cargos Diretor/Head
+- Pretensão Europa (DE/DACH): €5.000–8.000/mês — referência para cargos Diretor/Head
+- Obs: valores europeus são referência de mercado — validar por vaga e setor antes de negociar
 - Aceita: CEO / CMO / CSO / Diretor / Head / Gerente Sênior / Analista Sênior (sem ego de cargo)
 - Aceita PJ via LaborDei | Aceita relocação SC
 
@@ -45,7 +48,13 @@ Sempre que Marcos precisar:
 4. Mapear experiências → requisitos (sem inventar, só reenquadrar)
 5. Listar keywords inseridas para validação ATS
 6. Indicar score estimado ATS (0–100)
-7. Idioma: PT por padrão | EN se vaga internacional | ES se empresa ibérica/latina
+7. Idioma:
+   - PT por padrão
+   - EN se vaga internacional
+   - ES se empresa ibérica/latina
+   - DE se vaga mercado DACH (Alemanha, Áustria, Suíça) — plataformas Xing, StepStone, Indeed DE
+     - Nomenclatura: CV_MF_[Empresa]_[Cargo]_v1_DE
+     - Gerado com apoio de IA — sempre revisar com falante nativo antes de enviar
 
 ## Output padrão
 - Sumário executivo reescrito
