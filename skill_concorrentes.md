@@ -156,7 +156,7 @@ Nunca propor algo novo sem antes verificar se já existe no mercado e como os co
 | ATS score/análise | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
 | Resume builder IA | ✅ | ❌ | ✅ | ⚠️ | ❌ | ✅ |
 | Cover letter IA | ✅ | ❌ | ✅ | ✅ | ❌ | 🔄 planejado |
-| Simulador entrevista | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ exclusivo |
+| Simulador entrevista | ❌ | ❌ | ❌ | ❌ | ❌ | Sofia — assistente de carreira com IA + simulador de entrevista |
 | Email → CRM auto | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ parcial |
 | Homepage pendências | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | 🔄 planejado |
 | Foco executivo 50+ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ único |

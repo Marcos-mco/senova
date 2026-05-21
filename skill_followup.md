@@ -40,3 +40,11 @@ Marcos Franco"
 - Vaga: 1 follow-up após 10 dias, depois silêncio
 - Headhunter: 1 follow-up após 14 dias, depois 1 a cada 30 dias
 - Contato estratégico: conforme gancho natural aparecer
+
+## Integração com Senova
+Envios via Outlook integrado no Senova — usar módulo CRM Contatos para registrar cada follow-up realizado.
+
+## Idioma por mercado
+- Brasil: português
+- Espanha / Portugal (ES/PT): espanhol
+- Alemanha / DACH (DE): inglês (Marcos não fala alemão)

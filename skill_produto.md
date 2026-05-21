@@ -6,13 +6,13 @@
 - Definir MVP de nova funcionalidade
 - Estruturar fases de desenvolvimento
 - Avaliar trade-offs de complexidade vs. valor
-- Planejar testes com usuários reais (público 50+)
+- Planejar testes com usuários reais (público 35+)
 
 ## Contexto do produto
-**Senova Suite** é uma plataforma pessoal de recolocação executiva para profissionais 50+.
+**Senova Suite** é uma plataforma pessoal de recolocação executiva para profissionais 35+.
 - Fase atual: uso pessoal de Marcos Franco (beta fechado)
-- Visão de médio prazo: SaaS para profissionais 50+ em recolocação (R$47/mês)
-- Diferencial: IA integrada + CRM + Anti-ATS + Inteligência de Mercado em uma ferramenta só
+- Visão de médio prazo: SaaS para profissionais 35+ em recolocação (R$47/mês)
+- Diferencial: IA integrada + CRM + Anti-ATS + Inteligência de Mercado + Sofia (assistente de carreira com IA) em uma ferramenta só
 - Público-alvo: executivos 40–60 anos, baixa tolerância a complexidade, alta expectativa de resultado
 
 ## Framework de priorização
@@ -30,7 +30,7 @@ Critérios de aceite (sempre 3–5 itens verificáveis):
 - [ ] item 2
 - [ ] item 3
 
-## Princípios de produto para o público 50+
+## Princípios de produto para o público 35+
 - Simplicidade radical: se precisar de manual, está errado
 - Feedback imediato: toda ação deve ter resposta visual clara
 - Fontes grandes, alto contraste (mín. 16px corpo)

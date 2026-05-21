@@ -28,7 +28,11 @@ Sempre que Marcos precisar:
 - Território natural: mídia, TV, educação, tecnologia, marketing, expansão
 - Empresas de alto interesse: grupos de comunicação regionais/nacionais, fintechs em expansão, scale-ups com captação recente, empresas europeias chegando ao Brasil
 - Conexões estratégicas já mapeadas: RPC/GRPCOM, NSC, RBS, RIC, Globo Nacional
+- Territórios ativos de pesquisa internacional: ES (Espanha), PT (Portugal), DE (Alemanha/DACH)
 
 ## Alerta de privacidade
 - Nunca incluir dados pessoais sensíveis (CPF, endereço, telefone pessoal)
 - Usar apenas informações públicas
+
+## Integração com Senova CRM
+Resultado de toda pesquisa deve ser registrado no CRM Contatos do Senova com temperatura e próxima ação definidas.

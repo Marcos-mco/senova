@@ -58,3 +58,6 @@
 - Temperatura (Frio/Morno/Quente)
 - Ação sugerida + próximo passo
 - Texto de abordagem (se aplicável)
+
+## Integração com Senova
+Sinais processados devem ser direcionados para a Central de Sinais do Senova (em desenvolvimento) — vagas para Pipeline CRM, movimentações executivas para CRM Contatos.

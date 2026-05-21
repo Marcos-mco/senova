@@ -1,4 +1,4 @@
-# SKILL: Business Plan — Senova como SaaS 50+
+# SKILL: Business Plan — Senova como SaaS 35+
 
 ## Quando usar
 - Desenvolver ou revisar o modelo de negócio do Senova
@@ -13,17 +13,17 @@
 - **Estágio:** beta pessoal (1 usuário — Marcos Franco)
 - **Stack:** GitHub Pages + Cloudflare Workers + Anthropic API (custo ~$0 fixo)
 - **Precificação estudada:** R$47/mês por usuário
-- **Público-alvo:** profissionais 50+ em recolocação executiva no Brasil
-- **Diferencial competitivo:** IA integrada + Anti-ATS + CRM + Inteligência de Mercado em ferramenta única, focada no público maduro
+- **Público-alvo:** profissionais 35+ em recolocação executiva no Brasil
+- **Diferencial competitivo:** IA integrada + Anti-ATS + CRM + Inteligência de Mercado + Sofia (assistente de carreira com IA — exclusivo) em ferramenta única, focada no público maduro
 
 ## Tamanho do mercado (referência)
 - Brasil: ~15 milhões de profissionais acima de 50 anos economicamente ativos
-- Segmento executivo 50+ em recolocação: estimativa 500k–1M ativos por ano
-- Concorrentes diretos: LinkedIn Premium (R$89–189/mês), Gupy (sem foco 50+), ferramentas genéricas de CV
+- Segmento executivo 35+ em recolocação: estimativa 500k–1M ativos por ano
+- Concorrentes diretos: LinkedIn Premium (R$89–189/mês), Gupy (sem foco 35+), ferramentas genéricas de CV
 
 ## Métricas-chave a desenvolver
 - **CAC** (Custo de Aquisição de Cliente): canal orgânico vs. pago
-- **LTV** (Lifetime Value): tempo médio de recolocação 50+ = 6–18 meses
+- **LTV** (Lifetime Value): tempo médio de recolocação 35+ = 6–18 meses
 - **Churn esperado:** alta rotatividade (recolocação é temporária por natureza)
 - **Break-even:** número mínimo de assinantes para cobrir custos de API + infra
 - **MRR alvo** (Receita Recorrente Mensal): definir junto com Marcos
