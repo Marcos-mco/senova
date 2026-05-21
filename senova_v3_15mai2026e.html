@@ -1036,165 +1036,182 @@ select option { background: var(--bg2); }
      MODAL CONTATOS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
-  <div class="modal">
-    <div class="modal-title" id="modal-contato-title">Contato</div>
-    <div class="modal-body">
-      <!-- Identidade -->
-      <div class="form-row">
-        <label class="field-label">Nome</label>
-        <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
+  <div class="modal" style="width:min(600px,94vw);">
+
+    <!-- Header: avatar + nome + badges + abas -->
+    <div style="padding:18px 22px 0;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div id="mc-header-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--action));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:0.5px;">?</div>
+        <div style="flex:1;min-width:0;">
+          <div id="mc-header-nome" style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Novo Contato</div>
+          <div id="mc-header-badges" style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;"></div>
+        </div>
+        <button onclick="closeContatoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);padding:4px 2px;line-height:1;flex-shrink:0;">✕</button>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Cargo</label>
-          <input type="text" id="mc-cargo" placeholder="Ex: CEO">
-        </div>
-        <div>
-          <label class="field-label">Empresa</label>
-          <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
-        </div>
-      </div>
-      <!-- Contato -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Email</label>
-          <input type="email" id="mc-email" placeholder="email@empresa.com">
-        </div>
-        <div>
-          <label class="field-label">Telefone</label>
-          <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
-        </div>
-        <div>
-          <label class="field-label">LinkedIn</label>
-          <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
-        </div>
-      </div>
-      <!-- Classificação -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Temperatura</label>
-          <select id="mc-temp">
-            <option value="hot">🔥 Quente</option>
-            <option value="warm">🌤 Morno</option>
-            <option value="cold">❄️ Frio</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Plano</label>
-          <select id="mc-plano">
-            <option value="A">Plano A — Emprego</option>
-            <option value="B">Plano B — Consultoria</option>
-            <option value="C">Plano C — Senova</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Tipo</label>
-          <select id="mc-tipo">
-            <option value="Executivo">Executivo</option>
-            <option value="Headhunter">Headhunter</option>
-            <option value="Consultor">Consultor</option>
-            <option value="Investidor">Investidor</option>
-            <option value="Parceiro">Parceiro</option>
-            <option value="Outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <!-- Próxima ação -->
-      <div class="form-row">
-        <label class="field-label">Próxima ação</label>
-        <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
-      </div>
-      <!-- Notas -->
-      <div class="form-row">
-        <label class="field-label">Notas</label>
-        <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
-      </div>
-      <!-- Vinculado a vaga -->
-      <div class="form-row">
-        <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
-        <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
-      </div>
-      <!-- Timeline de interações -->
-      <div class="form-row" id="mc-timeline-section" style="margin-bottom:0;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <label class="field-label" style="margin:0;">Histórico de interações</label>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
-        </div>
-        <div id="mc-timeline-form" class="tl-form" style="display:none;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
-            <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
-              <option value="LinkedIn">💼 LinkedIn</option>
-              <option value="WhatsApp">📱 WhatsApp</option>
-              <option value="Email">📧 Email</option>
-              <option value="Reunião">🤝 Reunião</option>
-              <option value="Telefone">📞 Telefone</option>
-              <option value="Outro">💬 Outro</option>
-            </select>
-          </div>
-          <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
-          <div style="margin-top:10px;">
-            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
-            <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
-            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
-          </div>
-        </div>
-        <div id="mc-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:0;margin-bottom:-1px;">
+        <button id="mct-btn-dados" onclick="setCTTab('dados')" style="padding:8px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--navy);border-bottom:2px solid var(--navy);font-family:var(--font);transition:color 0.15s;">Dados</button>
+        <button id="mct-btn-comunicacao" onclick="setCTTab('comunicacao')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Comunicação</button>
+        <button id="mct-btn-historico" onclick="setCTTab('historico')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Histórico</button>
       </div>
     </div>
+
+    <div class="modal-body">
+
+      <!-- ABA: DADOS -->
+      <div id="mct-dados">
+        <div class="form-row">
+          <label class="field-label">Nome</label>
+          <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti" oninput="atualizarHeaderContato()">
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div>
+            <label class="field-label">Cargo</label>
+            <input type="text" id="mc-cargo" placeholder="Ex: CEO">
+          </div>
+          <div>
+            <label class="field-label">Empresa</label>
+            <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Email</label>
+            <input type="email" id="mc-email" placeholder="email@empresa.com">
+          </div>
+          <div>
+            <label class="field-label">Telefone</label>
+            <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
+          </div>
+          <div>
+            <label class="field-label">LinkedIn</label>
+            <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Temperatura</label>
+            <select id="mc-temp" onchange="atualizarHeaderContato()">
+              <option value="hot">🔥 Quente</option>
+              <option value="warm">🌤 Morno</option>
+              <option value="cold">❄️ Frio</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Plano</label>
+            <select id="mc-plano">
+              <option value="A">Plano A — Emprego</option>
+              <option value="B">Plano B — Consultoria</option>
+              <option value="C">Plano C — Senova</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Tipo</label>
+            <select id="mc-tipo" onchange="atualizarHeaderContato()">
+              <option value="Executivo">Executivo</option>
+              <option value="Headhunter">Headhunter</option>
+              <option value="Consultor">Consultor</option>
+              <option value="Investidor">Investidor</option>
+              <option value="Parceiro">Parceiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Próxima ação <span style="color:var(--red);">*</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook()">
+            <input type="date" id="mc-next-data" style="width:148px;flex-shrink:0;" onchange="atualizarBtnOutlook()">
+          </div>
+          <div id="mc-next-err" style="display:none;font-size:12px;color:var(--red);margin-top:4px;">Próxima ação é obrigatória</div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Notas</label>
+          <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:0;">
+          <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
+          <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
+        </div>
+      </div>
+
+      <!-- ABA: COMUNICAÇÃO -->
+      <div id="mct-comunicacao" style="display:none;">
+        <div id="mct-com-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para usar Comunicação.</div>
+        <div id="mct-com-content">
+          <div class="com-tabs">
+            <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
+            <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
+            <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
+          </div>
+          <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
+            <label class="field-label">Mensagem recebida</label>
+            <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
+              <select id="com-canal" style="height:30px;font-size:13px;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
+          <div id="com-output-wrap" style="display:none;">
+            <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
+            <textarea id="com-output" class="com-output-box" rows="4"></textarea>
+            <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
+            <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
+              <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: HISTÓRICO -->
+      <div id="mct-historico" style="display:none;">
+        <div id="mct-hist-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para registrar interações.</div>
+        <div id="mct-hist-content">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <label class="field-label" style="margin:0;">Histórico de interações</label>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
+          </div>
+          <div id="mc-timeline-form" class="tl-form" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
+              <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+                <option value="Reunião">🤝 Reunião</option>
+                <option value="Telefone">📞 Telefone</option>
+                <option value="Outro">💬 Outro</option>
+              </select>
+            </div>
+            <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
+            <div style="margin-top:10px;">
+              <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+              <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
+            </div>
+          </div>
+          <div id="mc-timeline-lista" style="max-height:220px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
-      <button class="btn btn-ghost" id="mc-com-btn" onclick="abrirModalComunicacao()" style="display:none;">✨ Comunicação</button>
+      <button class="btn btn-ghost" id="mc-outlook-btn" onclick="salvarEAgendarOutlook()" style="display:none;color:var(--action);border-color:var(--action);" title="Salva o contato e cria evento no Outlook Calendar">📅 Agendar no Outlook</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL COMUNICAÇÃO ══ -->
-<div class="modal-overlay" id="modal-comunicacao" style="display:none;" onclick="if(event.target===this)fecharModalComunicacao()">
-  <div class="modal" style="width:min(560px,94vw);">
-    <div class="modal-title">✨ Comunicação — <span id="mc-com-nome" style="font-weight:500;"></span></div>
-    <div class="modal-body">
-      <div class="com-tabs">
-        <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
-        <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
-        <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
-      </div>
-      <!-- Área de mensagem recebida (só no modo Responder) -->
-      <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
-        <label class="field-label">Mensagem recebida</label>
-        <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
-          <select id="com-canal" style="height:30px;font-size:13px;">
-            <option value="LinkedIn">💼 LinkedIn</option>
-            <option value="WhatsApp">📱 WhatsApp</option>
-            <option value="Email">📧 Email</option>
-          </select>
-        </div>
-      </div>
-      <!-- Botão gerar -->
-      <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
-      <!-- Saída -->
-      <div id="com-output-wrap" style="display:none;">
-        <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
-        <textarea id="com-output" class="com-output-box" rows="4"></textarea>
-        <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
-        <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
-          <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModalComunicacao()" style="margin-left:auto;">Fechar</button>
     </div>
   </div>
 </div>
@@ -2221,6 +2238,15 @@ function renderCRM(){
     const lastCanal=(c.timeline||[]).find(e=>e.canal)?.canal;
     const canalIcon=lastCanal?(CANAL_ICON_MAP[lastCanal]||'💬'):null;
     const diasTxt=dias===null?'':dias===0?'hoje':dias===1?'ontem':`${dias}d atrás`;
+    const today=new Date(); today.setHours(0,0,0,0);
+    const nextDataMs=c.nextData?new Date(c.nextData).setHours(0,0,0,0):null;
+    let urgBadge='';
+    if(nextDataMs!==null){
+      const diffDays=Math.round((nextDataMs-today.getTime())/86400000);
+      if(diffDays<0) urgBadge='<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⚠ Atrasado</span>';
+      else if(diffDays<=3) urgBadge='<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⏰ Urgente</span>';
+    }
+    const nextDataFmt=c.nextData?c.nextData.split('-').reverse().join('/'):'';
     return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
       <div style="flex:1;min-width:0;">
@@ -2231,7 +2257,8 @@ function renderCRM(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
         ${c.tipo&&c.tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${c.tipo}</span>`:''}
-        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
+        ${urgBadge}
+        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}${nextDataFmt?' <span style="color:var(--text3);font-size:11px;">'+nextDataFmt+'</span>':''}</div>`:''}
       </div>
     </div>`;
   }).join(''):'<div style="padding:20px;color:var(--text3);font-size:13.5px;text-align:center;">Nenhum contato encontrado.</div>';
@@ -2439,16 +2466,12 @@ function renderTimelineLista(timeline){
 function openContatoModal(id){
   editingContatoId=id;
   const isNew=id==='new';
-  document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
-  document.getElementById('mc-com-btn').style.display=isNew?'none':'inline-flex';
-  // Populate vaga dropdown
   const vagaSel=document.getElementById('mc-vaga-id');
   if(vagaSel){
     const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
     vagaSel.innerHTML='<option value="">— Nenhuma —</option>'+ativas.map(v=>`<option value="${v.id}">${v.empresa}${v.cargo?' — '+v.cargo:''}</option>`).join('');
   }
-  const tlSection=document.getElementById('mc-timeline-section');
   const tlForm=document.getElementById('mc-timeline-form');
   const tlLista=document.getElementById('mc-timeline-lista');
   if(!isNew){
@@ -2463,25 +2486,78 @@ function openContatoModal(id){
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
+    document.getElementById('mc-next-data').value=c.nextData||'';
     document.getElementById('mc-notas').value=c.notas||'';
     if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
-    if(tlSection) tlSection.style.display='';
     if(tlForm) tlForm.style.display='none';
     renderTimelineListaCt(c.timeline||[]);
   } else {
-    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
-    if(tlSection) tlSection.style.display='none';
     if(tlLista) tlLista.innerHTML='';
   }
+  setCTTab('dados');
+  atualizarBtnOutlook();
+  atualizarHeaderContato();
   document.getElementById('modal-contato').style.display='flex';
 }
 function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
-function saveContato(){
-  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+
+let _ctTab='dados';
+function setCTTab(tab){
+  _ctTab=tab;
+  const isNew=editingContatoId==='new';
+  // Reset comunicação ao entrar na aba
+  if(tab==='comunicacao'){
+    const ow=document.getElementById('com-output-wrap'); if(ow) ow.style.display='none';
+    const rs=document.getElementById('com-resumo'); if(rs) rs.style.display='none';
+    const cc=document.getElementById('com-char-count'); if(cc) cc.style.display='none';
+    const rc=document.getElementById('com-recebida'); if(rc) rc.value='';
+    const op=document.getElementById('com-output'); if(op) op.value='';
+    setComunicacaoMode('linkedin');
+    const nm=document.getElementById('mct-com-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-com-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  if(tab==='historico'){
+    const nm=document.getElementById('mct-hist-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-hist-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  ['dados','comunicacao','historico'].forEach(t=>{
+    const panel=document.getElementById('mct-'+t); if(panel) panel.style.display=t===tab?'block':'none';
+    const btn=document.getElementById('mct-btn-'+t);
+    if(btn){ btn.style.color=t===tab?'var(--navy)':'var(--text3)'; btn.style.fontWeight=t===tab?'700':'500'; btn.style.borderBottom=t===tab?'2px solid var(--navy)':'2px solid transparent'; }
+  });
+}
+function atualizarHeaderContato(){
+  const nome=(document.getElementById('mc-nome')?.value||'').trim();
+  const tipo=document.getElementById('mc-tipo')?.value||'Executivo';
+  const temp=document.getElementById('mc-temp')?.value||'warm';
+  const av=document.getElementById('mc-header-avatar');
+  if(av){ const ini=nome?nome.split(' ').filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,2).join(''):'?'; av.textContent=ini; }
+  const hn=document.getElementById('mc-header-nome'); if(hn) hn.textContent=nome||'Novo Contato';
+  const hb=document.getElementById('mc-header-badges');
+  if(hb){
+    const tB={hot:['🔥 Quente','#FFF3E0','#E65100'],warm:['🌤 Morno','#FFF8EC','#B8670A'],cold:['❄️ Frio','#EFF6FF','#1D4ED8']}[temp]||['','var(--bg3)','var(--text3)'];
+    const tipoBadge=tipo&&tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tipo}</span>`:'';
+    const tempBadge=tB[0]?`<span style="background:${tB[1]};color:${tB[2]};font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tB[0]}</span>`:'';
+    hb.innerHTML=tipoBadge+tempBadge;
+  }
+}
+
+function saveContato(silent=false){
+  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return null;
+  const next=document.getElementById('mc-next').value.trim();
+  const errEl=document.getElementById('mc-next-err');
+  if(!next){
+    setCTTab('dados');
+    if(errEl) errEl.style.display='block';
+    document.getElementById('mc-next')?.focus();
+    return null;
+  }
+  if(errEl) errEl.style.display='none';
   const existing=editingContatoId==='new'?null:contatos.find(c=>c.id===editingContatoId);
   const now=Date.now();
   const obj={
@@ -2495,7 +2571,8 @@ function saveContato(){
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
     tipo:document.getElementById('mc-tipo').value,
-    next:document.getElementById('mc-next').value.trim(),
+    next,
+    nextData:document.getElementById('mc-next-data')?.value||'',
     notas:document.getElementById('mc-notas').value.trim(),
     vagaId:document.getElementById('mc-vaga-id')?.value||null,
     lastContact:now,
@@ -2503,13 +2580,40 @@ function saveContato(){
     timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
   };
   if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
-  saveContatos(); renderCRM(); closeContatoModal();
+  saveContatos(); renderCRM();
+  if(!silent) closeContatoModal();
+  return obj;
 }
 function deleteContato(){
   if(!editingContatoId||editingContatoId==='new')return;
   if(!confirm('Remover este contato?'))return;
   contatos=contatos.filter(c=>c.id!==editingContatoId);
   saveContatos(); renderCRM(); closeContatoModal();
+}
+function atualizarBtnOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim();
+  const data=document.getElementById('mc-next-data')?.value||'';
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn) btn.style.display=(next&&data)?'inline-flex':'none';
+}
+async function salvarEAgendarOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim(); if(!next) return;
+  const data=document.getElementById('mc-next-data')?.value||''; if(!data) return;
+  const nome=(document.getElementById('mc-nome')?.value||'').trim(); if(!nome) return;
+  const obj=saveContato(true); if(!obj) return;
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn){btn.textContent='Agendando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:`Senova: ${next} — ${nome}`,data,duracao:30})
+    });
+    if(btn){btn.textContent=res.ok?'✓ Agendado!':'Erro ao agendar';btn.style.color=res.ok?'var(--green)':'var(--red)';}
+  } catch{
+    if(btn){btn.textContent='Erro ao agendar';btn.style.color='var(--red)';}
+  }
+  setTimeout(()=>closeContatoModal(),1000);
 }
 // Timeline de interações do contato
 function abrirFormTimelineCt(){
@@ -2574,20 +2678,10 @@ function limparBuscaContato(){
   const clr=document.getElementById('ct-busca-clear'); if(clr) clr.style.display='none';
   renderCRM();
 }
-// ── MODAL COMUNICAÇÃO ──
+// ── COMUNICAÇÃO INLINE (abas do modal-contato) ──
 let _comunicacaoMode='linkedin';
-function abrirModalComunicacao(){
-  const c=editingContatoId&&editingContatoId!=='new'?contatos.find(x=>x.id===editingContatoId):null;
-  if(!c){alert('Salve o contato antes de usar Comunicação.');return;}
-  document.getElementById('mc-com-nome').textContent=c.nome;
-  document.getElementById('com-output-wrap').style.display='none';
-  document.getElementById('com-resumo').style.display='none';
-  document.getElementById('com-recebida').value='';
-  document.getElementById('com-output').value='';
-  setComunicacaoMode('linkedin');
-  document.getElementById('modal-comunicacao').style.display='flex';
-}
-function fecharModalComunicacao(){ document.getElementById('modal-comunicacao').style.display='none'; }
+function abrirModalComunicacao(){ setCTTab('comunicacao'); }
+function fecharModalComunicacao(){ setCTTab('dados'); }
 function setComunicacaoMode(mode){
   _comunicacaoMode=mode;
   ['linkedin','responder','followup'].forEach(m=>{
@@ -2665,8 +2759,7 @@ async function registrarInteracaoCom(){
   contatos[idx].lastContact=now;
   saveContatos(); renderCRM();
   renderTimelineListaCt(contatos[idx].timeline);
-  const tlSection=document.getElementById('mc-timeline-section'); if(tlSection) tlSection.style.display='';
-  fecharModalComunicacao();
+  setCTTab('historico');
 }
 
 // ═══════════════════════════════════════════════

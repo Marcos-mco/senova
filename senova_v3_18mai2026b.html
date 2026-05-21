@@ -123,12 +123,16 @@ select option { background: var(--bg2); }
 .badge-media { background: #E8F0FF; color: #0066CC; }
 .badge-baixa { background: #E8FFE8; color: #008800; }
 .badge-inativo { background: #FF6600; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-1 { background: #FF6600; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-2 { background: #CC0000; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.badge-inativo-3 { background: #CC0000; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; animation: pulseInativo 1.4s ease-in-out infinite; }
+@keyframes pulseInativo { 0%,100%{ box-shadow:0 0 0 0 #CC000066; opacity:1; } 60%{ box-shadow:0 0 0 5px #CC000000; opacity:.85; } }
 
 /* ── MODAL ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(520px,92vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); padding: 28px 28px 0; flex-shrink: 0; }
-.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 140px; min-height: 0; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -275,6 +279,20 @@ select option { background: var(--bg2); }
 .outlook-toggle.on { background:#1A7A4A; }
 .outlook-toggle-knob { position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.28); transition:left 0.22s; }
 .outlook-toggle.on .outlook-toggle-knob { left:27px; }
+
+/* ── HOME GRID (duas colunas) ── */
+.home-grid { display:grid; grid-template-columns:5fr 7fr; gap:16px; align-items:start; }
+@media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
+.home-right-col { display:flex; flex-direction:column; gap:14px; }
+
+/* ── BADGE REVISAR ── */
+.badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
+
+/* ── LIMPEZA EM LOTE ── */
+#limpeza-lote-painel { background:linear-gradient(135deg,#FFFDF0 0%,#FFF9E6 100%); border:1.5px solid #C9A84C; border-radius:10px; padding:16px 20px 12px; margin-bottom:14px; }
+.limpeza-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; transition:background 0.1s; }
+.limpeza-item:hover { background:rgba(26,58,92,0.05); }
+.limpeza-item.sel { background:rgba(26,58,92,0.07); }
 </style>
 </head>
 <body>
@@ -370,103 +388,169 @@ select option { background: var(--bg2); }
     </div>
   </div>
   <div class="content">
-    <!-- Stats clicáveis -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;">
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Leads / Radar</div>
-        <div class="home-stat-num" id="stat-lead">—</div>
-        <div style="font-size:12px;color:var(--text3);">vagas para analisar</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Candidaturas</div>
-        <div class="home-stat-num" id="stat-candidatados">—</div>
-        <div style="font-size:12px;color:var(--text3);">aguardando retorno</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Em processo</div>
-        <div class="home-stat-num" id="stat-pipeline">—</div>
-        <div style="font-size:12px;color:var(--text3);">contato + entrevista</div>
-      </div>
-      <div class="home-stat-box" onclick="showPage('crm')">
-        <div class="home-stat-label">Propostas</div>
-        <div class="home-stat-num" id="stat-proposta">—</div>
-        <div style="font-size:12px;color:var(--text3);">para decidir</div>
-      </div>
-    </div>
+    <!-- ── Duas colunas ── -->
+    <div class="home-grid">
 
-    <!-- ── Dashboard Pipeline ── -->
-    <div id="dash-pipeline-section" style="margin-bottom:18px;">
+      <!-- COLUNA ESQUERDA: KPIs + funil + canal + tempo -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
 
-      <!-- Funil visual -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px;box-shadow:var(--shadow);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Funil do Pipeline</span>
-          <span id="dash-totals" style="font-size:12px;color:var(--text3);">—</span>
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Leads</div>
+            <div class="home-stat-num" id="stat-lead">—</div>
+            <div style="font-size:12px;color:var(--text3);">vagas identificadas</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Candidaturas</div>
+            <div class="home-stat-num" id="stat-candidatados">—</div>
+            <div style="font-size:12px;color:var(--text3);">CV enviado aguardando</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Em processo</div>
+            <div class="home-stat-num" id="stat-pipeline">—</div>
+            <div style="font-size:12px;color:var(--text3);">entrevista/contato ativo</div>
+          </div>
+          <div class="home-stat-box" onclick="showPage('crm')">
+            <div class="home-stat-label">Propostas</div>
+            <div class="home-stat-num" id="stat-proposta">—</div>
+            <div style="font-size:12px;color:var(--text3);">oferta recebida</div>
+          </div>
         </div>
-        <div id="dash-funil" style="display:flex;flex-direction:column;gap:7px;"></div>
-      </div>
 
-      <!-- Canal + Tempo médio -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow);">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Taxa de Retorno por Canal</div>
-          <div id="dash-canais" style="display:flex;flex-direction:column;gap:5px;"></div>
+        <div id="dash-pipeline-section">
+
+          <!-- Funil visual -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px;box-shadow:var(--shadow);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Funil do Pipeline</span>
+              <span id="dash-totals" style="font-size:12px;color:var(--text3);">—</span>
+            </div>
+            <div id="dash-funil" style="display:flex;flex-direction:column;gap:7px;"></div>
+          </div>
+
+          <!-- Taxa por canal -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow);">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Taxa de Retorno por Canal</div>
+            <div id="dash-canais" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
+
+          <!-- Tempo médio por estágio -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow);">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Tempo Médio por Estágio</div>
+            <div id="dash-tempo" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
+
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow);">
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Tempo Médio por Estágio</div>
-          <div id="dash-tempo" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <!-- COLUNA DIREITA: sinais + revisão + ações -->
+      <div class="home-right-col">
+
+        <!-- Central de Sinais (topo) -->
+        <div id="sinais-section">
+          <div class="section-head" style="margin-bottom:8px;">
+            <span class="section-title" style="font-size:13px;">Central de Sinais</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="toggleEmailsAvulsos()">
+              <span class="sinal-icon">📧</span>
+              <span id="sinal-emails-txt" class="sinal-txt"></span>
+              <svg id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+            </div>
+            <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;"></div>
+            <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
+              <span class="sinal-icon">🔔</span>
+              <span id="sinal-alertas-txt" class="sinal-txt"></span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+            </div>
+            <div id="sinal-inativos" class="sinal-item" style="display:none;" onclick="irParaInativos()">
+              <span class="sinal-icon">⚠</span>
+              <span id="sinal-inativos-txt" class="sinal-txt"></span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+            </div>
+          </div>
         </div>
-      </div>
 
-    </div>
+        <!-- Widget: Vagas para revisar -->
+        <div id="home-revisao-widget" style="display:none;">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;">
+              <div>
+                <span style="font-size:13.5px;font-weight:700;color:var(--navy);">⚡ Vagas para revisar</span>
+                <span id="revisao-widget-count" style="font-size:12px;color:var(--text3);margin-left:8px;"></span>
+              </div>
+              <button onclick="descartarTodasRejeitadas()"
+                style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">
+                Descartar todas
+              </button>
+            </div>
+            <div id="home-revisao-lista"></div>
+          </div>
+        </div>
 
-    <!-- Central de Sinais -->
-    <div id="sinais-section" style="margin-bottom:18px;display:flex;flex-direction:column;gap:6px;">
-      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="showPage('crm')">
-        <span class="sinal-icon">📧</span>
-        <span id="sinal-emails-txt" class="sinal-txt"></span>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
-        <span class="sinal-icon">🔔</span>
-        <span id="sinal-alertas-txt" class="sinal-txt"></span>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-      <div id="sinal-inativos" class="sinal-item" style="display:none;" onclick="irParaInativos()">
-        <span class="sinal-icon">⚠</span>
-        <span id="sinal-inativos-txt" class="sinal-txt"></span>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-      </div>
-    </div>
+        <!-- Próximas Ações (base) -->
+        <div>
+          <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <span class="section-title">Próximas Ações</span>
+            <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
+              <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
+                <option value="all">Prioridade</option>
+                <option value="alta">Alta</option>
+                <option value="media">Média</option>
+                <option value="baixa">Baixa</option>
+              </select>
+              <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
+                <option value="all">Canal</option>
+                <option value="LinkedIn">LinkedIn</option>
+                <option value="email">E-mail</option>
+                <option value="headhunter">Headhunter</option>
+                <option value="indicacao">Indicação</option>
+                <option value="direto">Direto</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list"></div>
 
-    <!-- Próximas Ações (coluna unica) -->
-    <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span class="section-title">Próximas Ações</span>
-      <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
-        <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
-          <option value="all">Prioridade</option>
-          <option value="alta">Alta</option>
-          <option value="media">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
-        <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
-          <option value="all">Canal</option>
-          <option value="LinkedIn">LinkedIn</option>
-          <option value="email">E-mail</option>
-          <option value="headhunter">Headhunter</option>
-          <option value="indicacao">Indicação</option>
-          <option value="direto">Direto</option>
-        </select>
-        <select class="filter-select" id="hf-ordem" onchange="renderHomeAcoes()">
-          <option value="default">Ordenar</option>
-          <option value="data-asc">Data ↑</option>
-          <option value="data-desc">Data ↓</option>
-          <option value="pri">Prioridade</option>
-        </select>
+        </div>
+
+      </div><!-- /coluna direita -->
+    </div><!-- /home-grid -->
+  </div>
+</div>
+
+<!-- ═══ MODAL: DEDUPLICAÇÃO DE VAGAS ═══════════════════════════════════ -->
+<div id="modal-dedup" style="display:none;" class="modal-overlay">
+  <div class="modal" style="width:min(540px,94vw);">
+    <div style="padding:24px 28px 0;">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;" id="dedup-counter"></div>
+      <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px;">Vaga possivelmente duplicada</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Esta vaga parece similar a uma que você já tem no Pipeline.</div>
+    </div>
+    <div class="modal-body">
+      <!-- Vaga nova -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Nova (a importar)</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);" id="dedup-nova-titulo"></div>
+        <div style="font-size:12.5px;color:var(--text3);margin-top:3px;" id="dedup-nova-empresa"></div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:2px;" id="dedup-nova-local"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;" id="dedup-nova-badges"></div>
+      </div>
+      <!-- Vaga existente -->
+      <div style="background:var(--amber-bg);border:1px solid rgba(184,103,10,0.2);border-radius:var(--radius);padding:14px 16px;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Já no Pipeline</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);" id="dedup-exist-titulo"></div>
+        <div style="font-size:12.5px;color:var(--text3);margin-top:3px;" id="dedup-exist-empresa"></div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:2px;" id="dedup-exist-status"></div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list">
-      <!-- acoes dinamicas geradas por renderHomeAcoes() -->
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn btn-ghost" onclick="_dedupAdicionar()" style="color:var(--action);border-color:var(--action);">
+        Não — adicionar mesmo assim
+      </button>
+      <button class="btn btn-primary" onclick="_dedupIgnorar()">
+        Sim — é a mesma (ignorar)
+      </button>
     </div>
   </div>
 </div>
@@ -718,6 +802,64 @@ select option { background: var(--bg2); }
           </div>
         </div>
       </div>
+
+      <!-- ── VARREDURA AUTOMÁTICA ── -->
+      <div class="card" style="margin-top:24px;border-top:3px solid var(--gold);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:38px;height:38px;border-radius:var(--radius);background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">⚡</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--navy);">Varredura automática de vagas</div>
+            <div style="font-size:12.5px;color:var(--text3);">Adzuna · Jobicy — cron diário 07:00 BRT</div>
+          </div>
+          <div id="varredura-status-pill" style="margin-left:auto;font-size:12px;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:20px;">Carregando…</div>
+        </div>
+
+        <!-- Score mínimo por região -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:10px;">Score mínimo por região</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇧🇷 Brasil</span>
+              <input type="range" id="vsm-br" min="0" max="100" value="70" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-br-v').textContent=this.value">
+              <span id="vsm-br-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">70</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇪🇸 Espanha / 🇵🇹 Portugal</span>
+              <input type="range" id="vsm-espt" min="0" max="100" value="55" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-espt-v').textContent=this.value">
+              <span id="vsm-espt-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">55</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇩🇪 Alemanha</span>
+              <input type="range" id="vsm-de" min="0" max="100" value="50" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-de-v').textContent=this.value">
+              <span id="vsm-de-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">50</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🌐 Remoto</span>
+              <input type="range" id="vsm-remoto" min="0" max="100" value="60" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-remoto-v').textContent=this.value">
+              <span id="vsm-remoto-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">60</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:var(--text2);width:150px;flex-shrink:0;">🇺🇸 EUA</span>
+              <input type="range" id="vsm-us" min="0" max="100" value="65" step="5" style="flex:1;accent-color:var(--navy);" oninput="document.getElementById('vsm-us-v').textContent=this.value">
+              <span id="vsm-us-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">65</span>
+            </div>
+          </div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Vagas abaixo do limiar da região não entram no Pipeline</div>
+        </div>
+
+        <!-- Status última execução -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:4px;">Última varredura</label>
+          <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;">—</div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="salvarConfigVarredura()" style="font-size:13px;padding:8px 16px;">Salvar configuração</button>
+          <button class="btn btn-ghost" onclick="dispararVarreduraManual()" id="btn-varredura-manual" style="font-size:13px;padding:8px 16px;">▶ Varrer agora</button>
+        </div>
+        <div id="varredura-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -737,6 +879,7 @@ select option { background: var(--bg2); }
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
       </div>
       <button id="crm-arquivados-btn" onclick="toggleArquivados()" style="display:none;font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Mostrar/ocultar cards arquivados">0 arquivados</button>
+      <button id="btn-limpeza-lote" onclick="abrirLimpezaLote()" style="display:none;font-size:12px;color:#8B6914;background:#FFF9E6;border:1px solid #C9A84C;border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Arquivar leads antigos em lote">🗂 Limpeza em lote</button>
       <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:4px;">
         + Adicionar
       </button>
@@ -771,10 +914,38 @@ select option { background: var(--bg2); }
         <option value="az">Empresa A-Z</option>
       </select>
       <button class="btn-filter-limpar" onclick="limparFiltros()">Limpar filtros</button>
+      <button id="btn-importar-vagas" class="btn-filter-limpar" onclick="importarVagasLead()" style="background:var(--navy);color:#fff;border-color:var(--navy);">⬇ Importar vagas</button>
     </div>
 
     <!-- Vagas Kanban -->
     <div id="crm-vagas">
+      <!-- Painel Limpeza em Lote -->
+      <div id="limpeza-lote-painel" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:14px;font-weight:700;color:var(--navy);">🗂 Limpeza em Lote</span>
+          <span id="limpeza-count" style="font-size:12px;color:var(--text3);background:var(--bg3);border-radius:10px;padding:2px 10px;">0 encontrados</span>
+          <button onclick="abrirLimpezaLote()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;" title="Fechar">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+            Inativo há mais de
+            <input id="limpeza-dias" type="number" value="30" min="1" max="365" oninput="filtrarLimpezaLote()" style="width:58px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--font);">
+            dias
+          </label>
+          <span style="font-size:12px;color:var(--text3);margin-left:4px;">Estágios:</span>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="lead" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Lead</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="aplicado" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> CV Enviado</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="contato" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Em Contato</label>
+          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="entrevista" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Entrevista</label>
+        </div>
+        <div id="limpeza-lista" style="max-height:280px;overflow-y:auto;border:1px solid rgba(201,168,76,0.35);border-radius:8px;background:#fff;margin-bottom:12px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button onclick="toggleTodosLimpeza()" style="font-size:12px;background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:4px 14px;font-family:var(--font);color:var(--text2);">Selecionar todos</button>
+          <span id="limpeza-sel-count" style="font-size:12.5px;color:var(--text3);">Nenhum selecionado</span>
+          <button id="btn-arquivar-lote" onclick="arquivarSelecionadosLote()" disabled style="margin-left:auto;font-size:13px;font-weight:600;background:#CC3300;color:#fff;border:none;border-radius:8px;cursor:pointer;padding:7px 18px;font-family:var(--font);opacity:0.35;transition:opacity 0.15s;">Arquivar selecionados</button>
+        </div>
+        <div id="limpeza-msg-sucesso" style="display:none;margin-top:10px;padding:8px 14px;background:#E8F5E9;border-radius:6px;font-size:13px;color:#2E7D32;"></div>
+      </div>
       <div id="crm-inativo-banner" class="crm-filtro-banner" style="display:none;">
         <span id="crm-inativo-banner-txt">⚠ Mostrando apenas cards inativos (7+ dias sem atualização)</span>
         <button onclick="limparFiltroInativo()" style="margin-left:auto;background:none;border:1px solid #C09000;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;color:#5A4000;">✕ Limpar filtro</button>
@@ -1027,7 +1198,96 @@ select option { background: var(--bg2); }
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
       <button class="btn btn-ghost mv-btn" data-stages="lead" onclick="abrirAntiATSModal()">Analisar CV</button>
+      <button class="btn mv-btn" data-stages="lead,aplicado" onclick="candidatarDoModal()" style="background:#1A7A4A;color:#fff;">✉ Candidatar</button>
       <button class="btn btn-primary" onclick="saveVaga()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL REVISÃO VAGAS REJEITADAS
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-revisao" style="display:none;" onclick="if(event.target===this)fecharRevisao()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div style="padding:24px 28px 0;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);" id="modal-revisao-titulo"></div>
+        <button onclick="fecharRevisao()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;flex-shrink:0;padding:0;">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Estas vagas tiveram score abaixo do limiar configurado. Você pode adicioná-las individualmente.</div>
+    </div>
+    <div class="modal-body" style="padding:0 28px 8px;overflow-y:auto;max-height:50vh;">
+      <div id="modal-revisao-lista"></div>
+    </div>
+    <div style="padding:16px 28px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="fecharRevisao()" class="btn btn-ghost" style="flex:1;justify-content:center;">Descartar todas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL RESPONDER EMAIL AVULSO
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-email-responder" style="display:none;" onclick="if(event.target===this)fecharModalEmailResponder()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">↩ Responder Email</div>
+      <div id="mer-de" style="font-size:12px;color:var(--text3);margin-top:5px;"></div>
+      <div id="mer-assunto" style="font-size:13px;color:var(--text2);font-weight:600;margin-top:3px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label class="field-label">Email recebido</label>
+        <textarea id="mer-corpo" rows="4" placeholder="Conteúdo do email recebido…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">Sua resposta</label>
+          <button class="btn btn-ghost btn-sm" style="font-size:12px;gap:4px;" onclick="gerarRespostaEmailAvulso(this)">✨ Gerar com IA</button>
+        </div>
+        <textarea id="mer-resposta" rows="6" placeholder="Gere uma sugestão com IA ou escreva diretamente…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+    </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Cancelar</button>
+      <button class="btn btn-primary" id="mer-enviar-btn" onclick="enviarRespostaEmailAvulso(this)">Enviar pelo Outlook</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL CANDIDATURA
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-candidatura" style="display:none;" onclick="if(event.target===this)fecharModalCandidatura()">
+  <div class="modal" style="width:min(580px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">✉️ Enviar Candidatura</div>
+      <div id="mcand-empresa-cargo" style="font-size:12px;color:var(--text3);margin-top:4px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Para (email do recrutador)</label>
+        <input type="email" id="mcand-email" placeholder="recrutador@empresa.com">
+      </div>
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Assunto</label>
+        <input type="text" id="mcand-assunto">
+      </div>
+      <div>
+        <label class="field-label">Mensagem (carta de apresentação)</label>
+        <textarea id="mcand-carta" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">CV Otimizado (incluso no corpo)</label>
+          <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
+        </div>
+        <textarea id="mcand-cv" rows="5" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
+      </div>
+    </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalCandidatura()">Cancelar</button>
+      <button class="btn btn-primary" id="mcand-enviar-btn" onclick="enviarCandidaturaOutlook(this)">Enviar pelo Outlook</button>
     </div>
   </div>
 </div>
@@ -1036,165 +1296,182 @@ select option { background: var(--bg2); }
      MODAL CONTATOS
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
-  <div class="modal">
-    <div class="modal-title" id="modal-contato-title">Contato</div>
-    <div class="modal-body">
-      <!-- Identidade -->
-      <div class="form-row">
-        <label class="field-label">Nome</label>
-        <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
+  <div class="modal" style="width:min(600px,94vw);">
+
+    <!-- Header: avatar + nome + badges + abas -->
+    <div style="padding:18px 22px 0;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div id="mc-header-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--action));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:0.5px;">?</div>
+        <div style="flex:1;min-width:0;">
+          <div id="mc-header-nome" style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Novo Contato</div>
+          <div id="mc-header-badges" style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;"></div>
+        </div>
+        <button onclick="closeContatoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);padding:4px 2px;line-height:1;flex-shrink:0;">✕</button>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Cargo</label>
-          <input type="text" id="mc-cargo" placeholder="Ex: CEO">
-        </div>
-        <div>
-          <label class="field-label">Empresa</label>
-          <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
-        </div>
-      </div>
-      <!-- Contato -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Email</label>
-          <input type="email" id="mc-email" placeholder="email@empresa.com">
-        </div>
-        <div>
-          <label class="field-label">Telefone</label>
-          <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
-        </div>
-        <div>
-          <label class="field-label">LinkedIn</label>
-          <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
-        </div>
-      </div>
-      <!-- Classificação -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Temperatura</label>
-          <select id="mc-temp">
-            <option value="hot">🔥 Quente</option>
-            <option value="warm">🌤 Morno</option>
-            <option value="cold">❄️ Frio</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Plano</label>
-          <select id="mc-plano">
-            <option value="A">Plano A — Emprego</option>
-            <option value="B">Plano B — Consultoria</option>
-            <option value="C">Plano C — Senova</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Tipo</label>
-          <select id="mc-tipo">
-            <option value="Executivo">Executivo</option>
-            <option value="Headhunter">Headhunter</option>
-            <option value="Consultor">Consultor</option>
-            <option value="Investidor">Investidor</option>
-            <option value="Parceiro">Parceiro</option>
-            <option value="Outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <!-- Próxima ação -->
-      <div class="form-row">
-        <label class="field-label">Próxima ação</label>
-        <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
-      </div>
-      <!-- Notas -->
-      <div class="form-row">
-        <label class="field-label">Notas</label>
-        <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
-      </div>
-      <!-- Vinculado a vaga -->
-      <div class="form-row">
-        <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
-        <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
-      </div>
-      <!-- Timeline de interações -->
-      <div class="form-row" id="mc-timeline-section" style="margin-bottom:0;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <label class="field-label" style="margin:0;">Histórico de interações</label>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
-        </div>
-        <div id="mc-timeline-form" class="tl-form" style="display:none;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
-            <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
-              <option value="LinkedIn">💼 LinkedIn</option>
-              <option value="WhatsApp">📱 WhatsApp</option>
-              <option value="Email">📧 Email</option>
-              <option value="Reunião">🤝 Reunião</option>
-              <option value="Telefone">📞 Telefone</option>
-              <option value="Outro">💬 Outro</option>
-            </select>
-          </div>
-          <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
-          <div style="margin-top:10px;">
-            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
-            <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
-            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
-          </div>
-        </div>
-        <div id="mc-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:0;margin-bottom:-1px;">
+        <button id="mct-btn-dados" onclick="setCTTab('dados')" style="padding:8px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--navy);border-bottom:2px solid var(--navy);font-family:var(--font);transition:color 0.15s;">Dados</button>
+        <button id="mct-btn-comunicacao" onclick="setCTTab('comunicacao')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Comunicação</button>
+        <button id="mct-btn-historico" onclick="setCTTab('historico')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Histórico</button>
       </div>
     </div>
+
+    <div class="modal-body">
+
+      <!-- ABA: DADOS -->
+      <div id="mct-dados">
+        <div class="form-row">
+          <label class="field-label">Nome</label>
+          <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti" oninput="atualizarHeaderContato()">
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div>
+            <label class="field-label">Cargo</label>
+            <input type="text" id="mc-cargo" placeholder="Ex: CEO">
+          </div>
+          <div>
+            <label class="field-label">Empresa</label>
+            <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Email</label>
+            <input type="email" id="mc-email" placeholder="email@empresa.com">
+          </div>
+          <div>
+            <label class="field-label">Telefone</label>
+            <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
+          </div>
+          <div>
+            <label class="field-label">LinkedIn</label>
+            <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Temperatura</label>
+            <select id="mc-temp" onchange="atualizarHeaderContato()">
+              <option value="hot">🔥 Quente</option>
+              <option value="warm">🌤 Morno</option>
+              <option value="cold">❄️ Frio</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Plano</label>
+            <select id="mc-plano">
+              <option value="A">Plano A — Emprego</option>
+              <option value="B">Plano B — Consultoria</option>
+              <option value="C">Plano C — Senova</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Tipo</label>
+            <select id="mc-tipo" onchange="atualizarHeaderContato()">
+              <option value="Executivo">Executivo</option>
+              <option value="Headhunter">Headhunter</option>
+              <option value="Consultor">Consultor</option>
+              <option value="Investidor">Investidor</option>
+              <option value="Parceiro">Parceiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Próxima ação <span style="color:var(--red);">*</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook()">
+            <input type="date" id="mc-next-data" style="width:148px;flex-shrink:0;" onchange="atualizarBtnOutlook()">
+          </div>
+          <div id="mc-next-err" style="display:none;font-size:12px;color:var(--red);margin-top:4px;">Próxima ação é obrigatória</div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Notas</label>
+          <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:0;">
+          <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
+          <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
+        </div>
+      </div>
+
+      <!-- ABA: COMUNICAÇÃO -->
+      <div id="mct-comunicacao" style="display:none;">
+        <div id="mct-com-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para usar Comunicação.</div>
+        <div id="mct-com-content">
+          <div class="com-tabs">
+            <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
+            <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
+            <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
+          </div>
+          <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
+            <label class="field-label">Mensagem recebida</label>
+            <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
+              <select id="com-canal" style="height:30px;font-size:13px;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
+          <div id="com-output-wrap" style="display:none;">
+            <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
+            <textarea id="com-output" class="com-output-box" rows="4"></textarea>
+            <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
+            <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
+              <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: HISTÓRICO -->
+      <div id="mct-historico" style="display:none;">
+        <div id="mct-hist-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para registrar interações.</div>
+        <div id="mct-hist-content">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <label class="field-label" style="margin:0;">Histórico de interações</label>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
+          </div>
+          <div id="mc-timeline-form" class="tl-form" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
+              <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+                <option value="Reunião">🤝 Reunião</option>
+                <option value="Telefone">📞 Telefone</option>
+                <option value="Outro">💬 Outro</option>
+              </select>
+            </div>
+            <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
+            <div style="margin-top:10px;">
+              <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+              <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
+            </div>
+          </div>
+          <div id="mc-timeline-lista" style="max-height:220px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
-      <button class="btn btn-ghost" id="mc-com-btn" onclick="abrirModalComunicacao()" style="display:none;">✨ Comunicação</button>
+      <button class="btn btn-ghost" id="mc-outlook-btn" onclick="salvarEAgendarOutlook()" style="display:none;color:var(--action);border-color:var(--action);" title="Salva o contato e cria evento no Outlook Calendar">📅 Agendar no Outlook</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL COMUNICAÇÃO ══ -->
-<div class="modal-overlay" id="modal-comunicacao" style="display:none;" onclick="if(event.target===this)fecharModalComunicacao()">
-  <div class="modal" style="width:min(560px,94vw);">
-    <div class="modal-title">✨ Comunicação — <span id="mc-com-nome" style="font-weight:500;"></span></div>
-    <div class="modal-body">
-      <div class="com-tabs">
-        <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
-        <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
-        <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
-      </div>
-      <!-- Área de mensagem recebida (só no modo Responder) -->
-      <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
-        <label class="field-label">Mensagem recebida</label>
-        <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
-          <select id="com-canal" style="height:30px;font-size:13px;">
-            <option value="LinkedIn">💼 LinkedIn</option>
-            <option value="WhatsApp">📱 WhatsApp</option>
-            <option value="Email">📧 Email</option>
-          </select>
-        </div>
-      </div>
-      <!-- Botão gerar -->
-      <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
-      <!-- Saída -->
-      <div id="com-output-wrap" style="display:none;">
-        <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
-        <textarea id="com-output" class="com-output-box" rows="4"></textarea>
-        <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
-        <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
-          <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModalComunicacao()" style="margin-left:auto;">Fechar</button>
     </div>
   </div>
 </div>
@@ -1312,9 +1589,9 @@ function showPage(page) {
     const nav = document.getElementById('nav-'+p);
     if(nav) nav.classList.toggle('active', p===page);
   });
-  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display='flex'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); }
-  if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; }
+  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
+  if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; carregarStatusVarredura(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
 }
 
@@ -1419,7 +1696,7 @@ async function analyzeJob() {
 }
 
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
-let _atsAnalise='',_cartaLang='PT';
+let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
@@ -1597,43 +1874,41 @@ function _atsMostrarMsg(html,delay){
   const t=setTimeout(_atsRestaurarEmpty,delay);
   ra.firstElementChild?.addEventListener('click',()=>{clearTimeout(t);_atsRestaurarEmpty();},{once:true});
 }
-function candidatarVagaATS() {
-  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const vagaRef = idx>=0 ? vagas[idx] : null;
-  const empresa = vagaRef?.empresa || atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
-  const cargo   = vagaRef?.cargo   || atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()  || 'A definir';
-  const score    = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const keywords = _atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
-  const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
-  const hoje = dataAtualFormatada();
+async function candidatarVagaATS(){
+  if(!lastCV){
+    const vTxt=(document.getElementById('vaga-input')?.value||'').trim();
+    if(vTxt.length>=80) await analyzeJob();
+  }
+  const idx=atsOrigemVagaId!=null?vagas.findIndex(v=>v.id===atsOrigemVagaId):-1;
+  const vagaRef=idx>=0?vagas[idx]:null;
+  const empresa=vagaRef?.empresa||atsEmpresa||lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo=vagaRef?.cargo||atsCargo||lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score=_atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const keywords=_atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const notasAts=[score?'Match ATS: '+score+'/100':'',keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
+  const hoje=dataAtualFormatada();
+  const carta=document.getElementById('ats-carta-txt')?.value||'';
   if(idx>=0){
     vagas[idx].status='aplicado';
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
-    if(notasAts) vagas[idx].notas=notasAts;
+    if(notasAts)vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
-  } else {
-    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+  }else{
+    const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});
   }
   const savedIdx=idx>=0?idx:vagas.length-1;
   vagas[savedIdx].atsScore=score;
   vagas[savedIdx].atsKeywords=keywords;
   vagas[savedIdx].atsAnalise=_atsAnalise;
   vagas[savedIdx].atsCV=lastCV;
-  vagas[savedIdx].atsCarta=document.getElementById('ats-carta-txt')?.value||'';
-  const emailDest=atsEmailDest;
-  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
+  vagas[savedIdx].atsCarta=carta;
+  const emailDest=idx>=0?(vagas[idx].emailDest||atsEmailDest):atsEmailDest;
+  atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada — '+hoje; }
-  const _sofiaFrases=['Candidatura registrada! Estou torcendo por você, Marcos. 🌟','Feito! Você tem muito a oferecer. Boa sorte nessa. 💛','Candidatura enviada! Conte comigo para o que precisar. 🚀'];
-  const _frase=_sofiaFrases[Math.floor(Math.random()*_sofiaFrases.length)];
-  _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${_frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
-  if(emailDest){
-    const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
-    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
-    setTimeout(()=>{ window.location.href='mailto:'+emailDest+'?subject='+assunto+'&body='+corpo; },300);
-  }
+  if(bar){bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';});const lbl=document.getElementById('ats-decisao-label');if(lbl)lbl.textContent='✓ Candidatura registrada — '+hoje;}
+  abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx:savedIdx,cv:lastCV});
 }
 
 function declinarVagaATS() {
@@ -1917,6 +2192,7 @@ const DEFAULT_CONTATOS=[
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
 let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos';
+let _limpezaSelecionados=new Set();
 let colFilters={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
@@ -1967,10 +2243,15 @@ function formatTs(ts){
   const d=new Date(ts);
   return `${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()}`;
 }
-function isInativo(v){
-  if(!v.updatedAt||v.status==='negado'||v.status==='aceito') return false;
-  return Date.now()-v.updatedAt > _diasInativo*24*3600*1000;
+function nivelInativo(v){
+  if(!v.updatedAt||['negado','aceito','descartado'].includes(v.status)) return 0;
+  const dias=(Date.now()-v.updatedAt)/(24*3600*1000);
+  if(dias>=_diasInativo*3) return 3;
+  if(dias>=_diasInativo*2) return 2;
+  if(dias>=_diasInativo)   return 1;
+  return 0;
 }
+function isInativo(v){ return nivelInativo(v)>0; }
 
 function loadCRM(){
   try{
@@ -2001,6 +2282,330 @@ function loadCRM(){
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
 }
+// ── Varredura: carrega status e config ao abrir Perfil ──────────
+async function carregarStatusVarredura(){
+  try{
+    const [resStatus, resConfig] = await Promise.all([
+      fetch(WORKER_URL+'/api/varredura-status'),
+      fetch(WORKER_URL+'/api/config-varredura'),
+    ]);
+    const status = await resStatus.json();
+    const config = await resConfig.json();
+
+    // Preenche scores por região
+    const smr = config.score_minimo_por_regiao || {};
+    const DEFAULTS = { br:70, espt:55, de:50, remoto:60, us:65 };
+    Object.entries(DEFAULTS).forEach(([k,def])=>{
+      const v = smr[k] ?? def;
+      const sl = document.getElementById(`vsm-${k}`);
+      const sp = document.getElementById(`vsm-${k}-v`);
+      if(sl) sl.value = v;
+      if(sp) sp.textContent = v;
+    });
+
+    // Status pill
+    const pill = document.getElementById('varredura-status-pill');
+    if(pill){
+      if(status.nunca_executada){ pill.textContent='Nunca executada'; }
+      else if(status.status==='ok'){ pill.textContent='✅ OK'; pill.style.color='var(--green)'; }
+      else{ pill.textContent='⚠ Erro'; pill.style.color='#C0281E'; }
+    }
+
+    // Última execução info
+    const info = document.getElementById('varredura-ultima-info');
+    if(info && !status.nunca_executada){
+      const dt = status.ultima_execucao ? new Date(status.ultima_execucao).toLocaleString('pt-BR') : '—';
+      info.innerHTML = `${dt}<br><span style="color:var(--text3);">País: ${status.pais_varrido||'—'} · ${status.total_novas??0} novas</span>`;
+    }
+  }catch{}
+}
+
+async function salvarConfigVarredura(){
+  const DEFAULTS = { br:70, espt:55, de:50, remoto:60, us:65 };
+  const smr = {};
+  Object.keys(DEFAULTS).forEach(k=>{
+    smr[k] = parseInt(document.getElementById(`vsm-${k}`)?.value || DEFAULTS[k]);
+  });
+  const btn = document.querySelector('[onclick="salvarConfigVarredura()"]');
+  if(btn){btn.textContent='Salvando…';btn.disabled=true;}
+  try{
+    const resConfig = await fetch(WORKER_URL+'/api/config-varredura');
+    const config = await resConfig.json();
+    config.score_minimo_por_regiao = smr;
+    await fetch(WORKER_URL+'/api/config-varredura',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(config),
+    });
+    const ok = document.getElementById('varredura-save-ok');
+    if(ok){ ok.textContent='✅ Configuração salva'; ok.style.display='block'; setTimeout(()=>ok.style.display='none',3000); }
+  }catch{}
+  if(btn){btn.textContent='Salvar configuração';btn.disabled=false;}
+}
+
+async function dispararVarreduraManual(){
+  const btn = document.getElementById('btn-varredura-manual');
+  if(btn){btn.textContent='⏳ Varrendo…';btn.disabled=true;}
+  try{
+    await fetch(WORKER_URL+'/api/varredura-manual',{method:'POST'});
+    setTimeout(async()=>{
+      await carregarStatusVarredura();
+      if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
+    }, 8000);
+  }catch{
+    if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
+  }
+}
+
+async function importarVagasLead(){
+  const btn = document.getElementById('btn-importar-vagas');
+  if(btn){btn.textContent='⏳ Buscando…';btn.disabled=true;}
+  try{
+    const [resLead, resConfig] = await Promise.all([
+      fetch(WORKER_URL+'/api/vagas-lead'),
+      fetch(WORKER_URL+'/api/config-varredura'),
+    ]);
+    const data   = await resLead.json();
+    const config = await resConfig.json();
+    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)));
+
+    if(lead.length===0){
+      if(btn){btn.textContent='✅ Sem novidades';btn.disabled=false;}
+      setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
+      return;
+    }
+
+    // Analisa em paralelo com progresso
+    if(btn) btn.textContent=`⏳ Analisando 0/${lead.length}…`;
+    let analisadas=0;
+    const resultados = await Promise.all(lead.map(async v=>{
+      try{
+        const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||''}),
+        });
+        const analise = await res.json();
+        analisadas++;
+        if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
+        fetch(WORKER_URL+'/api/vagas-lead/score',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,salario_compativel:analise.salario_compativel}),
+        }).catch(()=>{});
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], salario_compativel:analise.salario_compativel??null};
+      }catch{
+        analisadas++;
+        return {...v, score:null};
+      }
+    }));
+
+    // Separa aprovadas e rejeitadas usando limiar por região
+    const agora=Date.now();
+    let novas=0;
+    const rejeitadas=[];
+    const dupsPendentes=[];
+
+    resultados.forEach(v=>{
+      const limiar = _scoreMinParaVaga(v, config);
+      if(typeof v.score !== 'number' || v.score < limiar){
+        if(typeof v.score === 'number') rejeitadas.push({...v, _limiar:limiar});
+        return;
+      }
+      // Checa deduplicação contra cards já no Pipeline
+      const similar = _vagaSimilarExistente(v);
+      if(similar){
+        dupsPendentes.push({nova:v, existente:similar, agora});
+        return;
+      }
+      vagas.push(_montarCardVarredura(v, agora));
+      novas++;
+    });
+
+    if(novas>0){
+      saveVagas();
+      crmCurrentTab='vagas';
+      showPage('crm');
+      setTimeout(()=>{
+        const leadCol = document.querySelector('#kanban-vagas .kanban-col-drop');
+        if(leadCol) leadCol.scrollIntoView({behavior:'smooth', block:'nearest'});
+        showToast(`✅ ${novas} vaga${novas>1?'s':''} importada${novas>1?'s':''} — veja na coluna Lead`);
+      }, 150);
+    }
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Nenhuma acima do limiar';btn.disabled=false;}
+    setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},4000);
+
+    if(rejeitadas.length>0) mostrarRevisaoRejeitadas(rejeitadas);
+    if(dupsPendentes.length>0) _iniciarFilaDeDups(dupsPendentes);
+  }catch(e){
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
+  }
+}
+
+// ── Deduplicação ────────────────────────────────────────────────────
+function _normStr(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+function _tokenSim(a, b){
+  const ta=new Set(_normStr(a).split(' ').filter(t=>t.length>2));
+  const tb=new Set(_normStr(b).split(' ').filter(t=>t.length>2));
+  if(!ta.size||!tb.size) return 0;
+  let c=0; for(const t of ta) if(tb.has(t)) c++;
+  return c/Math.min(ta.size,tb.size);
+}
+function _vagaSimilarExistente(nova){
+  return vagas.find(v=>{
+    const mesmaEmpresa = _normStr(nova.empresa)===_normStr(v.empresa) || _tokenSim(nova.empresa,v.empresa)>=0.7;
+    if(!mesmaEmpresa) return false;
+    return _tokenSim(nova.titulo||nova.cargo, v.cargo||v.titulo)>=0.6;
+  }) || null;
+}
+
+let _dedupFila=[];
+let _dedupIdx=0;
+function _iniciarFilaDeDups(lista){
+  _dedupFila=lista; _dedupIdx=0;
+  _mostrarProximoDup();
+}
+function _mostrarProximoDup(){
+  if(_dedupIdx>=_dedupFila.length){ document.getElementById('modal-dedup').style.display='none'; return; }
+  const {nova, existente}=_dedupFila[_dedupIdx];
+  document.getElementById('dedup-counter').textContent=`Duplicata ${_dedupIdx+1} de ${_dedupFila.length}`;
+  document.getElementById('dedup-nova-titulo').textContent=nova.titulo||'—';
+  document.getElementById('dedup-nova-empresa').textContent=nova.empresa||'—';
+  document.getElementById('dedup-nova-local').textContent=nova.local||nova.fonte||'';
+  const scoreCor=nova.score>=75?'#1A7A4A':nova.score>=55?'#B8670A':'#C0281E';
+  document.getElementById('dedup-nova-badges').innerHTML=
+    `<span style="font-size:11px;font-weight:700;color:${scoreCor};background:${scoreCor}18;padding:2px 8px;border-radius:8px;">${nova.score}/100</span>`+
+    (nova.fonte?`<span style="font-size:11px;color:var(--text3);background:var(--bg4);padding:2px 8px;border-radius:8px;">${nova.fonte}</span>`:'');
+  document.getElementById('dedup-exist-titulo').textContent=existente.cargo||existente.titulo||'—';
+  document.getElementById('dedup-exist-empresa').textContent=existente.empresa||'—';
+  const statusMap={lead:'Lead',candidatado:'Candidatado',contato:'Em contato',entrevista:'Entrevista',proposta:'Proposta'};
+  document.getElementById('dedup-exist-status').textContent='Status: '+(statusMap[existente.status]||existente.status||'—');
+  document.getElementById('modal-dedup').style.display='flex';
+}
+function _dedupIgnorar(){
+  // Usuário diz que é a mesma: pular
+  _dedupIdx++;
+  _mostrarProximoDup();
+}
+function _dedupAdicionar(){
+  // Usuário diz que não é a mesma: adicionar ao Pipeline
+  const {nova, agora}=_dedupFila[_dedupIdx];
+  vagas.push(_montarCardVarredura(nova, agora||Date.now()));
+  saveVagas();
+  _dedupIdx++;
+  _mostrarProximoDup();
+  showToast('Vaga adicionada ao Pipeline.');
+}
+
+function _scoreMinParaVaga(v, config){
+  const smr = config.score_minimo_por_regiao || {};
+  const url   = (v.url   || '').toLowerCase();
+  const local = (v.local || '').toLowerCase();
+  const fonte = (v.fonte || '').toLowerCase();
+  // URL do Adzuna revela o país com precisão
+  if(url.includes('adzuna.com.br'))  return smr.br    ?? 70;
+  if(url.includes('adzuna.es') || url.includes('adzuna.pt')) return smr.espt ?? 55;
+  if(url.includes('adzuna.de'))      return smr.de    ?? 50;
+  if(url.includes('adzuna.com') && !url.includes('.br') && !url.includes('.es') && !url.includes('.pt') && !url.includes('.de')) return smr.us ?? 65;
+  // Jobicy e RSS: campo local vem do label da config (Brasil, Espanha…)
+  if(local.includes('brasil') || local.includes('brazil')) return smr.br    ?? 70;
+  if(local.includes('espan')  || local.includes('spain') || local.includes('portug')) return smr.espt ?? 55;
+  if(local.includes('alemanha') || local.includes('germany') || local.includes('deutsch')) return smr.de ?? 50;
+  if(local.includes('remoto') || local.includes('remote') || fonte==='jobicy') return smr.remoto ?? 60;
+  if(local.includes('eua') || local.includes('usa') || local.includes('estados')) return smr.us ?? 65;
+  return smr.br ?? 70;
+}
+
+function _montarCardVarredura(v, agora){
+  return {
+    id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
+    canal:'Varredura IA', prioridade:'media', status:'lead', salario:'',
+    proxima:'Avaliar candidatura', notas:v.descricao||'',
+    data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
+    createdAt:agora, updatedAt:agora,
+    timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
+    origemUrl:v.url||'',
+    score:v.score, classificacao:v.classificacao, resumo:v.resumo,
+    pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
+  };
+}
+
+// ── Widget "Vagas para revisar" na Home ─────────────────────────
+const _REVISAO_KEY = 'senova_revisao_pendente';
+
+function mostrarRevisaoRejeitadas(lista){
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+  showToast(`${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar — revise na Home`);
+}
+
+function renderWidgetRevisao(){
+  const widget = document.getElementById('home-revisao-widget');
+  if(!widget) return;
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  if(lista.length === 0){ widget.style.display='none'; return; }
+  widget.style.display='block';
+  const cor=n=>n>=75?'#1A7A4A':n>=55?'#B8670A':'#C0281E';
+  const bg=n=>n>=75?'#EAF7EF':n>=55?'#FFF8EC':'#FEF0EF';
+  document.getElementById('revisao-widget-count').textContent =
+    `${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar configurado`;
+  document.getElementById('home-revisao-lista').innerHTML = lista.map((v,i)=>`
+    <div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.titulo||'—'}</div>
+        <div style="font-size:11.5px;color:var(--text3);">${v.empresa||'—'} · ${v.local||v.fonte||''}</div>
+      </div>
+      <span style="font-size:11.5px;font-weight:700;color:${cor(v.score)};background:${bg(v.score)};padding:2px 9px;border-radius:10px;white-space:nowrap;">${v.score}/100${v._limiar?` · limiar ${v._limiar}`:''}</span>
+      <button onclick="adicionarVagaRejeitada(${i})" id="rev-add-${i}"
+        style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Adicionar</button>
+      <button onclick="descartarVagaRejeitada(${i})"
+        style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
+    </div>`).join('');
+}
+
+function adicionarVagaRejeitada(idx){
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  const v = lista[idx];
+  if(!v) return;
+  const agora = Date.now();
+  vagas.push(_montarCardVarredura(v, agora));
+  saveVagas();
+  lista.splice(idx, 1);
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+  showToast('✅ Vaga adicionada ao Pipeline');
+}
+
+function descartarVagaRejeitada(idx){
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  lista.splice(idx, 1);
+  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  renderWidgetRevisao();
+}
+
+function descartarTodasRejeitadas(){
+  try{ localStorage.removeItem(_REVISAO_KEY); }catch{}
+  renderWidgetRevisao();
+}
+
+function showToast(msg, duration=4000){
+  let t=document.getElementById('app-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='app-toast';
+    t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;font-size:13.5px;font-weight:600;padding:10px 22px;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9999;opacity:0;transition:opacity 0.22s,transform 0.22s;pointer-events:none;white-space:nowrap;font-family:var(--font);';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._hide);
+  t._hide=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; },duration);
+}
+
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
@@ -2026,6 +2631,11 @@ let _crmFiltroInativo=false;
 let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
+let _sinaisMercado=[];
+let _emailsAvulsos=[];
+let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
+let _emailAtual=null;
+let _emailsCarregados=false;
 let _diasInativo=Math.max(3,Math.min(30,parseInt(localStorage.getItem('senova_dias_inativo')||'7')));
 
 function dropVaga(newStatus, event) {
@@ -2118,13 +2728,129 @@ function toggleArquivados(){
   renderCRM();
 }
 
+function abrirLimpezaLote(){
+  const painel=document.getElementById('limpeza-lote-painel');
+  if(!painel) return;
+  const isOpen=painel.style.display!=='none';
+  if(isOpen){ painel.style.display='none'; return; }
+  painel.style.display='block';
+  _limpezaSelecionados.clear();
+  const diasInput=document.getElementById('limpeza-dias');
+  if(diasInput) diasInput.value='30';
+  document.querySelectorAll('.limpeza-stage-cb').forEach(cb=>{ cb.checked=(cb.value==='lead'||cb.value==='aplicado'); });
+  const msg=document.getElementById('limpeza-msg-sucesso');
+  if(msg) msg.style.display='none';
+  filtrarLimpezaLote();
+}
+
+function filtrarLimpezaLote(){
+  const dias=parseInt(document.getElementById('limpeza-dias')?.value||'30');
+  const limiar=dias*24*3600*1000;
+  const agora=Date.now();
+  const stages=Array.from(document.querySelectorAll('.limpeza-stage-cb:checked')).map(el=>el.value);
+  const ARQUIVADOS=['aceito','negado','descartado'];
+  const lista=vagas.filter(v=>{
+    if(ARQUIVADOS.includes(v.status)) return false;
+    if(stages.length>0&&!stages.includes(v.status)) return false;
+    return !v.updatedAt||(agora-v.updatedAt)>=limiar;
+  });
+  const listaIds=new Set(lista.map(v=>v.id));
+  for(const id of [..._limpezaSelecionados]){ if(!listaIds.has(id)) _limpezaSelecionados.delete(id); }
+  renderLimpezaLista(lista);
+}
+
+const _LIMPEZA_STATUS_LABEL={lead:'Lead',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta'};
+
+function renderLimpezaLista(lista){
+  const container=document.getElementById('limpeza-lista');
+  const countEl=document.getElementById('limpeza-count');
+  if(!container) return;
+  if(countEl) countEl.textContent=`${lista.length} encontrado${lista.length!==1?'s':''}`;
+  if(lista.length===0){
+    container.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px;">Nenhum card encontrado com esses critérios.</div>';
+    atualizarContadorLimpeza(); return;
+  }
+  container.innerHTML=lista.map(v=>{
+    const ago=v.updatedAt?Math.floor((Date.now()-v.updatedAt)/(24*3600*1000)):'?';
+    const sel=_limpezaSelecionados.has(v.id);
+    const stLabel=_LIMPEZA_STATUS_LABEL[v.status]||v.status;
+    const agoColor=typeof ago==='number'&&ago>60?'#CC0000':typeof ago==='number'&&ago>30?'#C09000':'var(--text3)';
+    return `<div class="limpeza-item${sel?' sel':''}" data-lid="${v.id}" onclick="toggleItemLimpeza(${v.id},this)">
+      <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleItemLimpeza(${v.id},this.parentElement);" style="width:16px;height:16px;accent-color:var(--navy);cursor:pointer;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.empresa}</div>
+        <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.cargo||'Cargo não definido'}</div>
+      </div>
+      <span style="font-size:11.5px;background:var(--bg3);color:var(--text3);border-radius:10px;padding:2px 8px;white-space:nowrap;">${stLabel}</span>
+      <span style="font-size:11.5px;color:${agoColor};white-space:nowrap;min-width:28px;text-align:right;">${ago}d</span>
+    </div>`;
+  }).join('');
+  atualizarContadorLimpeza();
+}
+
+function toggleItemLimpeza(id,el){
+  const cb=el.querySelector('input[type=checkbox]');
+  if(_limpezaSelecionados.has(id)){ _limpezaSelecionados.delete(id); if(cb)cb.checked=false; el.classList.remove('sel'); }
+  else{ _limpezaSelecionados.add(id); if(cb)cb.checked=true; el.classList.add('sel'); }
+  atualizarContadorLimpeza();
+}
+
+function toggleTodosLimpeza(){
+  const items=document.querySelectorAll('#limpeza-lista .limpeza-item');
+  const ids=[...items].map(el=>Number(el.dataset.lid));
+  const todosMarcados=ids.length>0&&ids.every(id=>_limpezaSelecionados.has(id));
+  ids.forEach(id=>todosMarcados?_limpezaSelecionados.delete(id):_limpezaSelecionados.add(id));
+  items.forEach(el=>{
+    const id=Number(el.dataset.lid);
+    const cb=el.querySelector('input[type=checkbox]');
+    const sel=_limpezaSelecionados.has(id);
+    if(cb) cb.checked=sel;
+    sel?el.classList.add('sel'):el.classList.remove('sel');
+  });
+  atualizarContadorLimpeza();
+}
+
+function atualizarContadorLimpeza(){
+  const el=document.getElementById('limpeza-sel-count');
+  const btn=document.getElementById('btn-arquivar-lote');
+  const n=_limpezaSelecionados.size;
+  if(el) el.textContent=n===0?'Nenhum selecionado':`${n} selecionado${n!==1?'s':''}`;
+  if(btn){ btn.disabled=n===0; btn.style.opacity=n===0?'0.35':'1'; btn.style.cursor=n===0?'default':'pointer'; }
+}
+
+function arquivarSelecionadosLote(){
+  const n=_limpezaSelecionados.size;
+  if(n===0) return;
+  if(!confirm(`Arquivar ${n} vaga${n!==1?'s':''} como descartadas?\n\nVocê pode ver os arquivados a qualquer momento pelo botão "X arquivados".`)) return;
+  const ts=Date.now();
+  vagas.forEach(v=>{
+    if(_limpezaSelecionados.has(v.id)){
+      v.status='descartado'; v.updatedAt=ts;
+      if(!v.timeline) v.timeline=[];
+      v.timeline.push({ts,texto:`Arquivado via limpeza em lote`});
+    }
+  });
+  saveVagas();
+  _limpezaSelecionados.clear();
+  const msg=document.getElementById('limpeza-msg-sucesso');
+  if(msg){ msg.textContent=`${n} vaga${n!==1?'s':''} arquivada${n!==1?'s':''} com sucesso.`; msg.style.display='block'; }
+  setTimeout(()=>{
+    const painel=document.getElementById('limpeza-lote-painel');
+    if(painel) painel.style.display='none';
+  },2000);
+}
+
 function setCrmTab(tab,btn){
   crmCurrentTab=tab;
   document.querySelectorAll('.topbar .lang-toggle .lang-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
+  document.getElementById('crm-filter-bar').style.display=tab==='vagas'?'flex':'none';
   document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
+  const btnLimpeza=document.getElementById('btn-limpeza-lote');
+  if(btnLimpeza) btnLimpeza.style.display=tab==='vagas'?'inline-block':'none';
+  if(tab!=='vagas'){ const painel=document.getElementById('limpeza-lote-painel'); if(painel) painel.style.display='none'; }
   renderCRM();
 }
 
@@ -2144,7 +2870,7 @@ function renderCRM(){
   if(bannerInativo) bannerInativo.style.display = _crmFiltroInativo ? 'flex' : 'none';
   const bannerTxt = document.getElementById('crm-inativo-banner-txt');
   if(bannerTxt) bannerTxt.textContent = `⚠ Mostrando apenas cards inativos (${_diasInativo}+ dias sem atualização)`;
-  const colsArq=['aceito','negado'];
+  const colsArq=['aceito','negado','descartado'];
   const nArq=vagas.filter(v=>colsArq.includes(v.status)).length;
   const btnArq=document.getElementById('crm-arquivados-btn');
   if(btnArq){ btnArq.style.display=nArq>0?'inline-block':'none'; btnArq.textContent=`${nArq} arquivado${nArq===1?'':'s'}`; btnArq.style.color=_mostrarArquivados?'var(--navy)':'var(--text3)'; btnArq.style.borderColor=_mostrarArquivados?'var(--navy)':'var(--border)'; }
@@ -2181,8 +2907,9 @@ function renderCRM(){
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
       ${cards.map(c=>{
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '[email] Ver email' : '[link] Ver vaga') : '';
-        const inativo = isInativo(c);
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${inativo?'#FF6600':corPri[c.prioridade]||'#ccc'}${inativo?';box-shadow:0 0 0 1px #FF660022':''}">
+        const nv=nivelInativo(c);
+        const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
+        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal(${c.id})" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
             <div class="kcard-name">${c.empresa}</div>
             ${(c.createdAt||c.updatedAt)?`<div class="kcard-dates"><span class="kcard-created">📅 ${formatTs(c.createdAt||c.updatedAt)}</span>${(c.updatedAt&&c.createdAt&&Math.floor(c.updatedAt/86400000)!==Math.floor(c.createdAt/86400000))?`<span class="kcard-updated">· ↻ ${formatTs(c.updatedAt)}</span>`:''}</div>`:''}
@@ -2190,11 +2917,14 @@ function renderCRM(){
           <div class="kcard-role">${c.cargo}</div>
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
+            ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
-            ${inativo?`<span class="badge badge-inativo">⚠ ${_diasInativo}d</span>`:''}
+            ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
+            ${c.tags?.includes('Revisar')?'<span class="badge-revisar">⚠ Revisar</span>':''}
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';const cl={'candidatar':'Candidatar','analisar':'Analisar','recusar':'Recusar'}[c.classificacao]||c.classificacao||'';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">⚡ ${sc}/100</span>${cl?`<span style="font-size:11px;color:${cor};font-weight:600;">${cl}</span>`:''}</div>`;})():''}
         </div>`;
       }).join('')}
     </div>`;
@@ -2207,7 +2937,7 @@ function renderCRM(){
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
   let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
   if(contatoTipoFilter!=='todos') filtered=filtered.filter(c=>(c.tipo||'Executivo')===contatoTipoFilter);
-  if(_ctBusca && _ctBusca.length>=3) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
+  if(_ctBusca && _ctBusca.length>=2) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
@@ -2221,6 +2951,15 @@ function renderCRM(){
     const lastCanal=(c.timeline||[]).find(e=>e.canal)?.canal;
     const canalIcon=lastCanal?(CANAL_ICON_MAP[lastCanal]||'💬'):null;
     const diasTxt=dias===null?'':dias===0?'hoje':dias===1?'ontem':`${dias}d atrás`;
+    const today=new Date(); today.setHours(0,0,0,0);
+    const nextDataMs=c.nextData?new Date(c.nextData).setHours(0,0,0,0):null;
+    let urgBadge='';
+    if(nextDataMs!==null){
+      const diffDays=Math.round((nextDataMs-today.getTime())/86400000);
+      if(diffDays<0) urgBadge='<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⚠ Atrasado</span>';
+      else if(diffDays<=3) urgBadge='<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⏰ Urgente</span>';
+    }
+    const nextDataFmt=c.nextData?c.nextData.split('-').reverse().join('/'):'';
     return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
       <div style="flex:1;min-width:0;">
@@ -2231,7 +2970,8 @@ function renderCRM(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
         ${c.tipo&&c.tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${c.tipo}</span>`:''}
-        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
+        ${urgBadge}
+        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}${nextDataFmt?' <span style="color:var(--text3);font-size:11px;">'+nextDataFmt+'</span>':''}</div>`:''}
       </div>
     </div>`;
   }).join(''):'<div style="padding:20px;color:var(--text3);font-size:13.5px;text-align:center;">Nenhum contato encontrado.</div>';
@@ -2339,6 +3079,22 @@ function atualizarBotoes(){
   });
 }
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
+function candidatarDoModal(){
+  const id=editingVagaId;
+  const v=vagas.find(x=>x.id===id);
+  if(!v) return;
+  if(!(v.atsCV||lastCV)){
+    // sem CV salvo — redirecionar para Análise CV (lê campos do modal aberto)
+    abrirAntiATSModal();
+    return;
+  }
+  // tem CV — salvar modal, abrir modal-candidatura direto
+  saveVaga(); // fecha o modal Pipeline internamente
+  const vagaIdx=vagas.findIndex(x=>x.id===id);
+  if(vagaIdx<0) return;
+  const saved=vagas[vagaIdx];
+  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||''});
+}
 function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
 function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
@@ -2359,6 +3115,7 @@ function saveVaga(){
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
+    data:existing?.data||'',
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
@@ -2369,6 +3126,12 @@ function saveVaga(){
     atsAnalise:existing?.atsAnalise||'',
     atsCV:existing?.atsCV||'',
     atsCarta:existing?.atsCarta||'',
+    tags:existing?.tags||[],
+    score:existing?.score,
+    classificacao:existing?.classificacao,
+    resumo:existing?.resumo,
+    fonte:existing?.fonte,
+    pontos_fortes:existing?.pontos_fortes||[],
     timeline:isNew?[{ts:now,texto:'Card criado'}]:(existing?.timeline||[{ts:createdAt,texto:'Card criado'}]),
     createdAt,
     updatedAt:now
@@ -2439,16 +3202,12 @@ function renderTimelineLista(timeline){
 function openContatoModal(id){
   editingContatoId=id;
   const isNew=id==='new';
-  document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
-  document.getElementById('mc-com-btn').style.display=isNew?'none':'inline-flex';
-  // Populate vaga dropdown
   const vagaSel=document.getElementById('mc-vaga-id');
   if(vagaSel){
     const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
     vagaSel.innerHTML='<option value="">— Nenhuma —</option>'+ativas.map(v=>`<option value="${v.id}">${v.empresa}${v.cargo?' — '+v.cargo:''}</option>`).join('');
   }
-  const tlSection=document.getElementById('mc-timeline-section');
   const tlForm=document.getElementById('mc-timeline-form');
   const tlLista=document.getElementById('mc-timeline-lista');
   if(!isNew){
@@ -2463,25 +3222,78 @@ function openContatoModal(id){
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
+    document.getElementById('mc-next-data').value=c.nextData||'';
     document.getElementById('mc-notas').value=c.notas||'';
     if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
-    if(tlSection) tlSection.style.display='';
     if(tlForm) tlForm.style.display='none';
     renderTimelineListaCt(c.timeline||[]);
   } else {
-    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
-    if(tlSection) tlSection.style.display='none';
     if(tlLista) tlLista.innerHTML='';
   }
+  setCTTab('dados');
+  atualizarBtnOutlook();
+  atualizarHeaderContato();
   document.getElementById('modal-contato').style.display='flex';
 }
 function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
-function saveContato(){
-  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+
+let _ctTab='dados';
+function setCTTab(tab){
+  _ctTab=tab;
+  const isNew=editingContatoId==='new';
+  // Reset comunicação ao entrar na aba
+  if(tab==='comunicacao'){
+    const ow=document.getElementById('com-output-wrap'); if(ow) ow.style.display='none';
+    const rs=document.getElementById('com-resumo'); if(rs) rs.style.display='none';
+    const cc=document.getElementById('com-char-count'); if(cc) cc.style.display='none';
+    const rc=document.getElementById('com-recebida'); if(rc) rc.value='';
+    const op=document.getElementById('com-output'); if(op) op.value='';
+    setComunicacaoMode('linkedin');
+    const nm=document.getElementById('mct-com-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-com-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  if(tab==='historico'){
+    const nm=document.getElementById('mct-hist-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-hist-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  ['dados','comunicacao','historico'].forEach(t=>{
+    const panel=document.getElementById('mct-'+t); if(panel) panel.style.display=t===tab?'block':'none';
+    const btn=document.getElementById('mct-btn-'+t);
+    if(btn){ btn.style.color=t===tab?'var(--navy)':'var(--text3)'; btn.style.fontWeight=t===tab?'700':'500'; btn.style.borderBottom=t===tab?'2px solid var(--navy)':'2px solid transparent'; }
+  });
+}
+function atualizarHeaderContato(){
+  const nome=(document.getElementById('mc-nome')?.value||'').trim();
+  const tipo=document.getElementById('mc-tipo')?.value||'Executivo';
+  const temp=document.getElementById('mc-temp')?.value||'warm';
+  const av=document.getElementById('mc-header-avatar');
+  if(av){ const ini=nome?nome.split(' ').filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,2).join(''):'?'; av.textContent=ini; }
+  const hn=document.getElementById('mc-header-nome'); if(hn) hn.textContent=nome||'Novo Contato';
+  const hb=document.getElementById('mc-header-badges');
+  if(hb){
+    const tB={hot:['🔥 Quente','#FFF3E0','#E65100'],warm:['🌤 Morno','#FFF8EC','#B8670A'],cold:['❄️ Frio','#EFF6FF','#1D4ED8']}[temp]||['','var(--bg3)','var(--text3)'];
+    const tipoBadge=tipo&&tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tipo}</span>`:'';
+    const tempBadge=tB[0]?`<span style="background:${tB[1]};color:${tB[2]};font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tB[0]}</span>`:'';
+    hb.innerHTML=tipoBadge+tempBadge;
+  }
+}
+
+function saveContato(silent=false){
+  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return null;
+  const next=document.getElementById('mc-next').value.trim();
+  const errEl=document.getElementById('mc-next-err');
+  if(!next){
+    setCTTab('dados');
+    if(errEl) errEl.style.display='block';
+    document.getElementById('mc-next')?.focus();
+    return null;
+  }
+  if(errEl) errEl.style.display='none';
   const existing=editingContatoId==='new'?null:contatos.find(c=>c.id===editingContatoId);
   const now=Date.now();
   const obj={
@@ -2495,7 +3307,8 @@ function saveContato(){
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
     tipo:document.getElementById('mc-tipo').value,
-    next:document.getElementById('mc-next').value.trim(),
+    next,
+    nextData:document.getElementById('mc-next-data')?.value||'',
     notas:document.getElementById('mc-notas').value.trim(),
     vagaId:document.getElementById('mc-vaga-id')?.value||null,
     lastContact:now,
@@ -2503,13 +3316,48 @@ function saveContato(){
     timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
   };
   if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
-  saveContatos(); renderCRM(); closeContatoModal();
+  saveContatos(); renderCRM();
+  if(!silent) closeContatoModal();
+  return obj;
 }
 function deleteContato(){
   if(!editingContatoId||editingContatoId==='new')return;
   if(!confirm('Remover este contato?'))return;
   contatos=contatos.filter(c=>c.id!==editingContatoId);
   saveContatos(); renderCRM(); closeContatoModal();
+}
+function atualizarBtnOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim();
+  const data=document.getElementById('mc-next-data')?.value||'';
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn) btn.style.display=(next&&data)?'inline-flex':'none';
+}
+async function salvarEAgendarOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim(); if(!next) return;
+  const data=document.getElementById('mc-next-data')?.value||''; if(!data) return;
+  const nome=(document.getElementById('mc-nome')?.value||'').trim(); if(!nome) return;
+  const obj=saveContato(true); if(!obj) return;
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn){btn.innerHTML='Agendando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:`Senova: ${next} — ${nome}`,data,duracao:30})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(btn){btn.innerHTML='✓ Agendado!';btn.style.color='var(--green)';btn.disabled=true;}
+      setTimeout(()=>closeContatoModal(),1200);
+    } else if(res.status===401&&json.reauth){
+      if(btn){btn.innerHTML='🔑 Conectar Outlook';btn.style.color='var(--action)';btn.disabled=false;}
+      if(confirm('Outlook não conectado. Conectar agora?')) window.open(json.url_auth,'_blank','noopener,noreferrer');
+    } else {
+      if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+    }
+  } catch{
+    if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+  }
 }
 // Timeline de interações do contato
 function abrirFormTimelineCt(){
@@ -2574,20 +3422,10 @@ function limparBuscaContato(){
   const clr=document.getElementById('ct-busca-clear'); if(clr) clr.style.display='none';
   renderCRM();
 }
-// ── MODAL COMUNICAÇÃO ──
+// ── COMUNICAÇÃO INLINE (abas do modal-contato) ──
 let _comunicacaoMode='linkedin';
-function abrirModalComunicacao(){
-  const c=editingContatoId&&editingContatoId!=='new'?contatos.find(x=>x.id===editingContatoId):null;
-  if(!c){alert('Salve o contato antes de usar Comunicação.');return;}
-  document.getElementById('mc-com-nome').textContent=c.nome;
-  document.getElementById('com-output-wrap').style.display='none';
-  document.getElementById('com-resumo').style.display='none';
-  document.getElementById('com-recebida').value='';
-  document.getElementById('com-output').value='';
-  setComunicacaoMode('linkedin');
-  document.getElementById('modal-comunicacao').style.display='flex';
-}
-function fecharModalComunicacao(){ document.getElementById('modal-comunicacao').style.display='none'; }
+function abrirModalComunicacao(){ setCTTab('comunicacao'); }
+function fecharModalComunicacao(){ setCTTab('dados'); }
 function setComunicacaoMode(mode){
   _comunicacaoMode=mode;
   ['linkedin','responder','followup'].forEach(m=>{
@@ -2665,8 +3503,7 @@ async function registrarInteracaoCom(){
   contatos[idx].lastContact=now;
   saveContatos(); renderCRM();
   renderTimelineListaCt(contatos[idx].timeline);
-  const tlSection=document.getElementById('mc-timeline-section'); if(tlSection) tlSection.style.display='';
-  fecharModalComunicacao();
+  setCTTab('historico');
 }
 
 // ═══════════════════════════════════════════════
@@ -2902,42 +3739,243 @@ async function checkOutlookStatus(){
     const res=await fetch(WORKER_URL+'/health');
     const data=await res.json();
     const tog=document.getElementById('outlook-toggle');
-    if(!tog) return false;
-    if(data.outlook==='conectado'){ tog.classList.add('on'); return true; }
-    else { tog.classList.remove('on'); return false; }
-  } catch{ return false; }
+    if(data.outlook==='conectado'){
+      _outlookStatus='conectado';
+      if(tog) tog.classList.add('on');
+      return true;
+    } else {
+      _outlookStatus='desconectado';
+      if(tog) tog.classList.remove('on');
+      return false;
+    }
+  } catch{
+    _outlookStatus='desconectado';
+    return false;
+  }
 }
 
 function atualizarSinais(){
-  // Sinal 1 — emails classificados
+  // Sinal 1 — emails: sempre visível, estado varia com conexão Outlook
   const s1=document.getElementById('sinal-emails');
   const s1txt=document.getElementById('sinal-emails-txt');
   if(s1){
-    if(_sinaisEmails.classificados>0){
-      s1.style.display='flex';
+    s1.style.display='flex';
+    if(_outlookStatus==='desconectado'){
+      s1txt.textContent='Conectar Outlook para ver emails classificados';
+      s1.onclick=conectarOutlook;
+      s1.style.opacity='0.7';
+    } else if(!_emailsCarregados){
+      s1txt.textContent='Verificando emails...';
+      s1.onclick=null;
+      s1.style.opacity='0.7';
+    } else if(_sinaisEmails.classificados>0){
       s1txt.textContent=`${_sinaisEmails.classificados} email${_sinaisEmails.classificados===1?'':'s'} classificado${_sinaisEmails.classificados===1?'':'s'} → ${_sinaisEmails.leads} novo${_sinaisEmails.leads===1?'':'s'} lead${_sinaisEmails.leads===1?'':'s'} criado${_sinaisEmails.leads===1?'':'s'}`;
-    } else { s1.style.display='none'; }
+      s1.onclick=toggleEmailsAvulsos;
+      s1.style.opacity='1';
+    } else {
+      s1txt.textContent=_emailsAvulsos.length?`${_emailsAvulsos.length} email${_emailsAvulsos.length===1?'':'s'} aguardando resposta`:'Nenhum email novo';
+      s1.onclick=_emailsAvulsos.length?toggleEmailsAvulsos:null;
+      s1.style.opacity='1';
+    }
   }
-  // Sinal 2 — Google Alertas
+  // Sinal 2 — Sinais de mercado: Google Alerts emails (primário) + RSS (complemento)
   const s2=document.getElementById('sinal-alertas');
   const s2txt=document.getElementById('sinal-alertas-txt');
   if(s2){
-    if(_sinaisAlertas.length>0){
+    const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
+    if(totalSinais>0){
       s2.style.display='flex';
-      s2txt.textContent=`Google Alertas de hoje → ${_sinaisAlertas.length} movimento${_sinaisAlertas.length===1?'':'s'} detectado${_sinaisAlertas.length===1?'':'s'}`;
-    } else { s2.style.display='none'; }
+      s2.style.opacity='1';
+      const fontes=[];
+      if(_sinaisAlertas.length) fontes.push(`${_sinaisAlertas.length} Google Alert${_sinaisAlertas.length===1?'':'s'}`);
+      if(_sinaisMercado.length) fontes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
+      s2txt.textContent=`Sinais de mercado → ${fontes.join(' + ')}`;
+    } else if(_emailsCarregados){
+      s2.style.display='flex';
+      s2.style.opacity='0.5';
+      s2txt.textContent='Nenhum sinal de mercado hoje';
+    } else {
+      s2.style.display='none';
+    }
   }
-  // Sinal 3 — inativos (sempre computado localmente)
+  // Sinal 3 — inativos: sempre computado localmente
   const s3=document.getElementById('sinal-inativos');
   const s3txt=document.getElementById('sinal-inativos-txt');
   if(s3){
     const n=vagas.filter(isInativo).length;
     if(n>0){
       s3.style.display='flex';
+      s3.style.opacity='1';
       s3txt.textContent=`${n} card${n===1?'':'s'} sem atualização há ${_diasInativo}+ dias`;
     } else { s3.style.display='none'; }
   }
 }
+// ── Emails Avulsos — resposta via Outlook ──
+function toggleEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  const chevron=document.getElementById('sinal-emails-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display!=='none'&&lista.style.display!=='';
+  if(aberto){
+    lista.style.display='none';
+    if(chevron) chevron.style.transform='';
+  } else {
+    lista.style.display='flex';
+    if(chevron) chevron.style.transform='rotate(90deg)';
+    renderEmailsAvulsos();
+  }
+}
+function renderEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  if(!lista||lista.style.display==='none') return;
+  if(!_emailsAvulsos.length){
+    lista.innerHTML='<div style="padding:8px 0;font-size:13px;color:var(--text3);">Nenhum email para exibir.</div>';
+    return;
+  }
+  lista.innerHTML=_emailsAvulsos.map((e,i)=>{
+    const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const remetente=e.from_name||e.from||'(remetente)';
+    const preview=(e.resumo||e.preview||'').slice(0,100);
+    return `<div class="home-acao-item" style="cursor:default;align-items:flex-start;">
+      <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+          <span style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
+          <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+        </div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.subject||'(sem assunto)')}</div>
+        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}${e.from&&e.from!==remetente?' &lt;'+escHtml(e.from)+'&gt;':''}</div>
+        ${preview?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="abrirModalResponder(${i})">↩ Responder</button>
+    </div>`;
+  }).join('');
+}
+function abrirModalResponder(idx){
+  const e=_emailsAvulsos[idx]; if(!e) return;
+  _emailAtual=e;
+  const deEl=document.getElementById('mer-de');
+  const assEl=document.getElementById('mer-assunto');
+  if(deEl) deEl.textContent=`De: ${e.from_name||''}${e.from?' <'+e.from+'>':''}`;
+  if(assEl) assEl.textContent=e.subject||'(sem assunto)';
+  const corpo=document.getElementById('mer-corpo'); if(corpo) corpo.value=e.body||e.preview||'';
+  const resp=document.getElementById('mer-resposta'); if(resp) resp.value='';
+  const btn=document.getElementById('mer-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-email-responder').style.display='flex';
+}
+function fecharModalEmailResponder(){
+  document.getElementById('modal-email-responder').style.display='none';
+  _emailAtual=null;
+}
+async function gerarRespostaEmailAvulso(btn){
+  const corpo=(document.getElementById('mer-corpo')?.value||'').trim();
+  if(!corpo){alert('Nenhum conteúdo de email para gerar resposta.');return;}
+  const assunto=_emailAtual?.subject||'';
+  const remetente=_emailAtual?.from_name||_emailAtual?.from||'recrutador';
+  btn.textContent='Gerando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+        system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
+        messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de marketing/negócios (Curitiba, PR, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
+      })
+    });
+    const data=await res.json();
+    const resposta=(data.content?.[0]?.text||'').trim();
+    if(resposta){const el=document.getElementById('mer-resposta');if(el)el.value=resposta;}
+  }catch(err){console.error('gerarRespostaEmailAvulso:',err);alert('Erro ao gerar resposta. Tente novamente.');}
+  finally{btn.textContent='✨ Gerar com IA';btn.disabled=false;}
+}
+async function enviarRespostaEmailAvulso(btn){
+  const resposta=(document.getElementById('mer-resposta')?.value||'').trim();
+  if(!resposta){alert('Escreva ou gere uma resposta antes de enviar.');return;}
+  if(!_emailAtual?.id){alert('ID do email não encontrado. Não é possível enviar via Outlook.');return;}
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/responder',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messageId:_emailAtual.id,comentario:resposta})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      btn.textContent='✓ Enviado!';btn.style.color='var(--green)';
+      setTimeout(()=>fecharModalEmailResponder(),1200);
+    }else if(res.status===401&&json.reauth){
+      btn.textContent='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+}
+
+function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv}){
+  _candidaturaVagaIdx=savedVagaIdx;
+  document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
+  document.getElementById('mcand-email').value=emailDest||'';
+  document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
+  const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
+  document.getElementById('mcand-carta').value=carta||cartaDefault;
+  const cvContent=cv||lastCV||'';
+  document.getElementById('mcand-cv').value=cvContent;
+  document.getElementById('mcand-cv-status').textContent=cvContent?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
+  const btn=document.getElementById('mcand-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-candidatura').style.display='flex';
+}
+function fecharModalCandidatura(){
+  document.getElementById('modal-candidatura').style.display='none';
+  _candidaturaVagaIdx=-1;
+}
+async function enviarCandidaturaOutlook(btn){
+  const para=(document.getElementById('mcand-email')?.value||'').trim();
+  const assunto=(document.getElementById('mcand-assunto')?.value||'').trim();
+  const carta=(document.getElementById('mcand-carta')?.value||'').trim();
+  const cv=(document.getElementById('mcand-cv')?.value||'').trim();
+  if(!para){alert('Preencha o email do recrutador.');return;}
+  if(!assunto){alert('Preencha o assunto.');return;}
+  const corpo=carta+(cv?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cv:'');
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/enviar',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({para,assunto,corpo})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
+        const v=vagas[_candidaturaVagaIdx];
+        const ts=Date.now();
+        if(!v.timeline)v.timeline=[];
+        v.timeline.unshift({ts,texto:'CV enviado por Outlook para '+para});
+        // follow-up automático em 7 dias
+        const fu=new Date(ts+7*24*3600*1000);
+        const dd=String(fu.getDate()).padStart(2,'0');
+        const mm=String(fu.getMonth()+1).padStart(2,'0');
+        const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
+        v.status='aplicado';
+        v.proxima='Follow-up — verificar retorno';
+        v.data=fuStr;
+        v.updatedAt=ts;
+        v.timeline.unshift({ts:ts+1,texto:'Follow-up agendado para '+fuStr});
+        saveVagas();
+      }
+      btn.textContent='✓ Enviado!';
+      const frase=['CV enviado! Estou torcendo por você, Marcos. 🌟','Candidatura a caminho! Você tem muito a oferecer. 💛','Enviado pelo Outlook! Conte comigo para o que precisar. 🚀'][Math.floor(Math.random()*3)];
+      setTimeout(()=>{
+        fecharModalCandidatura();
+        _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
+      },1200);
+    }else if(res.status===401&&json.reauth){
+      btn.innerHTML='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.disabled=false;}
+}
+
 function irParaInativos(){
   _crmFiltroInativo=true;
   showPage('crm');
@@ -2949,13 +3987,48 @@ function limparFiltroInativo(){
 function abrirPainelAlertas(){
   const lista=document.getElementById('painel-alertas-lista');
   const sub=document.getElementById('painel-alertas-sub');
-  if(sub) sub.textContent=_sinaisAlertas.length+' alerta'+(_sinaisAlertas.length===1?'':'s')+' recebido'+(_sinaisAlertas.length===1?'':'s');
+  const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
+  if(sub) sub.textContent=totalSinais+' sinal'+(totalSinais===1?'':'s')+' de mercado hoje';
   if(lista){
-    lista.innerHTML=_sinaisAlertas.length?_sinaisAlertas.map(e=>{
-      const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const link=e.link_vaga||e.origemUrl||'';
-      return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
-    }).join(''):'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum alerta disponível.</div>';
+    let html='';
+    // Bloco A — Notícias RSS com análise IA
+    if(_sinaisMercado.length){
+      html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Notícias do mercado</div>`;
+      html+=_sinaisMercado.map(s=>{
+        const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const sugestao=(s.sugestao_msg||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const tipoLabel={movimento_exec:'👤 Movimento exec.',expansao:'📈 Expansão',fusao:'🔀 Fusão/M&A',outro:'📰 Notícia'}[s.tipo]||'📰 Notícia';
+        const rel=s.relevancia||3;
+        const relColor=rel>=5?'#CC0000':rel>=4?'#B8670A':'#0066CC';
+        const url=s.url||s.link||'';
+        return `<div class="alerta-item" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--borda);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:11px;background:var(--fundo2);padding:2px 6px;border-radius:10px;color:var(--text2);">${tipoLabel}</span>
+            <span style="font-size:11px;color:${relColor};font-weight:600;">Relevância ${rel}/5</span>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:3px;">${s.empresa||''}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:5px;">${resumo||titulo}</div>
+          ${sugestao?`<div style="font-size:12px;color:var(--navy);background:#EEF4FA;border-left:3px solid var(--action);padding:5px 8px;border-radius:0 4px 4px 0;margin-bottom:5px;">${sugestao}</div>`:''}
+          ${(()=>{const ed=s.email_decisor;if(!ed)return '';const em=(ed.email||'').replace(/'/g,"\\'");const label=[ed.nome,ed.cargo?`(${ed.cargo})`:null].filter(Boolean).join(' ');return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#F6FBF6;border:1px solid #C3E6CB;border-radius:4px;padding:5px 8px;margin-bottom:5px;"><span style="font-size:12px;">📧</span><span style="font-size:12px;font-weight:600;color:#1A5C2A;">${ed.email}</span>${label?`<span style="font-size:11px;color:var(--text3);">— ${label}</span>`:''}<button onclick="navigator.clipboard.writeText('${em}').then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='Copiar email',1500)})" style="font-size:11px;padding:2px 7px;border:1px solid #C3E6CB;background:#fff;border-radius:4px;cursor:pointer;color:#1A5C2A;margin-left:auto;">Copiar email</button></div>`})()}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${sugestao?`<button onclick="navigator.clipboard.writeText('${sugestao.replace(/'/g,"\\'")}').then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='📋 Copiar mensagem',1500)})" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;cursor:pointer;color:var(--action);">📋 Copiar mensagem</button>`:''}
+            ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;color:var(--text2);text-decoration:none;">🔗 Ver notícia</a>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    // Bloco B — Emails Google Alerts (primário)
+    if(_sinaisAlertas.length){
+      if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
+      html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Alerts — emails</div>`;
+      html+=_sinaisAlertas.map(e=>{
+        const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        const link=e.link_vaga||e.origemUrl||'';
+        return `<div class="alerta-item"><div class="alerta-assunto">${assunto}</div>${link?`<a class="alerta-link" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`:''}</div>`;
+      }).join('');
+    }
+    lista.innerHTML=html||'<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhum sinal disponível.</div>';
   }
   document.getElementById('painel-alertas').style.display='flex';
 }
@@ -2974,9 +4047,55 @@ async function toggleOutlook(){
   else conectarOutlook();
 }
 
+async function carregarSinaisMercado(){
+  try{
+    const resp=await fetch(WORKER_URL+'/api/sinais-mercado');
+    if(!resp.ok) return;
+    const data=await resp.json();
+    _sinaisMercado=(data.sinais||[]);
+    atualizarSinais();
+  }catch(e){ /* RSS opcional — falha silenciosa */ }
+}
+
+async function extrairEmpresasCargosBatch(emails){
+  if(!emails||emails.length===0) return null;
+  const lista=emails.map((e,i)=>({
+    idx:i,
+    assunto:(e.subject||e.assunto||'').substring(0,120),
+    preview:(e.resumo||e.preview||e.bodyPreview||'').substring(0,200),
+    remetente:(e.from_name||e.de_nome||'').substring(0,60)
+  }));
+  const prompt=`Analise os emails de recrutamento abaixo e extraia a empresa contratante e o cargo para cada um.
+
+Retorne APENAS um array JSON sem markdown, com um objeto por email:
+{"idx":N,"empresa":"Nome da empresa","cargo":"Título do cargo limpo","revisar":false}
+
+Regras:
+- empresa: nome da empresa contratante (não o nome do recrutador)
+- cargo: título da vaga limpo (sem prefixos como "Oportunidade:", sem nome da empresa, sem " | XYZ")
+- revisar: true se não conseguiu extrair empresa ou cargo com confiança suficiente
+
+Emails:
+${JSON.stringify(lista)}`;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'';
+    const match=text.match(/\[[\s\S]*\]/);
+    if(!match) return null;
+    const result=JSON.parse(match[0]);
+    const map={};
+    result.forEach(r=>{ if(typeof r.idx==='number') map[r.idx]=r; });
+    return map;
+  }catch{ return null; }
+}
+
 async function carregarEmails(forcar){
   const connected=await checkOutlookStatus();
-  if(!connected) return;
+  if(!connected){ atualizarSinais(); return; }
   try{
     const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
     const res=await fetch(url);
@@ -2996,22 +4115,31 @@ async function carregarEmails(forcar){
     // Importar emails relevantes como Leads no Pipeline
     if(emailsVaga.length>0){
       const novaData=dataAtualFormatada();
-      emailsVaga.forEach(e=>{
+      let extraidos=null;
+      try{ extraidos=await extrairEmpresasCargosBatch(emailsVaga); }catch{}
+      emailsVaga.forEach((e,i)=>{
         const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
         const emailAddr=e.from||e.de_email||'';
-        const assunto=e.subject||e.assunto||'A definir';
+        const assunto=e.subject||e.assunto||'';
         const preview=e.resumo||e.preview||e.bodyPreview||'';
         const conteudoVaga=e.conteudo_vaga||preview;
         const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
-        const jaExiste=vagas.find(v=>v.origemUrl&&v.origemUrl===emailAddr&&v.empresa===nome);
+        const jaExiste=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr);
         if(!jaExiste){
-          {const _t=Date.now();vagas.push({id:_t+Math.random(),empresa:nome,cargo:assunto,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+          const ext=extraidos?.[i];
+          const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
+          const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
+          const tags=(!ext||ext.revisar)?['Revisar']:[];
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
+    if(emailsVaga.length) _emailsAvulsos=emailsVaga;
+    _emailsCarregados=true;
     atualizarSinais();
+    renderEmailsAvulsos();
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 
@@ -3113,53 +4241,113 @@ function renderDashboardPipeline(){
 function renderHomeAcoes(){
   const list=document.getElementById('home-acoes-list');
   if(!list) return;
-  list.querySelectorAll('.home-vaga-acao').forEach(el=>el.remove());
+  // detect specific next-action date (not creation timestamp or month-only)
+  function _getNextActionDate(v){
+    const d=v.data||'';
+    if(/\s\d{1,2}:\d{2}/.test(d)) return null; // has time = creation timestamp
+    if(/^[a-z]{3,}\/\d{4}$/i.test(d)) return null; // month-only (abr/2026)
+    return parseDateBR(d); // ms or null
+  }
+const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
+  const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'CV Enviado',lead:'Lead'};
+  const corPriH={alta:'#CC0000',media:'#0066CC',baixa:'#008800'};
+  const priOrder={alta:0,media:1,baixa:2};
+  const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
   const hfPri=document.getElementById('hf-prioridade')?.value||'all';
   const hfCanal=document.getElementById('hf-canal')?.value||'all';
-  const hfOrdem=document.getElementById('hf-ordem')?.value||'default';
-  const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
-  const priOrder={alta:0,media:1,baixa:2};
   let base=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado');
   if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
-  // Separar inativas (7+ dias) — sempre sobem ao topo
-  const inativos=base.filter(v=>isInativo(v)).sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-  let normais=base.filter(v=>!isInativo(v));
-  if(hfOrdem==='data-asc') normais=[...normais].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  else if(hfOrdem==='data-desc') normais=[...normais].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  else if(hfOrdem==='pri') normais=[...normais].sort((a,b)=>(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-  else normais=[...normais].sort((a,b)=>(stOrder[a.status]??5)-(stOrder[b.status]??5)||(priOrder[a.prioridade]??3)-(priOrder[b.prioridade]??3));
-  const ativas=[...inativos,...normais].slice(0,8);
-  const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
-  const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'CV Enviado',lead:'Lead'};
-  const corPriH={alta:'#CC0000',media:'#0066CC',baixa:'#008800'};
-  if(!ativas.length){
-    const el=document.createElement('div');
-    el.className='home-vaga-acao';
-    el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
-    el.textContent='Nenhuma vaga para exibir.';
-    list.appendChild(el);
-    return;
-  }
-  ativas.forEach(v=>{
-    const inativo=isInativo(v);
+  const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
+  // nível 3 sem data → surfacem no topo independentemente de data agendada
+  const nivel3SemData=base.filter(v=>nivelInativo(v)===3&&_getNextActionDate(v)===null);
+  // cards com data específica definida no modal de drag
+  const nivel3Ids=new Set(nivel3SemData.map(v=>v.id));
+  const comData=base.filter(v=>!nivel3Ids.has(v.id)).map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
+  // nível 3 com data sobe para antes dos outros; dentro do nível 3 ordena por data
+  comData.sort((a,b)=>{
+    const n3a=nivelInativo(a.v)===3, n3b=nivelInativo(b.v)===3;
+    if(n3a&&!n3b) return -1; if(!n3a&&n3b) return 1;
+    return a.dt-b.dt;
+  });
+  function _buildCardVaga(v,badgeHtml,bordaCor,bgColor){
+    const nv=nivelInativo(v);
+    const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
     const cor=corSt[v.status]||'#9CA3AF';
     const lbl=lblSt[v.status]||v.status;
     const priCor=corPriH[v.prioridade]||'#9CA3AF';
     const priLbl=v.prioridade==='alta'?'Alta':v.prioridade==='media'?'Média':'Baixa';
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
-    const dataHora=(v.createdAt||v.updatedAt)?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">📅 ${formatTs(v.createdAt||v.updatedAt)}</span>`:'';
     const acaoTxt=v.proxima||'';
-    const bordaCor=inativo?'#FF6600':priCor;
-    const inativoBadge=inativo?`<span style="background:#FF6600;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;flex-shrink:0;">⚠ ${_diasInativo}d</span>`:'';
+    const borda=nv>0?nvColor:bordaCor;
+    const inativoBadge=nv===1?`<span class="badge badge-inativo-1" style="flex-shrink:0;">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2" style="flex-shrink:0;">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${_diasInativo*3}d</span>`:'';
     const el=document.createElement('div');
-    el.className='home-acao-item home-vaga-acao';
-    el.style.borderLeftColor=bordaCor;
-    if(inativo) el.style.background='#FFF8F5';
+    el.className='home-acao-item';
+    el.style.borderLeftColor=borda;
+    if(bgColor) el.style.background=bgColor;
+    else if(nv===3) el.style.background='#FFF0F0';
+    else if(nv>0) el.style.background='#FFF8F5';
     el.onclick=()=>openVagaModal(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${inativoBadge}${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
-    list.appendChild(el);
+    el.innerHTML=`<div class="home-acao-dot" style="background:${borda};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${badgeHtml}${inativoBadge}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    return el;
+  }
+  list.innerHTML='';
+  // Renderizar nível 3 sem data no topo
+  nivel3SemData.forEach(v=>{
+    const diasSem=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
+    const badge=`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${diasSem}d</span>`;
+    list.appendChild(_buildCardVaga(v,badge,'#CC0000','#FFF0F0'));
   });
+  if(!comData.length&&!nivel3SemData.length){
+    const el=document.createElement('div');
+    el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
+    el.textContent='Nenhuma ação agendada.';
+    list.appendChild(el);
+  } else {
+    comData.forEach(({v,dt})=>{
+      const diff=Math.round((dt-todayMs)/86400000);
+      let badgeHtml='',bordaCor=corPriH[v.prioridade]||'#9CA3AF',bgColor=null;
+      if(diff<0){
+        badgeHtml=`<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">⚠ Vencido ${-diff}d</span>`;
+        bordaCor='#CC0000'; bgColor='#FEF0EF';
+      } else if(diff===0){
+        badgeHtml=`<span style="background:#EFF6FF;color:#1D4ED8;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">Hoje</span>`;
+        bordaCor='#1D4ED8';
+      } else {
+        const fmtDt=formatDataCard(v.data);
+        badgeHtml=`<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">⏰ ${fmtDt}</span>`;
+      }
+      list.appendChild(_buildCardVaga(v,badgeHtml,bordaCor,bgColor));
+    });
+  }
+  // ── CRM Contatos ──
+  const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
+  const contatosAcao=(contatos||[]).filter(c=>c.next&&c.nextData).map(c=>{
+    const ms=new Date(c.nextData).setHours(0,0,0,0);
+    const diff=Math.round((ms-todayCRM.getTime())/86400000);
+    return {...c,_diff:diff};
+  }).filter(c=>c._diff<=3).sort((a,b)=>a._diff-b._diff);
+  if(contatosAcao.length){
+    const sep=document.createElement('div');
+    sep.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 0 2px;';
+    sep.textContent='CRM — Contatos';
+    list.appendChild(sep);
+    contatosAcao.forEach(c=>{
+      let badgeTxt='',badgeBg='',badgeColor='';
+      if(c._diff<0){badgeTxt='⚠ Atrasado';badgeBg='#FEF0EF';badgeColor='#CC0000';}
+      else if(c._diff===0){badgeTxt='Hoje';badgeBg='#EFF6FF';badgeColor='#1D4ED8';}
+      else{badgeTxt='⏰ Urgente';badgeBg='#FFF8EC';badgeColor='#B8670A';}
+      const dataFmt=c.nextData.split('-').reverse().join('/');
+      const bordaCRM=c._diff<0?'#CC0000':c._diff===0?'#1D4ED8':'#B8670A';
+      const el=document.createElement('div');
+      el.className='home-acao-item';
+      el.style.borderLeftColor=bordaCRM;
+      if(c._diff<0) el.style.background='#FEF0EF';
+      el.onclick=()=>openContatoModal(c.id);
+      el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCRM};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Contato</span><span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">${badgeTxt}</span><span style="font-size:11px;color:var(--text3);">📅 ${dataFmt}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.next}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+      list.appendChild(el);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -3169,13 +4357,13 @@ function verOrigem(){
   const url=document.getElementById('mv-origem-url')?.value||'';
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank','noopener,noreferrer');
+  else window.open(url.startsWith('http')?url:'https://'+url,'_blank','noopener,noreferrer');
 }
 
 function verOrigemCard(url){
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank','noopener,noreferrer');
+  else window.open(url.startsWith('http')?url:'https://'+url,'_blank','noopener,noreferrer');
 }
 
 function abrirAntiATSModal(){

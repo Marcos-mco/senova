@@ -128,7 +128,7 @@ select option { background: var(--bg2); }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(520px,92vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); padding: 28px 28px 0; flex-shrink: 0; }
-.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 140px; min-height: 0; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -421,12 +421,17 @@ select option { background: var(--bg2); }
     </div>
 
     <!-- Central de Sinais -->
-    <div id="sinais-section" style="margin-bottom:18px;display:flex;flex-direction:column;gap:6px;">
-      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="showPage('crm')">
+    <div id="sinais-section" style="margin-bottom:18px;">
+      <div class="section-head" style="margin-bottom:8px;">
+        <span class="section-title" style="font-size:13px;">Central de Sinais</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+      <div id="sinal-emails" class="sinal-item" style="display:none;" onclick="toggleEmailsAvulsos()">
         <span class="sinal-icon">📧</span>
         <span id="sinal-emails-txt" class="sinal-txt"></span>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        <svg id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
       </div>
+      <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;"></div>
       <div id="sinal-alertas" class="sinal-item" style="display:none;" onclick="abrirPainelAlertas()">
         <span class="sinal-icon">🔔</span>
         <span id="sinal-alertas-txt" class="sinal-txt"></span>
@@ -436,6 +441,7 @@ select option { background: var(--bg2); }
         <span class="sinal-icon">⚠</span>
         <span id="sinal-inativos-txt" class="sinal-txt"></span>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+      </div>
       </div>
     </div>
 
@@ -771,6 +777,7 @@ select option { background: var(--bg2); }
         <option value="az">Empresa A-Z</option>
       </select>
       <button class="btn-filter-limpar" onclick="limparFiltros()">Limpar filtros</button>
+      <button id="btn-importar-vagas" class="btn-filter-limpar" onclick="importarVagasLead()" style="background:var(--navy);color:#fff;border-color:var(--navy);">⬇ Importar vagas</button>
     </div>
 
     <!-- Vagas Kanban -->
@@ -1033,168 +1040,252 @@ select option { background: var(--bg2); }
 </div>
 
 <!-- ═══════════════════════════════
-     MODAL CONTATOS
+     MODAL RESPONDER EMAIL AVULSO
 ═══════════════════════════════ -->
-<div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
-  <div class="modal">
-    <div class="modal-title" id="modal-contato-title">Contato</div>
-    <div class="modal-body">
-      <!-- Identidade -->
-      <div class="form-row">
-        <label class="field-label">Nome</label>
-        <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti">
+<div class="modal-overlay" id="modal-email-responder" style="display:none;" onclick="if(event.target===this)fecharModalEmailResponder()">
+  <div class="modal" style="width:min(560px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">↩ Responder Email</div>
+      <div id="mer-de" style="font-size:12px;color:var(--text3);margin-top:5px;"></div>
+      <div id="mer-assunto" style="font-size:13px;color:var(--text2);font-weight:600;margin-top:3px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label class="field-label">Email recebido</label>
+        <textarea id="mer-corpo" rows="4" placeholder="Conteúdo do email recebido…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Cargo</label>
-          <input type="text" id="mc-cargo" placeholder="Ex: CEO">
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">Sua resposta</label>
+          <button class="btn btn-ghost btn-sm" style="font-size:12px;gap:4px;" onclick="gerarRespostaEmailAvulso(this)">✨ Gerar com IA</button>
         </div>
-        <div>
-          <label class="field-label">Empresa</label>
-          <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
-        </div>
-      </div>
-      <!-- Contato -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Email</label>
-          <input type="email" id="mc-email" placeholder="email@empresa.com">
-        </div>
-        <div>
-          <label class="field-label">Telefone</label>
-          <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
-        </div>
-        <div>
-          <label class="field-label">LinkedIn</label>
-          <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
-        </div>
-      </div>
-      <!-- Classificação -->
-      <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
-        <div>
-          <label class="field-label">Temperatura</label>
-          <select id="mc-temp">
-            <option value="hot">🔥 Quente</option>
-            <option value="warm">🌤 Morno</option>
-            <option value="cold">❄️ Frio</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Plano</label>
-          <select id="mc-plano">
-            <option value="A">Plano A — Emprego</option>
-            <option value="B">Plano B — Consultoria</option>
-            <option value="C">Plano C — Senova</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Tipo</label>
-          <select id="mc-tipo">
-            <option value="Executivo">Executivo</option>
-            <option value="Headhunter">Headhunter</option>
-            <option value="Consultor">Consultor</option>
-            <option value="Investidor">Investidor</option>
-            <option value="Parceiro">Parceiro</option>
-            <option value="Outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <!-- Próxima ação -->
-      <div class="form-row">
-        <label class="field-label">Próxima ação</label>
-        <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café">
-      </div>
-      <!-- Notas -->
-      <div class="form-row">
-        <label class="field-label">Notas</label>
-        <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
-      </div>
-      <!-- Vinculado a vaga -->
-      <div class="form-row">
-        <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
-        <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
-      </div>
-      <!-- Timeline de interações -->
-      <div class="form-row" id="mc-timeline-section" style="margin-bottom:0;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <label class="field-label" style="margin:0;">Histórico de interações</label>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
-        </div>
-        <div id="mc-timeline-form" class="tl-form" style="display:none;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
-            <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
-              <option value="LinkedIn">💼 LinkedIn</option>
-              <option value="WhatsApp">📱 WhatsApp</option>
-              <option value="Email">📧 Email</option>
-              <option value="Reunião">🤝 Reunião</option>
-              <option value="Telefone">📞 Telefone</option>
-              <option value="Outro">💬 Outro</option>
-            </select>
-          </div>
-          <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
-          <div style="margin-top:10px;">
-            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
-            <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
-            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
-          </div>
-        </div>
-        <div id="mc-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
+        <textarea id="mer-resposta" rows="6" placeholder="Gere uma sugestão com IA ou escreva diretamente…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
-      <button class="btn btn-ghost" id="mc-com-btn" onclick="abrirModalComunicacao()" style="display:none;">✨ Comunicação</button>
-      <div style="display:flex;gap:8px;margin-left:auto;">
-        <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
-      </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Cancelar</button>
+      <button class="btn btn-primary" id="mer-enviar-btn" onclick="enviarRespostaEmailAvulso(this)">Enviar pelo Outlook</button>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL COMUNICAÇÃO ══ -->
-<div class="modal-overlay" id="modal-comunicacao" style="display:none;" onclick="if(event.target===this)fecharModalComunicacao()">
-  <div class="modal" style="width:min(560px,94vw);">
-    <div class="modal-title">✨ Comunicação — <span id="mc-com-nome" style="font-weight:500;"></span></div>
-    <div class="modal-body">
-      <div class="com-tabs">
-        <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
-        <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
-        <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
+<!-- ═══════════════════════════════
+     MODAL CANDIDATURA
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-candidatura" style="display:none;" onclick="if(event.target===this)fecharModalCandidatura()">
+  <div class="modal" style="width:min(580px,94vw);">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">✉️ Enviar Candidatura</div>
+      <div id="mcand-empresa-cargo" style="font-size:12px;color:var(--text3);margin-top:4px;"></div>
+    </div>
+    <div style="padding:16px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Para (email do recrutador)</label>
+        <input type="email" id="mcand-email" placeholder="recrutador@empresa.com">
       </div>
-      <!-- Área de mensagem recebida (só no modo Responder) -->
-      <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
-        <label class="field-label">Mensagem recebida</label>
-        <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
-          <select id="com-canal" style="height:30px;font-size:13px;">
-            <option value="LinkedIn">💼 LinkedIn</option>
-            <option value="WhatsApp">📱 WhatsApp</option>
-            <option value="Email">📧 Email</option>
-          </select>
-        </div>
+      <div class="form-row" style="margin:0;">
+        <label class="field-label">Assunto</label>
+        <input type="text" id="mcand-assunto">
       </div>
-      <!-- Botão gerar -->
-      <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
-      <!-- Saída -->
-      <div id="com-output-wrap" style="display:none;">
-        <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
-        <textarea id="com-output" class="com-output-box" rows="4"></textarea>
-        <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
-        <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
-          <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
+      <div>
+        <label class="field-label">Mensagem (carta de apresentação)</label>
+        <textarea id="mcand-carta" rows="6" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="field-label" style="margin:0;">CV Otimizado (incluso no corpo)</label>
+          <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
         </div>
+        <textarea id="mcand-cv" rows="5" style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
       </div>
     </div>
+    <div style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="fecharModalCandidatura()">Cancelar</button>
+      <button class="btn btn-primary" id="mcand-enviar-btn" onclick="enviarCandidaturaOutlook(this)">Enviar pelo Outlook</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL CONTATOS
+═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-contato" style="display:none;" onclick="if(event.target===this)closeContatoModal()">
+  <div class="modal" style="width:min(600px,94vw);">
+
+    <!-- Header: avatar + nome + badges + abas -->
+    <div style="padding:18px 22px 0;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div id="mc-header-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--action));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:0.5px;">?</div>
+        <div style="flex:1;min-width:0;">
+          <div id="mc-header-nome" style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Novo Contato</div>
+          <div id="mc-header-badges" style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;"></div>
+        </div>
+        <button onclick="closeContatoModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);padding:4px 2px;line-height:1;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:flex;gap:0;margin-bottom:-1px;">
+        <button id="mct-btn-dados" onclick="setCTTab('dados')" style="padding:8px 18px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--navy);border-bottom:2px solid var(--navy);font-family:var(--font);transition:color 0.15s;">Dados</button>
+        <button id="mct-btn-comunicacao" onclick="setCTTab('comunicacao')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Comunicação</button>
+        <button id="mct-btn-historico" onclick="setCTTab('historico')" style="padding:8px 18px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-family:var(--font);transition:color 0.15s;">Histórico</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- ABA: DADOS -->
+      <div id="mct-dados">
+        <div class="form-row">
+          <label class="field-label">Nome</label>
+          <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti" oninput="atualizarHeaderContato()">
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div>
+            <label class="field-label">Cargo</label>
+            <input type="text" id="mc-cargo" placeholder="Ex: CEO">
+          </div>
+          <div>
+            <label class="field-label">Empresa</label>
+            <input type="text" id="mc-empresa" placeholder="Ex: RPC/Globo">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Email</label>
+            <input type="email" id="mc-email" placeholder="email@empresa.com">
+          </div>
+          <div>
+            <label class="field-label">Telefone</label>
+            <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
+          </div>
+          <div>
+            <label class="field-label">LinkedIn</label>
+            <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
+          <div>
+            <label class="field-label">Temperatura</label>
+            <select id="mc-temp" onchange="atualizarHeaderContato()">
+              <option value="hot">🔥 Quente</option>
+              <option value="warm">🌤 Morno</option>
+              <option value="cold">❄️ Frio</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Plano</label>
+            <select id="mc-plano">
+              <option value="A">Plano A — Emprego</option>
+              <option value="B">Plano B — Consultoria</option>
+              <option value="C">Plano C — Senova</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Tipo</label>
+            <select id="mc-tipo" onchange="atualizarHeaderContato()">
+              <option value="Executivo">Executivo</option>
+              <option value="Headhunter">Headhunter</option>
+              <option value="Consultor">Consultor</option>
+              <option value="Investidor">Investidor</option>
+              <option value="Parceiro">Parceiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Próxima ação <span style="color:var(--red);">*</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook()">
+            <input type="date" id="mc-next-data" style="width:148px;flex-shrink:0;" onchange="atualizarBtnOutlook()">
+          </div>
+          <div id="mc-next-err" style="display:none;font-size:12px;color:var(--red);margin-top:4px;">Próxima ação é obrigatória</div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Notas</label>
+          <textarea id="mc-notas" rows="2" placeholder="Contexto, interesses em comum, como se conheceram..."></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:0;">
+          <label class="field-label">Vinculado a vaga <span style="color:var(--text3);font-weight:400;">(opcional)</span></label>
+          <select id="mc-vaga-id"><option value="">— Nenhuma —</option></select>
+        </div>
+      </div>
+
+      <!-- ABA: COMUNICAÇÃO -->
+      <div id="mct-comunicacao" style="display:none;">
+        <div id="mct-com-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para usar Comunicação.</div>
+        <div id="mct-com-content">
+          <div class="com-tabs">
+            <button class="com-tab active" id="com-tab-linkedin" onclick="setComunicacaoMode('linkedin')">💼 Nota LinkedIn</button>
+            <button class="com-tab" id="com-tab-responder" onclick="setComunicacaoMode('responder')">↩ Responder mensagem</button>
+            <button class="com-tab" id="com-tab-followup" onclick="setComunicacaoMode('followup')">🔄 Follow-up</button>
+          </div>
+          <div id="com-recebida-wrap" style="display:none;margin-bottom:12px;">
+            <label class="field-label">Mensagem recebida</label>
+            <textarea id="com-recebida" rows="3" placeholder="Cole aqui a mensagem recebida (LinkedIn, WhatsApp, email…)" style="font-size:13.5px;"></textarea>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal da mensagem</label>
+              <select id="com-canal" style="height:30px;font-size:13px;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="com-gerar-btn" onclick="gerarComunicacao()" style="margin-bottom:14px;">Gerar nota</button>
+          <div id="com-output-wrap" style="display:none;">
+            <label class="field-label">Texto gerado <span style="font-weight:400;color:var(--text3);">(editável)</span></label>
+            <textarea id="com-output" class="com-output-box" rows="4"></textarea>
+            <div id="com-char-count" style="font-size:11px;color:var(--text3);text-align:right;margin-top:2px;display:none;"></div>
+            <div id="com-resumo" class="com-resumo-box" style="display:none;"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn btn-ghost" onclick="copiarComunicacao(this)">📋 Copiar</button>
+              <button class="btn btn-ghost" onclick="registrarInteracaoCom()">💾 Registrar interação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: HISTÓRICO -->
+      <div id="mct-historico" style="display:none;">
+        <div id="mct-hist-new-msg" style="display:none;padding:28px 0;text-align:center;color:var(--text3);font-size:13.5px;">Salve o contato primeiro para registrar interações.</div>
+        <div id="mct-hist-content">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <label class="field-label" style="margin:0;">Histórico de interações</label>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimelineCt()">+ Registrar interação</button>
+          </div>
+          <div id="mc-timeline-form" class="tl-form" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <label class="field-label" style="margin:0;flex-shrink:0;">Canal</label>
+              <select id="mc-tl-canal" style="height:30px;font-size:13px;flex:1;">
+                <option value="LinkedIn">💼 LinkedIn</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Email">📧 Email</option>
+                <option value="Reunião">🤝 Reunião</option>
+                <option value="Telefone">📞 Telefone</option>
+                <option value="Outro">💬 Outro</option>
+              </select>
+            </div>
+            <textarea id="mc-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Café no Noir, conversamos sobre abertura na Condor..."></textarea>
+            <div style="margin-top:10px;">
+              <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+              <input type="date" id="mc-tl-lembrar-data" style="font-size:14px;">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimelineCt()">Cancelar</button>
+              <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimelineCt()">Salvar</button>
+            </div>
+          </div>
+          <div id="mc-timeline-lista" style="max-height:220px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+    </div>
+
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="fecharModalComunicacao()" style="margin-left:auto;">Fechar</button>
+      <button class="btn btn-danger" id="mc-delete-btn" onclick="deleteContato()" style="display:none;">Remover</button>
+      <button class="btn btn-ghost" id="mc-outlook-btn" onclick="salvarEAgendarOutlook()" style="display:none;color:var(--action);border-color:var(--action);" title="Salva o contato e cria evento no Outlook Calendar">📅 Agendar no Outlook</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1312,7 +1403,7 @@ function showPage(page) {
     const nav = document.getElementById('nav-'+p);
     if(nav) nav.classList.toggle('active', p===page);
   });
-  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display='flex'; }
+  if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); }
   if(page==='linkedin'){ const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=_diasInativo; }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
@@ -1419,7 +1510,7 @@ async function analyzeJob() {
 }
 
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
-let _atsAnalise='',_cartaLang='PT';
+let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
@@ -1597,43 +1688,41 @@ function _atsMostrarMsg(html,delay){
   const t=setTimeout(_atsRestaurarEmpty,delay);
   ra.firstElementChild?.addEventListener('click',()=>{clearTimeout(t);_atsRestaurarEmpty();},{once:true});
 }
-function candidatarVagaATS() {
-  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
-  const vagaRef = idx>=0 ? vagas[idx] : null;
-  const empresa = vagaRef?.empresa || atsEmpresa || lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim() || 'A definir';
-  const cargo   = vagaRef?.cargo   || atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()  || 'A definir';
-  const score    = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
-  const keywords = _atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
-  const notasAts = [score?'Match ATS: '+score+'/100':'', keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
-  const hoje = dataAtualFormatada();
+async function candidatarVagaATS(){
+  if(!lastCV){
+    const vTxt=(document.getElementById('vaga-input')?.value||'').trim();
+    if(vTxt.length>=80) await analyzeJob();
+  }
+  const idx=atsOrigemVagaId!=null?vagas.findIndex(v=>v.id===atsOrigemVagaId):-1;
+  const vagaRef=idx>=0?vagas[idx]:null;
+  const empresa=vagaRef?.empresa||atsEmpresa||lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
+  const cargo=vagaRef?.cargo||atsCargo||lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
+  const score=_atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
+  const keywords=_atsAnalise.match(/KEYWORDS?:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const notasAts=[score?'Match ATS: '+score+'/100':'',keywords?'Keywords: '+keywords:''].filter(Boolean).join(' — ');
+  const hoje=dataAtualFormatada();
+  const carta=document.getElementById('ats-carta-txt')?.value||'';
   if(idx>=0){
     vagas[idx].status='aplicado';
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
-    if(notasAts) vagas[idx].notas=notasAts;
+    if(notasAts)vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
-  } else {
-    {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+  }else{
+    const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});
   }
   const savedIdx=idx>=0?idx:vagas.length-1;
   vagas[savedIdx].atsScore=score;
   vagas[savedIdx].atsKeywords=keywords;
   vagas[savedIdx].atsAnalise=_atsAnalise;
   vagas[savedIdx].atsCV=lastCV;
-  vagas[savedIdx].atsCarta=document.getElementById('ats-carta-txt')?.value||'';
-  const emailDest=atsEmailDest;
-  atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
+  vagas[savedIdx].atsCarta=carta;
+  const emailDest=idx>=0?(vagas[idx].emailDest||atsEmailDest):atsEmailDest;
+  atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
-  if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); const lbl=document.getElementById('ats-decisao-label'); if(lbl) lbl.textContent='✓ Candidatura registrada — '+hoje; }
-  const _sofiaFrases=['Candidatura registrada! Estou torcendo por você, Marcos. 🌟','Feito! Você tem muito a oferecer. Boa sorte nessa. 💛','Candidatura enviada! Conte comigo para o que precisar. 🚀'];
-  const _frase=_sofiaFrases[Math.floor(Math.random()*_sofiaFrases.length)];
-  _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${_frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
-  if(emailDest){
-    const assunto=encodeURIComponent('Candidatura: '+cargo+' | Marcos Franco');
-    const corpo=encodeURIComponent('Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+' na '+empresa+' e gostaria de enviar meu CV para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com');
-    setTimeout(()=>{ window.location.href='mailto:'+emailDest+'?subject='+assunto+'&body='+corpo; },300);
-  }
+  if(bar){bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';});const lbl=document.getElementById('ats-decisao-label');if(lbl)lbl.textContent='✓ Candidatura registrada — '+hoje;}
+  abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx:savedIdx});
 }
 
 function declinarVagaATS() {
@@ -2001,6 +2090,82 @@ function loadCRM(){
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
 }
+async function importarVagasLead(){
+  const btn=document.getElementById('btn-importar-vagas');
+  if(btn){btn.textContent='⏳ Importando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/vagas-lead');
+    const data=await res.json();
+    const lead=data.vagas||[];
+    const idsExistentes=new Set(vagas.map(v=>String(v.id)));
+    let novas=0;
+    const agora=Date.now();
+    lead.forEach(v=>{
+      if(idsExistentes.has(String(v.id))) return;
+      vagas.push({
+        id:v.id,
+        empresa:v.empresa||'—',
+        cargo:v.titulo||'—',
+        canal:'Varredura IA',
+        prioridade:'media',
+        status:'lead',
+        salario:'',
+        proxima:'Analisar compatibilidade',
+        notas:v.descricao||'',
+        data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
+        createdAt:agora,
+        updatedAt:agora,
+        timeline:[{ts:agora,texto:'Importado via varredura automática'}],
+        origemUrl:v.url||'',
+        score:v.score,
+        classificacao:v.classificacao,
+        resumo:v.resumo,
+        pontos_fortes:v.pontos_fortes||[],
+        descricao:v.descricao||'',
+        fonte:v.fonte||'',
+      });
+      novas++;
+    });
+    if(novas>0){ saveVagas(); renderCRM(); }
+    if(btn){btn.textContent=novas>0?`✅ ${novas} importada${novas>1?'s':''}`:'✅ Sem novidades';btn.disabled=false;}
+    setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
+  }catch(e){
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;setTimeout(()=>{btn.textContent='⬇ Importar vagas';},2000);}
+  }
+}
+
+async function analisarCardVaga(vagaId, btn){
+  const vaga=vagas.find(v=>String(v.id)===String(vagaId));
+  if(!vaga) return;
+  if(btn){btn.textContent='⏳ Analisando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:vaga.cargo||'',empresa:vaga.empresa||'',descricao:vaga.notas||vaga.descricao||''}),
+    });
+    const analise=await res.json();
+    vaga.score=analise.score??null;
+    vaga.classificacao=analise.classificacao||null;
+    vaga.resumo=analise.resumo||null;
+    vaga.pontos_fortes=analise.pontos_fortes||[];
+    vaga.salario_compativel=analise.salario_compativel??null;
+    vaga.updatedAt=Date.now();
+    saveVagas();
+    // Salva no KV se for vaga de varredura (tem id com prefixo vaga_)
+    if(String(vagaId).startsWith('vaga_')){
+      fetch(WORKER_URL+'/api/vagas-lead/score',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:vagaId,score:vaga.score,classificacao:vaga.classificacao,resumo:vaga.resumo,pontos_fortes:vaga.pontos_fortes,salario_compativel:vaga.salario_compativel}),
+      }).catch(()=>{});
+    }
+    renderCRM();
+  }catch(e){
+    if(btn){btn.textContent='⚠ Erro';btn.disabled=false;}
+  }
+}
+
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
@@ -2026,6 +2191,9 @@ let _crmFiltroInativo=false;
 let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
+let _emailsAvulsos=[];
+let _emailAtual=null;
+let _emailsCarregados=false;
 let _diasInativo=Math.max(3,Math.min(30,parseInt(localStorage.getItem('senova_dias_inativo')||'7')));
 
 function dropVaga(newStatus, event) {
@@ -2124,6 +2292,7 @@ function setCrmTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('crm-vagas').style.display=tab==='vagas'?'block':'none';
   document.getElementById('crm-contatos').style.display=tab==='contatos'?'block':'none';
+  document.getElementById('crm-filter-bar').style.display=tab==='vagas'?'flex':'none';
   document.getElementById('crm-add-btn').onclick=tab==='vagas'?()=>openVagaModal('new'):()=>openContatoModal('new');
   renderCRM();
 }
@@ -2195,6 +2364,8 @@ function renderCRM(){
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
+          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';const cl={'candidatar':'Candidatar','analisar':'Analisar','recusar':'Recusar'}[c.classificacao]||c.classificacao||'';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">⚡ ${sc}/100</span>${cl?`<span style="font-size:11px;color:${cor};font-weight:600;">${cl}</span>`:''}</div>`;})():''}
+          ${c.score===null?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);"><button id="btn-analisar-${c.id}" onclick="event.stopPropagation();analisarCardVaga('${c.id}',this)" style="font-size:11.5px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:2px 10px;cursor:pointer;font-family:var(--font);">⚡ Analisar IA</button></div>`:''}
         </div>`;
       }).join('')}
     </div>`;
@@ -2207,7 +2378,7 @@ function renderCRM(){
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
   let filtered=contatoFilter==='todos'?[...contatos]:contatos.filter(c=>c.temp===contatoFilter);
   if(contatoTipoFilter!=='todos') filtered=filtered.filter(c=>(c.tipo||'Executivo')===contatoTipoFilter);
-  if(_ctBusca && _ctBusca.length>=3) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
+  if(_ctBusca && _ctBusca.length>=2) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
@@ -2221,6 +2392,15 @@ function renderCRM(){
     const lastCanal=(c.timeline||[]).find(e=>e.canal)?.canal;
     const canalIcon=lastCanal?(CANAL_ICON_MAP[lastCanal]||'💬'):null;
     const diasTxt=dias===null?'':dias===0?'hoje':dias===1?'ontem':`${dias}d atrás`;
+    const today=new Date(); today.setHours(0,0,0,0);
+    const nextDataMs=c.nextData?new Date(c.nextData).setHours(0,0,0,0):null;
+    let urgBadge='';
+    if(nextDataMs!==null){
+      const diffDays=Math.round((nextDataMs-today.getTime())/86400000);
+      if(diffDays<0) urgBadge='<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⚠ Atrasado</span>';
+      else if(diffDays<=3) urgBadge='<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;">⏰ Urgente</span>';
+    }
+    const nextDataFmt=c.nextData?c.nextData.split('-').reverse().join('/'):'';
     return `<div class="contact-item" onclick="openContatoModal(${c.id})">
       <div class="contact-avatar">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
       <div style="flex:1;min-width:0;">
@@ -2231,7 +2411,8 @@ function renderCRM(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
         <span style="background:${{A:'#EFF6FF',B:'#F0FDF4',C:'#F5F3FF'}[c.plano]};color:${{A:'#1D4ED8',B:'#15803D',C:'#6D28D9'}[c.plano]};font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">P.${c.plano}</span>
         ${c.tipo&&c.tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${c.tipo}</span>`:''}
-        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}</div>`:''}
+        ${urgBadge}
+        ${c.next?`<div class="contact-next" style="margin-left:0;text-align:right;">${c.next}${nextDataFmt?' <span style="color:var(--text3);font-size:11px;">'+nextDataFmt+'</span>':''}</div>`:''}
       </div>
     </div>`;
   }).join(''):'<div style="padding:20px;color:var(--text3);font-size:13.5px;text-align:center;">Nenhum contato encontrado.</div>';
@@ -2439,16 +2620,12 @@ function renderTimelineLista(timeline){
 function openContatoModal(id){
   editingContatoId=id;
   const isNew=id==='new';
-  document.getElementById('modal-contato-title').textContent=isNew?'Novo Contato':'Editar Contato';
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
-  document.getElementById('mc-com-btn').style.display=isNew?'none':'inline-flex';
-  // Populate vaga dropdown
   const vagaSel=document.getElementById('mc-vaga-id');
   if(vagaSel){
     const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
     vagaSel.innerHTML='<option value="">— Nenhuma —</option>'+ativas.map(v=>`<option value="${v.id}">${v.empresa}${v.cargo?' — '+v.cargo:''}</option>`).join('');
   }
-  const tlSection=document.getElementById('mc-timeline-section');
   const tlForm=document.getElementById('mc-timeline-form');
   const tlLista=document.getElementById('mc-timeline-lista');
   if(!isNew){
@@ -2463,25 +2640,78 @@ function openContatoModal(id){
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
+    document.getElementById('mc-next-data').value=c.nextData||'';
     document.getElementById('mc-notas').value=c.notas||'';
     if(vagaSel&&c.vagaId) vagaSel.value=c.vagaId;
-    if(tlSection) tlSection.style.display='';
     if(tlForm) tlForm.style.display='none';
     renderTimelineListaCt(c.timeline||[]);
   } else {
-    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='warm';
     document.getElementById('mc-plano').value='A';
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
-    if(tlSection) tlSection.style.display='none';
     if(tlLista) tlLista.innerHTML='';
   }
+  setCTTab('dados');
+  atualizarBtnOutlook();
+  atualizarHeaderContato();
   document.getElementById('modal-contato').style.display='flex';
 }
 function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
-function saveContato(){
-  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return;
+
+let _ctTab='dados';
+function setCTTab(tab){
+  _ctTab=tab;
+  const isNew=editingContatoId==='new';
+  // Reset comunicação ao entrar na aba
+  if(tab==='comunicacao'){
+    const ow=document.getElementById('com-output-wrap'); if(ow) ow.style.display='none';
+    const rs=document.getElementById('com-resumo'); if(rs) rs.style.display='none';
+    const cc=document.getElementById('com-char-count'); if(cc) cc.style.display='none';
+    const rc=document.getElementById('com-recebida'); if(rc) rc.value='';
+    const op=document.getElementById('com-output'); if(op) op.value='';
+    setComunicacaoMode('linkedin');
+    const nm=document.getElementById('mct-com-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-com-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  if(tab==='historico'){
+    const nm=document.getElementById('mct-hist-new-msg'); if(nm) nm.style.display=isNew?'block':'none';
+    const ct=document.getElementById('mct-hist-content'); if(ct) ct.style.display=isNew?'none':'block';
+  }
+  ['dados','comunicacao','historico'].forEach(t=>{
+    const panel=document.getElementById('mct-'+t); if(panel) panel.style.display=t===tab?'block':'none';
+    const btn=document.getElementById('mct-btn-'+t);
+    if(btn){ btn.style.color=t===tab?'var(--navy)':'var(--text3)'; btn.style.fontWeight=t===tab?'700':'500'; btn.style.borderBottom=t===tab?'2px solid var(--navy)':'2px solid transparent'; }
+  });
+}
+function atualizarHeaderContato(){
+  const nome=(document.getElementById('mc-nome')?.value||'').trim();
+  const tipo=document.getElementById('mc-tipo')?.value||'Executivo';
+  const temp=document.getElementById('mc-temp')?.value||'warm';
+  const av=document.getElementById('mc-header-avatar');
+  if(av){ const ini=nome?nome.split(' ').filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,2).join(''):'?'; av.textContent=ini; }
+  const hn=document.getElementById('mc-header-nome'); if(hn) hn.textContent=nome||'Novo Contato';
+  const hb=document.getElementById('mc-header-badges');
+  if(hb){
+    const tB={hot:['🔥 Quente','#FFF3E0','#E65100'],warm:['🌤 Morno','#FFF8EC','#B8670A'],cold:['❄️ Frio','#EFF6FF','#1D4ED8']}[temp]||['','var(--bg3)','var(--text3)'];
+    const tipoBadge=tipo&&tipo!=='Executivo'?`<span style="background:var(--bg3);color:var(--text2);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tipo}</span>`:'';
+    const tempBadge=tB[0]?`<span style="background:${tB[1]};color:${tB[2]};font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;">${tB[0]}</span>`:'';
+    hb.innerHTML=tipoBadge+tempBadge;
+  }
+}
+
+function saveContato(silent=false){
+  const nome=document.getElementById('mc-nome').value.trim(); if(!nome)return null;
+  const next=document.getElementById('mc-next').value.trim();
+  const errEl=document.getElementById('mc-next-err');
+  if(!next){
+    setCTTab('dados');
+    if(errEl) errEl.style.display='block';
+    document.getElementById('mc-next')?.focus();
+    return null;
+  }
+  if(errEl) errEl.style.display='none';
   const existing=editingContatoId==='new'?null:contatos.find(c=>c.id===editingContatoId);
   const now=Date.now();
   const obj={
@@ -2495,7 +2725,8 @@ function saveContato(){
     temp:document.getElementById('mc-temp').value,
     plano:document.getElementById('mc-plano').value,
     tipo:document.getElementById('mc-tipo').value,
-    next:document.getElementById('mc-next').value.trim(),
+    next,
+    nextData:document.getElementById('mc-next-data')?.value||'',
     notas:document.getElementById('mc-notas').value.trim(),
     vagaId:document.getElementById('mc-vaga-id')?.value||null,
     lastContact:now,
@@ -2503,13 +2734,48 @@ function saveContato(){
     timeline:existing?.timeline||[{ts:now,texto:'Contato registrado'}]
   };
   if(editingContatoId==='new') contatos.push(obj); else contatos=contatos.map(c=>c.id===editingContatoId?obj:c);
-  saveContatos(); renderCRM(); closeContatoModal();
+  saveContatos(); renderCRM();
+  if(!silent) closeContatoModal();
+  return obj;
 }
 function deleteContato(){
   if(!editingContatoId||editingContatoId==='new')return;
   if(!confirm('Remover este contato?'))return;
   contatos=contatos.filter(c=>c.id!==editingContatoId);
   saveContatos(); renderCRM(); closeContatoModal();
+}
+function atualizarBtnOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim();
+  const data=document.getElementById('mc-next-data')?.value||'';
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn) btn.style.display=(next&&data)?'inline-flex':'none';
+}
+async function salvarEAgendarOutlook(){
+  const next=(document.getElementById('mc-next')?.value||'').trim(); if(!next) return;
+  const data=document.getElementById('mc-next-data')?.value||''; if(!data) return;
+  const nome=(document.getElementById('mc-nome')?.value||'').trim(); if(!nome) return;
+  const obj=saveContato(true); if(!obj) return;
+  const btn=document.getElementById('mc-outlook-btn');
+  if(btn){btn.innerHTML='Agendando…';btn.disabled=true;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/calendar/evento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:`Senova: ${next} — ${nome}`,data,duracao:30})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(btn){btn.innerHTML='✓ Agendado!';btn.style.color='var(--green)';btn.disabled=true;}
+      setTimeout(()=>closeContatoModal(),1200);
+    } else if(res.status===401&&json.reauth){
+      if(btn){btn.innerHTML='🔑 Conectar Outlook';btn.style.color='var(--action)';btn.disabled=false;}
+      if(confirm('Outlook não conectado. Conectar agora?')) window.open(json.url_auth,'_blank','noopener,noreferrer');
+    } else {
+      if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+    }
+  } catch{
+    if(btn){btn.innerHTML='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+  }
 }
 // Timeline de interações do contato
 function abrirFormTimelineCt(){
@@ -2574,20 +2840,10 @@ function limparBuscaContato(){
   const clr=document.getElementById('ct-busca-clear'); if(clr) clr.style.display='none';
   renderCRM();
 }
-// ── MODAL COMUNICAÇÃO ──
+// ── COMUNICAÇÃO INLINE (abas do modal-contato) ──
 let _comunicacaoMode='linkedin';
-function abrirModalComunicacao(){
-  const c=editingContatoId&&editingContatoId!=='new'?contatos.find(x=>x.id===editingContatoId):null;
-  if(!c){alert('Salve o contato antes de usar Comunicação.');return;}
-  document.getElementById('mc-com-nome').textContent=c.nome;
-  document.getElementById('com-output-wrap').style.display='none';
-  document.getElementById('com-resumo').style.display='none';
-  document.getElementById('com-recebida').value='';
-  document.getElementById('com-output').value='';
-  setComunicacaoMode('linkedin');
-  document.getElementById('modal-comunicacao').style.display='flex';
-}
-function fecharModalComunicacao(){ document.getElementById('modal-comunicacao').style.display='none'; }
+function abrirModalComunicacao(){ setCTTab('comunicacao'); }
+function fecharModalComunicacao(){ setCTTab('dados'); }
 function setComunicacaoMode(mode){
   _comunicacaoMode=mode;
   ['linkedin','responder','followup'].forEach(m=>{
@@ -2665,8 +2921,7 @@ async function registrarInteracaoCom(){
   contatos[idx].lastContact=now;
   saveContatos(); renderCRM();
   renderTimelineListaCt(contatos[idx].timeline);
-  const tlSection=document.getElementById('mc-timeline-section'); if(tlSection) tlSection.style.display='';
-  fecharModalComunicacao();
+  setCTTab('historico');
 }
 
 // ═══════════════════════════════════════════════
@@ -2909,14 +3164,19 @@ async function checkOutlookStatus(){
 }
 
 function atualizarSinais(){
-  // Sinal 1 — emails classificados
+  // Sinal 1 — emails classificados (sempre visível após primeiro fetch)
   const s1=document.getElementById('sinal-emails');
   const s1txt=document.getElementById('sinal-emails-txt');
   if(s1){
-    if(_sinaisEmails.classificados>0){
+    if(!_emailsCarregados){
+      s1.style.display='none';
+    } else if(_sinaisEmails.classificados>0){
       s1.style.display='flex';
       s1txt.textContent=`${_sinaisEmails.classificados} email${_sinaisEmails.classificados===1?'':'s'} classificado${_sinaisEmails.classificados===1?'':'s'} → ${_sinaisEmails.leads} novo${_sinaisEmails.leads===1?'':'s'} lead${_sinaisEmails.leads===1?'':'s'} criado${_sinaisEmails.leads===1?'':'s'}`;
-    } else { s1.style.display='none'; }
+    } else {
+      s1.style.display='flex';
+      s1txt.textContent=_emailsAvulsos.length?`${_emailsAvulsos.length} email${_emailsAvulsos.length===1?'':'s'} aguardando resposta`:'Nenhum email novo';
+    }
   }
   // Sinal 2 — Google Alertas
   const s2=document.getElementById('sinal-alertas');
@@ -2938,6 +3198,160 @@ function atualizarSinais(){
     } else { s3.style.display='none'; }
   }
 }
+// ── Emails Avulsos — resposta via Outlook ──
+function toggleEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  const chevron=document.getElementById('sinal-emails-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display!=='none'&&lista.style.display!=='';
+  if(aberto){
+    lista.style.display='none';
+    if(chevron) chevron.style.transform='';
+  } else {
+    lista.style.display='flex';
+    if(chevron) chevron.style.transform='rotate(90deg)';
+    renderEmailsAvulsos();
+  }
+}
+function renderEmailsAvulsos(){
+  const lista=document.getElementById('emails-avulsos-lista');
+  if(!lista||lista.style.display==='none') return;
+  if(!_emailsAvulsos.length){
+    lista.innerHTML='<div style="padding:8px 0;font-size:13px;color:var(--text3);">Nenhum email para exibir.</div>';
+    return;
+  }
+  lista.innerHTML=_emailsAvulsos.map((e,i)=>{
+    const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    const remetente=e.from_name||e.from||'(remetente)';
+    const preview=(e.resumo||e.preview||'').slice(0,100);
+    return `<div class="home-acao-item" style="cursor:default;align-items:flex-start;">
+      <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+          <span style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
+          <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+        </div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.subject||'(sem assunto)')}</div>
+        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}${e.from&&e.from!==remetente?' &lt;'+escHtml(e.from)+'&gt;':''}</div>
+        ${preview?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="abrirModalResponder(${i})">↩ Responder</button>
+    </div>`;
+  }).join('');
+}
+function abrirModalResponder(idx){
+  const e=_emailsAvulsos[idx]; if(!e) return;
+  _emailAtual=e;
+  const deEl=document.getElementById('mer-de');
+  const assEl=document.getElementById('mer-assunto');
+  if(deEl) deEl.textContent=`De: ${e.from_name||''}${e.from?' <'+e.from+'>':''}`;
+  if(assEl) assEl.textContent=e.subject||'(sem assunto)';
+  const corpo=document.getElementById('mer-corpo'); if(corpo) corpo.value=e.body||e.preview||'';
+  const resp=document.getElementById('mer-resposta'); if(resp) resp.value='';
+  const btn=document.getElementById('mer-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-email-responder').style.display='flex';
+}
+function fecharModalEmailResponder(){
+  document.getElementById('modal-email-responder').style.display='none';
+  _emailAtual=null;
+}
+async function gerarRespostaEmailAvulso(btn){
+  const corpo=(document.getElementById('mer-corpo')?.value||'').trim();
+  if(!corpo){alert('Nenhum conteúdo de email para gerar resposta.');return;}
+  const assunto=_emailAtual?.subject||'';
+  const remetente=_emailAtual?.from_name||_emailAtual?.from||'recrutador';
+  btn.textContent='Gerando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,
+        system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
+        messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de marketing/negócios (Curitiba, PR, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
+      })
+    });
+    const data=await res.json();
+    const resposta=(data.content?.[0]?.text||'').trim();
+    if(resposta){const el=document.getElementById('mer-resposta');if(el)el.value=resposta;}
+  }catch(err){console.error('gerarRespostaEmailAvulso:',err);alert('Erro ao gerar resposta. Tente novamente.');}
+  finally{btn.textContent='✨ Gerar com IA';btn.disabled=false;}
+}
+async function enviarRespostaEmailAvulso(btn){
+  const resposta=(document.getElementById('mer-resposta')?.value||'').trim();
+  if(!resposta){alert('Escreva ou gere uma resposta antes de enviar.');return;}
+  if(!_emailAtual?.id){alert('ID do email não encontrado. Não é possível enviar via Outlook.');return;}
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/responder',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messageId:_emailAtual.id,comentario:resposta})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      btn.textContent='✓ Enviado!';btn.style.color='var(--green)';
+      setTimeout(()=>fecharModalEmailResponder(),1200);
+    }else if(res.status===401&&json.reauth){
+      btn.textContent='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
+}
+
+function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx}){
+  _candidaturaVagaIdx=savedVagaIdx;
+  document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
+  document.getElementById('mcand-email').value=emailDest||'';
+  document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
+  const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
+  document.getElementById('mcand-carta').value=carta||cartaDefault;
+  document.getElementById('mcand-cv').value=lastCV||'';
+  document.getElementById('mcand-cv-status').textContent=lastCV?'✓ CV otimizado disponível':'CV não gerado — edite manualmente';
+  const btn=document.getElementById('mcand-enviar-btn');
+  if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
+  document.getElementById('modal-candidatura').style.display='flex';
+}
+function fecharModalCandidatura(){
+  document.getElementById('modal-candidatura').style.display='none';
+  _candidaturaVagaIdx=-1;
+}
+async function enviarCandidaturaOutlook(btn){
+  const para=(document.getElementById('mcand-email')?.value||'').trim();
+  const assunto=(document.getElementById('mcand-assunto')?.value||'').trim();
+  const carta=(document.getElementById('mcand-carta')?.value||'').trim();
+  const cv=(document.getElementById('mcand-cv')?.value||'').trim();
+  if(!para){alert('Preencha o email do recrutador.');return;}
+  if(!assunto){alert('Preencha o assunto.');return;}
+  const corpo=carta+(cv?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cv:'');
+  btn.textContent='Enviando…';btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL+'/api/emails/enviar',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({para,assunto,corpo})
+    });
+    const json=await res.json().catch(()=>({}));
+    if(res.ok){
+      if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
+        const v=vagas[_candidaturaVagaIdx];
+        if(!v.timeline)v.timeline=[];
+        v.timeline.unshift({ts:Date.now(),texto:'CV enviado por Outlook para '+para});
+        saveVagas();
+      }
+      btn.textContent='✓ Enviado!';
+      const frase=['CV enviado! Estou torcendo por você, Marcos. 🌟','Candidatura a caminho! Você tem muito a oferecer. 💛','Enviado pelo Outlook! Conte comigo para o que precisar. 🚀'][Math.floor(Math.random()*3)];
+      setTimeout(()=>{
+        fecharModalCandidatura();
+        _atsMostrarMsg(`<div style="display:flex;align-items:center;gap:16px;padding:22px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;"><div style="width:46px;height:46px;border-radius:50%;background:#C9A84C;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,0.3);"><span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;line-height:1;">S</span></div><div style="flex:1;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Sofia · Assistente</div><div style="font-size:14.5px;color:var(--text2);line-height:1.55;">${frase}</div></div><div style="font-size:11px;color:var(--text3);flex-shrink:0;align-self:flex-end;">clique para fechar</div></div>`,5000);
+      },1200);
+    }else if(res.status===401&&json.reauth){
+      btn.innerHTML='🔑 Conectar Outlook';btn.disabled=false;
+      if(confirm('Outlook não conectado. Conectar agora?'))window.open(json.url_auth,'_blank','noopener,noreferrer');
+    }else{
+      btn.textContent='Erro — tentar novamente';btn.disabled=false;
+    }
+  }catch{btn.textContent='Erro — tentar novamente';btn.disabled=false;}
+}
+
 function irParaInativos(){
   _crmFiltroInativo=true;
   showPage('crm');
@@ -3011,7 +3425,10 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
+    if(emailsVaga.length) _emailsAvulsos=emailsVaga;
+    _emailsCarregados=true;
     atualizarSinais();
+    renderEmailsAvulsos();
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 
@@ -3160,6 +3577,36 @@ function renderHomeAcoes(){
     el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCor};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${inativoBadge}${dataHora}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     list.appendChild(el);
   });
+
+  // Contatos CRM com próxima ação hoje, atrasada ou urgente (≤3 dias)
+  const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
+  const contatosAcao=(contatos||[]).filter(c=>c.next&&c.nextData).map(c=>{
+    const ms=new Date(c.nextData).setHours(0,0,0,0);
+    const diff=Math.round((ms-todayCRM.getTime())/86400000);
+    return {...c,_diff:diff};
+  }).filter(c=>c._diff<=3).sort((a,b)=>a._diff-b._diff);
+  if(contatosAcao.length){
+    const sep=document.createElement('div');
+    sep.className='home-vaga-acao';
+    sep.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 0 2px;';
+    sep.textContent='CRM — Contatos';
+    list.appendChild(sep);
+    contatosAcao.forEach(c=>{
+      let badgeTxt='',badgeBg='',badgeColor='';
+      if(c._diff<0){badgeTxt='⚠ Atrasado';badgeBg='#FEF0EF';badgeColor='#CC0000';}
+      else if(c._diff===0){badgeTxt='Hoje';badgeBg='#EFF6FF';badgeColor='#1D4ED8';}
+      else{badgeTxt='⏰ Urgente';badgeBg='#FFF8EC';badgeColor='#B8670A';}
+      const dataFmt=c.nextData.split('-').reverse().join('/');
+      const bordaCRM=c._diff<0?'#CC0000':c._diff===0?'#1D4ED8':'#B8670A';
+      const el=document.createElement('div');
+      el.className='home-acao-item home-vaga-acao';
+      el.style.borderLeftColor=bordaCRM;
+      if(c._diff<0) el.style.background='#FEF0EF';
+      el.onclick=()=>openContatoModal(c.id);
+      el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCRM};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Contato</span><span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">${badgeTxt}</span><span style="font-size:11px;color:var(--text3);">📅 ${dataFmt}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.next}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+      list.appendChild(el);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -3169,13 +3616,13 @@ function verOrigem(){
   const url=document.getElementById('mv-origem-url')?.value||'';
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank','noopener,noreferrer');
+  else window.open(url.startsWith('http')?url:'https://'+url,'_blank','noopener,noreferrer');
 }
 
 function verOrigemCard(url){
   if(!url) return;
   if(url.includes('@')) window.location.href='mailto:'+url;
-  else window.open(url,'_blank','noopener,noreferrer');
+  else window.open(url.startsWith('http')?url:'https://'+url,'_blank','noopener,noreferrer');
 }
 
 function abrirAntiATSModal(){
