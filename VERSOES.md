@@ -12,7 +12,37 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.10 — 18/mai/2026 (ATUAL)
+### v3.11 — 21/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Backup:** senova_v3_18mai2026f.html (pré-edição)
+
+#### Sofia — implementação completa (10 passos)
+- `#page-sofia` criado com 4 tabs: Bem-vinda, Tutorial, Construir CV, Simular Entrevista
+- Tab 3 (Construir CV): `#sofia-chat-section` migrado do `#page-linkedin`; ID `sofia-start-btn` centralizado
+- Tab 4 (Simular Entrevista): conteúdo de `#page-interview` migrado; idioma DE (Deutsch) adicionado
+- `PAGES = ['home','ats','linkedin','crm','sofia']` — `interview` removido
+- Sidebar: item "Sofia" com ícone de pessoa; substitui "Entrevistas"
+- `sofiaTab(n)` — função de alternância de tabs; `showPage('sofia')` ativa Tab 1 por padrão
+- Card compacto "→ Construir CV com Sofia" adicionado ao Perfil (Bloco 2, entre upload e Bloco 3)
+- `#page-interview` removido do HTML — sem referências órfãs
+- `sofiaTransferirPerfil()` redireciona para `showPage('linkedin')` após transferência
+
+#### Infraestrutura de skills — auditoria e atualização completa (11 skills)
+- `session_start.md` criado — protocolo de abertura de sessão com 12 skills obrigatórios
+- `skill_sofia.md` criado — personalidade, tom, estágios de relacionamento, testes, entrega de resultados
+- `skill_crm.md` reescrito — era duplicata de concorrentes; agora documenta Pipeline (7 colunas) + Contatos + varredura + Outlook
+- `skill_dev_senova.md` atualizado — v3.10/Worker v7.7, deploy via git push, MS_TENANT_ID=consumers correto
+- `skill_cv.md` — idioma DE/DACH adicionado + pretensão europeia (ES/PT €3.5–5.5k · DE €5–8k)
+- `skill_linkedin.md` — mercados ES/PT e DE/DACH (etiqueta Xing) + integração CRM
+- `skill_produto.md` + `skill_business_plan.md` — público corrigido para 35+ (era 50+); Sofia nos diferenciais
+- `skill_concorrentes.md` — tabela atualizada: Sofia como diferencial exclusivo no simulador
+- `skill_pesquisa_exec.md` — territórios DE/ES adicionados + integração CRM ao final
+- `skill_followup.md` — Outlook integrado + idiomas ES/DE ao final
+- `skill_market_intel.md` — Central de Sinais como destino de sinais processados
+
+---
+
+### v3.10 — 18/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_18mai2026d.html (pré-edição)
 

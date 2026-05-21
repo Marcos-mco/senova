@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 18/mai/2026 — v3.10*
+*Atualizado: 21/mai/2026 — v3.11*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,7 +16,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.10 (18/mai/2026)
+## ESTADO ATUAL — v3.11 (21/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
@@ -112,6 +112,25 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 ---
 
+## O QUE FOI ENTREGUE — sessão 21/mai/2026
+
+### v3.11
+- **Sofia em produção** — 10 passos executados; `#page-sofia` com 4 tabs (Bem-vinda, Tutorial, Construir CV, Simular Entrevista); `#page-interview` removido; `PAGES=['home','ats','linkedin','crm','sofia']`; idioma DE no simulador; card compacto no Perfil (Bloco 2)
+- **session_start.md criado** — protocolo de abertura com 12 skills obrigatórios; adicionado ao repositório
+- **11 skills auditados e atualizados:**
+  - `skill_sofia.md` — criado do zero (personalidade, tom, estágios, testes, entrega de resultados + seção 10b)
+  - `skill_crm.md` — reescrito (era duplicata de concorrentes; documenta Pipeline 7 colunas + Contatos + varredura + Outlook)
+  - `skill_dev_senova.md` — atualizado para v3.10/Worker v7.7 (deploy via git, MS_TENANT_ID=consumers)
+  - `skill_cv.md` — DE/DACH adicionado + pretensão europeia (ES/PT €3.5–5.5k · DE €5–8k)
+  - `skill_linkedin.md` — mercados ES/PT e DE/DACH + etiqueta Xing + integração CRM
+  - `skill_produto.md` + `skill_business_plan.md` — público 35+ (era 50+); Sofia nos diferenciais
+  - `skill_concorrentes.md` — Sofia na tabela comparativa como diferencial exclusivo
+  - `skill_pesquisa_exec.md` — territórios DE/ES + integração CRM
+  - `skill_followup.md` — Outlook integrado + idiomas ES/DE
+  - `skill_market_intel.md` — Central de Sinais como destino de sinais
+
+---
+
 ## O QUE FOI ENTREGUE — sessão 17/mai/2026
 
 ### v3.8
@@ -161,39 +180,16 @@ BR → ES → DE → PT → Remoto → BR → ...
 
 ### FASE 1 — MVP para 5 usuários reais
 
-1. **Sofia — PRÓXIMA A EXECUTAR** (iniciar em sessão limpa — contexto estava em 10% ao encerrar)
-
-   **Opção A aprovada:** "Entrevistas" vira "Sofia" no menu, 4 tabs internas.
-   
-   **Diagnóstico feito (sessão 18/mai):**
-   - Tab 3 (Construir CV): já implementado em `#page-linkedin` — `iniciarSofia()`, 8 perguntas, gera perfil
-   - Tab 4 (Simular Entrevista): já implementado em `#page-interview` — PT/EN/ES, 5 perguntas, feedback
-   - Onboarding/Tutorial: não existem — tela em branco
-   - `PAGES = ['home','ats','linkedin','crm','interview']` — trocar `interview` por `sofia`
-   - `sofiaTransferirPerfil()` precisa de `showPage('linkedin')` adicionado ao final
-   - IDs existentes (`#sofia-chat`, `#int-chat`, etc.) são preservados — funções não precisam de ajuste
-
-   **10 passos de execução:**
-   1. Buscar foto real (Unsplash/Pexels) — mulher brasileira 35–45 anos, profissional, calorosa — validar URL antes de usar
-   2. CSS mínimo: `.sofia-tab-nav`, `.sofia-tab-btn`, `.sofia-tab-btn.active`, `.sofia-avatar`
-   3. Criar `#page-sofia` com topbar (avatar + "Sofia" + "Assistente de carreira") + tab-nav 4 botões
-   4. Tab 1 — Bem-vinda: HTML estático, avatar grande, frase calorosa, 4 cards de capacidades com botão "→ Abrir"
-   5. Tab 2 — Tutorial: HTML estático, 6 seções (Home · Análise CV · Pipeline · Perfil · Busca vagas · Fluxo completo)
-   6. Tab 3 — Construir CV: mover card "Não tenho CV" + `#sofia-chat-section` do `#page-linkedin` para aqui
-   7. Tab 4 — Simular Entrevista: mover conteúdo de `#page-interview` para aqui + `<option value="DE">Deutsch</option>`
-   8. Cleanup `#page-linkedin`: remover card "Não tenho CV" + `#sofia-chat-section`; adicionar card compacto "→ Construir CV com Sofia"
-   9. `PAGES`: trocar `'interview'` por `'sofia'`; sidebar: `showPage('sofia')`, label "Sofia", ícone atualizado; `sofiaTab(n)` para alternar tabs; `showPage('sofia')` ativa Tab 1 por padrão; `sofiaTransferirPerfil()` + `showPage('linkedin')` ao final
-   10. Remover `#page-interview` do HTML; backup `senova_v3_18mai2026f.html`; commit + push
-
-   **Não muda:** Worker, CSS global, cores, fontes, Perfil (upload/otimizador), funções do simulador e Sofia CV
-2. **Filtros Plano A/B/C no Pipeline** — verificar se já implementado antes de executar
-3. **Aba Perfil — otimização múltiplos portais** — Gupy, Indeed, Catho, Reed, StepStone
-4. **Comunidades 50+** — mapear e indicar no Senova
-5. **Cursos via Claude** — sugestões por lacuna no perfil
-6. **4 idiomas** — interface PT/EN/ES/DE
-7. **Michael Page automático** — remetente reconhecido, importação sem tag Revisar
-8. **Preenchimento automático nos portais** — autofill
-9. **Skill UI/UX-Pro-Max** — instalar no Code
+1. **Sofia contextual flutuante** — redesenho da Sofia como presença contextual em todas as páginas; comportamento muda por página e estágio de relacionamento (skill_sofia.md seções 5 e 7); não interrompe o fluxo — aparece quando relevante
+2. **skill_onboarding.md** — criar skill de onboarding para novos usuários do Senova (fluxo de primeira sessão, perguntas guiadas, configuração do Perfil)
+3. **skill_ux_writing.md** — criar skill de UX writing (microcopy, labels, mensagens da Sofia por contexto, glossário de interface)
+4. **Filtros Plano A/B/C no Pipeline** — verificar se já implementado antes de executar
+5. **Aba Perfil — otimização múltiplos portais** — Gupy, Indeed, Catho, Reed, StepStone
+6. **Comunidades 35+** — mapear e indicar no Senova
+7. **Cursos via Claude** — sugestões por lacuna no perfil
+8. **4 idiomas** — interface PT/EN/ES/DE
+9. **Michael Page automático** — remetente reconhecido, importação sem tag Revisar
+10. **Preenchimento automático nos portais** — autofill
 
 ### FASE 2 — MVP Comercial
 
@@ -239,7 +235,7 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 ### 3 Planos ativos
 - **Plano A:** Recolocação C-Level (CEO/CMO/CSO/Diretor/Head/Gerente Sênior) — R$19–25k CLT — aceita PJ via LaborDei
 - **Plano B:** Consultoria via Consigliere (Thiago Ayres)
-- **Plano C:** Senova SaaS 50+ (médio prazo)
+- **Plano C:** Senova SaaS 35+ (médio prazo)
 
 ### Experiência-chave
 - RPC/Globo: Gerente (nov/2008–abr/2012) + Diretor (abr/2012–abr/2019) — 30 pessoas, 8 afiliadas, R$500mi
@@ -277,6 +273,7 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 
 ## SKILLS DISPONÍVEIS — LER ANTES DE EXECUTAR
 
+- skill_sofia: github.com/Marcos-mco/senova/blob/main/skill_sofia.md
 - skill_linkedin: github.com/Marcos-mco/senova/blob/main/skill_linkedin.md
 - skill_cv: github.com/Marcos-mco/senova/blob/main/skill_cv.md
 - skill_pesquisa_exec: github.com/Marcos-mco/senova/blob/main/skill_pesquisa_exec.md
@@ -286,6 +283,8 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 - skill_business_plan: github.com/Marcos-mco/senova/blob/main/skill_business_plan.md
 - skill_market_intel: github.com/Marcos-mco/senova/blob/main/skill_market_intel.md
 - skill_concorrentes: github.com/Marcos-mco/senova/blob/main/skill_concorrentes.md
+- skill_crm: github.com/Marcos-mco/senova/blob/main/skill_crm.md
+- skill_design_senova: github.com/Marcos-mco/senova/blob/main/skill_design_senova.md
 
 ---
 
