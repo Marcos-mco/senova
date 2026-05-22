@@ -2857,6 +2857,8 @@ async function carregarStatusVarredura(){
       fetch(WORKER_URL+'/api/varredura-status'),
       fetch(WORKER_URL+'/api/config-varredura'),
     ]);
+    if(!resStatus.ok) throw new Error(`varredura-status ${resStatus.status}`);
+    if(!resConfig.ok) throw new Error(`config-varredura ${resConfig.status}`);
     const status = await resStatus.json();
     const config = await resConfig.json();
 
@@ -4359,6 +4361,7 @@ async function limparEmails(){
 async function checkOutlookStatus(){
   try{
     const res=await fetch(WORKER_URL+'/health');
+    if(!res.ok) throw new Error(`health ${res.status}`);
     const data=await res.json();
     const tog=document.getElementById('outlook-toggle');
     if(data.statsHoje){
@@ -4852,6 +4855,7 @@ async function carregarEmails(forcar){
   try{
     const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
     const res=await fetch(url);
+    if(!res.ok) throw new Error(`emails ${res.status}`);
     const data=await res.json();
     if(data.reauth){ conectarOutlook(); return; }
     let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
