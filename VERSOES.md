@@ -12,7 +12,34 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.11 — 21/mai/2026 (ATUAL)
+### v3.12.1 — 22/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Commit:** `8036403`
+
+#### Fix regressão — cards do Pipeline não abriam ao clicar
+- `vagas.find(x=>x.id===id)` usava `===` estrita: IDs numéricos (criados manualmente, DEFAULT_VAGAS, email-import) nunca encontravam match com ID string vindo do `onclick="openVagaModal('${c.id}')"`
+- Corrigido em 3 locais: `openVagaModal` (l.3578), `atualizarBotoesModal` (l.3663), `candidatarDoModal` (l.3702) — tudo com `String(x.id)===String(id)`
+
+---
+
+### v3.12 — 22/mai/2026
+**Status:** Completo e validado ✅  
+**Commit:** `22ba509`
+
+#### UTF-8 charset no Worker
+- `json()` helper (senova-worker.js l.60): `Content-Type: application/json` → `application/json; charset=utf-8`
+- Worker deployado: Version ID `716274fc`
+
+#### Modelo IA atualizado
+- `claude-sonnet-4-5` → `claude-sonnet-4-6` em 12 chamadas do frontend (replace_all)
+
+#### Lead → Oportunidade (interface only)
+- 12 labels da UI renomeados: coluna kanban, stat home, filtro, opção do select, textos de ajuda, mapas de status JS
+- Valores internos intactos: `status:'lead'`, `vagas-lead`, localStorage, rotas `/api/vagas-lead`
+
+---
+
+### v3.11 — 21/mai/2026
 **Status:** Completo e validado ✅  
 **Backup:** senova_v3_18mai2026f.html (pré-edição)
 

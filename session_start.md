@@ -58,7 +58,7 @@
 | Central de Sinais | ✅ Funcional | Home — Emails / Google Alerts / Vagas para revisar |
 | Extensão Chrome | ✅ Funcional | `senova-extension/` — captura em qualquer site |
 | Perfil (5 blocos) | ✅ Funcional | Blocos 1–4 + Bloco 5 Ferramentas salvam em `/api/perfil` |
-| Perfil (Blocos A/B/C) | ⚠️ Código no HTML | HTML presente, **não testado em produção** |
+| Perfil (Blocos A/B/C) | ✅ Funcional | save/load via `/api/perfil` confirmado — código completo |
 | Home / Dashboard | ✅ Funcional | KPIs 2×2, funil, próximas ações, sinais |
 
 ---
@@ -66,7 +66,7 @@
 ## PENDÊNCIAS E BUGS CONHECIDOS
 
 ### Alta prioridade
-1. **Blocos A/B/C do Perfil** — HTML gerado e commitado (linhas ~788, ~859, ~867) mas não confirmado/testado. Verificar se campos salvam/carregam via `/api/perfil`.
+1. ~~**Blocos A/B/C do Perfil**~~ — ✅ Confirmado: save/load implementado (linhas 2548–2597), rota `/api/perfil` GET+POST ativa no Worker (linhas 306/312).
 2. **Lead → Oportunidade** — ✅ UI renomeada (12 labels, labels JS). Valores internos mantidos (`status:'lead'`, `vagas-lead`, localStorage) — breaking change intencional adiado.
 3. **Triagem automática** — vagas entrar direto em Oportunidade ou Para Considerar pelos critérios do Bloco 3 do Perfil. Não implementada.
 4. ~~**Modelo IA**~~ — ✅ Feito: `claude-sonnet-4-5` → `claude-sonnet-4-6` em 12 chamadas do frontend.
