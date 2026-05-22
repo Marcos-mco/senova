@@ -5156,8 +5156,10 @@ function abrirAntiATSModal(){
       campo.value=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
     } else if(notas.length>100){
       campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n`+(metaVaga?metaVaga+'\n':'')+`\n${notas}`;
+    } else if(origemUrl&&origemUrl.startsWith('http')){
+      buscarDescricaoAuto(origemUrl); return;
     } else if(empresa||cargo){
-      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(metaVaga?metaVaga+'\n':'')+(origemUrl?'Origem: '+origemUrl+'\n':'')+(notas?'Contexto: '+notas:'');
+      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(metaVaga?metaVaga+'\n':'')+(notas?'Contexto: '+notas:'');
     }
   },200);
 }
