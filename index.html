@@ -3575,7 +3575,7 @@ function openVagaModal(id){
   document.getElementById('modal-vaga-title').textContent=isNew?'Nova Vaga':'Editar Vaga';
   document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
   if(!isNew){
-    const v=vagas.find(x=>x.id===id); if(!v)return;
+    const v=vagas.find(x=>String(x.id)===String(id)); if(!v)return;
     document.getElementById('mv-empresa').value=v.empresa;
     document.getElementById('mv-cargo').value=v.cargo;
     document.getElementById('mv-canal').value=v.canal;
@@ -3660,7 +3660,7 @@ function avancarEstagio(){
 function atualizarBotoes(){ atualizarBotoesModal(); }
 function atualizarBotoesModal(statusOverride){
   const status=statusOverride||document.getElementById('mv-status')?.value||'lead';
-  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>x.id===editingVagaId):null;
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const temAtsCV=!!(v&&(v.atsCV||(typeof v.score==='number'&&v.score>0)));
   const proxSec=document.getElementById('mv-proxima-section');
   if(proxSec) proxSec.style.display=(status==='lead'||status==='negado'||status==='aceito')?'none':'';
@@ -3699,7 +3699,7 @@ function confirmarDeclinar(){
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
 function candidatarDoModal(){
   const id=editingVagaId;
-  const v=vagas.find(x=>x.id===id);
+  const v=vagas.find(x=>String(x.id)===String(id));
   if(!v) return;
   if(!(v.atsCV||lastCV)){
     // sem CV salvo — redirecionar para Análise CV (lê campos do modal aberto)
