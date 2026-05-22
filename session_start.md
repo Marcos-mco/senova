@@ -35,9 +35,9 @@
 ### Versões
 | Artefato | Versão | Observação |
 |---|---|---|
-| index.html | **v3.12.1** | ~290KB, ~4700 linhas — VERSOES.md canonical |
+| index.html | **v3.12.2** | ~290KB, ~4700 linhas — VERSOES.md canonical |
 | senova-worker.js | **v7.7** (header diz v7.3 — stale) | Tem `/api/fetch-descricao` — conteúdo é v7.7 |
-| Worker deployado | Version ID d4254150 | senova-proxy.marcos-mco.workers.dev |
+| Worker deployado | Version ID cd021033 | senova-proxy.marcos-mco.workers.dev |
 | Modelo IA (Worker) | claude-sonnet-4-5 | — |
 | Modelo IA (Frontend) | claude-sonnet-4-6 | ✅ Atualizado |
 
@@ -74,11 +74,11 @@
 
 ### Média prioridade
 6. **Bug `mv-prioridade` com valor inválido** — `openVagaModal('new')` na linha ~3636 faz `document.getElementById('mv-prioridade').value='lead'`, mas o campo só aceita `'alta'`/`'media'`/`'baixa'`. Nova vaga criada manualmente abre com prioridade sem seleção válida. Fix: trocar para `'media'`.
-7. **Adzuna jobDescription vazio** — campo JD vem vazio na importação. Investigar se Worker passa `descricao` corretamente no card.
+7. ~~**Adzuna jobDescription vazio**~~ — ✅ Corrigido: auto-fetch via `buscarDescricaoAuto(origemUrl)` acionado automaticamente quando jobDesc < 50 chars e origemUrl existe (commit `6f5a010`).
 8. ~~**Encoding UTF-8 no Worker**~~ — ✅ Corrigido: `Content-Type: application/json; charset=utf-8` adicionado à função `json()`, Worker deployado (v716274fc).
-9. **Home — erro nos emails e varredura** — reportado na sessão 20/mai, não investigado.
+9. ~~**Home — erro nos emails e varredura**~~ — ✅ Corrigido: `if(!res.ok)` adicionado antes de `res.json()` em `carregarEmails`, `checkOutlookStatus` e `carregarStatusVarredura` (commit `f9e1eb4`).
 10. **Descrição Inhire** — extensão ainda captura algum conteúdo de navegação (menor, workaround ok).
-11. **Google Alerts Digest** — verificar se está chegando corretamente no Outlook e sendo classificado.
+11. ~~**Google Alerts Digest**~~ — ✅ Corrigido: alertas separados antes da classificação IA no Worker; retornados em `alertas:[]` separado; frontend lê `data.alertas` diretamente em `_sinaisAlertas` (Worker `cd021033` + frontend `186cc61`).
 
 ### Backlog de produto
 12. Home redesenho — 6 blocos: Novas Oportunidades, Para Considerar, Ações do Dia, Funil, Sinais, Contatos Ativos.

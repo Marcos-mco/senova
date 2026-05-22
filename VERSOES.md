@@ -12,8 +12,24 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.1 — 22/mai/2026 (ATUAL)
+### v3.12.2 — 22/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Commits:** `f9e1eb4` · `6f5a010` · `186cc61` | **Worker:** Version ID `cd021033`
+
+#### Fix res.ok antes de res.json nas chamadas de email e varredura
+- `checkOutlookStatus` (l.4362), `carregarEmails` (l.4856) e `carregarStatusVarredura` (l.2860–2861): adicionado `if(!res.ok) throw new Error(...)` antes de `res.json()` — evitava SyntaxError silencioso quando Worker retornava 502 ou HTML de erro
+
+#### Auto-fetch descrição Adzuna quando jobDesc vazio
+- `abrirAntiATSModal()`: quando `jobDesc < 50 chars` e `origemUrl` existe, chama `buscarDescricaoAuto(origemUrl)` automaticamente — resolve campo JD vazio nas vagas importadas pela varredura Adzuna (free tier retorna snippet curto)
+
+#### Fix Google Alerts — separar antes da classificação IA
+- **Worker**: `isAlertaFn` definida antes de `novosComConteudo`; alertas separados em `alertas[]` antes de `classificarEmails` — evita que sejam classificados como `irrelevante` e descartados; `return json(...)` inclui campo `alertas` separado; stats calculadas corretamente
+- **Frontend** `carregarEmails`: `_sinaisAlertas` lê `data.alertas||[]` diretamente; `isAlerta` inline removida; `emailsVaga` simplificado (alertas nunca chegam em `emails`)
+
+---
+
+### v3.12.1 — 22/mai/2026
+**Status:** Superada ✅  
 **Commit:** `8036403`
 
 #### Fix regressão — cards do Pipeline não abriam ao clicar
@@ -480,7 +496,7 @@ Para restaurar qualquer versão anterior:
 - Vars obrigatórias: ANTHROPIC_API_KEY, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_TENANT_ID
 - Scopes OAuth ativos: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
 - Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
-- Deploy atual: `fe350991` (18/mai/2026)
+- Deploy atual: `cd021033` (22/mai/2026)
 
 ## Regra de ouro
 **Antes de qualquer sessão de desenvolvimento:**
