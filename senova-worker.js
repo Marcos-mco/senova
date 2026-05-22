@@ -423,6 +423,7 @@ export default {
         return json({ emails: [], total_lidos: emails.length, total_novos: 0, whitelist: await getWhitelist(env) });
       }
 
+      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
       const novosComConteudo = await Promise.all(novos.map(async (e) => {
         const isVagaEmail = /linkedin\.com\/jobs|gupy|greenhouse|lever|workday|jobscore|indeed|vagas|emprego|job|career|oportunidade/i.test(e.from + e.subject + e.body);
         if (isVagaEmail && e.links.length > 0) {
@@ -445,8 +446,12 @@ export default {
         return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
       }));
 
+      // Separar Google Alerts antes da classificação IA
+      const alertas = novosComConteudo.filter(isAlertaFn);
+      const emailsNormais = novosComConteudo.filter(e => !isAlertaFn(e));
+
       const whitelist = await getWhitelist(env);
-      const classificados = await classificarEmails(novosComConteudo, whitelist, env);
+      const classificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
       // Marcar como lido no Outlook após processar
@@ -459,9 +464,8 @@ export default {
       ));
 
       // Stats do dia no KV
-      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
-      const totalAlertas = classificados.filter(isAlertaFn).length;
-      const totalNovos = classificados.filter(e => e.categoria !== 'irrelevante' && !isAlertaFn(e)).length;
+      const totalAlertas = alertas.length;
+      const totalNovos = classificados.length;
       const hoje = new Date().toISOString().slice(0, 10);
       const statsKey = 'stats_' + hoje;
       const statsAtuais = await env.SENOVA_KV.get(statsKey, 'json') || { novos: 0, alertas: 0 };
@@ -470,7 +474,7 @@ export default {
       await env.SENOVA_KV.put(statsKey, JSON.stringify(statsAtuais), { expirationTtl: 86400 });
 
       return json({
-        emails: classificados, total_lidos: emails.length,
+        emails: classificados, alertas, total_lidos: emails.length,
         total_novos: novos.length, total_relevantes: classificados.length, whitelist,
       });
     }
