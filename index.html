@@ -4400,6 +4400,7 @@ function atualizarSinais(){
   if(s2){
     s2.style.display='flex';
     s2.style.opacity='1';
+    s2.onclick=toggleAlertasInline;
     const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
     if(totalSinais>0){
       const fontes=[];
