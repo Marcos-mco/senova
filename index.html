@@ -4865,11 +4865,10 @@ async function carregarEmails(forcar){
     if(statEl) statEl.textContent=total;
     const badge=document.getElementById('home-badge');
     if(badge){ badge.textContent=total; badge.style.display=total>0?'':'none'; }
-    // Separar alertas Google dos demais
-    const isAlerta=e=>{ const f=(e.from||e.de_email||'').toLowerCase(); return f.includes('googlealerts-noreply')||f.includes('google-alerts'); };
-    _sinaisAlertas=emails.filter(isAlerta);
+    // Google Alerts retornam em chave separada do Worker (não passam pela classificação IA)
+    _sinaisAlertas=(data.alertas||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
     if(_sinaisAlertas.length){_alertasHoje=_sinaisAlertas.length;}
-    const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante'&&!isAlerta(e));
+    const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante');
     _sinaisEmails={classificados:emailsVaga.length,leads:0};
     // Importar emails relevantes como Leads no Pipeline
     if(emailsVaga.length>0){
