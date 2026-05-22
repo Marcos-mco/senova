@@ -35,11 +35,11 @@
 ### Versões
 | Artefato | Versão | Observação |
 |---|---|---|
-| index.html | **v3.11** | ~290KB, ~4700 linhas — VERSOES.md canonical |
+| index.html | **v3.12.1** | ~290KB, ~4700 linhas — VERSOES.md canonical |
 | senova-worker.js | **v7.7** (header diz v7.3 — stale) | Tem `/api/fetch-descricao` — conteúdo é v7.7 |
 | Worker deployado | Version ID d4254150 | senova-proxy.marcos-mco.workers.dev |
 | Modelo IA (Worker) | claude-sonnet-4-5 | — |
-| Modelo IA (Frontend) | claude-sonnet-4-5 | **Pendente atualizar para claude-sonnet-4-6** |
+| Modelo IA (Frontend) | claude-sonnet-4-6 | ✅ Atualizado |
 
 ---
 
@@ -127,12 +127,12 @@
 
 ## PRÓXIMAS PRIORIDADES (em ordem)
 
-1. Confirmar e testar Blocos A/B/C do Perfil
-2. Sofia redesenho — assistente contextual flutuante
+1. ~~Confirmar e testar Blocos A/B/C do Perfil~~ ✅
+2. **Sofia redesenho — assistente contextual flutuante** ← PRÓXIMA
 3. Triagem automática por critérios do Perfil
-4. Renomear Lead → Oportunidade em toda a interface
+4. ~~Renomear Lead → Oportunidade em toda a interface~~ ✅
 5. Home redesenho — 6 blocos novos
-6. Atualizar modelo para `claude-sonnet-4-6`
+6. ~~Atualizar modelo para `claude-sonnet-4-6`~~ ✅
 
 ---
 

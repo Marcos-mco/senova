@@ -16,14 +16,14 @@
 
 ---
 
-## ESTADO ATUAL — v3.11 (21/mai/2026)
+## ESTADO ATUAL — v3.12.1 (22/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.7)
 - **KV:** SENOVA_KV
 - **Cron:** 0 10 * * * (07:00 BRT) — varredura automática de vagas
-- **Último commit estável:** ver git log
+- **Último commit estável:** `937c14a` (22/mai/2026) — docs v3.12/3.12.1
 
 ### Variáveis de ambiente (Cloudflare)
 - ANTHROPIC_API_KEY ✅
