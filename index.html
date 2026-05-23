@@ -4744,24 +4744,30 @@ function _buildAlertasHtml(){
   if(_sinaisAlertas.length){
     if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
     html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Alerts — emails</div>`;
-    const _alertLink=e=>{
+    const _alertLinks=e=>{
+      const result=[];
       if(e.links&&e.links.length){
-        const direto=e.links.find(l=>l.startsWith('http')&&!/google\.com/.test(l));
-        if(direto) return direto;
-        const redir=e.links.find(l=>/google\.com\/url/.test(l));
-        if(redir){const m=redir.match(/[?&]url=([^&]+)/);if(m)return decodeURIComponent(m[1]);}
+        for(const l of e.links){
+          if(l.startsWith('http')&&!/google\.com/.test(l)){result.push(l);continue;}
+          if(/google\.com\/url/.test(l)){const m=l.match(/[?&]url=([^&]+)/);if(m)result.push(decodeURIComponent(m[1]));}
+        }
       }
-      const txt=e.body||e.preview||'';
-      const ms=txt.match(/https?:\/\/(?!(?:www\.)?google\.com)[^\s"'<>)\]]+/g);
-      if(ms&&ms.length) return ms[0];
-      return '';
+      if(!result.length){
+        const txt=e.body||e.preview||'';
+        const ms=txt.match(/https?:\/\/(?!(?:www\.)?google\.com)[^\s"'<>)\]]+/g);
+        if(ms) result.push(...ms.slice(0,5));
+      }
+      return result;
     };
+    const _alertDominio=l=>/\/\/([^\/]+)/.exec(l)?.[1]?.replace(/^www\./,'')||'ver artigo';
     html+=_sinaisAlertas.map(e=>{
       const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const link=_alertLink(e);
+      const links=_alertLinks(e);
       return `<div class="alerta-item" style="padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:4px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">${assunto}</div>
-        ${link?`<a href="${link}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;">Ver notícias →</a>`:'<span style="font-size:12px;color:var(--text3);">Sem link disponível</span>'}
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">${assunto}</div>
+        ${links.length
+          ?`<div style="display:flex;flex-direction:column;gap:4px;">${links.map(l=>`<a href="${l}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;">→ ${_alertDominio(l)}</a>`).join('')}</div>`
+          :'<span style="font-size:12px;color:var(--text3);">Sem link disponível</span>'}
       </div>`;
     }).join('');
   }
