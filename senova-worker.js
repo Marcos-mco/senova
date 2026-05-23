@@ -417,14 +417,16 @@ export default {
         };
       });
 
+      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
+      // Alertas extraídos de TODOS os emails da janela 7 dias (ignora filtro vistos)
+      const todosAlertas = emails.filter(isAlertaFn);
+
       const vistos = await getVistos(env);
       const novos = apenasNovos ? emails.filter(e => !vistos.has(e.id)) : emails;
 
       if (!novos.length) {
-        return json({ emails: [], total_lidos: emails.length, total_novos: 0, whitelist: await getWhitelist(env) });
+        return json({ emails: [], alertas: todosAlertas, total_lidos: emails.length, total_novos: 0, whitelist: await getWhitelist(env) });
       }
-
-      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
       const novosComConteudo = await Promise.all(novos.map(async (e) => {
         const isVagaEmail = /linkedin\.com\/jobs|gupy|greenhouse|lever|workday|jobscore|indeed|vagas|emprego|job|career|oportunidade/i.test(e.from + e.subject + e.body);
         if (isVagaEmail && e.links.length > 0) {
@@ -447,8 +449,8 @@ export default {
         return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
       }));
 
-      // Separar Google Alerts antes da classificação IA
-      const alertas = novosComConteudo.filter(isAlertaFn);
+      // Separar Google Alerts antes da classificação IA (conta só os novos para stats)
+      const alertasNovos = novosComConteudo.filter(isAlertaFn);
       const emailsNormais = novosComConteudo.filter(e => !isAlertaFn(e));
 
       const whitelist = await getWhitelist(env);
@@ -465,7 +467,7 @@ export default {
       ));
 
       // Stats do dia no KV
-      const totalAlertas = alertas.length;
+      const totalAlertas = alertasNovos.length;
       const totalNovos = classificados.length;
       const hoje = new Date().toISOString().slice(0, 10);
       const statsKey = 'stats_' + hoje;
@@ -475,7 +477,7 @@ export default {
       await env.SENOVA_KV.put(statsKey, JSON.stringify(statsAtuais), { expirationTtl: 86400 });
 
       return json({
-        emails: classificados, alertas, total_lidos: emails.length,
+        emails: classificados, alertas: todosAlertas, total_lidos: emails.length,
         total_novos: novos.length, total_relevantes: classificados.length, whitelist,
       });
     }
