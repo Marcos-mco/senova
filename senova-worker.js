@@ -413,7 +413,7 @@ export default {
           from_name: e.from?.emailAddress?.name || '',
           date: e.receivedDateTime,
           preview: (e.bodyPreview || '').slice(0, 300),
-          body: corpo.slice(0, 2000), links, is_read: e.isRead,
+          body: corpo.slice(0, 5000), links, is_read: e.isRead,
         };
       });
 
