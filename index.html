@@ -4524,9 +4524,6 @@ function abrirModalResponder(idx){
   if(deEl) deEl.textContent=`${e.from_name||e.from||'(remetente)'}${e.from&&e.from_name?' <'+e.from+'>':''}`;
   if(assEl) assEl.textContent=e.subject||'(sem assunto)';
   const corpo=document.getElementById('mer-corpo');
-  const _vw=document.getElementById('mer-corpo-view');
-  if(_vw) _vw.style.display='none';
-  if(corpo) corpo.style.display='';
   if(corpo) corpo.value=stripHtml(e.body||e.preview||'');
   const wl=document.getElementById('mer-weblink');
   if(wl){ if(e.webLink){wl.href=e.webLink;wl.style.display='inline';}else{wl.style.display='none';} }
@@ -4535,38 +4532,11 @@ function abrirModalResponder(idx){
 }
 function abrirModalAlerta(idx){
   const e=_sinaisAlertas[idx]; if(!e) return;
-  _emailAtual=e;
-  const deEl=document.getElementById('mer-de');
-  const assEl=document.getElementById('mer-assunto');
-  if(deEl) deEl.textContent=`${e.from_name||e.from||'Google Alerts'}${e.from&&e.from_name?' <'+e.from+'>':''}`;
-  if(assEl) assEl.textContent=e.subject||'(sem assunto)';
-  const corpo=document.getElementById('mer-corpo');
-  let vw=document.getElementById('mer-corpo-view');
-  if(!vw){
-    vw=document.createElement('div');
-    vw.id='mer-corpo-view';
-    vw.style.cssText='width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text2);background:#F7F8FA;overflow-y:auto;max-height:260px;';
-    if(corpo) corpo.parentNode.insertBefore(vw,corpo);
-  }
-  if(corpo) corpo.style.display='none';
-  vw.style.display='block';
-  const txt=stripHtml(e.body||e.preview||'');
-  const safe=txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  vw.innerHTML=safe
-    .replace(/\n/g,'<br>')
-    .replace(/(https?:\/\/[^\s<&]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--action);">$1</a>');
-  const wl=document.getElementById('mer-weblink');
-  if(wl){ if(e.webLink){wl.href=e.webLink;wl.style.display='inline';}else{wl.style.display='none';} }
-  merMostrarEtapa('1');
-  document.getElementById('modal-email-responder').style.display='flex';
+  window.open(e.webLink||'https://outlook.live.com/mail/','_blank','noopener');
 }
 function fecharModalEmailResponder(){
   document.getElementById('modal-email-responder').style.display='none';
   _emailAtual=null;
-  const vw=document.getElementById('mer-corpo-view');
-  if(vw) vw.style.display='none';
-  const corpo=document.getElementById('mer-corpo');
-  if(corpo) corpo.style.display='';
 }
 function arquivarEmailAvulso(){
   if(!_emailAtual) return;

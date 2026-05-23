@@ -393,7 +393,7 @@ export default {
 
       const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
       const msRes = await fetch(
-        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body`,
+        `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body,webLink`,
         { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
       );
       if (!msRes.ok) {
@@ -413,7 +413,7 @@ export default {
           from_name: e.from?.emailAddress?.name || '',
           date: e.receivedDateTime,
           preview: (e.bodyPreview || '').slice(0, 300),
-          body: corpo.slice(0, 5000), links, is_read: e.isRead,
+          body: corpo.slice(0, 5000), links, is_read: e.isRead, webLink: e.webLink || '',
         };
       });
 
