@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 21/mai/2026 — v3.11*
+*Atualizado: 22/mai/2026 — v3.12.3*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -16,14 +16,14 @@
 
 ---
 
-## ESTADO ATUAL — v3.12.1 (22/mai/2026)
+## ESTADO ATUAL — v3.12.3 (22/mai/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.7)
 - **KV:** SENOVA_KV
 - **Cron:** 0 10 * * * (07:00 BRT) — varredura automática de vagas
-- **Último commit estável:** `937c14a` (22/mai/2026) — docs v3.12/3.12.1
+- **Último commit estável:** `58c7a94` (22/mai/2026) — Google Alert abre Outlook Web + cleanup
 
 ### Variáveis de ambiente (Cloudflare)
 - ANTHROPIC_API_KEY ✅
@@ -109,6 +109,18 @@ BR → ES → DE → PT → Remoto → BR → ...
 - Cards "Aguardar retorno" sem prazo NÃO aparecem
 - Ordenação: Vencidos (vermelho) → Hoje (azul) → Futuros (laranja)
 - KPIs tooltips: Leads=vagas identificadas, Candidaturas=CV enviado aguardando, Em Processo=entrevista/contato ativo, Propostas=oferta recebida
+
+---
+
+## O QUE FOI ENTREGUE — sessão 22/mai/2026
+
+### v3.12.3 — Central de Sinais + Google Alerts (pipeline completo)
+- **Central de Sinais 3 bugs**: emails lista vazia (stat KV vs fetch atual), alertas inline com chevron (s2.onclick ausente), seta vagas rotaciona ao expandir
+- **Email fetch**: `isRead eq false` → janela 7 dias + `orderby desc`; body limit 2000→5000 chars; `webLink` no `$select`
+- **Google Alert — todos artigos**: `_alertLinks` itera todos os links do email (era `.find()`); decodifica redirects `google.com/url`
+- **Google Alert — filtro vistos**: `todosAlertas` extraído antes do filtro KV `vistos` no Worker — alertas nunca somem após primeiro fetch
+- **Google Alert — race condition**: `atualizarSinais()` chama `renderAlertasInline()` se lista aberta — elimina "recarregue para ver novos"
+- **Google Alert — Outlook Web**: card abre `e.webLink` diretamente em nova aba; função enxugada de 25 → 3 linhas
 
 ---
 

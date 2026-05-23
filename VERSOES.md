@@ -12,8 +12,30 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.2 — 22/mai/2026 (ATUAL)
+### v3.12.3 — 22/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Commits:** `e4fefdf` · `7a4b35d` · `2a4123d` · `619b131` · `2e754ad` · `58c7a94` | **Worker:** `007d2dec`
+
+#### Central de Sinais — 3 bugs (commits `e4fefdf` · `7a4b35d`)
+- **Emails lista vazia**: lista expandia sem conteúdo mesmo com emails importados — `_emailsNovosHoje` (stat cumulativo KV) desconectado de `_emailsAvulsos` (fetch atual); mensagem contextual com contador + botão Recarregar
+- **Alertas inline**: onclick do `sinal-alertas` redirecionava para Pipeline — `s2.onclick=toggleAlertasInline` ausente em `atualizarSinais()`; overlay `#painel-alertas` removido; lista expande inline com chevron
+- **Seta vagas**: chevron do widget vagas não rotacionava ao expandir — `id="sinal-vagas-chevron"` adicionado; `renderWidgetRevisao()` atualiza `transform` ao toggle
+
+#### Email fetch — janela 7 dias (Worker `007d2dec`)
+- `$filter=isRead eq false` → `receivedDateTime ge [hoje-7d]` + `$orderby=receivedDateTime desc`
+- Resolve: emails de 20–21/mai não processados (já lidos no Outlook; filtro `isRead` os excluía)
+- Body limit aumentado 2000 → 5000 chars; `webLink` adicionado ao `$select` e ao objeto de retorno
+
+#### Google Alerts — pipeline de fixes
+- **Todos os artigos do digest**: `_alertLinks` itera todos os links (era `.find()`, parava no primeiro); decodifica redirects `google.com/url?url=`
+- **Filtro vistos removido dos alertas**: `todosAlertas` extraído antes do filtro KV `vistos` no Worker — alertas sempre retornam mesmo que já vistos
+- **Race condition card+mensagem**: `atualizarSinais()` chama `renderAlertasInline()` quando lista está aberta — elimina "recarregue" quando emails chegam com atraso
+- **Abertura direta no Outlook Web**: card abre `e.webLink` (Graph API) em nova aba — sem modal, sem renderização de conteúdo; função `abrirModalAlerta` enxugada de 25 para 3 linhas
+
+---
+
+### v3.12.2 — 22/mai/2026
+**Status:** Superada ✅  
 **Commits:** `f9e1eb4` · `6f5a010` · `186cc61` | **Worker:** Version ID `cd021033`
 
 #### Fix res.ok antes de res.json nas chamadas de email e varredura
@@ -496,7 +518,7 @@ Para restaurar qualquer versão anterior:
 - Vars obrigatórias: ANTHROPIC_API_KEY, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_TENANT_ID
 - Scopes OAuth ativos: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
 - Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
-- Deploy atual: `cd021033` (22/mai/2026)
+- Deploy atual: `007d2dec` (22/mai/2026)
 
 ## Regra de ouro
 **Antes de qualquer sessão de desenvolvimento:**

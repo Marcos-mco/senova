@@ -35,9 +35,9 @@
 ### Versões
 | Artefato | Versão | Observação |
 |---|---|---|
-| index.html | **v3.12.2** | ~290KB, ~4700 linhas — VERSOES.md canonical |
-| senova-worker.js | **v7.7** (header diz v7.3 — stale) | Tem `/api/fetch-descricao` — conteúdo é v7.7 |
-| Worker deployado | Version ID cd021033 | senova-proxy.marcos-mco.workers.dev |
+| index.html | **v3.12.3** | commits e4fefdf→58c7a94 — VERSOES.md canonical |
+| senova-worker.js | **v7.7** (header diz v7.3 — stale) | webLink em $select, body 5000 chars |
+| Worker deployado | Version ID 007d2dec | senova-proxy.marcos-mco.workers.dev |
 | Modelo IA (Worker) | claude-sonnet-4-5 | — |
 | Modelo IA (Frontend) | claude-sonnet-4-6 | ✅ Atualizado |
 
@@ -79,6 +79,9 @@
 9. ~~**Home — erro nos emails e varredura**~~ — ✅ Corrigido: `if(!res.ok)` adicionado antes de `res.json()` em `carregarEmails`, `checkOutlookStatus` e `carregarStatusVarredura` (commit `f9e1eb4`).
 10. **Descrição Inhire** — extensão ainda captura algum conteúdo de navegação (menor, workaround ok).
 11. ~~**Google Alerts Digest**~~ — ✅ Corrigido: alertas separados antes da classificação IA no Worker; retornados em `alertas:[]` separado; frontend lê `data.alertas` diretamente em `_sinaisAlertas` (Worker `cd021033` + frontend `186cc61`).
+12. ~~**Central de Sinais — 3 bugs**~~ — ✅ Corrigido (22/mai, `e4fefdf`·`7a4b35d`): emails lista vazia (stat KV vs fetch atual), alertas inline com chevron (s2.onclick ausente em atualizarSinais), seta vagas não rotacionava.
+13. ~~**Email fetch — isRead eq false**~~ — ✅ Corrigido (22/mai, Worker `007d2dec`): janela 7 dias + orderby; body 5000 chars. Resolve emails de 20–21/mai não processados.
+14. ~~**Google Alerts — race condition + Outlook Web**~~ — ✅ Corrigido (22/mai, `2e754ad`·`58c7a94`): todos artigos do digest, filtro vistos removido, race condition atualizarSinais→renderAlertasInline, card abre diretamente no Outlook Web via `e.webLink`.
 
 ### Backlog de produto
 12. Home redesenho — 6 blocos: Novas Oportunidades, Para Considerar, Ações do Dia, Funil, Sinais, Contatos Ativos.
