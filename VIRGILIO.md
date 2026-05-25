@@ -283,7 +283,7 @@ Multinacional colombiana líder em diretórios telefônicos na América Latina �
 - Implantação do processo eletrônico (desktop publishing) em plataforma Macintosh
 
 **INTEC TECNOLOGIA** — Gerente de Produção — 1990 a 1992
-- Empresa de computação gráfica em São Paulo, plataforma Macintosh
+- Revenda e assistência técnica autorizada Apple em São Paulo — computação gráfica em plataforma Macintosh
 
 **DLS – Dória, Lara e Stalimir Associados** — Produtor Gráfico — 1989 a 1990
 - Agência de publicidade em São Paulo
