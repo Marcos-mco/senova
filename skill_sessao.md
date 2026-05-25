@@ -11,13 +11,16 @@ Claude.ai e Claude Code são instâncias SEPARADAS sem memória compartilhada.
 - SESSAO.md no GitHub = ponte de sincronia entre os dois
 Virgílio NUNCA registra commit/versão sem confirmação do estado real pelo Claude Code.
 
-## ABERTURA (ordem obrigatória)
-1. Virgílio lê: PROJETO.md, VERSOES.md, VIRGILIO.md, SESSAO.md
-2. Se houver desenvolvimento: abrir Claude Code (cmd → cd senova → claude → permissões opção 2)
-   e pedir ao Code para ler index.html e senova-worker.js locais
-3. Claude Code reporta: último commit real, versão atual, divergências
-4. Virgílio confirma "mesma página em [commit/versão]" ou aponta divergência
-5. Apresentar FILA DE PRIORIDADES do SESSAO.md e confirmar com Marcos por onde começar
+## ABERTURA (ordem obrigatoria — Code SEMPRE primeiro)
+1. ABRIR CLAUDE CODE PRIMEIRO (padrao unico, toda sessao):
+   cmd → cd C:\Users\marco\Documents\senova → claude → permissoes opcao 2
+2. Code confirma o estado real LOCAL: ultimo commit (hash+msg), versao no VERSOES.md, working tree limpo ou nao
+3. Virgilio le os arquivos do GitHub: PROJETO.md, VERSOES.md, VIRGILIO.md, SESSAO.md
+4. Virgilio COMPARA GitHub x local reportado pelo Code:
+   - Batem → "mesma pagina em [commit/versao]"
+   - Divergem → apontar divergencia e resolver antes de prosseguir
+5. Se houver dev: Code le index.html e senova-worker.js antes de qualquer proposta
+6. Apresentar FILA DE PRIORIDADES do SESSAO.md e confirmar com Marcos por onde comecar
 
 ## FECHAMENTO (ordem obrigatória)
 1. Virgílio pergunta ao Code o estado real: último commit (hash+msg), versão, o que ficou sem commit
