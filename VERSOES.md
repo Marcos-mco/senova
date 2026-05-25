@@ -12,7 +12,27 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.4 — 25/mai/2026 (ATUAL)
+### v3.12.5 — 25/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Commits:** `5e20713` · `a4d8f07` · `4cc9a72` | **Worker:** `007d2dec` (sem alteração)
+
+#### PROJETO.md — roadmap (commit `5e20713`)
+- Seção **Backlog — Prioridade Média** criada entre PENDENTE e ROADMAP
+- Feature adicionada: **Seleção inteligente de blocos de CV por setor** — IA identifica setor da vaga e ativa blocos condicionais corretos (ex: `BLOCO_GRAFICO` para vagas gráficas/editorial/ISO/telecom); pré-requisito: fluxo completo do botão Candidatar
+
+#### Intec Tecnologia — revenda Apple (commit `a4d8f07`)
+- CV_BASE PT/EN/ES + VIRGILIO.md: descrição atualizada de "empresa de computação gráfica" para "revenda e assistência técnica autorizada Apple" com menção a hardware, impressoras (LaserWriter, ImageWriter) e periféricos gráficos
+
+#### Color management + Guia da TVA (commit `4cc9a72`)
+- **Editel Gerente Nacional** (PT/EN/ES): + `color management, perfis ICC e calibração de equipamentos de impressão`
+- **Ghaphical Consult** (PT/EN/ES): + descrição de especialização em color management com clientes (Editora Abril, Posigraf, Editora Símbolo)
+- **Intec Tecnologia** (PT/EN/ES + VIRGILIO.md): + Guia da TVA — primeira revista 100% em computação gráfica do Brasil, trabalho pioneiro que resultou em convite para integrar a Editora Abril
+- **Seções novas** (PT/EN/ES): `INFORMAÇÕES COMPLEMENTARES` / `ADDITIONAL INFORMATION` / `INFORMACIÓN COMPLEMENTARIA` — color management aprofundado (teoria, calibração, ICC, workflow)
+- **VIRGILIO.md**: Ghaphical +bullet color management; Editel Gerente +perfis ICC; Intec +Guia da TVA como bullet separado
+
+---
+
+### v3.12.4 — 25/mai/2026
 **Status:** Completo e validado ✅  
 **Commits:** `6d8f578` · `e526447` | **Worker:** `007d2dec` (sem alteração)
 
