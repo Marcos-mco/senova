@@ -254,6 +254,46 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 - Popper: Head Expansão (2024–25)
 - Consigliere: Consultor Sênior (dez/2025–atual)
 
+### Histórico completo (ordem cronológica inversa)
+
+> **Regra de uso nos CVs:** O bloco de carreira gráfica (Editel/Abril/Intec/DLS) deve ser incluído APENAS quando a vaga for do setor gráfico, editorial, produção, publishing, workflow, ISO 9000 ou telecom. Para vagas de marketing/comercial, omitir ou usar apenas 1 linha de rodapé.
+
+**EDITEL LISTAS TELEFÔNICAS | Grupo Carvajal**
+Multinacional colombiana líder em diretórios telefônicos na América Latina — US$ 60 mi/ano no Brasil, 1.000+ funcionários
+
+- **Superintendente Regional de Vendas – Nordeste** — 2001 a fev/2005
+  - Equipe de 45 pessoas em AL e SE
+  - Orçamento de vendas R$ 5 milhões/ano; verba de publicidade ~5% da receita
+  - Elevou a regional a superintendência para enfrentar concorrentes globais pós-Lei das Telecomunicações
+  - Docência paralela: ESAMC/ESPM Maceió (2002–04) — Marketing, Planejamento Estratégico, Comportamento do Consumidor, Vendas
+  - Prêmio Troféu Imprensa 2004 — campanha de reciclagem de listas telefônicas (RSE)
+
+- **Gerente Nacional de Produção** — abr/1996 a 2001
+  - Equipe de até 50 pessoas; produção editorial em 5 estados
+  - Implantou células de autogestão: mão de obra reduzida a 27% do volume inicial; produção aumentou 240% (9 mil → 22 mil anúncios/ano)
+  - Implantou computação gráfica nacional e color management
+  - ISO 9000: Auditor Líder e membro do comitê
+
+**GHAPHICAL CONSULT** — Consultor Independente — 1995 a 1996
+- Clientes: Editora Abril, Posigraf, Editora Símbolo, Gráfica Ultraset, Qualidart, Gráfica Balcos
+- Projetos de implantação e workflow gráfico, treinamentos, avaliação de fornecedores
+
+**EDITORA ABRIL** — Supervisor/Coordenador de Produção — 1992 a 1995
+- 23 revistas/ano; equipe de 28 pessoas em dois turnos
+- Implantação do processo eletrônico (desktop publishing) em plataforma Macintosh
+
+**INTEC TECNOLOGIA** — Gerente de Produção — 1990 a 1992
+- Empresa de computação gráfica em São Paulo, plataforma Macintosh
+
+**DLS – Dória, Lara e Stalimir Associados** — Produtor Gráfico — 1989 a 1990
+- Agência de publicidade em São Paulo
+- **GANCHO:** DLS = conexão real com Heloisa Garrett (LIDE Paraná) — usar quando relevante
+
+### Informações complementares
+- **Docência:** ESAMC/ESPM Maceió (2002–04) — Marketing, Planejamento Estratégico, Comportamento do Consumidor, Vendas; Uniexp Curitiba (2006) — Comunicação em Marketing
+- **Certificação:** ISO 9000 — Auditor Líder e membro do comitê (Editel/Carvajal)
+- **Prêmio:** Troféu Imprensa 2004 — campanha de reciclagem de listas telefônicas (RSE)
+
 ### Formação
 - Master's Barcelona (2014–15)
 - MBA FGV (1998–2000)
