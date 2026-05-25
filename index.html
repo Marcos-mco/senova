@@ -1734,8 +1734,8 @@ select option { background: var(--bg2); }
       <!-- ABA: DADOS -->
       <div id="mct-dados">
         <div class="form-row">
-          <label class="field-label">Nome</label>
-          <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti" oninput="atualizarHeaderContato()">
+          <label class="field-label">Nome <span style="color:#CC0000;font-size:13px;">*</span></label>
+          <input type="text" id="mc-nome" placeholder="Ex: Eduardo Bosquetti" oninput="atualizarHeaderContato();validarContatoForm()">
         </div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div>
@@ -1749,22 +1749,24 @@ select option { background: var(--bg2); }
         </div>
         <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
           <div>
-            <label class="field-label">Email</label>
-            <input type="email" id="mc-email" placeholder="email@empresa.com">
+            <label class="field-label">Email <span style="color:#CC0000;font-size:13px;">*</span></label>
+            <input type="email" id="mc-email" placeholder="email@empresa.com" oninput="validarContatoForm()">
           </div>
           <div>
-            <label class="field-label">Telefone</label>
-            <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx">
+            <label class="field-label">Telefone <span style="color:#CC0000;font-size:13px;">*</span></label>
+            <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx" oninput="validarContatoForm()">
           </div>
           <div>
             <label class="field-label">LinkedIn</label>
             <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
           </div>
         </div>
+        <div id="mc-contato-err" style="display:none;font-size:12px;color:#CC0000;margin-top:-8px;margin-bottom:10px;">Informe ao menos um contato (email ou telefone)</div>
         <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
           <div>
             <label class="field-label">Temperatura</label>
             <select id="mc-temp" onchange="atualizarHeaderContato()">
+              <option value="">—</option>
               <option value="hot">🔥 Quente</option>
               <option value="warm">🌤 Morno</option>
               <option value="cold">❄️ Frio</option>
@@ -1791,10 +1793,13 @@ select option { background: var(--bg2); }
           </div>
         </div>
         <div class="form-row">
-          <label class="field-label">Próxima ação <span style="color:var(--red);">*</span></label>
+          <label class="field-label">Próxima ação <span style="color:#CC0000;font-size:13px;">*</span></label>
           <div style="display:flex;gap:8px;align-items:center;">
-            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook()">
-            <input type="date" id="mc-next-data" style="width:148px;flex-shrink:0;" onchange="atualizarBtnOutlook()">
+            <input type="text" id="mc-next" placeholder="Ex: Ligar semana que vem para marcar café" style="flex:1;" oninput="atualizarBtnOutlook();validarContatoForm()">
+            <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
+              <span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.03em;">DATA <span style="color:#CC0000;">*</span></span>
+              <input type="date" id="mc-next-data" style="width:148px;" onchange="atualizarBtnOutlook();validarContatoForm()">
+            </div>
           </div>
           <div id="mc-next-err" style="display:none;font-size:12px;color:var(--red);margin-top:4px;">Próxima ação é obrigatória</div>
         </div>
@@ -1884,7 +1889,7 @@ select option { background: var(--bg2); }
       <button class="btn btn-ghost" id="mc-outlook-btn" onclick="salvarEAgendarOutlook()" style="display:none;color:var(--action);border-color:var(--action);" title="Salva o contato e cria evento no Outlook Calendar">📅 Agendar no Outlook</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button class="btn btn-ghost" onclick="closeContatoModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveContato()">Salvar</button>
+        <button class="btn btn-primary" id="mc-salvar-btn" onclick="saveContato()">Salvar</button>
       </div>
     </div>
   </div>
@@ -3924,7 +3929,7 @@ function openContatoModal(id){
     document.getElementById('mc-email').value=c.email||'';
     document.getElementById('mc-telefone').value=c.telefone||'';
     document.getElementById('mc-linkedin').value=c.linkedin||'';
-    document.getElementById('mc-temp').value=c.temp||'warm';
+    document.getElementById('mc-temp').value=c.temp||'';
     document.getElementById('mc-plano').value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
@@ -3935,7 +3940,7 @@ function openContatoModal(id){
     renderTimelineListaCt(c.timeline||[]);
   } else {
     ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
-    document.getElementById('mc-temp').value='warm';
+    document.getElementById('mc-temp').value='';
     document.getElementById('mc-plano').value='A';
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
@@ -3944,9 +3949,23 @@ function openContatoModal(id){
   setCTTab('dados');
   atualizarBtnOutlook();
   atualizarHeaderContato();
+  validarContatoForm();
   document.getElementById('modal-contato').style.display='flex';
 }
 function closeContatoModal(){ document.getElementById('modal-contato').style.display='none'; editingContatoId=null; }
+function validarContatoForm(){
+  const nome=document.getElementById('mc-nome')?.value.trim();
+  const next=document.getElementById('mc-next')?.value.trim();
+  const nextData=document.getElementById('mc-next-data')?.value;
+  const email=document.getElementById('mc-email')?.value.trim();
+  const tel=document.getElementById('mc-telefone')?.value.trim();
+  const temContato=!!(email||tel);
+  const ok=!!(nome&&next&&nextData&&temContato);
+  const btn=document.getElementById('mc-salvar-btn');
+  if(btn){btn.disabled=!ok;btn.style.opacity=ok?'':'0.45';btn.style.cursor=ok?'':'not-allowed';}
+  const err=document.getElementById('mc-contato-err');
+  if(err) err.style.display=(!temContato&&(nome||next||nextData))?'block':'none';
+}
 
 let _ctTab='dados';
 function setCTTab(tab){
