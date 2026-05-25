@@ -12,8 +12,25 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.6 — 25/mai/2026 (ATUAL)
+### v3.12.7 — 25/mai/2026 (ATUAL)
 **Status:** Completo e validado ✅  
+**Commits:** `64f4a86` · `75b07dd` · `6273896` | **Worker:** `007d2dec` (sem alteração)
+
+#### DLS — entrada obrigatória em todos os idiomas (commit `64f4a86`)
+- CV_BASE PT/EN/ES: DLS movida para fora do BLOCO_GRAFICO, com marcador `<!-- DLS: entrada obrigatória -->` — nunca omitir; adaptar nível de detalhe conforme vaga
+- VIRGILIO.md: seção DLS expandida com fundadores (João Dória, Luiz Lara, Stalimir Vieira), regras de uso por tipo de vaga e gancho estratégico Heloisa Garrett (LIDE Paraná)
+
+#### MBA FGV — nome completo corrigido (commit `75b07dd`)
+- CV_BASE PT/EN/ES + VIRGILIO.md: `MBA em Administração de Empresas — FGV Curitiba (1998–2000)` — nunca associar a Marketing; regra registrada
+
+#### PDF executivo — duplo cabeçalho corrigido (commit `6273896`)
+- `downloadPDFExecutivo()`: título na faixa navy extraído dinamicamente de `cvLinhas[1]` (segunda linha do `lastCV` gerado pela IA)
+- Corpo do PDF usa `cvCorpo` (conteúdo após o primeiro bloco em branco) — elimina duplicação de nome/título/contato
+
+---
+
+### v3.12.6 — 25/mai/2026
+**Status:** Superada ✅  
 **Commit:** `b902ed1` | **Worker:** `007d2dec` (sem alteração)
 
 #### Ghaphical Consult — Posigraf e relocação SP→Curitiba (CV_BASE PT/EN/ES + VIRGILIO.md)
