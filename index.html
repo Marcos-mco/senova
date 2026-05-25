@@ -1057,9 +1057,7 @@ select option { background: var(--bg2); }
         <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
       </div>
-      <button id="crm-arquivados-btn" onclick="toggleArquivados()" style="display:none;font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Mostrar/ocultar cards arquivados">0 arquivados</button>
-      <button id="btn-limpeza-lote" onclick="abrirLimpezaLote()" style="display:none;font-size:12px;color:#8B6914;background:#FFF9E6;border:1px solid #C9A84C;border-radius:16px;cursor:pointer;padding:3px 12px;font-family:var(--font);transition:all 0.15s;white-space:nowrap;" title="Arquivar oportunidades antigas em lote">🗂 Limpeza em lote</button>
-      <button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:4px;">
+<button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:4px;">
         + Adicionar
       </button>
     </div>
@@ -3811,7 +3809,7 @@ function saveVaga(){
     updatedAt:now
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
-  saveVagas(); renderCRM(); closeVagaModal();
+  saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
 }
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
