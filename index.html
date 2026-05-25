@@ -1419,13 +1419,14 @@ select option { background: var(--bg2); }
       <div class="form-grid" style="margin-bottom:14px;">
         <div>
           <label class="field-label">Empresa</label>
-          <input type="text" id="mv-empresa" placeholder="Ex: Nubank">
+          <input type="text" id="mv-empresa" placeholder="Ex: Nubank" oninput="validarVagaForm()">
         </div>
         <div>
           <label class="field-label">Cargo</label>
-          <input type="text" id="mv-cargo" placeholder="Ex: CMO">
+          <input type="text" id="mv-cargo" placeholder="Ex: CMO" oninput="validarVagaForm()">
         </div>
       </div>
+      <div id="mv-validacao-msg" style="display:none;font-size:12.5px;color:#8B6914;background:#FFF9E6;border:1px solid #C9A84C44;border-radius:6px;padding:6px 12px;margin-bottom:10px;">Empresa e Cargo são obrigatórios para criar um processo.</div>
       <div class="form-grid" style="margin-bottom:14px;">
         <div>
           <label class="field-label">Status</label>
@@ -3738,6 +3739,13 @@ function atualizarBotoesModal(statusOverride){
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
   }
   acoes.innerHTML=html;
+  validarVagaForm();
+}
+function validarVagaForm(){
+  const ok=document.getElementById('mv-empresa')?.value.trim()&&document.getElementById('mv-cargo')?.value.trim();
+  const msg=document.getElementById('mv-validacao-msg');
+  if(msg) msg.style.display=ok?'none':'block';
+  document.getElementById('mv-footer-acoes')?.querySelectorAll('button[onclick*="saveVaga"],button[onclick*="abrirAntiATSModal"]').forEach(b=>{b.disabled=!ok;b.style.opacity=ok?'':'0.45';b.style.cursor=ok?'':'not-allowed';});
 }
 function declinarVaga(){
   const p=document.getElementById('mv-declinar-panel');
