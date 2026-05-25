@@ -27,6 +27,27 @@ Para restaurar qualquer versão anterior:
 - `downloadPDFExecutivo()`: título na faixa navy extraído dinamicamente de `cvLinhas[1]` (segunda linha do `lastCV` gerado pela IA)
 - Corpo do PDF usa `cvCorpo` (conteúdo após o primeiro bloco em branco) — elimina duplicação de nome/título/contato
 
+#### Sessão 25/mai/2026 — 12 commits de produto (UX/modal/pipeline)
+**Worker:** `007d2dec` (sem alteração)
+
+**fixes**
+- `c62585a` — bug Kanban: card novo não aparecia com filtro ativo (`saveVaga` chama `aplicarFiltros()` quando `filtroAtivo`) + remove botões arquivados e limpeza em lote do header
+- `7d1231e` — Analisar Candidatura salva card antes de abrir análise + corrige vínculo `atsOrigemVagaId` para vagas novas
+- `956bd2a` — reset completo do modal Novo Contato: `mc-next-err` e `tlForm` incluídos no branch `isNew`
+- `4a7ef24` — temperatura padrão vazia no header Novo Contato (`||'warm'` → `||''` em `atualizarHeaderContato`)
+- `c01dff1` — placeholder Nome Novo Contato: "Eduardo Bosquetti" → "Maria Silva"
+
+**feats**
+- `fa5265a` — botão "+ Novo" com submenu dropdown Processo / Contato (substitui "+ Adicionar")
+- `d6b1424` — botão Salvar independente no modal Novo Processo (entre Declinar e Analisar Candidatura)
+- `198e84d` — validação campos obrigatórios modal Novo Processo: asteriscos (*) em Empresa e Cargo, botões desabilitados enquanto vazios
+- `059448c` — modal "Nova Vaga" → "Novo Processo" em toda a interface; extração automática IA da descrição (Empresa, Cargo, Localização com highlight #FFF9C4)
+- `b21344d` — modal Novo Contato: temperatura padrão "—", asteriscos em Nome/Email/Telefone/Data, validação Salvar (Nome + Próxima ação + Data + Email ou Telefone)
+
+**docs**
+- `6591432` — PROJETO.md: decisões de produto — conceito Atividade (toda ação vive num card) e regra botão + Novo
+- `43d65b6` — SESSAO.md: fechamento 25/mai/2026 19h30
+
 ---
 
 ### v3.12.6 — 25/mai/2026
