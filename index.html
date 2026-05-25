@@ -5261,6 +5261,12 @@ function downloadPDFExecutivo(){
   const cinzaEsc=[74,71,64];
   const cinzaCla=[138,134,128];
   const margL=15; const margR=195; const larg=180;
+  // Extrair título específico da vaga (linha 1 do lastCV) e corpo sem cabeçalho
+  const cvLinhas=(lastCV||'').split('\n');
+  const tituloCV=cvLinhas[1]?.trim()||'Executivo Senior de Marketing | Curitiba, PR';
+  let skipAte=0;
+  for(let i=0;i<Math.min(8,cvLinhas.length);i++){if(cvLinhas[i].trim()===''){skipAte=i+1;break;}}
+  const cvCorpo=cvLinhas.slice(skipAte).join('\n');
   let y=0;
 
   // Cabecalho navy
@@ -5273,7 +5279,7 @@ function downloadPDFExecutivo(){
   doc.setFontSize(11);
   doc.setFont('helvetica','normal');
   doc.setTextColor(gold[0],gold[1],gold[2]);
-  doc.text('Executivo Senior de Marketing | Curitiba, PR',margL,24);
+  doc.text(tituloCV,margL,24);
   doc.setFontSize(9);
   doc.setTextColor(200,200,200);
   doc.text('(41) 99615-2224  |  marcos_mco@hotmail.com  |  linkedin.com/in/marcos-ribeiro-franco-69153a12',margL,31);
@@ -5285,11 +5291,11 @@ function downloadPDFExecutivo(){
   doc.line(margL,y,margR,y);
   y+=6;
 
-  // Conteudo do CV
+  // Conteudo do CV — cabeçalho já renderizado acima, corpo sem duplicação
   doc.setFont('helvetica','normal');
   doc.setFontSize(9.5);
   doc.setTextColor(cinzaEsc[0],cinzaEsc[1],cinzaEsc[2]);
-  const linhas=doc.splitTextToSize(lastCV||'',larg);
+  const linhas=doc.splitTextToSize(cvCorpo,larg);
   linhas.forEach(l=>{
     if(y>280){doc.addPage();y=20;}
     const upper=l.toUpperCase();
