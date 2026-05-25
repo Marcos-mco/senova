@@ -70,3 +70,20 @@
 - Cron: `0 10 * * *` (07h BRT) — varredura Adzuna + Jobicy
 - Brand: #1A3A5C navy, #C9A84C dourado, #2E6DA4 azul — Playfair Display + Inter
 - Email principal: marcos_mco@hotmail.com
+
+---
+DECISÕES DE PRODUTO — CONCEITOS INVIOLÁVEIS
+
+Conceito de Atividade (definido 25/mai/2026):
+Toda ação vive dentro de um card existente (Processo ou Contato).
+Nada flutua solto. Não existe "Atividade" como entidade independente.
+- Novo processo seletivo = novo card Processo
+- Novo relacionamento = novo card Contato
+- Nova ação em algo existente = registrada no próprio card (nota, próxima ação, timeline)
+Todo card criado exige: prazo definido + próxima ação obrigatória.
+
+Botão + Novo (definido 25/mai/2026):
+Submenu com exatamente duas opções: Processo / Contato.
+Nunca adicionar "Atividade" como terceira opção.
+Header Processos: apenas tabs Processos/Contatos + botão + Novo.
+Remover: arquivados, limpeza em lote (acessíveis dentro da view, não no header).
