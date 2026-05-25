@@ -50,6 +50,10 @@
 2. **Limpeza de leads antigos** — 298 leads acumulados, maioria desatualizada; fluxo de arquivamento em lote
 3. **Fluxo Candidatar completo** — gerar CV otimizado → enviar via Outlook → registrar na timeline → follow-up agendado
 
+### Backlog — Prioridade Média
+
+- **Seleção inteligente de blocos de CV por setor** — quando uma vaga entra no Pipeline, a IA identifica o setor (marketing, gráfico, editorial, tech, etc.); o botão "Analisar CV" cruza o CV_BASE com a vaga e ativa automaticamente os blocos condicionais corretos (ex: `BLOCO_GRAFICO` apenas para vagas gráficas/editorial/ISO/telecom); resultado: CV customizado por vaga, sem blocos irrelevantes. **Pré-requisito:** fluxo completo do botão Candidatar.
+
 ### ROADMAP
 
 - Fase 1 — Aprovar pendências acima + lista fechada do MVP
