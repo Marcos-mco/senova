@@ -3816,6 +3816,7 @@ function saveVaga(){
     updatedAt:now
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
+  if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
 }
 function deleteVaga(){
@@ -5210,6 +5211,7 @@ function abrirAntiATSModal(){
   atsEmailDest=document.getElementById('mv-email-dest')?.value||'';
   atsEmpresa=empresa; atsCargo=cargo;
   atsOrigemVagaId=editingVagaId;
+  saveVaga();
   closeVagaModal();
   showPage('ats');
   const bar=document.getElementById('ats-decisao-bar');
