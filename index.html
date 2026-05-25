@@ -1057,9 +1057,14 @@ select option { background: var(--bg2); }
         <button class="lang-btn active" onclick="setCrmTab('vagas',this)">📋 Vagas</button>
         <button class="lang-btn" onclick="setCrmTab('contatos',this)">👥 Contatos</button>
       </div>
-<button class="btn btn-primary btn-sm" onclick="openVagaModal('new')" id="crm-add-btn" style="margin-left:4px;">
-        + Adicionar
-      </button>
+<div style="position:relative;margin-left:4px;">
+        <span id="crm-add-btn" style="display:none;"></span>
+        <button class="btn btn-primary btn-sm" onclick="(function(e){e.stopPropagation();var m=document.getElementById('crm-novo-menu');m.style.display=m.style.display==='none'?'block':'none';})(event)">+ Novo ▾</button>
+        <div id="crm-novo-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:1000;min-width:160px;overflow:hidden;" onclick="event.stopPropagation()">
+          <button onclick="document.getElementById('crm-novo-menu').style.display='none';openVagaModal('new')" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;background:none;border:none;cursor:pointer;font-family:var(--font);font-size:13.5px;color:var(--navy);text-align:left;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">📋 Processo</button>
+          <button onclick="document.getElementById('crm-novo-menu').style.display='none';openContatoModal('new')" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;background:none;border:none;cursor:pointer;font-family:var(--font);font-size:13.5px;color:var(--navy);text-align:left;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">👤 Contato</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="content">
@@ -5329,7 +5334,7 @@ function downloadPDFExecutivo(){
   }
   doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
 }
-document.addEventListener('click',()=>document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none'));
+document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none');var nm=document.getElementById('crm-novo-menu');if(nm)nm.style.display='none';});
 loadCRM();
 showPage('home');
 checkOutlookStatus();
