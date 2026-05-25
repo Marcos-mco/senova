@@ -12,7 +12,17 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.5 — 25/mai/2026 (ATUAL)
+### v3.12.6 — 25/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Commit:** `b902ed1` | **Worker:** `007d2dec` (sem alteração)
+
+#### Ghaphical Consult — Posigraf e relocação SP→Curitiba (CV_BASE PT/EN/ES + VIRGILIO.md)
+- Adicionado no início da descrição: Posigraf (Curitiba/PR) como principal cliente — uma das maiores gráficas do Brasil — e projeto que motivou a relocação de São Paulo para Curitiba
+- VIRGILIO.md: bullet adicionado como primeiro item da entrada Ghaphical Consult
+
+---
+
+### v3.12.5 — 25/mai/2026
 **Status:** Completo e validado ✅  
 **Commits:** `5e20713` · `a4d8f07` · `4cc9a72` | **Worker:** `007d2dec` (sem alteração)
 
