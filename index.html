@@ -3997,7 +3997,7 @@ function setCTTab(tab){
 function atualizarHeaderContato(){
   const nome=(document.getElementById('mc-nome')?.value||'').trim();
   const tipo=document.getElementById('mc-tipo')?.value||'Executivo';
-  const temp=document.getElementById('mc-temp')?.value||'warm';
+  const temp=document.getElementById('mc-temp')?.value||'';
   const av=document.getElementById('mc-header-avatar');
   if(av){ const ini=nome?nome.split(' ').filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,2).join(''):'?'; av.textContent=ini; }
   const hn=document.getElementById('mc-header-nome'); if(hn) hn.textContent=nome||'Novo Contato';
