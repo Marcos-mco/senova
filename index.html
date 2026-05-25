@@ -3945,6 +3945,8 @@ function openContatoModal(id){
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
     if(tlLista) tlLista.innerHTML='';
+    if(tlForm) tlForm.style.display='none';
+    const nextErr=document.getElementById('mc-next-err'); if(nextErr) nextErr.style.display='none';
   }
   setCTTab('dados');
   atualizarBtnOutlook();
