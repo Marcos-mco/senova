@@ -3728,8 +3728,10 @@ function atualizarBotoesModal(statusOverride){
   let html='';
   if(!isClosed) html+=`<button class="btn btn-ghost" style="color:#9B2226;border:1px solid #9B222622;" onclick="declinarVaga()">Declinar</button>`;
   if(isLead&&!temAtsCV){
+    html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
     html+=`<button class="btn btn-primary" onclick="abrirAntiATSModal()">Analisar Candidatura →</button>`;
   } else if(isLead&&temAtsCV){
+    html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
     html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Analisar Candidatura</button>`;
     html+=`<button class="btn" style="background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;min-height:44px;padding:0 18px;font-size:15px;font-weight:600;" onclick="candidatarDoModal()">✉ Candidatar</button>`;
   } else {
