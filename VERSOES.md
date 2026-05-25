@@ -12,7 +12,29 @@ Para restaurar qualquer versão anterior:
 
 ## Versões conhecidas
 
-### v3.12.3 — 22/mai/2026 (ATUAL)
+### v3.12.4 — 25/mai/2026 (ATUAL)
+**Status:** Completo e validado ✅  
+**Commits:** `6d8f578` · `e526447` | **Worker:** `007d2dec` (sem alteração)
+
+#### Histórico de carreira gráfica — VIRGILIO.md (commit `6d8f578`)
+- Seção **Histórico completo** adicionada ao perfil do Marcos Franco
+- **Editel | Grupo Carvajal**: 2 cargos separados com datas corrigidas — Gerente Nacional de Produção (abr/1996–2001) + Superintendente Regional de Vendas Nordeste (2001–fev/2005)
+- **Ghaphical Consult** (1995–1996), **Editora Abril** (1992–1995), **Intec Tecnologia** (1990–1992), **DLS** (1989–1990) documentados
+- Regra de uso registrada: bloco gráfico apenas para vagas editorial/gráfica/ISO/telecom
+- GANCHO DLS → Heloisa Garrett (LIDE Paraná) registrado
+- Informações complementares: ISO 9000 Auditor Líder, docência ESAMC/ESPM + Uniexp, Troféu Imprensa 2004
+
+#### CV_BASE — atualização PT/EN/ES (commit `e526447`)
+- **Editel**: entrada única substituída por 2 cargos com datas corrigidas (mai/1999 era incorreto — corrigido para abr/1996–fev/2005)
+- **CERTIFICAÇÕES** / CERTIFICATIONS / CERTIFICACIONES: seção nova — ISO 9000 Auditor Líder e membro do comitê
+- **PRÊMIOS** / AWARDS / PREMIOS: seção nova — Troféu Imprensa 2004, campanha RSE reciclagem listas telefônicas
+- **DOCÊNCIA** expandida: ESAMC/ESPM Maceió/AL (2002–2004) + Uniexp Curitiba/PR (2006) com matérias e períodos completos
+- **BLOCO_GRAFICO**: 4 empresas pré-Editel adicionadas com flag HTML `<!-- BLOCO_GRAFICO -->` — incluir apenas para vagas gráfica/editorial/ISO/telecom
+- ES: linha `DOCENCIA` adicionada (estava ausente na versão anterior)
+
+---
+
+### v3.12.3 — 22/mai/2026
 **Status:** Completo e validado ✅  
 **Commits:** `e4fefdf` · `7a4b35d` · `2a4123d` · `619b131` · `2e754ad` · `58c7a94` | **Worker:** `007d2dec`
 
