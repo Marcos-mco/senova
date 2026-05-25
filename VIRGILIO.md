@@ -275,6 +275,7 @@ Multinacional colombiana líder em diretórios telefônicos na América Latina �
   - ISO 9000: Auditor Líder e membro do comitê
 
 **GHAPHICAL CONSULT** — Consultor Independente — 1995 a 1996
+- Principal cliente: Posigraf (Curitiba/PR) — uma das maiores gráficas do Brasil — projeto que motivou a relocação de São Paulo para Curitiba
 - Clientes: Editora Abril, Posigraf, Editora Símbolo, Gráfica Ultraset, Qualidart, Gráfica Balcos
 - Projetos de implantação e workflow gráfico, treinamentos, avaliação de fornecedores
 - Especialização prática em color management — calibração, gestão de cores, perfis ICC e workflow gráfico
