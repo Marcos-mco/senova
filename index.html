@@ -1090,6 +1090,12 @@ select option { background: var(--bg2); }
         <option value="Indicacao">Indicacao</option>
         <option value="Email">Email</option>
       </select>
+      <select class="filter-select" id="filter-plano" onchange="aplicarFiltros()">
+        <option value="">Todos os planos</option>
+        <option value="A">Plano A — CLT</option>
+        <option value="B">Plano B — Consultoria</option>
+        <option value="C">Plano C — Senova</option>
+      </select>
       <select class="filter-select" id="filter-ordem" onchange="aplicarFiltros()">
         <option value="recente">Mais recente</option>
         <option value="antigo">Mais antigo</option>
@@ -1456,6 +1462,25 @@ select option { background: var(--bg2); }
             <option>Email</option>
             <option>Varredura IA</option>
             <option>Extensão Chrome</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div>
+          <label class="field-label">Plano</label>
+          <select id="mv-plano">
+            <option value="">— Sem plano —</option>
+            <option value="A">A — CLT executivo</option>
+            <option value="B">B — Consultoria</option>
+            <option value="C">C — Senova SaaS</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Prioridade</label>
+          <select id="mv-prioridade-vis" onchange="document.getElementById('mv-prioridade').value=this.value">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🔵 Média</option>
+            <option value="baixa">🟢 Baixa</option>
           </select>
         </div>
       </div>
@@ -3374,11 +3399,13 @@ function aplicarFiltros() {
   filtroAtivo = true;
   const pri = document.getElementById('filter-prioridade')?.value||'';
   const canal = document.getElementById('filter-canal')?.value||'';
+  const plano = document.getElementById('filter-plano')?.value||'';
   const ordem = document.getElementById('filter-ordem')?.value||'recente';
   const q = (document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
   let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
+  if(plano) lista = lista.filter(v=>v.plano===plano);
   if(q && q.length>=4) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
@@ -3391,7 +3418,7 @@ function aplicarFiltros() {
 function limparFiltros() {
   filtroAtivo = false;
   vagasFiltradas = null;
-  ['filter-prioridade','filter-canal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['filter-prioridade','filter-canal','filter-plano'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const fo = document.getElementById('filter-ordem'); if(fo) fo.value='recente';
   const inp = document.getElementById('crm-busca'); if(inp) inp.value='';
   const clr = document.getElementById('crm-busca-clear'); if(clr) clr.style.display='none';
@@ -3594,6 +3621,7 @@ function renderCRM(){
           <div class="kcard-meta">
             <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
             ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
+            ${c.plano?`<span style="font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;${c.plano==='A'?'background:#EAF1FB;color:var(--navy);':c.plano==='B'?'background:#FFF8EC;color:#8B6914;':'background:#F0FDF4;color:#15803D;'}">P${c.plano}</span>`:''}
             ${c.prioridade==='alta'?'<span class="badge badge-alta">Alta</span>':c.prioridade==='media'?'<span class="badge badge-media">Média</span>':'<span class="badge badge-baixa">Baixa</span>'}
             ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
             ${c.tags?.includes('Revisar')?'<span class="badge-revisar">⚠ Revisar</span>':''}
@@ -3676,6 +3704,8 @@ function openVagaModal(id){
     document.getElementById('mv-cargo').value=v.cargo;
     document.getElementById('mv-canal').value=v.canal;
     document.getElementById('mv-prioridade').value=v.prioridade;
+    const _prVis=document.getElementById('mv-prioridade-vis');if(_prVis)_prVis.value=v.prioridade||'media';
+    const _planoEl=document.getElementById('mv-plano');if(_planoEl)_planoEl.value=v.plano||'';
     document.getElementById('mv-status').value=v.status;
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
@@ -3730,6 +3760,8 @@ function openVagaModal(id){
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-prioridade').value='media';
+    const _prVisN=document.getElementById('mv-prioridade-vis');if(_prVisN)_prVisN.value='media';
+    const _planoElN=document.getElementById('mv-plano');if(_planoElN)_planoElN.value='';
     document.getElementById('mv-motivo').value='';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.disabled=true;
@@ -3868,6 +3900,7 @@ function saveVaga(){
     salario:document.getElementById('mv-salario').value,
     proxima:document.getElementById('mv-proxima').value,
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
+    plano:document.getElementById('mv-plano')?.value||'',
     localizacao:document.getElementById('mv-localizacao').value,
     modelo:document.getElementById('mv-modelo').value,
     regime:document.getElementById('mv-regime').value,
@@ -3913,7 +3946,7 @@ function deleteVaga(){
 
 // Rascunho de formulário (B6)
 const _DRAFT_KEY='senova_vaga_draft';
-const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
+const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
 let _draftTimer=null;
 function _scheduleDraftVaga(){ if(_draftTimer)clearTimeout(_draftTimer); _draftTimer=setTimeout(_saveDraftVaga,600); }
 function _saveDraftVaga(){
