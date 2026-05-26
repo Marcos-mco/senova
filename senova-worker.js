@@ -97,7 +97,7 @@ async function getValidToken(env) {
         client_secret: env.MS_CLIENT_SECRET,
         grant_type: 'refresh_token',
         refresh_token: data.refresh_token,
-        scope: 'Mail.Read Mail.Send Calendars.ReadWrite offline_access',
+        scope: 'Mail.Read Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
       }),
     });
     const novo = await res.json();
@@ -180,7 +180,7 @@ ${listaEmails}`;
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
-        body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:800, messages:[{role:'user',content:prompt}] }),
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:800, messages:[{role:'user',content:prompt}] }),
       });
       const data = await res.json();
       const texto = data.content?.[0]?.text || '';
@@ -340,7 +340,7 @@ export default {
         client_id: env.MS_CLIENT_ID,
         response_type: 'code',
         redirect_uri: redirectUri,
-        scope: 'Mail.Read Mail.Send Calendars.ReadWrite offline_access',
+        scope: 'Mail.Read Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
         response_mode: 'query',
         prompt: 'consent',
       });
@@ -620,6 +620,24 @@ export default {
       }
     }
 
+    // ── Contatos Outlook — filtro estratégico ───────────────────────
+    if (path === '/api/contacts' && request.method === 'GET') {
+      const token = await getValidToken(env);
+      if (!token) return json({ erro: 'Outlook não conectado.', reauth: true }, 401);
+      const res = await fetch(
+        'https://graph.microsoft.com/v1.0/me/contacts?$top=200&$select=displayName,emailAddresses,jobTitle,companyName,mobilePhone,businessPhones',
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) return json({ erro: 'Erro ao buscar contatos', detalhes: await res.json().catch(()=>({})) }, 502);
+      const data = await res.json();
+      const KEYWORDS_EXEC = ['diretor','director','ceo','cmo','cso','head','vp ','presidente','gerente','manager','recruiter','headhunter','talent','people',' rh','sócio','partner','consultor'];
+      const filtrados = (data.value || []).filter(c => {
+        const cargo = (c.jobTitle || '').toLowerCase();
+        return KEYWORDS_EXEC.some(k => cargo.includes(k));
+      });
+      return json({ contatos: filtrados, total: filtrados.length });
+    }
+
     return json({ erro: 'Rota não encontrada' }, 404);
   },
 
@@ -837,7 +855,7 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:500, messages:[{role:'user',content:prompt}] }),
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:500, messages:[{role:'user',content:prompt}] }),
     });
     const data = await resp.json();
     return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
@@ -972,7 +990,7 @@ async function analisarSinaisMercado(itens, env) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await resp.json();
     const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
