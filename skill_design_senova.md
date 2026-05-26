@@ -176,8 +176,156 @@ Worker: https://senova-proxy.marcos-mco.workers.dev
 Fontes: fonts.google.com/specimen/Playfair+Display + fonts.google.com/specimen/Inter
 Brand Guide original: C:\Users\marco\OneDrive\Documentos\Senova\Senova___Brand_Guidelines_v1_0.docx
 
-Skill consolidado em 20/mai/2026 a partir do Brand Guide v1.0 (abr/2026)
+Skill consolidado em 20/mai/2026 · Atualizado 26/mai/2026
 Atualizar a cada mudança de padrão aprovada pelo Marcos Franco.
+
+## 12. WIREFRAMES — COMO DESENHAR ANTES DE IMPLEMENTAR
+
+Antes de implementar qualquer tela nova ou refatoração de navegação, desenhar um wireframe em texto.
+Isso evita retrabalho de CSS e alinha expectativa antes de tocar no código.
+
+### Formato padrão de wireframe (ASCII)
+
+```
+┌─────────────────────────────────────────────────────┐
+│ NOME DA TELA                          [ações header] │
+├──────────┬──────────────────────────────────────────┤
+│          │  ÁREA PRINCIPAL                          │
+│ SIDEBAR  │  ┌─────────────┐  ┌─────────────┐       │
+│          │  │ Card        │  │ Card        │       │
+│ • Home   │  │ Empresa     │  │ Empresa     │       │
+│ • Proc.  │  │ Cargo       │  │ Cargo       │       │
+│ • Sofia  │  │ [Badge]     │  │ [Badge]     │       │
+│          │  └─────────────┘  └─────────────┘       │
+│          │                                          │
+└──────────┴──────────────────────────────────────────┘
+```
+
+### Regras de wireframe
+- Usar ASCII simples: `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼`
+- Anotar dimensões em % ou px quando críticas
+- Indicar estados: `[vazio]`, `[loading]`, `[erro]`, `[dado]`
+- Indicar interações: `→ abre modal`, `→ navega para`, `→ expande`
+- Nunca implementar sem wireframe aprovado por Marcos
+
+---
+
+## 13. ESTADOS DE COMPONENTE — PADRÃO OBRIGATÓRIO
+
+Todo componente que busca dados ou recebe input deve ter 4 estados definidos:
+
+| Estado | Visual | Comportamento |
+|--------|--------|---------------|
+| **Vazio** | Mensagem contextual + ação sugerida | Ex: "Nenhum processo ainda. + Novo" |
+| **Loading** | Skeleton loader (não spinner) | Barras cinza animadas no lugar do conteúdo |
+| **Erro** | Mensagem humana + botão retry | NUNCA mostrar código de erro técnico |
+| **Dado** | Conteúdo real | |
+
+### Skeleton loader — padrão
+```css
+.skeleton { background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+            background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+```
+
+### Mensagens de estado vazio — por tela
+- Processos: "Nenhum processo ativo. Adicione uma oportunidade ou importe vagas da varredura."
+- Contatos: "Nenhum contato cadastrado. Adicione headhunters e recrutadores para acompanhar."
+- Central de Sinais: "Conecte o Outlook para receber alertas de vagas e movimentações."
+- Próximas Ações: "Tudo em dia. Sem ações urgentes no momento."
+
+---
+
+## 14. FLUXOS DE NAVEGAÇÃO
+
+### Princípio cardinal (definido 25/mai/2026)
+**Toda ação vive dentro de um card (Processo ou Contato). Nada flutua solto.**
+
+Isso significa: ferramentas como Análise CV, Candidatura e Sofia devem ser acessíveis
+DENTRO do card, não como destinos separados que exigem sair do pipeline.
+
+### Fluxo principal — Oportunidade → Candidatura
+
+```
+[Home] → ver nova oportunidade no widget
+    ↓
+[Processos] → abrir card (clique)
+    ↓
+[Modal do card] → botão "Analisar"
+    ↓
+[Painel lateral ou modal] → análise ATS inline
+    ↓
+[Mesmo card] → botão "Candidatar" → enviar via Outlook
+    ↓
+[Card atualizado] → status "CV Enviado" + follow-up +7d agendado
+```
+
+### Fluxo captura via extensão
+
+```
+[Site de vaga] → clicar extensão Senova
+    ↓
+[Popup extensão] → dados pré-preenchidos
+    ↓
+[Confirmar] → vaga vai para "Vagas para revisar" no Worker
+    ↓
+[Home Senova] → widget mostra nova vaga
+    ↓
+[1 clique "Importar"] → card criado em Oportunidade com score ATS
+```
+
+### Fluxo follow-up (crítico para executivos)
+
+```
+[Home] → Próximas Ações mostra card vencendo hoje
+    ↓
+[1 clique] → abre card diretamente
+    ↓
+[Modal] → botão "Follow-up" → gera mensagem via IA
+    ↓
+[Enviar pelo Outlook] → timeline atualizada → próxima ação +14d
+```
+
+### Navegação sidebar — ordem por frequência de uso
+
+```
+1. Home (cockpit diário — sempre o ponto de partida)
+2. Processos (kanban + contatos — onde o trabalho acontece)
+3. Sofia (coaching + CV — ferramenta de suporte)
+[ferramentas secundárias acessíveis de dentro dos cards, não no menu principal]
+```
+
+### Anti-padrões a evitar
+
+- NUNCA exigir que o usuário navegue para outra página para agir sobre um card
+- NUNCA ter "Análise CV" como destino principal — deve ser botão dentro do card
+- NUNCA ter mais de 3 itens fixos no menu principal
+- NUNCA perder o contexto (voltar para o topo da lista após ação num card)
+
+---
+
+## 15. RESPONSIVIDADE — BREAKPOINTS E COMPORTAMENTO MOBILE
+
+Ver skill_pwa.md para regras completas de implementação.
+
+| Largura | Layout | Sidebar | Cards |
+|---------|--------|---------|-------|
+| ≥ 1280px | Completo | 238px fixa | Grid normal |
+| 960–1279px | Comprimido | 180px fixa | Grid comprimido |
+| 768–959px | Tablet | Colapsada (ícones) | 1 coluna |
+| < 768px | Mobile | Bottom nav (4 ícones) | 1 coluna, full-width |
+
+### Bottom navigation mobile (< 768px)
+```
+┌──────────────────────────────────┐
+│          [conteúdo]              │
+├────────┬────────┬────────┬───────┤
+│  🏠    │  📋    │  ✨    │  ···  │
+│  Home  │ Proc.  │ Sofia  │  Mais │
+└────────┴────────┴────────┴───────┘
+```
+
+Touch targets mínimos: 44×44px. Fonte mínima mobile: 15px (nunca reduzir para mobile).
 
 ## 11. IDIOMAS
 
