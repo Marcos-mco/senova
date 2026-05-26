@@ -417,7 +417,16 @@ export default {
         };
       });
 
-      const isAlertaFn = e => { const f = (e.from || '').toLowerCase(); return f.includes('googlealerts-noreply') || f.includes('google-alerts'); };
+      const isAlertaFn = e => {
+        const f = (e.from || '').toLowerCase();
+        const s = (e.subject || '').toLowerCase();
+        return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
+               f.includes('jobalerts') || f.includes('job-alert') ||
+               f.includes('adzuna') || f.includes('alertas@') ||
+               (f.includes('linkedin') && (s.includes('vaga') || s.includes('emprego') || s.includes('oportunidade') || s.includes('job'))) ||
+               (f.includes('indeed') && (s.includes('alerta') || s.includes('alert'))) ||
+               (f.includes('catho') && (s.includes('vaga') || s.includes('alerta')));
+      };
       // Alertas extraídos de TODOS os emails da janela 7 dias (ignora filtro vistos)
       const todosAlertas = emails.filter(isAlertaFn);
 
@@ -902,7 +911,12 @@ const QUERIES_SINAIS = [
   'expansão empresa mídia publicidade Brasil',
   'fusão aquisição comunicação marketing',
 ];
-const KEYWORDS_SINAL = ['saiu','novo ceo','nomeou','contratou','expansão','fusão','reestruturação','demitiu','lançou','cresce','adquiriu'];
+const KEYWORDS_SINAL = [
+  'saiu','saída','novo ceo','nomeou','nomeação','nomeado','nomeados',
+  'contratou','contratação','contratado','expansão','fusão','aquisição',
+  'reestruturação','demitiu','demissão','demitidos','lançou','cresce','crescimento',
+  'adquiriu','assume','assumiu','diretora','diretor','vice-presidente','vp de',
+];
 
 async function buscarGoogleNewsRSS(query) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt`;

@@ -13,28 +13,22 @@
 **Impacto:** alto — bloqueia o fluxo principal de candidatura via email.
 **Fix:** redesenhar o modal de email com 4–5 ações contextuais + leitura confortável (fonte ≥ 15px, padding, preview completo).
 
-### B5 — Cards não são excluídos quando excluídos
-**O que acontece:** ao excluir (ou arquivar?) um card, ele continua aparecendo.
-**Impacto:** alto — confunde o usuário e polui o pipeline.
-**Fix:** verificar se `saveVagas()` está chamando `aplicarFiltros()` após exclusão. Verificar se o status "descartado" está sendo filtrado corretamente na renderização.
+### B5 — ~~Cards não somem ao excluir~~ ✅ RESOLVIDO (26/mai/2026)
+**Causa raiz:** cards da varredura vivem no KV do Worker. Ao deletar um card, ele sumia do localStorage mas não do KV. Na próxima importação, o card reaparecia porque a deduplicação só checava `vagas[]` (já sem o card). **Fix:** blocklist `senova_deleted_ids` no localStorage — deleteVaga() adiciona o ID, importarVagasLead() também exclui IDs da blocklist.
 
-### B6 — Perde tudo ao sair da página com formulário preenchido
-**O que acontece:** usuário preenche campos no modal de Novo Processo (ou outro formulário) e navega para outra página — perde tudo ao voltar.
-**Impacto:** alto para mobile, médio para desktop.
-**Fix:** salvar rascunho no localStorage a cada mudança de campo (`oninput`). Ao abrir modal novo, verificar se há rascunho salvo e oferecer "Continuar de onde parou?"
+### B6 — ~~Perde tudo ao sair da página com formulário preenchido~~ ✅ RESOLVIDO (26/mai/2026)
+**Fix:** rascunho automático no localStorage (`senova_vaga_draft`) com debounce 600ms. Modal de Novo Processo detecta rascunho ao abrir e oferece restaurar com banner + botão "Descartar". Draft limpo ao salvar card.
 
-### B7 — Não consegue gerar card novo (cenário específico a reproduzir)
-**O que acontece:** em algum fluxo específico, o botão de criar novo card não funciona.
-**Status:** reproduzir o cenário exato antes de corrigir.
-**Próximo passo:** Marcos descrever os passos exatos que levam ao problema.
+### B7 — ~~Não consegue gerar card novo~~ ✅ RESOLVIDO (25/mai/2026)
+**Fix:** botão "+ Novo" com submenu Processo / Contato implementado em `fa5265a`.
+**Validação:** confirmado por Marcos via screenshot (26/mai/2026). Monitorar edge cases.
 
-### B8 — "Recarregar emails" vs "Atualizar" — fazem coisas diferentes mas o usuário não distingue
-**O que acontece:** dois botões/ações com nomes parecidos que têm comportamentos diferentes (um faz fetch do servidor, outro renderiza o que já está em memória).
-**Fix:** unificar em um único botão "Atualizar" que sempre faz o fetch completo. Ou nomear claramente: "Buscar novos emails" vs "Aplicar filtros".
+### B8 — ~~"Recarregar emails" confuso~~ ✅ RESOLVIDO (26/mai/2026)
+**Fix:** botão renomeado para "Buscar novos emails" (com "Buscando..." no estado de loading). Deixa claro que é um fetch real do Outlook — não só re-renderização.
 
 ### B9 — Alertas (job alerts + Google Alerts) não aparecem / fluxo quebrado
 **O que acontece:** o fluxo de alertas não está chegando corretamente na interface.
-**Status:** diagnosticar se é bug do Worker (não está separando alertas de emails) ou da UI (não está renderizando).
+**Status parcial (26/mai/2026):** `isAlertaFn` expandido para capturar alertas do LinkedIn, Indeed, Catho e Adzuna além do Google. `KEYWORDS_SINAL` expandido com formas nominais (nomeação, demissão, contratação...). Diagnóstico completo ainda requer DevTools para confirmar se os emails chegam mas não são filtrados, ou se Google Alerts não está configurado para o hotmail.
 
 ---
 
@@ -142,9 +136,12 @@ Anotado por Marcos para adicionar à lista de fontes da varredura automática:
 ## PRÓXIMOS PASSOS (desta análise)
 
 1. **B4** (email sem funcionalidade) — diagnosticar na próxima sessão DevTools: qual o HTML do modal atual, quais ações existem, o que falta
-2. **B5** (cards não excluídos) — reproduzir e confirmar o comportamento exato
-3. **B6** (perde formulário ao sair) — implementar rascunho em localStorage
-4. **B7** — Marcos descreve os passos que levam ao problema
-5. **UX1** (+ Nova Oportunidade na Home) — fix simples, alta prioridade
-6. **3 fluxos de email** — avaliar posição no roadmap após mobile e Plano A/B/C
-7. **Extensão: "Job Tailored Resume" inline** — direção para redesenho da extensão (Fase 3)
+2. ~~**B5**~~ — ✅ resolvido (blocklist de IDs excluídos no localStorage)
+3. ~~**B6**~~ — ✅ resolvido (rascunho automático + banner "Continuar de onde parou")
+4. ~~**B7**~~ — ✅ resolvido em 25/mai/2026
+5. ~~**UX1**~~ — ✅ resolvido (botão "+ Nova Oportunidade" acima das Próximas Ações)
+6. ~~**B8**~~ — ✅ resolvido (renomeado para "Buscar novos emails")
+7. **B9** — parcialmente melhorado; diagnóstico completo exige DevTools
+8. **B4** — próxima sessão: redesenhar modal de email com ações Aceitar/Declinar/Neutro/Arquivar
+9. **3 fluxos de email** — avaliar posição no roadmap após mobile e Plano A/B/C
+10. **Extensão: "Job Tailored Resume" inline** — direção para redesenho da extensão (Fase 3)

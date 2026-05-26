@@ -388,8 +388,8 @@ select option { background: var(--bg2); }
           <div class="outlook-toggle-knob"></div>
         </div>
       </div>
-      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Limpando...';setTimeout(()=>{this.textContent='Recarregar emails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Reprocessar todos os emails">
-        Recarregar emails
+      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Buscando...';setTimeout(()=>{this.textContent='Buscar novos emails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Buscar novos emails do Outlook e reclassificar">
+        Buscar novos emails
       </button>
     </div>
   </div>
@@ -489,6 +489,7 @@ select option { background: var(--bg2); }
         <div>
           <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
             <span class="section-title">Próximas Ações</span>
+            <button onclick="showPage('crm');setTimeout(()=>openVagaModal('new'),120);" style="display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;border:1.5px solid var(--gold);background:var(--gold);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Nova Oportunidade</button>
             <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
               <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
                 <option value="all">Prioridade</option>
@@ -1416,6 +1417,10 @@ select option { background: var(--bg2); }
   <div class="modal">
     <div class="modal-title" id="modal-vaga-title">Novo Processo</div>
     <div class="modal-body">
+      <div id="mv-draft-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#FFF8EC;border:1.5px solid #C9A84C44;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:13px;color:var(--text2);">
+        <span>📝 Rascunho restaurado — continue de onde parou.</span>
+        <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
+      </div>
       <div class="form-grid" style="margin-bottom:14px;">
         <div>
           <label class="field-label">Empresa <span style="color:#CC0000;font-size:13px;">*</span></label>
@@ -3013,7 +3018,8 @@ async function importarVagasLead(){
     ]);
     const data   = await resLead.json();
     const config = await resConfig.json();
-    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)));
+    const _deletedIds=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)) && !_deletedIds.has(String(v.id)));
 
     if(lead.length===0){
       if(btn){btn.textContent='✅ Sem novidades';btn.disabled=false;}
@@ -3720,6 +3726,16 @@ function openVagaModal(id){
     document.getElementById('mv-timeline-section').style.display='none';
     document.getElementById('mv-timeline-lista').innerHTML='';
     const di=document.getElementById('mv-datas-info'); if(di) di.style.display='none';
+    // Restaurar rascunho se existir
+    const _draft=JSON.parse(localStorage.getItem(_DRAFT_KEY)||'null');
+    const _draftBanner=document.getElementById('mv-draft-banner');
+    if(_draft&&(_draft['mv-empresa']||_draft['mv-cargo'])){
+      _DRAFT_FIELDS.forEach(fid=>{const el=document.getElementById(fid);if(el&&_draft[fid]!==undefined)el.value=_draft[fid];});
+      if(_draft.prioridade) document.getElementById('mv-prioridade').value=_draft.prioridade;
+      if(_draftBanner) _draftBanner.style.display='flex';
+    } else {
+      if(_draftBanner) _draftBanner.style.display='none';
+    }
   }
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoesModal();
@@ -3868,15 +3884,45 @@ function saveVaga(){
   };
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
   if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
+  if(isNew) _clearDraftVaga();
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
 }
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
   if(!confirm('Remover esta vaga?'))return;
+  // Persiste o ID na blocklist para evitar reimportação do KV
+  try{
+    const bl=JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]');
+    bl.push(String(editingVagaId));
+    // Mantém só os últimos 500 para não inflar o localStorage
+    localStorage.setItem('senova_deleted_ids',JSON.stringify(bl.slice(-500)));
+  }catch{}
   vagas=vagas.filter(v=>v.id!==editingVagaId);
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
+// Rascunho de formulário (B6)
+const _DRAFT_KEY='senova_vaga_draft';
+const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
+let _draftTimer=null;
+function _scheduleDraftVaga(){ if(_draftTimer)clearTimeout(_draftTimer); _draftTimer=setTimeout(_saveDraftVaga,600); }
+function _saveDraftVaga(){
+  if(editingVagaId!=='new')return;
+  const d={}; _DRAFT_FIELDS.forEach(id=>{const el=document.getElementById(id);if(el)d[id]=el.value;});
+  d.prioridade=document.getElementById('mv-prioridade')?.value||'media';
+  if(!d['mv-empresa']&&!d['mv-cargo'])return;
+  try{localStorage.setItem(_DRAFT_KEY,JSON.stringify(d));}catch{}
+}
+function _clearDraftVaga(){ try{localStorage.removeItem(_DRAFT_KEY);}catch{} }
+function descartarRascunhoVaga(){
+  _clearDraftVaga();
+  document.getElementById('mv-draft-banner').style.display='none';
+  ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mv-modelo').value='';
+  document.getElementById('mv-regime').value='';
+  document.getElementById('mv-canal').value='LinkedIn';
+  document.getElementById('mv-prioridade').value='media';
+}
 // Timeline
 function abrirFormTimeline(){
   document.getElementById('mv-timeline-form').style.display='block';
@@ -5409,6 +5455,14 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 showPage('home');
 checkOutlookStatus();
+// Listener único para salvar rascunho de Novo Processo (B6)
+(function(){
+  const m=document.getElementById('modal-vaga');
+  if(m){
+    m.addEventListener('input',_scheduleDraftVaga);
+    m.addEventListener('change',_scheduleDraftVaga);
+  }
+})();
 </script>
 </body>
 </html>
