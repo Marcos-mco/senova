@@ -2,24 +2,24 @@
 ## Executar no início de CADA sessão
 
 ### PASSO 1 — Ler obrigatoriamente (nesta ordem):
-1. PROJETO.md
-2. VERSOES.md
-3. VIRGILIO.md
-4. session_start.md (este arquivo)
+1. https://raw.githubusercontent.com/marcos-mco/senova/main/PROJETO.md
+2. https://raw.githubusercontent.com/marcos-mco/senova/main/VERSOES.md
+3. https://raw.githubusercontent.com/marcos-mco/senova/main/VIRGILIO.md
+4. https://raw.githubusercontent.com/marcos-mco/senova/main/session_start.md
 
 ### PASSO 2 — Ler todos os skills:
-- skill_sofia.md
-- skill_crm.md
-- skill_dev_senova.md
-- skill_design_senova.md
-- skill_produto.md
-- skill_concorrentes.md
-- skill_linkedin.md
-- skill_cv.md
-- skill_pesquisa_exec.md
-- skill_followup.md
-- skill_business_plan.md
-- skill_market_intel.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_sofia.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_crm.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_dev_senova.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_design_senova.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_produto.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_concorrentes.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_linkedin.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_cv.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_pesquisa_exec.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_followup.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_business_plan.md
+- https://raw.githubusercontent.com/marcos-mco/senova/main/skill_market_intel.md
 
 ### PASSO 3 — Reportar ao Virgílio:
 1. Versão atual + último deploy + commit hash
