@@ -30,14 +30,14 @@
 
 ---
 
-## ESTADO ATUAL (22/mai/2026)
+## ESTADO ATUAL (25/mai/2026)
 
 ### Versões
 | Artefato | Versão | Observação |
 |---|---|---|
-| index.html | **v3.12.3** | commits e4fefdf→58c7a94 — VERSOES.md canonical |
-| senova-worker.js | **v7.7** (header diz v7.3 — stale) | webLink em $select, body 5000 chars |
-| Worker deployado | Version ID 007d2dec | senova-proxy.marcos-mco.workers.dev |
+| index.html | **v3.12.7** | último commit `6273896` — VERSOES.md canonical |
+| senova-worker.js | **v7.7** | Worker sem alteração desde 22/mai |
+| Worker deployado | `007d2dec` | senova-proxy.marcos-mco.workers.dev |
 | Modelo IA (Worker) | claude-sonnet-4-5 | — |
 | Modelo IA (Frontend) | claude-sonnet-4-6 | ✅ Atualizado |
 
@@ -58,54 +58,77 @@
 | Central de Sinais | ✅ Funcional | Home — Emails / Google Alerts / Vagas para revisar |
 | Extensão Chrome | ✅ Funcional | `senova-extension/` — captura em qualquer site |
 | Perfil (5 blocos) | ✅ Funcional | Blocos 1–4 + Bloco 5 Ferramentas salvam em `/api/perfil` |
-| Perfil (Blocos A/B/C) | ✅ Funcional | save/load via `/api/perfil` confirmado — código completo |
+| Perfil (Blocos A/B/C) | ✅ Funcional | save/load via `/api/perfil` confirmado |
 | Home / Dashboard | ✅ Funcional | KPIs 2×2, funil, próximas ações, sinais |
+| Botão + Novo | ✅ Funcional | Submenu Processo / Contato (sem "Atividade") |
+| Modal Novo Processo | ✅ Funcional | Extração IA automática + validação campos obrigatórios |
+| Modal Novo Contato | ✅ Funcional | Temperatura "—" padrão + validação Salvar completa |
 
 ---
 
-## PENDÊNCIAS E BUGS CONHECIDOS
+## O QUE FOI ENTREGUE — sessão 25/mai/2026
 
-### Alta prioridade
-1. ~~**Blocos A/B/C do Perfil**~~ — ✅ Confirmado: save/load implementado (linhas 2548–2597), rota `/api/perfil` GET+POST ativa no Worker (linhas 306/312).
-2. **Lead → Oportunidade** — ✅ UI renomeada (12 labels, labels JS). Valores internos mantidos (`status:'lead'`, `vagas-lead`, localStorage) — breaking change intencional adiado.
-3. **Triagem automática** — vagas entrar direto em Oportunidade ou Para Considerar pelos critérios do Bloco 3 do Perfil. Não implementada.
-4. ~~**Modelo IA**~~ — ✅ Feito: `claude-sonnet-4-5` → `claude-sonnet-4-6` em 12 chamadas do frontend.
-5. **Sofia redesenho** — assistente contextual flutuante em todas as páginas (maior prioridade de produto).
+### UX / Pipeline (12 commits)
+- **+ Novo com submenu** — dropdown Processo / Contato substitui "+ Adicionar" (`fa5265a`)
+- **Novo Processo** — renomeado de "Nova Vaga"; extração automática IA (Empresa, Cargo, Localização com highlight); botão Salvar independente; validação asteriscos (*) em Empresa e Cargo (`059448c` · `d6b1424` · `198e84d`)
+- **Novo Contato** — temperatura padrão "—"; asteriscos em Nome/Email/Telefone/Data; validação Salvar completa; reset completo incluindo `mc-next-err` e `tlForm` (`b21344d` · `956bd2a` · `4a7ef24` · `c01dff1`)
+- **Bug Kanban** — card novo não aparecia com filtro ativo; `saveVaga` chama `aplicarFiltros()` quando `filtroAtivo`; botões arquivados e limpeza em lote removidos do header (`c62585a`)
+- **Analisar Candidatura** — salva card antes de abrir análise; corrige vínculo `atsOrigemVagaId` para vagas novas (`7d1231e`)
 
-### Média prioridade
-6. **Bug `mv-prioridade` com valor inválido** — `openVagaModal('new')` na linha ~3636 faz `document.getElementById('mv-prioridade').value='lead'`, mas o campo só aceita `'alta'`/`'media'`/`'baixa'`. Nova vaga criada manualmente abre com prioridade sem seleção válida. Fix: trocar para `'media'`.
-7. ~~**Adzuna jobDescription vazio**~~ — ✅ Corrigido: auto-fetch via `buscarDescricaoAuto(origemUrl)` acionado automaticamente quando jobDesc < 50 chars e origemUrl existe (commit `6f5a010`).
-8. ~~**Encoding UTF-8 no Worker**~~ — ✅ Corrigido: `Content-Type: application/json; charset=utf-8` adicionado à função `json()`, Worker deployado (v716274fc).
-9. ~~**Home — erro nos emails e varredura**~~ — ✅ Corrigido: `if(!res.ok)` adicionado antes de `res.json()` em `carregarEmails`, `checkOutlookStatus` e `carregarStatusVarredura` (commit `f9e1eb4`).
-10. **Descrição Inhire** — extensão ainda captura algum conteúdo de navegação (menor, workaround ok).
-11. ~~**Google Alerts Digest**~~ — ✅ Corrigido: alertas separados antes da classificação IA no Worker; retornados em `alertas:[]` separado; frontend lê `data.alertas` diretamente em `_sinaisAlertas` (Worker `cd021033` + frontend `186cc61`).
-12. ~~**Central de Sinais — 3 bugs**~~ — ✅ Corrigido (22/mai, `e4fefdf`·`7a4b35d`): emails lista vazia (stat KV vs fetch atual), alertas inline com chevron (s2.onclick ausente em atualizarSinais), seta vagas não rotacionava.
-13. ~~**Email fetch — isRead eq false**~~ — ✅ Corrigido (22/mai, Worker `007d2dec`): janela 7 dias + orderby; body 5000 chars. Resolve emails de 20–21/mai não processados.
-14. ~~**Google Alerts — race condition + Outlook Web**~~ — ✅ Corrigido (22/mai, `2e754ad`·`58c7a94`): todos artigos do digest, filtro vistos removido, race condition atualizarSinais→renderAlertasInline, card abre diretamente no Outlook Web via `e.webLink`.
+### Docs / CV (3 commits)
+- **DLS sempre obrigatória** — DLS movida para fora do `BLOCO_GRAFICO` nos CVs PT/EN/ES; regras de uso e gancho estratégico Heloisa Garrett documentados no VIRGILIO.md (`64f4a86`)
+- **MBA FGV** — nome completo `MBA em Administração de Empresas — FGV Curitiba (1998–2000)`; nunca associar a Marketing (`75b07dd`)
+- **PDF executivo** — duplo cabeçalho corrigido: título extraído de `cvLinhas[1]`, corpo usa `cvCorpo` (`6273896`)
 
-### Backlog de produto
-12. Home redesenho — 6 blocos: Novas Oportunidades, Para Considerar, Ações do Dia, Funil, Sinais, Contatos Ativos.
-13. `skill_onboarding.md` — criar do zero.
-14. `skill_ux_writing.md` — criar do zero.
-15. Filtros Plano A/B/C no Pipeline — verificar se implementado.
-16. Sofia conversacional — substituir tela estática por IA viva.
-17. Aba Mercado — emails de conteúdo (Board Academy, newsletters) em aba separada.
-18. Modal Editar Vaga — caber na tela sem scroll (revisão de layout).
-19. Header Worker `senova-worker.js` — atualizar de v7.3 para v7.7 para evitar confusão.
+### Decisões de produto (PROJETO.md)
+- **Conceito de Atividade**: toda ação vive num card existente (Processo ou Contato); nada flutua solto
+- **Botão + Novo**: exatamente duas opções — Processo / Contato; nunca "Atividade"
+
+---
+
+## PENDÊNCIAS — Por ordem de prioridade
+
+### FASE 1 — MVP para 5 usuários reais
+
+1. **Sofia contextual flutuante** ← PRÓXIMA PRIORIDADE DE PRODUTO  
+   Redesenho como presença contextual em todas as páginas; comportamento muda por página e estágio de relacionamento (skill_sofia.md seções 5 e 7)
+2. **skill_onboarding.md** — criar skill de onboarding para novos usuários (fluxo primeira sessão, perguntas guiadas, configuração do Perfil)
+3. **skill_ux_writing.md** — criar skill de UX writing (microcopy, labels, mensagens da Sofia por contexto, glossário de interface)
+4. **Filtros Plano A/B/C no Pipeline** — verificar se já implementado antes de executar
+5. **Aba Perfil — portais** — otimização múltiplos portais (Gupy, Indeed, Catho, Reed, StepStone)
+6. **Comunidades 35+** — mapear e indicar no Senova
+7. **Cursos via Claude** — sugestões por lacuna no perfil
+8. **4 idiomas** — interface PT/EN/ES/DE
+9. **Michael Page automático** — remetente reconhecido, importação sem tag Revisar
+10. **Preenchimento automático nos portais** — autofill
+
+### FASE 2 — MVP Comercial
+
+11. **senova.com.br + multi-usuário** — domínio próprio (R$47/mês) + múltiplos perfis
+12. **Business Plan** — modelo de negócio, precificação, go-to-market, projeções
+13. **WhatsApp notificações** — alertas de follow-up, vagas e reuniões
+14. **App mobile (iOS + Android)** — experiência nativa 50+
+
+### Bugs abertos
+
+| # | Bug | Prioridade |
+|---|---|---|
+| B1 | `openVagaModal('new')` seta `mv-prioridade.value='lead'` — campo aceita apenas `alta`/`media`/`baixa`; nova vaga abre sem prioridade válida. Fix: trocar para `'media'` | Média |
+| B2 | Extensão Inhire ainda captura algum conteúdo de navegação | Baixa |
 
 ---
 
 ## REGRAS INVIOLÁVEIS
 
 ### Desenvolvimento
-- **Nunca chamar `api.anthropic.com` do browser** — toda chamada IA passa pelo Worker. Checar com `Ctrl+F` antes de qualquer commit do `index.html`.
+- **Nunca chamar `api.anthropic.com` do browser** — toda chamada IA passa pelo Worker. `Ctrl+F` antes de qualquer commit do `index.html`.
 - **Nunca substituir `index.html` por arquivo do Claude.ai** — sempre editar via Claude Code.
 - **Salvar backup antes de editar**: `senova_v[N]_[data].html`.
 - **Nunca refatorar CSS junto com correção de bug** — mudanças isoladas.
 
 ### Deploy
-- **Frontend**: `git add index.html && git commit -m "..." && git push origin main` → GitHub Pages publica em ~30s.
-- **Worker**: `npx wrangler deploy` (quando `senova-worker.js` mudar).
+- **Frontend**: `git add index.html && git commit -m "..." && git push origin main` → GitHub Pages em ~30s.
+- **Worker**: `npx wrangler deploy` (somente quando `senova-worker.js` mudar).
 
 ### Brand (nunca alterar sem aprovação explícita de Marcos)
 | Token | Valor |
@@ -113,10 +136,10 @@
 | Azul navy | `#1A3A5C` |
 | Dourado | `#C9A84C` |
 | Ação/link | `#2E6DA4` |
-| Fundo | `#F7F5F0` |
+| Fundo | `#F0F4F8` |
 | Texto | `#2C2C2A` |
 | Fonte títulos | **Playfair Display 700** — nunca substituir |
-| Fonte corpo | **DM Sans** (index.html usa DM Sans — CLAUDE.md menciona Inter mas código usa DM Sans) |
+| Fonte corpo | **Inter 400/500/600** — nunca DM Sans |
 | Tamanho mínimo corpo | 16px — público 40+ |
 
 ### Sessão
@@ -125,17 +148,6 @@
 - Aguardar aprovação antes de avançar.
 - Ler arquivos locais ANTES de qualquer proposta.
 - Nunca rodar à frente do Virgílio.
-
----
-
-## PRÓXIMAS PRIORIDADES (em ordem)
-
-1. ~~Confirmar e testar Blocos A/B/C do Perfil~~ ✅
-2. **Sofia redesenho — assistente contextual flutuante** ← PRÓXIMA
-3. Triagem automática por critérios do Perfil
-4. ~~Renomear Lead → Oportunidade em toda a interface~~ ✅
-5. Home redesenho — 6 blocos novos
-6. ~~Atualizar modelo para `claude-sonnet-4-6`~~ ✅
 
 ---
 
