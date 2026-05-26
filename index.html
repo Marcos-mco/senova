@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Senova Suite — Recolocação Executiva</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
 <style>
@@ -31,7 +31,7 @@
   --radius: 10px;
   --radius-lg: 14px;
   --font-display: 'Playfair Display', Georgia, serif;
-  --font: 'DM Sans', -apple-system, sans-serif;
+  --font: 'Inter', -apple-system, sans-serif;
   --shadow: 0 1px 3px rgba(26,58,92,0.07), 0 1px 2px rgba(26,58,92,0.04);
   --shadow-md: 0 4px 16px rgba(26,58,92,0.10);
 }
@@ -2798,6 +2798,17 @@ const DEFAULT_VAGAS=[
   {id:24,empresa:'99/DiDi',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
   {id:25,empresa:'Thomson Reuters',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
   {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
+  // LEADS 26/mai/2026
+  {id:27,empresa:'Triunfo',cargo:'Exec. Sênior',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aprovação CEO',notas:'Plano B',data:''},
+  {id:28,empresa:'InBetta',cargo:'Silver/PMO',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Confirmar papel com CFO Tulini',notas:'Plano B',data:''},
+  {id:29,empresa:'Valore/Elbrus',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Pesquisar vaga e contato',notas:'Plano A',data:''},
+  {id:30,empresa:'Renato Berkowitz',cargo:'Clevel Executive',canal:'Headhunter',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Follow-up 02/jun/2026',notas:'CV PT enviado 26/mai — Plano A',data:'26/05/2026'},
+  {id:31,empresa:'Korn Ferry',cargo:'Consultant',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aceite LinkedIn',notas:'Priscilla Capellato — Plano A',data:'11/05/2026'},
+  {id:32,empresa:'Spencer Stuart',cargo:'Practice Leader LatAm',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aceite LinkedIn',notas:'Aldo Bergamasco — Plano A',data:'11/05/2026'},
+  {id:33,empresa:'FUNEF',cargo:'Neurocirurgião',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Reativar contato',notas:'Dr. Charles London — CV 08/mai — Plano A/B',data:'08/05/2026'},
+  {id:34,empresa:'GRPCOM',cargo:'CEO',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Café ~2 semanas — agendar',notas:'Eduardo Bosquetti — Plano A',data:''},
+  {id:35,empresa:'NEO AdTech',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'WhatsApp 11 981873329',notas:'Giuliano Sarzana — Plano A',data:''},
+  {id:36,empresa:'RICTV',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar resultado reunião 13/mai',notas:'Alan Ceppini — Plano A',data:'13/05/2026'},
 ];
 
 const _ctNow=Date.now();
@@ -2813,6 +2824,14 @@ const DEFAULT_CONTATOS=[
   {id:9,nome:'Priscilla Capellato',cargo:'Consultant',empresa:'Korn Ferry',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
   {id:10,nome:'Aldo Bergamasco',cargo:'Practice Leader LatAm',empresa:'Spencer Stuart',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
   {id:11,nome:'Andréa Klevenhusen',cargo:'General Manager Brasil',empresa:'Ricoh Brasil',temp:'warm',plano:'A',next:'Monitorar oportunidades Ricoh',email:'',telefone:'',linkedin:'linkedin.com/in/andreaklevenhusen',notas:'Conexão LinkedIn aceita 26/mai/2026',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Conexão LinkedIn aceita 26/mai/2026'}]},
+  {id:12,nome:'Patrícia Fraga',cargo:'CEO',empresa:'RBS Mídias',temp:'hot',plano:'A',next:'Entrar em contato — RBS RS',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:13,nome:'Heloisa Garrett',cargo:'Presidente',empresa:'LIDE Paraná',temp:'hot',plano:'A',next:'Ativar conexão via DLS/João Dória',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:14,nome:'Giovanni Santoro Jr.',cargo:'Head People',empresa:'NSC',temp:'warm',plano:'A',next:'Mapear oportunidade NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:15,nome:'Mário Neves',cargo:'CEO',empresa:'NSC',temp:'warm',plano:'A',next:'Aguardar momento — abordagem NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:16,nome:'Adriano Araldi',cargo:'Diretor Geral',empresa:'NSC',temp:'hot',plano:'A',next:'Contatar — abertura NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:17,nome:'Mariano Lemanski',cargo:'Presidente',empresa:'RPC/GRPCom',temp:'warm',plano:'A',next:'Aguardar momento — não contatar ainda',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:18,nome:'Andréa Tuttman',cargo:'Diretora',empresa:'Globo Nacional',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
+  {id:19,nome:'Amauri Soares',cargo:'Diretor',empresa:'TV Globo e Afiliadas',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
 ];
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
@@ -3694,7 +3713,7 @@ function openVagaModal(id){
     document.getElementById('mv-regime').value='';
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     document.getElementById('mv-canal').value='LinkedIn';
-    document.getElementById('mv-prioridade').value='lead';
+    document.getElementById('mv-prioridade').value='media';
     document.getElementById('mv-motivo').value='';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.disabled=true;
