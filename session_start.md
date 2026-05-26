@@ -156,6 +156,7 @@
 - **Produção**: https://marcos-mco.github.io/senova
 - **Worker**: https://senova-proxy.marcos-mco.workers.dev
 - **Repo**: https://github.com/marcos-mco/senova
+- **Worker (código-fonte)**: https://raw.githubusercontent.com/marcos-mco/senova/main/senova-worker.js
 - **KV keys ativas**: `perfil_usuario`, `vagas_lead`, `config_varredura`, `varredura_status`, `outlook_token`, `emails_vistos`, `whitelist_dominios`, `sinais_mercado_*`, `hunter_*`, `stats_*`
 - **Cron Worker**: `0 10 * * *` = 07h BRT — varredura Adzuna + Jobicy
 - **OAuth scopes**: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
