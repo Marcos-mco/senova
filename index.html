@@ -1616,29 +1616,39 @@ select option { background: var(--bg2); }
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
         <div style="flex:1;min-width:0;">
           <div id="mer-de" style="font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-          <div id="mer-assunto" style="font-size:13.5px;font-weight:600;color:var(--text1);margin-top:3px;line-height:1.4;"></div>
+          <div id="mer-assunto" style="font-size:14px;font-weight:600;color:var(--text1);margin-top:3px;line-height:1.4;"></div>
+          <div id="mer-card-link" style="display:none;margin-top:6px;"></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <a id="mer-weblink" href="#" target="_blank" style="font-size:12px;color:var(--action);display:none;white-space:nowrap;">↗ Abrir no Outlook</a>
-          <button onclick="bloquearRemetente()" class="btn btn-ghost btn-sm" style="font-size:11.5px;color:#C0281E;padding:3px 8px;white-space:nowrap;">🚫 Bloquear</button>
-          <button onclick="fecharModalEmailResponder()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);line-height:1;padding:2px 4px;">×</button>
+          <a id="mer-weblink" href="#" target="_blank" style="font-size:12px;color:var(--action);display:none;white-space:nowrap;">↗ Outlook</a>
+          <button onclick="fecharModalEmailResponder()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);line-height:1;padding:2px 4px;">×</button>
         </div>
       </div>
     </div>
 
     <!-- Corpo: email lido -->
     <div style="padding:14px 22px;flex:1;overflow-y:auto;">
-      <textarea id="mer-corpo" rows="8" readonly style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:#F7F8FA;"></textarea>
+      <textarea id="mer-corpo" rows="8" readonly style="width:100%;box-sizing:border-box;font-size:15px;font-family:var(--font);line-height:1.75;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:#F7F8FA;min-height:160px;"></textarea>
     </div>
 
-    <!-- Etapa 1: botões de ação -->
-    <div id="mer-etapa1" style="padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;flex-shrink:0;">
-      <button class="btn btn-ghost" onclick="fecharModalEmailResponder()">Fechar</button>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost" style="color:#C0281E;" onclick="excluirEmailAvulso()">Excluir</button>
-        <button class="btn btn-ghost" style="color:#C0281E;" onclick="arquivarEmailAvulso()">🗑 Arquivar</button>
-        <button class="btn btn-ghost" onclick="merMostrarEtapa('responder')">↩ Responder</button>
-        <button class="btn btn-primary" onclick="merMostrarEtapa('andamento')">📅 Atualizar andamento</button>
+    <!-- Etapa 1: ações de classificação -->
+    <div id="mer-etapa1" style="padding:14px 22px 16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;flex-shrink:0;">
+      <!-- Ações primárias -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button onclick="merAceitar()" style="padding:11px 8px;border:none;border-radius:var(--radius);background:#1A7A4A;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);">✅ Aceitar</button>
+        <button onclick="merDeclinar()" style="padding:11px 8px;border:1.5px solid #C0281E;border-radius:var(--radius);background:#FEF0EF;color:#C0281E;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);">❌ Declinar</button>
+        <button onclick="merMostrarEtapa('responder')" style="padding:11px 8px;border:1.5px solid var(--action);border-radius:var(--radius);background:var(--bg2);color:var(--action);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">↩ Responder</button>
+      </div>
+      <!-- Ações secundárias -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="abrirModalVagaFromEmail()" class="btn btn-ghost btn-sm" style="font-size:12px;">+ Card no Pipeline</button>
+          <button onclick="merMostrarEtapa('andamento')" class="btn btn-ghost btn-sm" style="font-size:12px;">📅 Atualizar status</button>
+          <button onclick="arquivarEmailAvulso()" class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--text3);">👁 Ver depois</button>
+          <button onclick="bloquearRemetente()" class="btn btn-ghost btn-sm" style="font-size:12px;color:#C0281E;">🚫 Bloquear</button>
+          <button onclick="excluirEmailAvulso()" class="btn btn-ghost btn-sm" style="font-size:12px;color:#C0281E;">Excluir</button>
+        </div>
+        <button onclick="fecharModalEmailResponder()" class="btn btn-ghost btn-sm" style="font-size:12px;">Fechar</button>
       </div>
     </div>
 
@@ -4693,6 +4703,14 @@ function merConfirmarAndamento(){
   if(!stage){alert('Selecione um status.');return;}
   atualizarPipelineEmail(stage,data,notas);
 }
+function merAceitar(){
+  showToast('✅ Interesse registrado — card em Em Contato');
+  atualizarPipelineEmail('contato','','Aceito via email — recrutador contatado');
+}
+function merDeclinar(){
+  if(!confirm('Declinar esta oportunidade?\nO card será marcado como Negativado.')) return;
+  atualizarPipelineEmail('negado','','Declinado via email');
+}
 function abrirModalResponder(idx){
   const e=_emailsAvulsos[idx]; if(!e) return;
   _emailAtual=e;
@@ -4704,6 +4722,20 @@ function abrirModalResponder(idx){
   if(corpo) corpo.value=stripHtml(e.body||e.preview||'');
   const wl=document.getElementById('mer-weblink');
   if(wl){ if(e.webLink){wl.href=e.webLink;wl.style.display='inline';}else{wl.style.display='none';} }
+  // Mostrar card vinculado se existir
+  const cardLink=document.getElementById('mer-card-link');
+  if(cardLink){
+    const emailAddr=(e.from||'').toLowerCase();
+    const assunto=e.subject||'';
+    const card=vagas.find(v=>v.emailDest&&v.emailDest.toLowerCase()===emailAddr&&(v.emailAssunto||'')===(assunto||''));
+    if(card){
+      const COL={lead:'Oportunidade',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta',negado:'Negativado',aceito:'Aceito',descartado:'Arquivado'};
+      cardLink.innerHTML=`<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#EEF4FA;color:var(--navy);border:1px solid #C8DAED;border-radius:20px;padding:2px 10px;cursor:pointer;" onclick="fecharModalEmailResponder();openVagaModal('${card.id}')">📋 ${card.empresa} — ${card.cargo} <span style="color:var(--text3);">(${COL[card.status]||card.status})</span></span>`;
+      cardLink.style.display='block';
+    } else {
+      cardLink.style.display='none';
+    }
+  }
   merMostrarEtapa('1');
   document.getElementById('modal-email-responder').style.display='flex';
 }
@@ -4751,7 +4783,7 @@ function abrirModalVagaFromEmail(){
   const empresa=_emailAtual.from_name||_emailAtual.from||'A definir';
   fecharModalEmailResponder();
   const _t=Date.now();
-  vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:'aplicado',salario:'',proxima:'',notas:'',emailDest:_emailAtual.from||'',emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Registrado via email: '+assunto}]});
+  vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Avaliar e responder ao recrutador',notas:'',emailDest:_emailAtual.from||'',emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Card criado via email: '+assunto}]});
   saveVagas();
   showPage('crm');
 }
