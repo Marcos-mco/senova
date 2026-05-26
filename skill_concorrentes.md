@@ -49,13 +49,33 @@ Nunca propor algo novo sem antes verificar se já existe no mercado e como os co
 - CRM de contatos integrado ao pipeline
 - Activity reminders para follow-ups
 - Interface limpa, baixa curva de aprendizado
-- Chrome extension com autofill
+- Chrome extension robusta (ver detalhes abaixo)
 **Pontos fracos:**
 - Sem IA de resume/ATS
 - Sem simulador de entrevista
 - Precisa combinar com Jobscan para ATS
-- Sem foco executivo 50+
-**Aprendizado para o Senova:** modelo de CRM de contatos é referência
+- Sem foco executivo 35+
+- Sem integração email/Outlook
+- Sem varredura automática de vagas
+**Aprendizado para o Senova:** modelo de CRM de contatos é referência; extensão Chrome é o benchmark
+
+#### Extensão Chrome do Huntr — detalhamento (26/mai/2026)
+
+Menu da extensão (testado por Marcos):
+- **Save Job to Board** — salva vaga em 1 clique, sem sair da página
+- **Autofill Application** — preenche formulários de candidatura com dados do perfil
+- **Build a Resume** — abre builder de CV
+- **Build a Job Tailored Resume** — gera CV adaptado para a vaga específica SEM sair da página
+- **Generate a Cover Letter** — gera carta de apresentação inline
+
+**Filosofia declarada:** *"Extracting keywords from messy job descriptions, autofilling application forms with tailored materials and saving job details automatically — all without ever switching tabs."*
+
+**Diferencial crítico do Huntr:** NADA exige trocar de aba. O CV tailored, a carta, o autofill — tudo acontece em popup sobre a página da vaga. O usuário nunca perde o contexto.
+
+**O que isso significa para o Senova:**
+- Nossa extensão atual só salva a vaga. O Huntr faz análise + CV + carta inline.
+- A tela de "Análise CV" como página separada vai na direção oposta ao que o mercado aponta.
+- Direção: extensão do Senova deve oferecer "Analisar esta vaga" como popup inline (chama o Worker, retorna score + CV otimizado — sem abrir o Senova em outra aba).
 
 ### 3. Careerflow (careerflow.ai)
 **Foco:** LinkedIn optimization + ATS + tracking
