@@ -100,15 +100,33 @@
       '.job-details-jobs-unified-top-card__bullet'
     );
 
-    // 4. Descrição: DOM → og:description → texto selecionado pelo usuário
+    // 4. Descrição: DOM (seletores progressivamente mais amplos) → og:description → seleção
     let desc = txtArea(
+      // Seletores específicos conhecidos
       '.jobs-description__content',
       '#job-details',
       '[class*="description__content"]',
       '.jobs-description-content__text',
-      '[class*="job-view-layout"] section',
-      '.jobs-box__html-content'
+      '.jobs-box__html-content',
+      // Seletores mais amplos para collections/recommended
+      'div[class*="jobs-description"]',
+      '.scaffold-layout__detail section',
+      '[data-view-name="job-details"] section',
+      '[class*="job-view-layout"] section'
     );
+
+    // Fallback: localiza seção "Sobre a vaga" no DOM e pega o texto do container pai
+    if (!desc) {
+      const headings = Array.from(document.querySelectorAll('h2,h3,h4,span,strong'));
+      const sobreH = headings.find(el => /sobre a vaga|about the job|job description/i.test(el.innerText?.trim()));
+      if (sobreH) {
+        const container = sobreH.closest('section') || sobreH.closest('article') ||
+                          sobreH.closest('[class*="job"]') || sobreH.parentElement?.parentElement;
+        if (container) desc = (container.innerText || '').trim().slice(0, 5000);
+      }
+    }
+
+    // Fallback final: og:description ou texto selecionado pelo usuário
     if (!desc && ogDesc) desc = ogDesc.slice(0, 5000);
     if (!desc) desc = (window.getSelection()?.toString().trim() || '').slice(0, 5000);
 
