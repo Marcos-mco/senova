@@ -5521,22 +5521,26 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 showPage('home');
 checkOutlookStatus();
-// Extensão Chrome: ?ext=1 aguarda dados injetados via chrome.scripting.executeScript
+// Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
   showPage('ats');
   function _carregarExtData(){
     const d=window.__senovaExtData;
     if(!d) return;
-    const texto=[d.cargo&&d.empresa?`VAGA: ${d.cargo} | ${d.empresa}`:d.cargo||d.empresa,'',d.descricao].filter(Boolean).join('\n');
+    window.__senovaExtData=null; // consome uma vez
+    const partes=[];
+    if(d.cargo||d.empresa) partes.push('VAGA: '+(d.cargo||'')+(d.empresa?' | '+d.empresa:''));
+    if(d.descricao) partes.push('',d.descricao);
     const campo=document.getElementById('vaga-input');
-    if(campo) campo.value=texto;
+    if(campo&&partes.length) campo.value=partes.join('\n');
     if(d.descricao&&d.descricao.length>80) analyzeJob();
   }
-  // Registra o callback — background.js chama este quando a aba termina de carregar
   window.__senovaExtCarregar=_carregarExtData;
-  // Fallback: tenta depois de 1s caso o executeScript chegue antes do handler ser registrado
-  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1000);
+  // Fallback — caso executeScript chegue antes deste script (improvável mas seguro)
+  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },800);
+  // Segunda tentativa — garante que não perdemos a janela
+  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1500);
 })();
 // Listener único para salvar rascunho de Novo Processo (B6)
 (function(){
