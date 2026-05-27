@@ -1,12 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "Senova — Capturar Vaga",
-  "version": "1.0",
-  "description": "Captura vagas de qualquer site e envia para o Pipeline Senova com 1 clique.",
-  "permissions": ["activeTab", "scripting"],
+  "name": "Senova",
+  "version": "2.3",
+  "description": "Radar de mercado para executivos sêniors. Score IA, captura de vagas e sinais com 1 clique.",
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://senova-proxy.marcos-mco.workers.dev/*",
+    "https://marcos-mco.github.io/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/jobs/*",
+        "https://www.linkedin.com/feed/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Senova — Capturar Vaga",
+    "default_title": "Senova",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

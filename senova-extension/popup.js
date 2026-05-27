@@ -1,210 +1,253 @@
-const WORKER_URL = 'https://senova-proxy.marcos-mco.workers.dev';
+// Popup — Senova Extension v2.3
 
-// Função injetada no contexto da página — NÃO pode referenciar variáveis externas
-async function extractJobData() {
-  const url = location.href;
-  const host = location.hostname;
-  let titulo = '', empresa = '', descricao = '';
+const APP_URL = 'https://marcos-mco.github.io/senova';
 
-  // LinkedIn Jobs
-  if (host.includes('linkedin.com')) {
-    titulo = document.querySelector(
-      'h1.job-details-jobs-unified-top-card__job-title, ' +
-      'h1[class*="job-title"], ' +
-      '.jobs-unified-top-card__job-title h1'
-    )?.innerText?.trim() || '';
-    empresa = document.querySelector(
-      '.job-details-jobs-unified-top-card__company-name, ' +
-      '.jobs-unified-top-card__company-name, ' +
-      '[class*="company-name"] a'
-    )?.innerText?.trim() || '';
-    descricao = document.querySelector(
-      '.jobs-description__content, #job-details, [class*="description__content"]'
-    )?.innerText?.trim().slice(0, 5000) || '';
-  }
+let _dadosVaga = null;
+let _analise   = null;
 
-  // Gupy
-  else if (host.includes('gupy.io') || host.includes('gupy.com')) {
-    titulo = document.querySelector(
-      '[data-testid="job-title"], h1[class*="JobTitle"], h1[class*="job-title"]'
-    )?.innerText?.trim() || '';
-    empresa = document.querySelector(
-      '[data-testid="job-company-name"], [class*="CompanyName"], [class*="company-name"]'
-    )?.innerText?.trim() || '';
-    descricao = document.querySelector(
-      '[data-testid="job-description"], [class*="JobDescription"], [class*="job-description"]'
-    )?.innerText?.trim().slice(0, 5000) || '';
-  }
+// ── INIT ────────────────────────────────────────────────────────────
 
-  // Indeed
-  else if (host.includes('indeed.com') || host.includes('indeed.com.br')) {
-    titulo = document.querySelector(
-      'h1[data-testid="jobsearch-JobInfoHeader-title"], h1.jobsearch-JobInfoHeader-title'
-    )?.innerText?.trim() || '';
-    empresa = document.querySelector(
-      '[data-testid="inlineHeader-companyName"] a, .icl-u-lg-mr--sm'
-    )?.innerText?.trim() || '';
-    descricao = document.querySelector(
-      '#jobDescriptionText, [id*="jobDescription"]'
-    )?.innerText?.trim().slice(0, 5000) || '';
-  }
-
-  // Vagas.com.br
-  else if (host.includes('vagas.com.br') || host.includes('vagas.com')) {
-    titulo = document.querySelector('h1.job-shortdescription__title, h1[class*="title"]')?.innerText?.trim() || '';
-    empresa = document.querySelector('[class*="company"] h2, [class*="company-name"]')?.innerText?.trim() || '';
-    descricao = document.querySelector('[class*="job-description"], #vaga-description')?.innerText?.trim().slice(0, 5000) || '';
-  }
-
-  // Catho
-  else if (host.includes('catho.com.br')) {
-    titulo = document.querySelector('h1[class*="JobTitle"], h1[class*="job-title"]')?.innerText?.trim() || '';
-    empresa = document.querySelector('[class*="CompanyName"], [class*="company-name"]')?.innerText?.trim() || '';
-    descricao = document.querySelector('[class*="JobDescription"]')?.innerText?.trim().slice(0, 5000) || '';
-  }
-
-  // Inhire
-  else if (host.includes('inhire.app')) {
-    const _deadline = Date.now() + 3000;
-    let _htmlParser = null;
-    while (Date.now() < _deadline) {
-      _htmlParser = document.querySelector('[data-component-name="HtmlParser"]');
-      if (_htmlParser && _htmlParser.innerText.trim().length > 300) break;
-      await new Promise(r => setTimeout(r, 200));
-    }
-    titulo = document.querySelector('h1')?.innerText?.trim() || '';
-    empresa = document.querySelector('[class*="company-name"], [class*="CompanyName"]')?.innerText?.trim() || '';
-    if (_htmlParser && _htmlParser.innerText.trim().length > 300) {
-      descricao = _htmlParser.innerText.trim().slice(0, 5000);
-    } else {
-      const _els = [...document.querySelectorAll('section, div, article')]
-        .filter(el => !el.closest('nav, header, footer') && el.innerText.trim().length > 500)
-        .sort((a, b) => b.innerText.length - a.innerText.length);
-      descricao = _els[0] ? _els[0].innerText.trim().slice(0, 5000) : '';
-    }
-  }
-
-  // Fallback genérico — funciona em qualquer site
-  if (!titulo) {
-    titulo = document.querySelector('h1')?.innerText?.trim()
-      || document.title.split(' - ')[0].split(' | ')[0].split(' — ')[0].trim();
-  }
-  if (!empresa) {
-    const titleParts = document.title.split(/\s[-|—]\s/);
-    if (titleParts.length > 1) {
-      empresa = titleParts[titleParts.length - 1].trim();
-    } else {
-      const fromTitle = document.title.split(/\s[-|—]\s/)[0].trim();
-      empresa = (fromTitle && !fromTitle.includes('.')) ? fromTitle : host.replace('www.', '');
-    }
-  }
-  if (!descricao) {
-    const CANDIDATOS = [
-      '[class*="job-description"]','[class*="jobDescription"]','[class*="JobDescription"]',
-      '[class*="vacancy-description"]','[class*="position-description"]','[class*="job-detail"]',
-      '[class*="job-content"]','[class*="posting-content"]',
-      '[data-automation-id="jobPostingDescription"]',
-      'article','[role="main"]','main','#content','.content',
-    ];
-    for (const sel of CANDIDATOS) {
-      const el = document.querySelector(sel);
-      if (!el) continue;
-      const txt = el.innerText.trim();
-      if (txt.length > 300) { descricao = txt.slice(0, 5000); break; }
-    }
-    if (!descricao) descricao = document.body.innerText.trim().slice(0, 5000);
-  }
-
-  return { titulo, empresa, url, descricao };
-}
-
-function limparUrl(url) {
-  try {
-    const u = new URL(url);
-    ['trackingId','refId','trk','utm_source','utm_medium','utm_campaign',
-     'utm_term','utm_content','fbclid','gclid'].forEach(p => u.searchParams.delete(p));
-    return u.toString();
-  } catch { return url; }
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  const elTitulo  = document.getElementById('campo-titulo');
-  const elEmpresa = document.getElementById('campo-empresa');
-  const elUrl     = document.getElementById('campo-url');
-  const elBtnSalvar = document.getElementById('btn-salvar');
-  const elStatus  = document.getElementById('status-extract');
-  const elMsgOk   = document.getElementById('msg-ok');
-  const elMsgErro = document.getElementById('msg-erro');
-
-  // Mostrar status de extração
-  elStatus.style.display = 'block';
-
-  let _desc = '';
-
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    elUrl.value = limparUrl(tab.url || '');
-
-    // Injetar extrator na aba ativa
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: extractJobData,
-      world: 'MAIN',
-    });
-
-    const data = results?.[0]?.result;
-    if (data) {
-      elTitulo.value  = data.titulo  || '';
-      elEmpresa.value = data.empresa || '';
-      elUrl.value     = limparUrl(data.url || tab.url || '');
-      _desc           = data.descricao || '';
-    }
-  } catch (e) {
-    // Pode falhar em chrome://, extensões, etc — tudo bem
-    elUrl.value = '';
-  }
-
-  elStatus.style.display = 'none';
-  elBtnSalvar.disabled = false;
-
-  // ── Salvar ──────────────────────────────────────────────────────────────────
-  elBtnSalvar.addEventListener('click', async () => {
-    const titulo  = elTitulo.value.trim();
-    const empresa = elEmpresa.value.trim();
-    const url     = elUrl.value.trim();
-
-    if (!titulo) {
-      elTitulo.focus();
-      elTitulo.style.borderColor = '#CC0000';
-      setTimeout(() => { elTitulo.style.borderColor = ''; }, 2000);
-      return;
-    }
-
-    elBtnSalvar.disabled = true;
-    elBtnSalvar.textContent = 'Salvando...';
-    elMsgOk.style.display = 'none';
-    elMsgErro.style.display = 'none';
-
-    try {
-      const resp = await fetch(`${WORKER_URL}/api/vagas-lead`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo, empresa, url, descricao: _desc }),
-      });
-
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-      elMsgOk.style.display = 'block';
-      elBtnSalvar.textContent = '✅ Salvo!';
-    } catch (e) {
-      elMsgErro.textContent = `Erro ao salvar: ${e.message}. Verifique sua conexão.`;
-      elMsgErro.style.display = 'block';
-      elBtnSalvar.disabled = false;
-      elBtnSalvar.textContent = 'Salvar no Pipeline';
-    }
+  document.getElementById('btn-abrir-app').addEventListener('click', () => {
+    chrome.tabs.create({ url: APP_URL });
   });
 
-  // Limpar borda vermelha ao digitar
-  elTitulo.addEventListener('input', () => { elTitulo.style.borderColor = ''; });
+  mostrarEstado('loading');
+  setLoadingTxt('Lendo a página...');
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) { mostrarEstado('generico'); return; }
+
+  // Injeta content script (para sites fora do manifest — Gupy, Catho, etc.)
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+  } catch (_) {}
+
+  await new Promise(r => setTimeout(r, 200));
+
+  let dados;
+  try {
+    const resp = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRAIR_DADOS' });
+    dados = resp?.dados;
+  } catch (_) {
+    mostrarEstado('generico'); return;
+  }
+
+  if (!dados) { mostrarEstado('generico'); return; }
+
+  if (dados.tipo === 'vaga' && (dados.cargo || dados.empresa)) {
+    _dadosVaga = dados;
+    renderVaga(dados);
+    await analisarComCache(dados);
+  } else if (dados.tipo === 'sinal') {
+    renderSinal(dados);
+  } else {
+    mostrarEstado('generico');
+  }
 });
+
+// ── RENDER VAGA ─────────────────────────────────────────────────────
+
+function renderVaga(d) {
+  mostrarEstado('vaga');
+  el('vaga-cargo').textContent   = d.cargo || d.empresa || 'Vaga capturada';
+  el('vaga-empresa').textContent = d.empresa || '';
+  el('vaga-canal').textContent   = d.canal || '';
+  el('vaga-local').textContent   = d.local || '';
+
+  if (d.forma_candidatura) {
+    el('candidatura-tipo').textContent = d.forma_candidatura;
+    el('candidatura-wrap').style.display = 'flex';
+  }
+
+  el('btn-salvar').addEventListener('click', salvarVaga);
+  el('btn-analisar').addEventListener('click', abrirAnalisar);
+}
+
+// ── SCORE COM CACHE ──────────────────────────────────────────────────
+// Usa chrome.storage.session para não recalcular ao reabrir o popup na mesma URL
+
+async function analisarComCache(d) {
+  const cacheKey = 'score_' + btoa(encodeURIComponent((d.url || d.cargo || '').slice(0, 80)));
+
+  // Tenta mostrar do cache primeiro
+  try {
+    const cached = await chrome.storage.session.get(cacheKey);
+    if (cached[cacheKey]) {
+      _analise = cached[cacheKey];
+      renderScore(cached[cacheKey]);
+      return;
+    }
+  } catch (_) {}
+
+  // Sem cache — analisa
+  mostrarScoreLoading();
+  const timeoutPromise = new Promise(r => setTimeout(() => r(null), 25000));
+  let res = null;
+  try {
+    res = await Promise.race([
+      chrome.runtime.sendMessage({
+        type: 'ANALISAR_VAGA',
+        payload: { titulo: d.cargo, empresa: d.empresa, descricao: d.descricao },
+      }),
+      timeoutPromise,
+    ]);
+  } catch (_) {}
+
+  if (res?.score != null) {
+    _analise = res;
+    renderScore(res);
+    // Guarda no cache de sessão
+    try { await chrome.storage.session.set({ [cacheKey]: res }); } catch (_) {}
+  } else {
+    esconderScore();
+  }
+}
+
+function mostrarScoreLoading() {
+  const sw = el('score-wrap');
+  sw.style.display = 'block';
+  sw.style.background = '#F0F4F8';
+  sw.style.borderColor = '#D0D9E4';
+  sw.innerHTML = '<div style="text-align:center;padding:12px 0;font-size:12px;color:#5A6A7A;">Calculando score...</div>';
+}
+
+function esconderScore() {
+  el('score-wrap').style.display = 'none';
+}
+
+function renderScore(r) {
+  const score = r.score || 0;
+  const cor = score >= 75 ? '#1A7A4A' : score >= 55 ? '#B8670A' : '#C0281E';
+  const bg  = score >= 75 ? '#EAF7EF' : score >= 55 ? '#FFF8EC' : '#FEF0EF';
+
+  const sw = el('score-wrap');
+  sw.style.display  = 'block';
+  sw.style.background  = bg;
+  sw.style.borderColor = cor + '44';
+  sw.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:11px;font-weight:700;color:#5A6A7A;text-transform:uppercase;letter-spacing:.05em;">Match com seu perfil</span>
+      <span style="font-size:22px;font-weight:800;color:${cor};">${score}/100</span>
+    </div>
+    <div style="height:6px;background:#E5ECF2;border-radius:3px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:6px;width:${score}%;background:${cor};border-radius:3px;transition:width .5s;"></div>
+    </div>
+    <div style="font-size:12.5px;color:#3A4A5A;line-height:1.5;margin-bottom:6px;">${r.resumo || ''}</div>
+    <div id="pontos-lista" style="display:flex;flex-direction:column;gap:4px;"></div>
+  `;
+  const lista = el('pontos-lista');
+  (r.pontos_fortes || []).slice(0, 3).forEach(p => {
+    lista.innerHTML += `<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;">✓ <span>${p}</span></div>`;
+  });
+  (r.pontos_atencao || []).slice(0, 2).forEach(p => {
+    lista.innerHTML += `<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;">△ <span>${p}</span></div>`;
+  });
+}
+
+// ── RENDER SINAL ─────────────────────────────────────────────────────
+
+function renderSinal(d) {
+  mostrarEstado('sinal');
+  el('sinal-titulo').textContent = d.titulo || 'Sinal detectado';
+  el('sinal-resumo').textContent = d.resumo || '';
+  el('btn-salvar-sinal').addEventListener('click', () => salvarSinalFn(d));
+  el('btn-ignorar-sinal').addEventListener('click', () => window.close());
+}
+
+// ── AÇÕES ────────────────────────────────────────────────────────────
+
+async function salvarVaga() {
+  const btn = el('btn-salvar');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const res = await chrome.runtime.sendMessage({
+    type: 'SALVAR_VAGA',
+    payload: {
+      empresa:           _dadosVaga.empresa,
+      cargo:             _dadosVaga.cargo,
+      canal:             _dadosVaga.canal,
+      origemUrl:         _dadosVaga.url,
+      descricao:         _dadosVaga.descricao,
+      forma_candidatura: _dadosVaga.forma_candidatura,
+      score:             _analise?.score,
+      resumo:            _analise?.resumo,
+      pontos_fortes:     _analise?.pontos_fortes,
+      pontos_atencao:    _analise?.pontos_atencao,
+    },
+  });
+
+  if (res?.erro) {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+    showToast('Erro ao salvar: ' + res.erro, true);
+  } else {
+    btn.textContent = '✓ Salvo!';
+    btn.style.background = '#1A7A4A';
+    // Mostra botão de ação após salvar
+    const acoes = el('acoes-pos-save');
+    if (acoes) acoes.style.display = 'block';
+    showToast('✓ Salvo! Abra o app → Importar Vagas para ver.');
+  }
+}
+
+async function abrirAnalisar() {
+  if (!_dadosVaga) return;
+  const btn = el('btn-analisar');
+  btn.disabled = true;
+  btn.textContent = 'Abrindo...';
+
+  await chrome.runtime.sendMessage({
+    type: 'ABRIR_ANALISE',
+    payload: { ..._dadosVaga, analise: _analise },
+  });
+}
+
+async function salvarSinalFn(d) {
+  const btn = el('btn-salvar-sinal');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const res = await chrome.runtime.sendMessage({
+    type: 'SALVAR_SINAL',
+    payload: { titulo: d.titulo, empresa: d.empresa, url: d.url, resumo: d.resumo },
+  });
+
+  if (res?.erro) {
+    btn.disabled = false;
+    btn.textContent = 'Salvar Sinal';
+    showToast('Erro: ' + res.erro, true);
+  } else {
+    btn.textContent = '✓ Sinal salvo!';
+    btn.style.background = '#1A7A4A';
+    showToast('✓ Sinal salvo!');
+  }
+}
+
+function abrirApp() {
+  chrome.tabs.create({ url: APP_URL });
+}
+
+// ── UTILS ────────────────────────────────────────────────────────────
+
+function el(id) { return document.getElementById(id); }
+
+function mostrarEstado(estado) {
+  ['loading','vaga','sinal','generico'].forEach(e => {
+    el('estado-' + e).style.display = e === estado ? 'block' : 'none';
+  });
+}
+
+function setLoadingTxt(txt) {
+  const e = el('loading-txt');
+  if (e) e.textContent = txt;
+}
+
+function showToast(msg, erro = false) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = erro ? 'erro' : '';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
