@@ -119,12 +119,35 @@ function esconderScore() {
 }
 
 function renderScore(r) {
-  const score = r.score || 0;
+  const score = r.score ?? 0;
+  const sw = el('score-wrap');
+  sw.style.display = 'block';
+
+  // Pré-análise: score zerado = AI não recebeu descrição suficiente
+  const semDados = score === 0 || /nenhuma vaga|dados insuficientes|não foi fornecida/i.test(r.resumo || '');
+  if (semDados) {
+    sw.style.background = '#FFFAF2';
+    sw.style.borderColor = '#C9A84C55';
+    sw.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#B8670A;background:#FDECC8;border-radius:4px;padding:3px 8px;">Pré-análise</span>
+        <span style="font-size:20px;font-weight:800;color:#B8670A;">—&thinsp;/100</span>
+      </div>
+      <div style="font-size:12.5px;color:#5A4A2A;line-height:1.55;margin-bottom:10px;">
+        A descrição da vaga não foi lida automaticamente. Score baseado só em cargo e empresa — pode estar impreciso.
+      </div>
+      <div style="font-size:12px;color:#7A5C14;background:#FEF5E1;border:1px dashed #C9A84C;border-radius:6px;padding:8px 10px;line-height:1.5;">
+        Para o score real, clique em <strong>Analisar ↗</strong> e cole a descrição completa da vaga.
+      </div>`;
+    // Destaca botão Analisar como CTA principal
+    const btnA = el('btn-analisar');
+    if (btnA) { btnA.style.background='#1A3A5C'; btnA.style.color='#fff'; btnA.style.border='none'; }
+    return;
+  }
+
+  // Score completo
   const cor = score >= 75 ? '#1A7A4A' : score >= 55 ? '#B8670A' : '#C0281E';
   const bg  = score >= 75 ? '#EAF7EF' : score >= 55 ? '#FFF8EC' : '#FEF0EF';
-
-  const sw = el('score-wrap');
-  sw.style.display  = 'block';
   sw.style.background  = bg;
   sw.style.borderColor = cor + '44';
   sw.innerHTML = `
