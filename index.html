@@ -3587,8 +3587,8 @@ function renderCRM(){
     let cards=listaBase.filter(v=>v.status===col);
     if(cf.pri!=='all') cards=cards.filter(c=>c.prioridade===cf.pri);
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
-    if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
-    else cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
+    if(cf.sort==='newer') cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
+    else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
@@ -5521,6 +5521,26 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 showPage('home');
 checkOutlookStatus();
+// Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
+(async function _autoImportExtensao(){
+  try{
+    const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/vagas-lead');
+    if(!res.ok) return;
+    const data=await res.json();
+    const _del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const novas=(data.vagas||[]).filter(v=>
+      v.fonte==='extensao_chrome'&&
+      !vagas.some(e=>String(e.id)===String(v.id))&&
+      !_del.has(String(v.id))
+    );
+    if(novas.length===0) return;
+    const agora=Date.now();
+    novas.forEach(v=>vagas.push(_montarCardVarredura(v,agora)));
+    saveVagas();
+    renderCRM();
+    showToast('✅ '+novas.length+' vaga'+(novas.length>1?'s':'')+' da extensão importada'+(novas.length>1?'s':'')+' — veja em Oportunidades');
+  }catch(_){}
+})();
 // Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
