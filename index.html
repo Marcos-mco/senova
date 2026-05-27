@@ -5521,6 +5521,22 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 showPage('home');
 checkOutlookStatus();
+// Extensão Chrome: ?ext=1 abre ATS com dados pré-carregados
+(function(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('ext')!=='1') return;
+  const cargo=p.get('cargo')||''; const empresa=p.get('empresa')||'';
+  const desc=p.get('desc')||''; const canal=p.get('canal')||'Extensão';
+  const origemUrl=p.get('url')||'';
+  if(!desc&&!cargo) return;
+  showPage('ats');
+  setTimeout(()=>{
+    const campo=document.getElementById('vaga-input');
+    if(campo){ campo.value=[cargo&&empresa?`VAGA: ${cargo} | ${empresa}`:cargo||empresa,'',desc].filter(Boolean).join('\n'); }
+    if(origemUrl){const u=document.getElementById('mv-origem-url');if(u)u.value=origemUrl;}
+    if(desc.length>80) analyzeJob();
+  },300);
+})();
 // Listener único para salvar rascunho de Novo Processo (B6)
 (function(){
   const m=document.getElementById('modal-vaga');
