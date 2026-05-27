@@ -135,14 +135,14 @@ function renderScore(r) {
     <div style="height:6px;background:#E5ECF2;border-radius:3px;overflow:hidden;margin-bottom:8px;">
       <div style="height:6px;width:${score}%;background:${cor};border-radius:3px;transition:width .5s;"></div>
     </div>
-    <div style="font-size:12.5px;color:#3A4A5A;line-height:1.5;margin-bottom:6px;">${r.resumo || ''}</div>
+    <div style="font-size:12px;color:#3A4A5A;line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${r.resumo || ''}</div>
     <div id="pontos-lista" style="display:flex;flex-direction:column;gap:4px;"></div>
   `;
   const lista = el('pontos-lista');
-  (r.pontos_fortes || []).slice(0, 3).forEach(p => {
+  (r.pontos_fortes || []).slice(0, 2).forEach(p => {
     lista.innerHTML += `<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;">✓ <span>${p}</span></div>`;
   });
-  (r.pontos_atencao || []).slice(0, 2).forEach(p => {
+  (r.pontos_atencao || []).slice(0, 1).forEach(p => {
     lista.innerHTML += `<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;">△ <span>${p}</span></div>`;
   });
 }
@@ -229,6 +229,19 @@ async function salvarSinalFn(d) {
 
 function abrirApp() {
   chrome.tabs.create({ url: APP_URL });
+}
+
+function abrirPipeline() {
+  // Abre (ou foca) o app direto no Pipeline/Processos
+  const pipelineUrl = APP_URL + '/?page=crm';
+  chrome.tabs.query({}, tabs => {
+    const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+    if (senovaTab) {
+      chrome.tabs.update(senovaTab.id, { active: true, url: pipelineUrl });
+    } else {
+      chrome.tabs.create({ url: pipelineUrl });
+    }
+  });
 }
 
 // ── UTILS ────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// Service worker — Senova Extension v2.2
+// Service worker — Senova Extension v2.3
 
 const WORKER  = 'https://senova-proxy.marcos-mco.workers.dev';
 const APP_URL = 'https://marcos-mco.github.io/senova';
@@ -38,14 +38,16 @@ async function abrirAnalise(dados) {
   // Salva dados para injetar depois que a aba carregar
   await chrome.storage.local.set({ senova_ext_pendente: dados });
 
-  // Busca aba existente do Senova ou cria nova
+  // Timestamp garante URL diferente a cada clique — força reload mesmo se aba já está em ?ext=1
+  const extUrl = APP_URL + '/?ext=1&t=' + Date.now();
+
   const allTabs = await chrome.tabs.query({});
   const senovaTab = allTabs.find(t => t.url && t.url.startsWith(APP_URL));
 
   if (senovaTab) {
-    await chrome.tabs.update(senovaTab.id, { active: true, url: APP_URL + '/?ext=1' });
+    await chrome.tabs.update(senovaTab.id, { active: true, url: extUrl });
   } else {
-    await chrome.tabs.create({ url: APP_URL + '/?ext=1' });
+    await chrome.tabs.create({ url: extUrl });
   }
 }
 
@@ -66,26 +68,28 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await new Promise(r => setTimeout(r, 400));
 
   try {
+    // world: 'MAIN' garante que o script corre no mesmo contexto JS da página
+    // (sem MAIN, o isolated world não enxerga window.__senovaExtCarregar definida no index.html)
     await chrome.scripting.executeScript({
       target: { tabId },
+      world: 'MAIN',
       func: (d) => {
         window.__senovaExtData = d;
-        // Chama direto se o app já registrou o handler
+        // Dispara evento para máxima compatibilidade com qualquer timing de inicialização
+        window.dispatchEvent(new CustomEvent('senova:ext-data', { detail: d }));
         if (typeof window.__senovaExtCarregar === 'function') {
           window.__senovaExtCarregar();
         } else {
-          // App ainda inicializando — tenta mais uma vez após 600ms
           setTimeout(() => {
             if (typeof window.__senovaExtCarregar === 'function') {
               window.__senovaExtCarregar();
             }
-          }, 600);
+          }, 700);
         }
       },
       args: [dados],
     });
   } catch (_) {
-    // Restaura se a injeção falhou (tab fechou antes de carregar)
     await chrome.storage.local.set({ senova_ext_pendente: dados });
   }
 });

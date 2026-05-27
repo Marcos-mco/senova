@@ -5519,7 +5519,13 @@ function downloadPDFExecutivo(){
 }
 document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none');var nm=document.getElementById('crm-novo-menu');if(nm)nm.style.display='none';});
 loadCRM();
-showPage('home');
+// Roteamento por URL param: ?page=crm abre Pipeline direto (usado pelo botão "Ver no Pipeline" da extensão)
+(function(){
+  const _p=new URLSearchParams(location.search).get('page');
+  const _validPages=['home','crm','ats','emails','radar','contatos','perfil'];
+  if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
+  if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
+})();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 (async function _autoImportExtensao(){
@@ -5545,10 +5551,10 @@ checkOutlookStatus();
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
   showPage('ats');
-  function _carregarExtData(){
-    const d=window.__senovaExtData;
+  function _carregarExtData(dados){
+    const d=dados||window.__senovaExtData;
     if(!d) return;
-    window.__senovaExtData=null; // consome uma vez
+    window.__senovaExtData=null;
     const partes=[];
     if(d.cargo||d.empresa) partes.push('VAGA: '+(d.cargo||'')+(d.empresa?' | '+d.empresa:''));
     if(d.descricao) partes.push('',d.descricao);
@@ -5557,10 +5563,11 @@ checkOutlookStatus();
     if(d.descricao&&d.descricao.length>80) analyzeJob();
   }
   window.__senovaExtCarregar=_carregarExtData;
-  // Fallback — caso executeScript chegue antes deste script (improvável mas seguro)
-  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },800);
-  // Segunda tentativa — garante que não perdemos a janela
-  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1500);
+  // Recebe via CustomEvent (world:MAIN do executeScript)
+  window.addEventListener('senova:ext-data',function(e){ _carregarExtData(e.detail); },{once:true});
+  // Fallbacks por timeout caso o executeScript chegue antes ou depois
+  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },600);
+  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1400);
 })();
 // Listener único para salvar rascunho de Novo Processo (B6)
 (function(){
