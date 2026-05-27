@@ -134,7 +134,7 @@ function renderScore(r) {
         <span style="font-size:20px;font-weight:800;color:#B8670A;">—&thinsp;/100</span>
       </div>
       <div style="font-size:12.5px;color:#5A4A2A;line-height:1.55;margin-bottom:10px;">
-        A descrição da vaga não foi lida automaticamente. Score baseado só em cargo e empresa — pode estar impreciso.
+        A descrição da vaga não foi lida automaticamente. Score baseado só em cargo e empresa.
       </div>
       <div style="font-size:12px;color:#7A5C14;background:#FEF5E1;border:1px dashed #C9A84C;border-radius:6px;padding:8px 10px;line-height:1.5;">
         Para o score real, clique em <strong>Analisar ↗</strong> e cole a descrição completa da vaga.
