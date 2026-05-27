@@ -115,19 +115,33 @@
       '[class*="job-view-layout"] section'
     );
 
-    // Fallback: localiza seção "Sobre a vaga" no DOM e pega o texto do container pai
+    // Fallback: localiza "Sobre a vaga" no DOM pelo heading
     if (!desc) {
       const headings = Array.from(document.querySelectorAll('h2,h3,h4,span,strong'));
-      const sobreH = headings.find(el => /sobre a vaga|about the job|job description/i.test(el.innerText?.trim()));
+      const sobreH = headings.find(el => /^(sobre a vaga|about the job|job description)$/i.test(el.innerText?.trim()));
       if (sobreH) {
-        const container = sobreH.closest('section') || sobreH.closest('article') ||
-                          sobreH.closest('[class*="job"]') || sobreH.parentElement?.parentElement;
-        if (container) desc = (container.innerText || '').trim().slice(0, 5000);
+        // Tenta irmão seguinte, depois container pai progressivo
+        const next = sobreH.nextElementSibling || sobreH.parentElement?.nextElementSibling;
+        if (next && (next.innerText||'').length > 100) {
+          desc = next.innerText.trim().slice(0, 5000);
+        } else {
+          const container = sobreH.closest('section') || sobreH.closest('article') || sobreH.parentElement?.parentElement;
+          if (container) desc = (container.innerText || '').replace(/^Sobre a vaga\s*/i,'').trim().slice(0, 5000);
+        }
       }
     }
 
-    // Fallback final: og:description ou texto selecionado pelo usuário
-    if (!desc && ogDesc) desc = ogDesc.slice(0, 5000);
+    // Fallback texto puro: regex no bodyText (imune à obfuscação de classes do LinkedIn)
+    if (!desc || desc.length < 80) {
+      const bodyText = document.body.innerText || '';
+      const m = bodyText.match(
+        /(?:Sobre a vaga|About the job)\s*\n+([\s\S]{80,5000}?)(?=\n(?:Sobre a empresa|About the company|Habilidades|Skills|Formação|Education|Conheça a equipe|Meet the team|Candidatos semelhantes|Similar jobs|\d+ candidat))/i
+      );
+      if (m && m[1].length > 80) desc = m[1].trim().slice(0, 5000);
+    }
+
+    // Fallback final: og:description → texto selecionado pelo usuário
+    if (!desc && ogDesc && ogDesc.length > 80) desc = ogDesc.slice(0, 5000);
     if (!desc) desc = (window.getSelection()?.toString().trim() || '').slice(0, 5000);
 
     // 5. Forma de candidatura
