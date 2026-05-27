@@ -3587,8 +3587,8 @@ function renderCRM(){
     let cards=listaBase.filter(v=>v.status===col);
     if(cf.pri!=='all') cards=cards.filter(c=>c.prioridade===cf.pri);
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
-    if(cf.sort==='older') cards=[...cards].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-    else cards=[...cards].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
+    else cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
@@ -5521,21 +5521,22 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 showPage('home');
 checkOutlookStatus();
-// Extensão Chrome: ?ext=1 abre ATS com dados pré-carregados
+// Extensão Chrome: ?ext=1 aguarda dados injetados via chrome.scripting.executeScript
 (function(){
-  const p=new URLSearchParams(location.search);
-  if(p.get('ext')!=='1') return;
-  const cargo=p.get('cargo')||''; const empresa=p.get('empresa')||'';
-  const desc=p.get('desc')||''; const canal=p.get('canal')||'Extensão';
-  const origemUrl=p.get('url')||'';
-  if(!desc&&!cargo) return;
+  if(new URLSearchParams(location.search).get('ext')!=='1') return;
   showPage('ats');
-  setTimeout(()=>{
+  function _carregarExtData(){
+    const d=window.__senovaExtData;
+    if(!d) return;
+    const texto=[d.cargo&&d.empresa?`VAGA: ${d.cargo} | ${d.empresa}`:d.cargo||d.empresa,'',d.descricao].filter(Boolean).join('\n');
     const campo=document.getElementById('vaga-input');
-    if(campo){ campo.value=[cargo&&empresa?`VAGA: ${cargo} | ${empresa}`:cargo||empresa,'',desc].filter(Boolean).join('\n'); }
-    if(origemUrl){const u=document.getElementById('mv-origem-url');if(u)u.value=origemUrl;}
-    if(desc.length>80) analyzeJob();
-  },300);
+    if(campo) campo.value=texto;
+    if(d.descricao&&d.descricao.length>80) analyzeJob();
+  }
+  // Registra o callback — background.js chama este quando a aba termina de carregar
+  window.__senovaExtCarregar=_carregarExtData;
+  // Fallback: tenta depois de 1s caso o executeScript chegue antes do handler ser registrado
+  setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1000);
 })();
 // Listener único para salvar rascunho de Novo Processo (B6)
 (function(){
