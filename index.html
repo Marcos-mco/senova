@@ -3589,6 +3589,7 @@ function renderCRM(){
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
     if(cf.sort==='newer') cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
+    else cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">

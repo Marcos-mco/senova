@@ -231,17 +231,20 @@ function abrirApp() {
   chrome.tabs.create({ url: APP_URL });
 }
 
-function abrirPipeline() {
-  // Abre (ou foca) o app direto no Pipeline/Processos
-  const pipelineUrl = APP_URL + '/?page=crm';
-  chrome.tabs.query({}, tabs => {
+async function abrirProcessos() {
+  const url = APP_URL + '/?page=crm';
+  try {
+    const tabs = await chrome.tabs.query({});
     const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
     if (senovaTab) {
-      chrome.tabs.update(senovaTab.id, { active: true, url: pipelineUrl });
+      await chrome.tabs.update(senovaTab.id, { active: true, url });
+      await chrome.windows.update(senovaTab.windowId, { focused: true });
     } else {
-      chrome.tabs.create({ url: pipelineUrl });
+      await chrome.tabs.create({ url });
     }
-  });
+  } catch (_) {
+    chrome.tabs.create({ url });
+  }
 }
 
 // ── UTILS ────────────────────────────────────────────────────────────
