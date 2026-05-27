@@ -34,8 +34,25 @@
   // ── LINKEDIN ─────────────────────────────────────────────────────
   // Funciona na página de detalhe (/jobs/view/) E no painel lateral da busca (/jobs/search/)
 
+  // Parseia título do documento LinkedIn para extrair cargo e empresa
+  // Formatos comuns: "Head de Marketing | LinkedIn", "Head de Marketing no Grupo Muffato | LinkedIn"
+  // "(1) Head de Marketing | Grupo Muffato | LinkedIn"
+  function _parseTitleLinkedIn() {
+    const raw = document.title.replace(/^\(\d+\)\s*/, '').trim();
+    if (!raw || raw === 'LinkedIn') return { cargo: '', empresa: '' };
+    const partes = raw.split(' | ').map(s => s.trim()).filter(s => s && s !== 'LinkedIn');
+    // "Cargo | Empresa" ou "Cargo no/em Empresa"
+    let cargo = partes[0] || '';
+    let empresa = partes[1] || '';
+    // Remove "no Empresa" do final do cargo se empresa não veio das partes
+    const mNo = cargo.match(/^(.+?)\s+(?:no|na|em|at)\s+(.+)$/i);
+    if (mNo && !empresa) { cargo = mNo[1].trim(); empresa = mNo[2].trim(); }
+    return { cargo, empresa };
+  }
+
   function extractLinkedIn() {
-    const cargo = txt(
+    // 1. Tenta seletores DOM (mudam frequentemente — LinkedIn obfusca as classes)
+    let cargo = txt(
       'h1.job-details-jobs-unified-top-card__job-title',
       'h1[class*="job-title"]',
       '.job-details-jobs-unified-top-card__job-title',
@@ -47,7 +64,7 @@
       'h1'
     );
 
-    const empresa = txt(
+    let empresa = txt(
       '.job-details-jobs-unified-top-card__company-name a',
       '.job-details-jobs-unified-top-card__company-name',
       '.jobs-unified-top-card__company-name a',
@@ -58,6 +75,24 @@
       '.jobs-details-top-card__company-url'
     );
 
+    // 2. Fallback: meta OG (LinkedIn preenche corretamente para crawlers — não é obfuscado)
+    const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
+    const ogDesc  = document.querySelector('meta[property="og:description"]')?.content || '';
+
+    if (!cargo && ogTitle) {
+      // og:title costuma ser "Cargo | Empresa | LinkedIn" ou "Cargo - Empresa"
+      const partes = ogTitle.split(/\s*[\|–\-]\s*/);
+      cargo = partes[0]?.trim() || '';
+      if (!empresa && partes.length >= 2) empresa = partes[1]?.trim() || '';
+    }
+
+    // 3. Fallback: título do documento (mais confiável que classes)
+    if (!cargo) {
+      const t = _parseTitleLinkedIn();
+      if (t.cargo) cargo = t.cargo;
+      if (!empresa && t.empresa) empresa = t.empresa;
+    }
+
     const local = txt(
       '.job-details-jobs-unified-top-card__primary-description-without-modal span',
       '.jobs-unified-top-card__workplace-type',
@@ -65,7 +100,8 @@
       '.job-details-jobs-unified-top-card__bullet'
     );
 
-    const desc = txtArea(
+    // 4. Descrição: DOM → og:description → texto selecionado pelo usuário
+    let desc = txtArea(
       '.jobs-description__content',
       '#job-details',
       '[class*="description__content"]',
@@ -73,7 +109,10 @@
       '[class*="job-view-layout"] section',
       '.jobs-box__html-content'
     );
+    if (!desc && ogDesc) desc = ogDesc.slice(0, 5000);
+    if (!desc) desc = (window.getSelection()?.toString().trim() || '').slice(0, 5000);
 
+    // 5. Forma de candidatura
     let forma = '';
     const applyBtn = document.querySelector(
       'button[aria-label*="Candidatura simplificada"], button[aria-label*="Easy Apply"], ' +
@@ -81,17 +120,12 @@
     );
     if (applyBtn) {
       const btnTxt = applyBtn.innerText?.trim() || '';
-      if (/simpl|easy/i.test(btnTxt)) {
-        forma = 'LinkedIn — Candidatura Simplificada';
-      } else if (/site|company|empresa/i.test(btnTxt)) {
-        forma = 'Site da empresa (link externo)';
-      } else if (btnTxt) {
-        forma = btnTxt;
-      }
+      if (/simpl|easy/i.test(btnTxt)) forma = 'LinkedIn — Candidatura Simplificada';
+      else if (/site|company|empresa/i.test(btnTxt)) forma = 'Site da empresa (link externo)';
+      else if (btnTxt) forma = btnTxt;
     }
-    if (!forma) {
-      const foraLI = document.body.innerText.match(/gerenciadas fora|managed outside/i);
-      if (foraLI) forma = 'Site da empresa (link externo)';
+    if (!forma && /gerenciadas fora|managed outside/i.test(document.body.innerText)) {
+      forma = 'Site da empresa (link externo)';
     }
     if (!forma) forma = emailNaDesc(desc) || 'Ver na vaga';
 

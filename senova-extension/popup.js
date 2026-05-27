@@ -42,7 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else if (dados.tipo === 'sinal') {
     renderSinal(dados);
   } else {
-    mostrarEstado('generico');
+    // LinkedIn obfusca classes — sugere selecionar o texto da vaga
+    const isLinkedIn = tab.url && tab.url.includes('linkedin.com');
+    mostrarEstadoGenerico(isLinkedIn);
   }
 });
 
@@ -237,6 +239,23 @@ function mostrarEstado(estado) {
   ['loading','vaga','sinal','generico'].forEach(e => {
     el('estado-' + e).style.display = e === estado ? 'block' : 'none';
   });
+}
+
+function mostrarEstadoGenerico(isLinkedIn) {
+  mostrarEstado('generico');
+  const ico = el('generico-ico');
+  const txt = el('generico-txt');
+  if (isLinkedIn) {
+    if (ico) ico.textContent = '💼';
+    if (txt) txt.innerHTML =
+      '<strong style="color:#1A3A5C;">LinkedIn detectado</strong><br><br>' +
+      'Selecione todo o texto da vaga (Ctrl+A dentro do painel ou arraste o mouse)<br>' +
+      'e clique no ícone Senova novamente.';
+  } else {
+    if (ico) ico.textContent = '🔍';
+    if (txt) txt.innerHTML =
+      'Selecione o texto de uma vaga ou notícia<br>e clique no ícone Senova novamente.';
+  }
 }
 
 function setLoadingTxt(txt) {
