@@ -123,8 +123,11 @@ function renderScore(r) {
   const sw = el('score-wrap');
   sw.style.display = 'block';
 
-  // Pré-análise: score zerado = AI não recebeu descrição suficiente
-  const semDados = score === 0 || /nenhuma vaga|dados insuficientes|não foi fornecida/i.test(r.resumo || '');
+  // Pré-análise: AI sem descrição suficiente — detectado por score baixo + resumo fraco
+  const resumo = (r.resumo || '').trim();
+  const semDados = score === 0
+    || /nenhuma vaga|dados insuficientes|não foi fornecida|revisar manualmente/i.test(resumo)
+    || resumo.length < 35;
   if (semDados) {
     sw.style.background = '#FFFAF2';
     sw.style.borderColor = '#C9A84C55';
