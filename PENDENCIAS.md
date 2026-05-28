@@ -1,6 +1,6 @@
 # PENDENCIAS.md
 # Senova Suite — Backlog consolidado
-# Atualizado: 28/mai/2026
+# Atualizado: 28/mai/2026 (tarde)
 
 ---
 
@@ -24,6 +24,16 @@
 | SOFIA_ALMA.md — alma e princípios éticos da Sofia | 28/mai |
 | SOFIA_ONBOARDING.md — roteiro de entrevista com Career Anchors | 28/mai |
 | MODELO_COMERCIAL.md — 4 tiers + projeções + base do pitch deck | 28/mai |
+| B1: Cards não sumiam ao excluir — ID type mismatch (number vs string) corrigido em 9 funções | 28/mai |
+| B3: "Abaixo do limiar" zerado — filtro de score restaurado em dispararVarreduraManual | 28/mai |
+| B4: LinkedIn emails indo para Alertas — isAlertaFn corrigida, LinkedIn passa pela IA agora | 28/mai |
+| B5: Confirmação candidatura em Processos — prompt IA atualizado + cards só para vaga/hunter | 28/mai |
+| B6: Cargo errado no nome do arquivo CV — filename gerado de atsEmpresa/atsCargo | 28/mai |
+| B7: Carta não aparecia no modal — findIndex com String() corrigido | 28/mai |
+| B8: Busca falso positivo — threshold de 4 chars reduzido para 2 | 28/mai |
+| B9: Botões ativos após declinar — mesma correção de ID type mismatch | 28/mai |
+| B10: Contador emails acumulava — trocado += por Math.max | 28/mai |
+| U17: Michael Page adicionado à whitelist automática do Worker | 28/mai |
 
 ---
 
@@ -31,16 +41,7 @@
 
 | # | Bug | Impacto |
 |---|-----|---------|
-| B1 | Cards não somem do kanban quando excluídos | Confunde o usuário — pensa que não foi excluído |
 | B2 | Preenche campo e sai da página — perde tudo | Perda de trabalho |
-| B3 | "Abaixo do limiar" zerado no dashboard | Número errado na home |
-| B4 | Emails do LinkedIn indo para "Alertas" (deveria ser outro tipo) | Classificação errada |
-| B5 | Email de confirmação de candidatura entrando em "Processos" | Confunde sinais reais com confirmações automáticas |
-| B6 | CV gerado com cargo errado no nome do arquivo (Diretor vs Gerente) | Documento entregue com nome incorreto |
-| B7 | Carta de apresentação: seções não aparecem após análise | Feature quebrada |
-| B8 | Falso positivo na busca (ex: "Straumann" aparece ao buscar "omi") | Resultados irrelevantes |
-| B9 | "Candidatar" após declinar: botões ficam ativos (deveriam bloquear) | Estado inconsistente |
-| B10 | Contador de emails novo mostra número errado | Indicador enganoso |
 
 ---
 
