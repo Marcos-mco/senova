@@ -97,7 +97,7 @@ async function getValidToken(env) {
         client_secret: env.MS_CLIENT_SECRET,
         grant_type: 'refresh_token',
         refresh_token: data.refresh_token,
-        scope: 'Mail.Read Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
+        scope: 'Mail.ReadWrite Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
       }),
     });
     const novo = await res.json();
@@ -132,11 +132,15 @@ async function salvarVistos(env, ids) {
 // ═══════════════════════════════════════════════════════════════════
 //  WHITELIST DE DOMÍNIOS
 // ═══════════════════════════════════════════════════════════════════
+const WHITELIST_DEFAULT = ['mail.michaelpage.com.br','michaelpage.com.br'];
+
 async function getWhitelist(env) {
   try {
     const raw = await env.SENOVA_KV.get('whitelist_dominios');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+    const lista = raw ? JSON.parse(raw) : [];
+    const merged = [...new Set([...WHITELIST_DEFAULT, ...lista])];
+    return merged;
+  } catch { return WHITELIST_DEFAULT; }
 }
 
 async function salvarWhitelist(env, lista) {
@@ -171,6 +175,15 @@ PERFIL: ${PERFIL_MARCOS}
 ${wlStr}
 
 Classifique cada e-mail em: positivo | pipeline | hunter | vaga | negativo | irrelevante
+
+Regras críticas:
+- Emails automáticos de confirmação de candidatura ("sua inscrição foi recebida", "application received", "thank you for applying", "confirmamos sua candidatura") → SEMPRE irrelevante
+- LinkedIn job alert / newsletter de vagas → vaga
+- Headhunter ou recrutador fazendo contato direto → hunter
+- Email de RH sobre vaga em que Marcos já se candidatou → pipeline
+- Resposta positiva de empresa (convite para entrevista, proposta) → positivo
+- Resposta negativa (não aprovado, vaga preenchida) → negativo
+
 Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resumo":"resumo em 1 linha"},...]}
 
 E-MAILS:
@@ -260,7 +273,8 @@ export default {
     }
 
     if (path === '/api/vagas-lead' && request.method === 'POST') {
-      const { titulo, empresa, url, descricao } = await request.json();
+      const body = await request.json();
+      const { titulo, empresa, url, descricao, canal, score, resumo, pontos_fortes, pontos_atencao, forma_candidatura, fonte } = body;
       if (!titulo) return json({ erro: 'titulo obrigatório' }, 400);
       const raw = await env.SENOVA_KV.get('vagas_lead');
       const vagas = raw ? JSON.parse(raw) : [];
@@ -270,13 +284,16 @@ export default {
         empresa: (empresa || '').trim(),
         local: 'Brasil',
         url: url || '',
-        descricao: descricao || '',
-        fonte: 'extensao_chrome',
+        descricao: (descricao || '').slice(0, 500),
+        canal: canal || 'Extensão',
+        fonte: fonte || 'extensao_chrome',
         data: new Date().toLocaleDateString('pt-BR'),
-        score_ats: 0,
-        pontos_fortes: [],
-        salario_compativel: null,
-        badge: 'Extensão Chrome',
+        score: score || null,
+        resumo: resumo || '',
+        pontos_fortes: pontos_fortes || [],
+        pontos_atencao: pontos_atencao || [],
+        forma_candidatura: forma_candidatura || '',
+        badge: 'Extensão',
         criadoEm: new Date().toISOString(),
         status: 'lead',
       };
@@ -340,7 +357,7 @@ export default {
         client_id: env.MS_CLIENT_ID,
         response_type: 'code',
         redirect_uri: redirectUri,
-        scope: 'Mail.Read Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
+        scope: 'Mail.ReadWrite Mail.Send Calendars.ReadWrite Contacts.Read offline_access',
         response_mode: 'query',
         prompt: 'consent',
       });
@@ -419,13 +436,12 @@ export default {
 
       const isAlertaFn = e => {
         const f = (e.from || '').toLowerCase();
-        const s = (e.subject || '').toLowerCase();
+        // LinkedIn job alert emails devem ir para classificação IA, não para Alertas
+        if (f.includes('linkedin')) return false;
         return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
-               f.includes('jobalerts') || f.includes('job-alert') ||
                f.includes('adzuna') || f.includes('alertas@') ||
-               (f.includes('linkedin') && (s.includes('vaga') || s.includes('emprego') || s.includes('oportunidade') || s.includes('job'))) ||
-               (f.includes('indeed') && (s.includes('alerta') || s.includes('alert'))) ||
-               (f.includes('catho') && (s.includes('vaga') || s.includes('alerta')));
+               (f.includes('jobalerts') && !f.includes('linkedin')) ||
+               (f.includes('job-alert') && !f.includes('linkedin'));
       };
       // Alertas extraídos de TODOS os emails da janela 7 dias (ignora filtro vistos)
       const todosAlertas = emails.filter(isAlertaFn);
@@ -466,14 +482,14 @@ export default {
       const classificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
-      // Marcar como lido no Outlook após processar
-      await Promise.allSettled(novos.map(e =>
-        fetch(`https://graph.microsoft.com/v1.0/me/messages/${e.id}`, {
+      // Marcar como lido no Outlook em background (não bloqueia a resposta)
+      ctx.waitUntil(Promise.allSettled(novos.map(e =>
+        fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ isRead: true }),
         })
-      ));
+      )));
 
       // Stats do dia no KV
       const totalAlertas = alertasNovos.length;
@@ -555,15 +571,19 @@ export default {
         const base = env.MS_REDIRECT_URI?.replace('/api/auth/callback','') || 'https://senova-proxy.marcos-mco.workers.dev';
         return json({ erro: 'Outlook não conectado.', reauth: true, url_auth: base + '/api/auth/outlook' }, 401);
       }
-      const { titulo, data } = await request.json();
+      const { titulo, data, descricao, hora_inicio, hora_fim } = await request.json();
       if (!titulo || !data) return json({ erro: 'titulo e data obrigatórios' }, 400);
+      const hi = hora_inicio || '09:00:00';
+      const hf = hora_fim || '09:30:00';
+      const corpo = [descricao, '#senova'].filter(Boolean).join('\n\n');
       const res = await fetch('https://graph.microsoft.com/v1.0/me/events', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: titulo,
-          start: { dateTime: `${data}T09:00:00`, timeZone: 'America/Sao_Paulo' },
-          end:   { dateTime: `${data}T09:30:00`, timeZone: 'America/Sao_Paulo' },
+          body: { contentType: 'Text', content: corpo },
+          start: { dateTime: `${data}T${hi}`, timeZone: 'America/Sao_Paulo' },
+          end:   { dateTime: `${data}T${hf}`, timeZone: 'America/Sao_Paulo' },
           isReminderOn: true, reminderMinutesBeforeStart: 30,
         }),
       });

@@ -5165,12 +5165,14 @@ async function carregarEmails(forcar){
     if(_sinaisAlertas.length){_alertasHoje=_sinaisAlertas.length;}
     const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante');
     _sinaisEmails={classificados:emailsVaga.length,leads:0};
-    // Importar emails relevantes como Leads no Pipeline
-    if(emailsVaga.length>0){
+    // Criar cards no Pipeline apenas para vagas novas e contatos de headhunter
+    // (pipeline/positivo/negativo são respostas a processos já existentes — não geram card novo)
+    const emailsParaCard=emails.filter(e=>e.categoria==='vaga'||e.categoria==='hunter');
+    if(emailsParaCard.length>0){
       const novaData=dataAtualFormatada();
       let extraidos=null;
-      try{ extraidos=await extrairEmpresasCargosBatch(emailsVaga); }catch{}
-      emailsVaga.forEach((e,i)=>{
+      try{ extraidos=await extrairEmpresasCargosBatch(emailsParaCard); }catch{}
+      emailsParaCard.forEach((e,i)=>{
         const nome=e.from_name||e.de_nome||e.from||e.de_email||'Email';
         const emailAddr=e.from||e.de_email||'';
         const assunto=e.subject||e.assunto||'';
