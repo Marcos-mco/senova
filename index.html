@@ -2430,7 +2430,7 @@ async function candidatarVagaATS(){
     const vTxt=(document.getElementById('vaga-input')?.value||'').trim();
     if(vTxt.length>=80) await analyzeJob();
   }
-  const idx=atsOrigemVagaId!=null?vagas.findIndex(v=>v.id===atsOrigemVagaId):-1;
+  const idx=atsOrigemVagaId!=null?vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId)):-1;
   const vagaRef=idx>=0?vagas[idx]:null;
   const empresa=vagaRef?.empresa||atsEmpresa||lastCRM.match(/VAGA:.*?\|(.+)/)?.[1]?.trim()||'A definir';
   const cargo=vagaRef?.cargo||atsCargo||lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim()||'A definir';
@@ -2463,7 +2463,7 @@ async function candidatarVagaATS(){
 }
 
 function declinarVagaATS() {
-  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>v.id===atsOrigemVagaId) : -1;
+  const idx = atsOrigemVagaId!=null ? vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId)) : -1;
   const score = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas = [score?'Match ATS: '+score+'/100':'','Declinada'].filter(Boolean).join(' — ');
   const hoje  = dataAtualFormatada();
@@ -3091,21 +3091,23 @@ async function importarVagasLead(){
       }
     }));
 
-    // Todas as vagas novas entram como Lead — score registrado mas não bloqueia
     const agora=Date.now();
     let novas=0;
     const dupsPendentes=[];
+    const paraRevisar=[];
 
     resultados.forEach(v=>{
-      // Checa deduplicação contra cards já no Pipeline
       const similar = _vagaSimilarExistente(v);
-      if(similar){
-        dupsPendentes.push({nova:v, existente:similar, agora});
+      if(similar){ dupsPendentes.push({nova:v, existente:similar, agora}); return; }
+      const scoreMin=_scoreMinParaVaga(v,config);
+      if(typeof v.score==='number'&&v.score<scoreMin){
+        paraRevisar.push({...v,_limiar:scoreMin});
         return;
       }
       vagas.push(_montarCardVarredura(v, agora));
       novas++;
     });
+    if(paraRevisar.length>0) mostrarRevisaoRejeitadas(paraRevisar);
 
     if(novas>0){
       saveVagas();
@@ -3347,7 +3349,7 @@ function dropVaga(newStatus, event) {
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
   if(dragVagaId==null) return;
-  const idx=vagas.findIndex(v=>v.id===dragVagaId);
+  const idx=vagas.findIndex(v=>String(v.id)===String(dragVagaId));
   if(idx>=0 && vagas[idx].status!==newStatus){
     vagas[idx].status=newStatus;
     vagas[idx].updatedAt=Date.now();
@@ -3411,7 +3413,7 @@ function aplicarFiltros() {
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
   if(plano) lista = lista.filter(v=>v.plano===plano);
-  if(q && q.length>=4) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
+  if(q && q.length>=2) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
   else if(ordem==='az') lista.sort((a,b)=>a.empresa.localeCompare(b.empresa));
@@ -3896,7 +3898,7 @@ function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; 
 function saveVaga(){
   const empresa=document.getElementById('mv-empresa').value.trim(); if(!empresa)return;
   const isNew=editingVagaId==='new';
-  const existing=isNew?null:vagas.find(v=>v.id===editingVagaId);
+  const existing=isNew?null:vagas.find(v=>String(v.id)===String(editingVagaId));
   const now=Date.now();
   const createdAt=existing?.createdAt||parseDateBR(existing?.data)||now;
   const obj={
@@ -3934,7 +3936,7 @@ function saveVaga(){
     createdAt,
     updatedAt:now
   };
-  if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>v.id===editingVagaId?obj:v);
+  if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>String(v.id)===String(editingVagaId)?obj:v);
   if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
   if(isNew) _clearDraftVaga();
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
@@ -3977,7 +3979,7 @@ function deleteVaga(){
     // Mantém só os últimos 500 para não inflar o localStorage
     localStorage.setItem('senova_deleted_ids',JSON.stringify(bl.slice(-500)));
   }catch{}
-  vagas=vagas.filter(v=>v.id!==editingVagaId);
+  vagas=vagas.filter(v=>String(v.id)!==String(editingVagaId));
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
@@ -5181,7 +5183,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje+=emailsVaga.length; }
+    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje=Math.max(_emailsNovosHoje,emailsVaga.length); }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
