@@ -64,6 +64,7 @@ function renderVaga(d) {
 
   el('btn-salvar').addEventListener('click', salvarVaga);
   el('btn-analisar').addEventListener('click', abrirAnalisar);
+  el('btn-ver-processos').addEventListener('click', abrirProcessos);
 }
 
 // ── SCORE COM CACHE ──────────────────────────────────────────────────
