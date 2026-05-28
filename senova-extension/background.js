@@ -135,7 +135,22 @@ async function salvarVaga(payload) {
     const txt = await res.text().catch(() => res.status + '');
     throw new Error(txt);
   }
-  return res.json();
+  const result = await res.json();
+
+  // Se o app Senova estiver aberto, importa a vaga imediatamente sem esperar próxima abertura
+  try {
+    const tabs = await chrome.tabs.query({});
+    const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+    if (senovaTab) {
+      await chrome.scripting.executeScript({
+        target: { tabId: senovaTab.id },
+        world: 'MAIN',
+        func: () => { if (typeof window.__senovaImportar === 'function') window.__senovaImportar(); },
+      });
+    }
+  } catch (_) {}
+
+  return result;
 }
 
 async function salvarSinal({ titulo, empresa, url, resumo }) {

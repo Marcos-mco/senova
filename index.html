@@ -2474,6 +2474,7 @@ function declinarVagaATS() {
     vagas.push({id:_t,empresa:atsEmpresa||'A definir',cargo:atsCargo||'A definir',canal:'Análise CV',prioridade:'media',status:'negado',salario:'',proxima:'Declinada',notas,emailDest:atsEmailDest||'',origemUrl:'',data:hoje,createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}]});
     saveVagas();
   }
+  renderCRM();
   atsOrigemVagaId=null; atsEmailDest=''; atsEmpresa=''; atsCargo='';
   const bar=document.getElementById('ats-decisao-bar');
   if(bar){ bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';}); }
@@ -5529,25 +5530,29 @@ loadCRM();
 })();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
-(async function _autoImportExtensao(){
+// Exposto como window.__senovaImportar para o background.js disparar imediatamente ao salvar
+window.__senovaImportar=async function(){
   try{
     const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/vagas-lead');
     if(!res.ok) return;
     const data=await res.json();
     const _del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const _imp=new Set(JSON.parse(localStorage.getItem('senova_ext_imported')||'[]'));
     const novas=(data.vagas||[]).filter(v=>
       v.fonte==='extensao_chrome'&&
+      !_imp.has(String(v.id))&&
       !vagas.some(e=>String(e.id)===String(v.id))&&
       !_del.has(String(v.id))
     );
     if(novas.length===0) return;
     const agora=Date.now();
-    novas.forEach(v=>vagas.push(_montarCardVarredura(v,agora)));
-    saveVagas();
-    renderCRM();
+    novas.forEach(v=>{vagas.push(_montarCardVarredura(v,agora));_imp.add(String(v.id));});
+    localStorage.setItem('senova_ext_imported',JSON.stringify([..._imp].slice(-500)));
+    saveVagas();renderCRM();
     showToast('✅ '+novas.length+' vaga'+(novas.length>1?'s':'')+' da extensão importada'+(novas.length>1?'s':'')+' — veja em Oportunidades');
   }catch(_){}
-})();
+};
+window.__senovaImportar();
 // Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
@@ -5561,6 +5566,10 @@ checkOutlookStatus();
     if(d.descricao) partes.push('',d.descricao);
     const campo=document.getElementById('vaga-input');
     if(campo&&partes.length) campo.value=partes.join('\n');
+    // Contexto para candidatar/declinar no ATS
+    atsEmpresa=d.empresa||'';atsCargo=d.cargo||'';
+    const _ve=d.url?vagas.find(v=>v.origemUrl===d.url||String(v.id)===String(d.id)):null;
+    if(_ve) atsOrigemVagaId=_ve.id;
     if(d.descricao&&d.descricao.length>80) analyzeJob();
   }
   window.__senovaExtCarregar=_carregarExtData;

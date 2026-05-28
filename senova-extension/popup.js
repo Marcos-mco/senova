@@ -71,6 +71,9 @@ function renderVaga(d) {
 // Usa chrome.storage.session para não recalcular ao reabrir o popup na mesma URL
 
 async function analisarComCache(d) {
+  // Sem descrição suficiente — score seria inútil e lento; encoraja usar Analisar ↗
+  if (!d.descricao || d.descricao.length < 100) { esconderScore(); return; }
+
   const cacheKey = 'score_' + btoa(encodeURIComponent((d.url || d.cargo || '').slice(0, 80)));
 
   // Tenta mostrar do cache primeiro
