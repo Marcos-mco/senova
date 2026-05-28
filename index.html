@@ -204,6 +204,11 @@ select option { background: var(--bg2); }
 .home-stat-box:hover { border-top-color: var(--action); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .home-stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--navy); }
 .home-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 2px; }
+.home-kpi-strip { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: var(--radius); padding: 10px 14px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; }
+.home-kpi-strip:hover { border-left-color: var(--action); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.home-kpi-num { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--navy); line-height: 1; }
+.home-kpi-lbl { font-size: 10.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-top: 2px; }
+.home-kpi-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
 
 /* ── FILTROS PIPELINE ── */
 .filter-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0 14px; flex-wrap: wrap; justify-content: flex-end; }
@@ -391,38 +396,54 @@ select option { background: var(--bg2); }
       <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Buscando...';setTimeout(()=>{this.textContent='↺ Recarregar e-mails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Buscar e-mails novos do Outlook e reclassificar">
         ↺ Recarregar e-mails
       </button>
+      <button onclick="showPage('crm');setTimeout(()=>openVagaModal('new'),120);" style="display:flex;align-items:center;gap:5px;padding:7px 16px;border-radius:20px;border:none;background:var(--navy);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;box-shadow:var(--shadow);">
+        + Novo Processo
+      </button>
     </div>
   </div>
   <div class="content">
+
+    <!-- ── KPIs compactos (faixa 4 colunas) ── -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+      <div class="home-kpi-strip" onclick="showPage('crm')">
+        <span style="font-size:20px;flex-shrink:0;">🗂</span>
+        <div>
+          <div class="home-kpi-num" id="stat-lead">—</div>
+          <div class="home-kpi-lbl">Oportunidades</div>
+          <div class="home-kpi-sub">vagas identificadas</div>
+        </div>
+      </div>
+      <div class="home-kpi-strip" onclick="showPage('crm')">
+        <span style="font-size:20px;flex-shrink:0;">✉️</span>
+        <div>
+          <div class="home-kpi-num" id="stat-candidatados">—</div>
+          <div class="home-kpi-lbl">Candidaturas</div>
+          <div class="home-kpi-sub">CV enviado aguardando</div>
+        </div>
+      </div>
+      <div class="home-kpi-strip" onclick="showPage('crm')">
+        <span style="font-size:20px;flex-shrink:0;">🎤</span>
+        <div>
+          <div class="home-kpi-num" id="stat-pipeline">—</div>
+          <div class="home-kpi-lbl">Em processo</div>
+          <div class="home-kpi-sub">entrevista/contato ativo</div>
+        </div>
+      </div>
+      <div class="home-kpi-strip" onclick="showPage('crm')">
+        <span style="font-size:20px;flex-shrink:0;">📄</span>
+        <div>
+          <div class="home-kpi-num" id="stat-proposta">—</div>
+          <div class="home-kpi-lbl">Propostas</div>
+          <div class="home-kpi-sub">oferta recebida</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Duas colunas ── -->
     <div class="home-grid">
 
-      <!-- COLUNA ESQUERDA: KPIs + funil + canal + tempo -->
+      <!-- COLUNA ESQUERDA: funil + canal + tempo -->
       <div style="display:flex;flex-direction:column;gap:10px;">
-
-        <!-- KPIs -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="home-stat-box" onclick="showPage('crm')">
-            <div class="home-stat-label">Oportunidades</div>
-            <div class="home-stat-num" id="stat-lead">—</div>
-            <div style="font-size:12px;color:var(--text3);">vagas identificadas</div>
-          </div>
-          <div class="home-stat-box" onclick="showPage('crm')">
-            <div class="home-stat-label">Candidaturas</div>
-            <div class="home-stat-num" id="stat-candidatados">—</div>
-            <div style="font-size:12px;color:var(--text3);">CV enviado aguardando</div>
-          </div>
-          <div class="home-stat-box" onclick="showPage('crm')">
-            <div class="home-stat-label">Em processo</div>
-            <div class="home-stat-num" id="stat-pipeline">—</div>
-            <div style="font-size:12px;color:var(--text3);">entrevista/contato ativo</div>
-          </div>
-          <div class="home-stat-box" onclick="showPage('crm')">
-            <div class="home-stat-label">Propostas</div>
-            <div class="home-stat-num" id="stat-proposta">—</div>
-            <div style="font-size:12px;color:var(--text3);">oferta recebida</div>
-          </div>
-        </div>
 
         <div id="dash-pipeline-section">
 
@@ -489,7 +510,6 @@ select option { background: var(--bg2); }
         <div>
           <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
             <span class="section-title">Próximas Ações</span>
-            <button onclick="showPage('crm');setTimeout(()=>openVagaModal('new'),120);" style="display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;border:1.5px solid var(--gold);background:var(--gold);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Nova Oportunidade</button>
             <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
               <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
                 <option value="all">Prioridade</option>
