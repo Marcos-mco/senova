@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senova Suite — Dashboard Preview (React + Tailwind)</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:   '#1A3A5C',
+          gold:   '#C9A84C',
+          green:  '#1A7A4A',
+          amber:  '#B8670A',
+          danger: '#C0281E',
+          mist:   '#F0F4F8',
+          charcoal: '#2C2C2A',
+        },
+        fontFamily: {
+          display: ['Playfair Display', 'serif'],
+          sans: ['Inter', 'sans-serif'],
+        },
+      },
+    },
+  }
+</script>
+<style>
+  body { background: #F0F4F8; font-family: Inter, sans-serif; }
+  .shadow-card { box-shadow: 0 1px 4px rgba(26,58,92,0.08); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── MOCK DATA ────────────────────────────────────────────────────
+const MOCK = {
+  kpis: [
+    { label: 'Oportunidades',  value: 12, sub: 'vagas identificadas',        color: '#1A3A5C', icon: '📋' },
+    { label: 'Candidaturas',   value: 5,  sub: 'CV enviado aguardando',      color: '#2E6DA4', icon: '📨' },
+    { label: 'Em processo',    value: 3,  sub: 'entrevista / contato ativo', color: '#1A3A5C', icon: '🤝' },
+    { label: 'Propostas',      value: 1,  sub: 'oferta recebida',            color: '#1A7A4A', icon: '🎯' },
+  ],
+  signals: [
+    { id: 1, type: 'email',   icon: '📧', label: '3 emails novos hoje',           color: '#2E6DA4', badge: 3,  action: 'Ver emails' },
+    { id: 2, type: 'alert',   icon: '🔔', label: '2 Google Alerts recebidos',     color: '#B8670A', badge: 2,  action: 'Ver alertas' },
+    { id: 3, type: 'review',  icon: '⭐', label: '4 vagas abaixo do limiar',      color: '#B8670A', badge: 4,  action: 'Revisar' },
+    { id: 4, type: 'inactive',icon: '⚠',  label: '2 cards sem atualização 7d+',  color: '#C0281E', badge: 2,  action: 'Ver' },
+  ],
+  pipeline: [
+    { stage: 'Oportunidade', count: 12, color: '#7C3AED' },
+    { stage: 'CV Enviado',   count: 5,  color: '#2563EB' },
+    { stage: 'Em Contato',   count: 3,  color: '#0EA5E9' },
+    { stage: 'Entrevista',   count: 1,  color: '#8B5CF6' },
+    { stage: 'Proposta',     count: 1,  color: '#059669' },
+  ],
+  actions: [
+    { label: 'Enviar CV — CI&T (Ger. Transformação)',  due: 'Hoje',    icon: '📄', priority: 'alta' },
+    { label: 'Follow-up — Ambev (7 dias sem retorno)', due: 'Hoje',    icon: '📞', priority: 'alta' },
+    { label: 'Analisar vaga LATAM Entertainment',      due: 'Amanhã',  icon: '🔍', priority: 'media' },
+    { label: 'Preparar entrevista — Raízen',           due: 'Sex 31',  icon: '🎤', priority: 'media' },
+  ],
+  channels: [
+    { name: 'LinkedIn',     total: 8, retorno: 2, taxa: 25 },
+    { name: 'Headhunter',   total: 6, retorno: 3, taxa: 50 },
+    { name: 'Email',        total: 4, retorno: 1, taxa: 25 },
+    { name: 'Indicação',    total: 2, retorno: 2, taxa: 100 },
+  ],
+};
+
+// ── COMPONENTS ───────────────────────────────────────────────────
+
+function KpiCard({ label, value, sub, icon, color }) {
+  return (
+    <div className="bg-white rounded-xl shadow-card border border-gray-100 px-5 py-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+      <div className="text-2xl select-none">{icon}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{label}</div>
+        <div className="font-display text-3xl font-bold leading-none" style={{ color }}>{value}</div>
+        <div className="text-xs text-gray-400 mt-1 truncate">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function SignalRow({ icon, label, color, badge, action, onClick }) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group"
+      onClick={onClick}
+    >
+      <span className="text-lg">{icon}</span>
+      <span className="flex-1 text-sm font-medium text-gray-700">{label}</span>
+      <span
+        className="text-xs font-bold px-2 py-0.5 rounded-full"
+        style={{ background: color + '18', color }}
+      >{badge}</span>
+      <span className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity" style={{ color }}>
+        {action} →
+      </span>
+    </div>
+  );
+}
+
+function PipelineBar({ stage, count, color, max }) {
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+  const barW = Math.max(pct, count > 0 ? 3 : 0);
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-24 text-xs font-semibold text-gray-500 flex-shrink-0">{stage}</div>
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${barW}%`, background: color }}
+        />
+      </div>
+      <div
+        className="w-6 text-right font-display text-sm font-bold flex-shrink-0"
+        style={{ color: count ? '#1A3A5C' : '#9CA3AF' }}
+      >{count || '—'}</div>
+    </div>
+  );
+}
+
+function ActionItem({ label, due, icon, priority }) {
+  const dueCls = due === 'Hoje'
+    ? 'bg-red-50 text-red-600'
+    : due === 'Amanhã'
+    ? 'bg-amber-50 text-amber-700'
+    : 'bg-gray-100 text-gray-500';
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
+      <span className="text-base mt-0.5">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-gray-700 leading-snug truncate">{label}</div>
+      </div>
+      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${dueCls}`}>{due}</span>
+    </div>
+  );
+}
+
+function ChannelRow({ name, total, retorno, taxa }) {
+  const cor = taxa >= 50 ? '#1A7A4A' : taxa >= 20 ? '#2E6DA4' : '#9CA3AF';
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <div className="flex-1 text-xs font-medium text-gray-600 truncate">{name}</div>
+      <div className="text-xs text-gray-400 flex-shrink-0">{retorno}/{total}</div>
+      <div className="w-10 text-right text-xs font-bold flex-shrink-0" style={{ color: cor }}>
+        {total >= 2 ? taxa + '%' : '—'}
+      </div>
+    </div>
+  );
+}
+
+function SofiaCard() {
+  return (
+    <div className="bg-gradient-to-br from-navy to-blue-900 rounded-xl p-5 text-white shadow-card">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-8 h-8 rounded-full bg-gold/20 border border-gold/40 flex items-center justify-center text-sm">✨</div>
+        <div>
+          <div className="font-display text-sm font-bold text-gold">Sofia</div>
+          <div className="text-xs text-blue-200">Conselheira de vocação</div>
+        </div>
+      </div>
+      <p className="text-xs text-blue-100 leading-relaxed mb-3">
+        "Marcos, você tem 2 vagas alinhadas com seu perfil de liderança estratégica esta semana. Quer analisá-las juntos?"
+      </p>
+      <button className="w-full text-xs font-semibold bg-gold/20 hover:bg-gold/30 border border-gold/40 text-gold rounded-lg py-2 transition-colors">
+        Conversar com a Sofia →
+      </button>
+    </div>
+  );
+}
+
+// ── LAYOUT PRINCIPAL ─────────────────────────────────────────────
+
+function Sidebar({ activePage, setPage }) {
+  const items = [
+    { id: 'home',      icon: '🏠', label: 'Home' },
+    { id: 'perfil',    icon: '👤', label: 'Perfil' },
+    { id: 'analise',   icon: '📊', label: 'Análise CV' },
+    { id: 'processos', icon: '🗂', label: 'Processos' },
+    { id: 'entrevista',icon: '🎤', label: 'Entrevistas' },
+    { id: 'mercado',   icon: '🌐', label: 'Mercado', badge: 'Novo' },
+    { id: 'sofia',     icon: '✨', label: 'Sofia', badge: 'IA' },
+  ];
+  return (
+    <aside className="w-52 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-screen shadow-sm">
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-gray-100">
+        <div className="font-display text-xl font-bold text-navy">Senova</div>
+        <div className="text-xs text-gray-400 mt-0.5">Suite Executiva</div>
+      </div>
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {items.map(item => (
+          <button
+            key={item.id}
+            onClick={() => setPage(item.id)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-sm font-medium
+              ${activePage === item.id
+                ? 'bg-navy text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+              }`}
+          >
+            <span className="text-base">{item.icon}</span>
+            <span className="flex-1">{item.label}</span>
+            {item.badge && (
+              <span className={`text-xs px-1.5 py-0.5 rounded font-bold
+                ${activePage === item.id ? 'bg-gold/30 text-gold' : 'bg-gold/10 text-amber'}`}>
+                {item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+      {/* User */}
+      <div className="px-4 py-4 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center text-navy font-bold text-sm">M</div>
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-gray-700 truncate">Marcos Franco</div>
+            <div className="text-xs text-gray-400">Plano Radar</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function DashboardPage() {
+  const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const maxPipeline = Math.max(...MOCK.pipeline.map(s => s.count));
+
+  return (
+    <div className="flex-1 overflow-auto bg-mist">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <div>
+          <h1 className="font-display text-xl font-bold text-navy">Bom dia, Marcos 👋</h1>
+          <p className="text-xs text-gray-400 mt-0.5 capitalize">{today}</p>
+        </div>
+        <button className="flex items-center gap-2 bg-navy hover:bg-blue-900 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+          <span>+</span> Novo Processo
+        </button>
+      </div>
+
+      <div className="px-8 py-6 space-y-6 max-w-7xl">
+
+        {/* KPIs */}
+        <section>
+          <div className="grid grid-cols-4 gap-4">
+            {MOCK.kpis.map(kpi => <KpiCard key={kpi.label} {...kpi} />)}
+          </div>
+        </section>
+
+        {/* Central de Sinais */}
+        <section>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Novidades de Hoje</h2>
+          <div className="bg-white rounded-xl shadow-card border border-gray-100 divide-y divide-gray-50">
+            {MOCK.signals.map(s => (
+              <SignalRow key={s.id} {...s} />
+            ))}
+          </div>
+        </section>
+
+        {/* Pipeline + Ações do Dia */}
+        <section className="grid grid-cols-5 gap-6">
+
+          {/* Pipeline funil */}
+          <div className="col-span-2 bg-white rounded-xl shadow-card border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Pipeline</h2>
+              <span className="text-xs text-gray-400">
+                {MOCK.pipeline.reduce((s, p) => s + p.count, 0)} ativas
+              </span>
+            </div>
+            <div className="space-y-3">
+              {MOCK.pipeline.map(s => (
+                <PipelineBar key={s.stage} {...s} max={maxPipeline} />
+              ))}
+            </div>
+            {/* Taxa de retorno mini */}
+            <div className="mt-5 pt-4 border-t border-gray-50">
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Retorno por Canal</div>
+              <div className="space-y-1">
+                {MOCK.channels.map(c => <ChannelRow key={c.name} {...c} />)}
+              </div>
+            </div>
+          </div>
+
+          {/* Ações do dia + Sofia */}
+          <div className="col-span-3 space-y-4">
+            {/* Ações */}
+            <div className="bg-white rounded-xl shadow-card border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">Ações do Dia</h2>
+                <button className="text-xs text-navy font-semibold hover:underline">Ver todas →</button>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {MOCK.actions.map((a, i) => <ActionItem key={i} {...a} />)}
+              </div>
+            </div>
+            {/* Sofia */}
+            <SofiaCard />
+          </div>
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [page, setPage] = useState('home');
+  return (
+    <div className="flex h-screen overflow-hidden font-sans text-charcoal">
+      <Sidebar activePage={page} setPage={setPage} />
+      <DashboardPage />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
