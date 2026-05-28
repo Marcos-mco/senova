@@ -330,7 +330,7 @@ select option { background: var(--bg2); }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M2 6.5L8 2l6 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6.5Z"/><path d="M6 15V9h4v6"/>
       </svg>
-      Home
+      Início
       <span class="nav-badge" id="home-badge" style="display:none;">0</span>
     </div>
     <div class="nav-item" onclick="showPage('linkedin')" id="nav-linkedin">
@@ -343,7 +343,7 @@ select option { background: var(--bg2); }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M3 2h7l3 3v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M9 2v4h3"/><path d="M5 8h4M5 10.5h3M5 13h2"/>
       </svg>
-      Análise CV
+      Análise de Vaga
     </div>
     <div class="nav-item" onclick="showPage('crm')" id="nav-crm">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -351,13 +351,6 @@ select option { background: var(--bg2); }
       </svg>
       Processos
       <span class="nav-badge" id="crm-badge">—</span>
-    </div>
-    <div class="nav-item" onclick="showPage('sofia')" id="nav-sofia">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M8 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
-        <path d="M3 13.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5"/>
-      </svg>
-      Sofia
     </div>
   </div>
 
@@ -579,8 +572,8 @@ select option { background: var(--bg2); }
 <div id="page-ats" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
     <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Análise CV</span>
-      <span class="page-sub">Adaptador de CV com análise de keywords</span>
+      <span class="page-title">Análise de Vaga</span>
+      <span class="page-sub">Análise de aderência e otimização de perfil</span>
     </div>
     <div class="topbar-right">
       <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
@@ -1274,7 +1267,7 @@ select option { background: var(--bg2); }
           <div style="flex:1;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
               <span style="font-size:20px;">🎯</span>
-              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">2. Análise CV</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">2. Análise de Vaga</span>
             </div>
             <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Cole a descrição de uma vaga e receba seu CV otimizado com as palavras-chave certas + score ATS em segundos.</div>
           </div>
@@ -1319,7 +1312,7 @@ select option { background: var(--bg2); }
             <span style="font-size:20px;">🔄</span>
             <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">6. Fluxo Completo</span>
           </div>
-          <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">O caminho ideal: <strong style="color:var(--text2);">Perfil</strong> → <strong style="color:var(--text2);">Varredura</strong> → <strong style="color:var(--text2);">Análise CV</strong> → <strong style="color:var(--text2);">Pipeline</strong> → <strong style="color:var(--text2);">Candidatura via Outlook</strong> → <strong style="color:var(--text2);">Follow-up automático em 7 dias</strong>. Cada etapa registra uma entrada no histórico da vaga.</div>
+          <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">O caminho ideal: <strong style="color:var(--text2);">Perfil</strong> → <strong style="color:var(--text2);">Varredura</strong> → <strong style="color:var(--text2);">Análise de Vaga</strong> → <strong style="color:var(--text2);">Pipeline</strong> → <strong style="color:var(--text2);">Candidatura via Outlook</strong> → <strong style="color:var(--text2);">Follow-up automático em 7 dias</strong>. Cada etapa registra uma entrada no histórico da vaga.</div>
         </div>
 
       </div>
@@ -1535,7 +1528,7 @@ select option { background: var(--bg2); }
         </div>
       </div>
       <div class="form-row">
-        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise CV)</span></label>
+        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise de Vaga)</span></label>
         <textarea id="mv-job-desc" rows="4" placeholder="Cole o texto completo da vaga aqui…" oninput="extrairDadosDescricao(this.value)"></textarea>
       </div>
       <div class="form-row">
@@ -1601,7 +1594,7 @@ select option { background: var(--bg2); }
       </div>
       <div id="mv-docs-section" style="display:none;margin-top:16px;border-top:1.5px solid var(--border);padding-top:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-          <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Análise CV gerada</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Análise de Vaga gerada</span>
           <span id="mv-ats-score-badge" style="display:none;font-size:13px;font-weight:700;padding:2px 12px;border-radius:20px;"></span>
         </div>
         <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;"></div>
