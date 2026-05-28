@@ -50,8 +50,11 @@
     return { cargo, empresa };
   }
 
+  // Headings de seção do LinkedIn que NÃO são título de vaga
+  const _LI_SECTION_HEADINGS = /vagas que mais combinam|jobs you may be interested|recommended for you|sugerido para você|pesquisa de emprego|job search results|people also viewed/i;
+
   function extractLinkedIn() {
-    // 1. Tenta seletores DOM (mudam frequentemente — LinkedIn obfusca as classes)
+    // 1. Tenta seletores DOM específicos (mudam frequentemente — LinkedIn obfusca as classes)
     let cargo = txt(
       'h1.job-details-jobs-unified-top-card__job-title',
       'h1[class*="job-title"]',
@@ -60,9 +63,25 @@
       '.jobs-unified-top-card__job-title',
       '[class*="topcard"] h1',
       '.job-details-jobs-unified-top-card__job-title a',
-      '.jobs-details-top-card__job-title',
-      'h1'
+      '.jobs-details-top-card__job-title'
+      // bare 'h1' removido — tratado abaixo com filtragem
     );
+
+    // 1b. Painel direito nas páginas de busca/coleções (/jobs/search/, /jobs/collections/)
+    //     O painel de detalhe tem a vaga real; o h1 da página é o heading de seção
+    if (!cargo) {
+      const panel = document.querySelector(
+        '.scaffold-layout__detail, .jobs-search__job-details--container, [class*="job-details--container"]'
+      );
+      cargo = panel?.querySelector('h1')?.innerText?.trim() || '';
+    }
+
+    // 1c. Fallback h1 filtrado: ignora headings de seção do LinkedIn
+    if (!cargo) {
+      cargo = Array.from(document.querySelectorAll('h1'))
+        .map(el => el.innerText?.trim())
+        .find(t => t && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) || '';
+    }
 
     let empresa = txt(
       '.job-details-jobs-unified-top-card__company-name a',
@@ -76,21 +95,21 @@
     );
 
     // 2. Fallback: meta OG (LinkedIn preenche corretamente para crawlers — não é obfuscado)
+    //    Nas páginas de coleções o og:title é o da página, não da vaga — filtrar
     const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
     const ogDesc  = document.querySelector('meta[property="og:description"]')?.content || '';
 
-    if (!cargo && ogTitle) {
-      // og:title costuma ser "Cargo | Empresa | LinkedIn" ou "Cargo - Empresa"
+    if (!cargo && ogTitle && !_LI_SECTION_HEADINGS.test(ogTitle)) {
       const partes = ogTitle.split(/\s*[\|–\-]\s*/);
       cargo = partes[0]?.trim() || '';
       if (!empresa && partes.length >= 2) empresa = partes[1]?.trim() || '';
     }
 
-    // 3. Fallback: título do documento (mais confiável que classes)
+    // 3. Fallback: título do documento — filtrar headings de seção
     if (!cargo) {
       const t = _parseTitleLinkedIn();
-      if (t.cargo) cargo = t.cargo;
-      if (!empresa && t.empresa) empresa = t.empresa;
+      if (t.cargo && !_LI_SECTION_HEADINGS.test(t.cargo)) cargo = t.cargo;
+      if (!empresa && t.empresa && !_LI_SECTION_HEADINGS.test(t.empresa)) empresa = t.empresa;
     }
 
     const local = txt(
