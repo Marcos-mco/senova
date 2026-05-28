@@ -3798,7 +3798,7 @@ function openVagaModal(id){
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoesModal();
 }
-function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
+function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function mvToggleDoc(which,btn){
   const cvEl=document.getElementById('mv-ats-cv-expand');
   const cartaEl=document.getElementById('mv-ats-carta-expand');
@@ -5631,6 +5631,7 @@ window.__senovaImportar();
     m.addEventListener('input',_scheduleDraftVaga);
     m.addEventListener('change',_scheduleDraftVaga);
   }
+  window.addEventListener('beforeunload',_saveDraftVaga);
 })();
 </script>
 </body>

@@ -24,6 +24,7 @@
 | SOFIA_ALMA.md — alma e princípios éticos da Sofia | 28/mai |
 | SOFIA_ONBOARDING.md — roteiro de entrevista com Career Anchors | 28/mai |
 | MODELO_COMERCIAL.md — 4 tiers + projeções + base do pitch deck | 28/mai |
+| B2: Rascunho perdido ao fechar modal — flush síncrono em closeVagaModal + beforeunload | 28/mai |
 | B1: Cards não sumiam ao excluir — ID type mismatch (number vs string) corrigido em 9 funções | 28/mai |
 | B3: "Abaixo do limiar" zerado — filtro de score restaurado em dispararVarreduraManual | 28/mai |
 | B4: LinkedIn emails indo para Alertas — isAlertaFn corrigida, LinkedIn passa pela IA agora | 28/mai |
@@ -39,9 +40,7 @@
 
 ## 🔴 BUGS CRÍTICOS (corrigir antes de qualquer feature nova)
 
-| # | Bug | Impacto |
-|---|-----|---------|
-| B2 | Preenche campo e sai da página — perde tudo | Perda de trabalho |
+Nenhum bug crítico aberto. ✅
 
 ---
 
