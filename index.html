@@ -1103,7 +1103,7 @@ select option { background: var(--bg2); }
         <option value="az">Empresa A-Z</option>
       </select>
       <button class="btn-filter-limpar" onclick="limparFiltros()">Limpar filtros</button>
-      <button id="btn-importar-vagas" class="btn-filter-limpar" onclick="importarVagasLead()" style="background:var(--navy);color:#fff;border-color:var(--navy);">⬇ Importar vagas</button>
+      <button class="btn-filter-limpar" onclick="limparDuplicatas()" title="Remove cards com mesma empresa+cargo ou URL duplicada">Limpar duplicatas</button>
     </div>
 
     <!-- Vagas Kanban -->
@@ -1602,7 +1602,12 @@ select option { background: var(--bg2); }
       <input type="hidden" id="mv-motivo">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger" id="mv-delete-btn" onclick="deleteVaga()" style="display:none;">Remover</button>
+      <button class="btn btn-danger" id="mv-delete-btn" onclick="confirmarRemoverVaga()" style="display:none;">Remover</button>
+      <div id="mv-delete-confirm" style="display:none;gap:6px;align-items:center;">
+        <span style="font-size:13px;color:#9B2226;font-weight:600;">Confirmar exclusão?</span>
+        <button class="btn btn-danger" style="padding:5px 12px;font-size:12px;" onclick="deleteVaga()">Excluir</button>
+        <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="cancelarRemoverVaga()">Cancelar</button>
+      </div>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
       <div id="mv-footer-acoes" style="display:flex;gap:8px;"></div>
@@ -3590,6 +3595,7 @@ function renderCRM(){
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
     if(cf.sort==='newer') cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
+    else if(cf.sort==='az') cards=[...cards].sort((a,b)=>(a.empresa||'').localeCompare(b.empresa||'','pt'));
     else cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
@@ -3599,7 +3605,7 @@ function renderCRM(){
       <div class="col-filter-sect">Canal</div>
       ${[['all','Todos'],['linkedin','LinkedIn'],['headhunter','Headhunter'],['email','Email'],['indicacao','Indicação']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="can-${col}" value="${v}" ${cf.canal===v?'checked':''} onchange="setColFilter('${col}','canal','${v}',event)"> ${l}</label>`).join('')}
       <div class="col-filter-sect">Ordenar</div>
-      ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
+      ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo'],['az','A-Z']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
       ${hasFilter?`<button class="col-filter-reset" onclick="resetColFilter('${col}')">Limpar filtros</button>`:''}
     </div>`;
     return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
@@ -3933,9 +3939,37 @@ function saveVaga(){
   if(isNew) _clearDraftVaga();
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
 }
+function confirmarRemoverVaga(){
+  const btn=document.getElementById('mv-delete-btn');
+  const conf=document.getElementById('mv-delete-confirm');
+  if(btn) btn.style.display='none';
+  if(conf) conf.style.display='flex';
+}
+function cancelarRemoverVaga(){
+  const btn=document.getElementById('mv-delete-btn');
+  const conf=document.getElementById('mv-delete-confirm');
+  if(btn) btn.style.display='';
+  if(conf) conf.style.display='none';
+}
+function limparDuplicatas(){
+  const antes=vagas.length;
+  const vistos=new Map();
+  vagas=vagas.filter(v=>{
+    const chave=((v.origemUrl||'').trim())||((v.empresa||'').toLowerCase().trim()+'|'+(v.cargo||'').toLowerCase().trim());
+    if(!chave||chave==='|') return true;
+    if(vistos.has(chave)){
+      const ext=vistos.get(chave);
+      if((v.updatedAt||v.createdAt||0)>(ext.updatedAt||ext.createdAt||0)){vistos.set(chave,v);return false;}
+      return false;
+    }
+    vistos.set(chave,v); return true;
+  });
+  const removidos=antes-vagas.length;
+  saveVagas(); renderCRM();
+  showToast(removidos>0?`✅ ${removidos} duplicata${removidos>1?'s':''} removida${removidos>1?'s':''}`:'Nenhuma duplicata encontrada');
+}
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
-  if(!confirm('Remover esta vaga?'))return;
   // Persiste o ID na blocklist para evitar reimportação do KV
   try{
     const bl=JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]');
@@ -5556,6 +5590,7 @@ window.__senovaImportar();
 // Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
+  history.replaceState(null,'',location.pathname); // limpa ?ext=1 da URL para refresh não redirecionar
   showPage('ats');
   function _carregarExtData(dados){
     const d=dados||window.__senovaExtData;
