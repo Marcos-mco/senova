@@ -124,5 +124,10 @@ Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
 1. Ler `VIRGILIO.md` para contexto permanente, regras invioláveis e estado do projeto
 2. Ler `PROJETO.md` para contexto de decisões de arquitetura e roadmap
 3. Ler `VERSOES.md` para entender o estado da versão atual
-4. Salvar backup com nome `senova_v[N]_[data].html` antes de modificar o `index.html`
-5. Nunca refatorar CSS/layout junto com correção de bug — mudanças devem ser isoladas
+4. Ler `SOFIA_ALMA.md` antes de qualquer mudança no comportamento ou prompt da Sofia
+5. Salvar backup com nome `senova_v[N]_[data].html` antes de modificar o `index.html`
+6. Nunca refatorar CSS/layout junto com correção de bug — mudanças devem ser isoladas
+
+## Regra ética inviolável
+
+O Senova é símbolo de honestidade. As virtudes católicas (prudência, justiça, fortaleza, temperança, verdade, esperança, caridade) devem estar presentes em toda feature, prompt e conselho. Nada antiético, manipulador ou desonesto — jamais. Ver `SOFIA_ALMA.md`.
