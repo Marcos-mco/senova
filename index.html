@@ -2195,7 +2195,7 @@ async function analyzeJob() {
   }
   if(vaga.length < 80) {
     _hideAtsExtras();
-    const _card=atsOrigemVagaId!=null?vagas.find(v=>v.id===atsOrigemVagaId):null;
+    const _card=atsOrigemVagaId!=null?vagas.find(v=>String(v.id)===String(atsOrigemVagaId)):null;
     const _url=(_card?.origemUrl||_card?.url||'').trim();
     if(_url && _url.startsWith('http')){
       const _dom=(() => { try { return new URL(_url).hostname; } catch{ return _url.slice(0,40); } })();
@@ -2241,11 +2241,17 @@ function renderATSResult(analise,cv,crm) {
   _atsAnalise = analise;
   _cartaLang = cvLang;
   const campoVaga=document.getElementById('vaga-input');if(campoVaga)campoVaga.value='';
-  const filenameMatch = crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
-  if(filenameMatch) lastCVFilename = filenameMatch[1].trim();
+  if(atsEmpresa||atsCargo){
+    const _e=(atsEmpresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga';
+    const _c=(atsCargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo';
+    lastCVFilename=`CV_MF_${_e}_${_c}_v1`;
+  } else {
+    const filenameMatch=crm.match(/CV GERADO:\s*(CV_MF_[^\n]+)/);
+    if(filenameMatch) lastCVFilename=filenameMatch[1].trim();
+  }
 
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
-  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>v.id===atsOrigemVagaId);if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';saveVagas();}}
+  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';saveVagas();}}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
   const col = score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
   const bg = score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
@@ -2351,7 +2357,7 @@ async function gerarCartaATS(btn){
     const el=document.getElementById('ats-carta-txt');
     const out=document.getElementById('ats-carta-out');
     if(el&&out){el.value=carta;out.style.display='block';}
-    if(carta&&atsOrigemVagaId!=null){const vi=vagas.findIndex(v=>v.id===atsOrigemVagaId);if(vi>=0){vagas[vi].atsCarta=carta;saveVagas();}}
+    if(carta&&atsOrigemVagaId!=null){const vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(vi>=0){vagas[vi].atsCarta=carta;saveVagas();}}
   } catch(e){console.error('gerarCartaATS:',e);alert('Erro ao gerar carta. Tente novamente.');}
   finally{btn.textContent='Gerar carta';btn.disabled=false;}
 }
@@ -4010,7 +4016,7 @@ function abrirFormTimeline(){
   document.getElementById('mv-timeline-form').style.display='block';
   document.getElementById('mv-timeline-texto').value='';
   document.getElementById('mv-tl-lembrar-data').value='';
-  const vaga=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>v.id===editingVagaId):null;
+  const vaga=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>String(v.id)===String(editingVagaId)):null;
   const ocultarLembrar=vaga&&(vaga.status==='negado'||vaga.status==='aceito');
   document.getElementById('mv-tl-lembrar-row').style.display=ocultarLembrar?'none':'';
   setTimeout(()=>document.getElementById('mv-timeline-texto').focus(),60);
@@ -4022,7 +4028,7 @@ async function salvarEntradaTimeline(){
   const texto=document.getElementById('mv-timeline-texto').value.trim();
   if(!texto){document.getElementById('mv-timeline-texto').focus();return;}
   if(!editingVagaId||editingVagaId==='new') return;
-  const idx=vagas.findIndex(v=>v.id===editingVagaId);
+  const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return;
   if(!vagas[idx].timeline) vagas[idx].timeline=[];
   vagas[idx].timeline.unshift({ts:Date.now(),texto});
