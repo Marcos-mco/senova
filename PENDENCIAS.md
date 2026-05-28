@@ -34,7 +34,11 @@
 | B8: Busca falso positivo — threshold de 4 chars reduzido para 2 | 28/mai |
 | B9: Botões ativos após declinar — mesma correção de ID type mismatch | 28/mai |
 | B10: Contador emails acumulava — trocado += por Math.max | 28/mai |
+| U16: Botão "↺ Recarregar e-mails" — label unificado em toda a Home | 28/mai |
 | U17: Michael Page adicionado à whitelist automática do Worker | 28/mai |
+| U19: Campo LinkedIn já existia no card de contato (confirmado) | 28/mai |
+| U20: validarContatoForm aceita LinkedIn como contato válido | 28/mai |
+| U23: Ordem do menu confirmada — Home → Perfil → Análise CV → Processos → Sofia | 28/mai |
 
 ---
 
@@ -76,15 +80,11 @@ Nenhum bug crítico aberto. ✅
 | U13 | 3 fluxos de email: Processo / Inteligência de Mercado / Irrelevante (bloqueado) |
 | U14 | Google Alert: abrir no formato clássico (não web) — opção por usuário |
 | U15 | Responder email avulso na Home (sem vaga associada) |
-| U16 | "Recarregar emails" vs "Atualizar" — unificar em um botão com nome claro |
-| U17 | Adicionar Michael Page noreply@mail.michaelpage.com.br na whitelist automática |
 
 ### Contatos
 | # | Melhoria |
 |---|----------|
 | U18 | Filtros de contatos: ordem alfabética, data de inclusão |
-| U19 | Card de contato: campo LinkedIn/URL (para quem ainda não tem email ou telefone) |
-| U20 | "Informe ao menos um contato" — aceitar LinkedIn como contato válido |
 
 ### Perfil
 | # | Melhoria |

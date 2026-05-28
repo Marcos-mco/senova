@@ -388,8 +388,8 @@ select option { background: var(--bg2); }
           <div class="outlook-toggle-knob"></div>
         </div>
       </div>
-      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Buscando...';setTimeout(()=>{this.textContent='Buscar novos emails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Buscar novos emails do Outlook e reclassificar">
-        Buscar novos emails
+      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Buscando...';setTimeout(()=>{this.textContent='↺ Recarregar e-mails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Buscar e-mails novos do Outlook e reclassificar">
+        ↺ Recarregar e-mails
       </button>
     </div>
   </div>
@@ -1794,19 +1794,19 @@ select option { background: var(--bg2); }
         </div>
         <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
           <div>
-            <label class="field-label">Email <span style="color:#CC0000;font-size:13px;">*</span></label>
+            <label class="field-label">Email</label>
             <input type="email" id="mc-email" placeholder="email@empresa.com" oninput="validarContatoForm()">
           </div>
           <div>
-            <label class="field-label">Telefone <span style="color:#CC0000;font-size:13px;">*</span></label>
+            <label class="field-label">Telefone</label>
             <input type="tel" id="mc-telefone" placeholder="(41) 9xxxx-xxxx" oninput="validarContatoForm()">
           </div>
           <div>
-            <label class="field-label">LinkedIn</label>
-            <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/...">
+            <label class="field-label">LinkedIn <span style="color:#CC0000;font-size:13px;">*</span></label>
+            <input type="url" id="mc-linkedin" placeholder="linkedin.com/in/..." oninput="validarContatoForm()">
           </div>
         </div>
-        <div id="mc-contato-err" style="display:none;font-size:12px;color:#CC0000;margin-top:-8px;margin-bottom:10px;">Informe ao menos um contato (email ou telefone)</div>
+        <div id="mc-contato-err" style="display:none;font-size:12px;color:#CC0000;margin-top:-8px;margin-bottom:10px;">Informe ao menos um contato (email, telefone ou LinkedIn)</div>
         <div class="form-grid" style="margin-bottom:14px;grid-template-columns:1fr 1fr 1fr;">
           <div>
             <label class="field-label">Temperatura</label>
@@ -4115,7 +4115,8 @@ function validarContatoForm(){
   const nextData=document.getElementById('mc-next-data')?.value;
   const email=document.getElementById('mc-email')?.value.trim();
   const tel=document.getElementById('mc-telefone')?.value.trim();
-  const temContato=!!(email||tel);
+  const linkedin=document.getElementById('mc-linkedin')?.value.trim();
+  const temContato=!!(email||tel||linkedin);
   const ok=!!(nome&&next&&nextData&&temContato);
   const btn=document.getElementById('mc-salvar-btn');
   if(btn){btn.disabled=!ok;btn.style.opacity=ok?'':'0.45';btn.style.cursor=ok?'':'not-allowed';}
@@ -4713,7 +4714,7 @@ function renderEmailsAvulsos(){
   if(!_emailsAvulsos.length){
     const n=_emailsNovosHoje;
     const msg=n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje — já importados para o Pipeline.`:'Nenhum email novo.';
-    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Recarregar</button></div>`;
+    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar e-mails</button></div>`;
     return;
   }
   lista.innerHTML=_emailsAvulsos.map((e,i)=>{
