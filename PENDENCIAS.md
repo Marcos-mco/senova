@@ -1,6 +1,6 @@
 # PENDENCIAS.md
 # Senova Suite — Backlog consolidado
-# Atualizado: 28/mai/2026 (tarde)
+# Atualizado: 28/mai/2026 (noite)
 
 ---
 
@@ -23,6 +23,13 @@
 | Botão "Limpar duplicatas" no filtro do CRM | 28/mai |
 | SOFIA_ALMA.md — alma e princípios éticos da Sofia | 28/mai |
 | SOFIA_ONBOARDING.md — roteiro de entrevista com Career Anchors | 28/mai |
+| Perfil Hub — 5 abas (Perfil, Busca, Documentos, Integrações, Preferências) + Sofia banner | 28/mai |
+| Menu lateral: Início, Perfil, Análise de Vaga, Processos (Sofia removida do menu) | 28/mai |
+| Freq. varredura (radio), whitelist domínios, upload certificados no Perfil | 28/mai |
+| F1: Sofia onboarding — roteiro estruturado 14 perguntas, preenchimento automático do Perfil | 28/mai |
+| U2: "CV Otimizado" → "Preparar Candidatura" | 28/mai |
+| U3: Botão Declinar dentro da aba Análise (ao lado de Candidatar) | 28/mai |
+| U6: Campo "Contexto adicional" na Análise de Vaga (antes de gerar) | 28/mai |
 | MODELO_COMERCIAL.md — 4 tiers + projeções + base do pitch deck | 28/mai |
 | B2: Rascunho perdido ao fechar modal — flush síncrono em closeVagaModal + beforeunload | 28/mai |
 | B1: Cards não sumiam ao excluir — ID type mismatch (number vs string) corrigido em 9 funções | 28/mai |
@@ -54,15 +61,15 @@ Nenhum bug crítico aberto. ✅
 | # | Melhoria |
 |---|----------|
 | U1 | Popup: mais coaching — veredicto claro (ex: "Muito fora do perfil — analise antes de se candidatar") |
-| U2 | Aba Analisar no app: renomear "CV Otimizado" → "Preparar Candidatura" |
-| U3 | Aba Analisar: adicionar botão "Declinar" ao lado de "Análise" |
+| ~~U2~~ | ~~Aba Analisar no app: renomear "CV Otimizado" → "Preparar Candidatura"~~ ✅ |
+| ~~U3~~ | ~~Aba Analisar: adicionar botão "Declinar" ao lado de "Análise"~~ ✅ |
 | U4 | Popup pequeno — mais informações e conselho visíveis sem scroll |
 
 ### Pipeline / CRM
 | # | Melhoria |
 |---|----------|
 | U5 | Multi-select de cards para ações em lote (arrastar para lixeira, arquivar, mover coluna) |
-| U6 | Análise CV: campo de observação para o usuário adicionar contexto antes de gerar |
+| ~~U6~~ | ~~Análise CV: campo de observação para o usuário adicionar contexto antes de gerar~~ ✅ |
 | U7 | Salvar arquivos gerados no card (CV, carta, email, PDF executivo) |
 | U8 | "Novo Processo" — fluxo simplificado (hoje fecha e já aparece como "Enviado") |
 | U9 | Card: identificar automaticamente a forma de candidatura (pegadinhas dos portais) |
