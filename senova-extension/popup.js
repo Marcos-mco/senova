@@ -71,13 +71,13 @@ function renderVaga(d) {
 // Usa chrome.storage.session para não recalcular ao reabrir o popup na mesma URL
 
 async function analisarComCache(d) {
-  // Sem descrição suficiente — orienta o usuário em vez de sumir silenciosamente
+  // Sem descrição — orienta sem expor linguagem técnica
   if (!d.descricao || d.descricao.length < 100) {
     const sw = el('score-wrap');
     sw.style.display = 'block';
     sw.style.background = '#F8F9FB';
     sw.style.borderColor = '#D0D9E4';
-    sw.innerHTML = '<div style="font-size:12px;color:#5A6A7A;padding:6px 0;text-align:center;line-height:1.6;">Descrição não capturada.<br>Use <strong>Analisar ↗</strong> para colar o texto completo.</div>';
+    sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">🔍 Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
     return;
   }
 
@@ -131,31 +131,40 @@ function esconderScore() {
 
 function renderScore(r) {
   const score = r.score || 0;
-  const cor = score >= 75 ? '#1A7A4A' : score >= 55 ? '#B8670A' : '#C0281E';
-  const bg  = score >= 75 ? '#EAF7EF' : score >= 55 ? '#FFF8EC' : '#FEF0EF';
+
+  const v = score >= 75
+    ? { icon: '✨', titulo: 'Ótima oportunidade', sub: 'Vale uma análise completa — alto alinhamento com seu perfil.', cor: '#1A7A4A', bg: '#EAF7EF', bc: '#1A7A4A33' }
+    : score >= 55
+    ? { icon: '🔍', titulo: 'Pode valer a pena', sub: 'Alinhamento parcial — analise antes de se candidatar.', cor: '#B8670A', bg: '#FFF8EC', bc: '#C9A84C44' }
+    : { icon: '⚡', titulo: 'Fora do seu perfil', sub: 'Provavelmente não vale o tempo — mas você decide.', cor: '#C0281E', bg: '#FEF0EF', bc: '#C0281E33' };
 
   const sw = el('score-wrap');
-  sw.style.display  = 'block';
-  sw.style.background  = bg;
-  sw.style.borderColor = cor + '44';
-  sw.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <span style="font-size:11px;font-weight:700;color:#5A6A7A;text-transform:uppercase;letter-spacing:.05em;">Match com seu perfil</span>
-      <span style="font-size:22px;font-weight:800;color:${cor};">${score}/100</span>
-    </div>
-    <div style="height:6px;background:#E5ECF2;border-radius:3px;overflow:hidden;margin-bottom:8px;">
-      <div style="height:6px;width:${score}%;background:${cor};border-radius:3px;transition:width .5s;"></div>
-    </div>
-    <div style="font-size:12px;color:#3A4A5A;line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${r.resumo || ''}</div>
-    <div id="pontos-lista" style="display:flex;flex-direction:column;gap:4px;"></div>
-  `;
-  const lista = el('pontos-lista');
+  sw.style.display = 'block';
+  sw.style.background = v.bg;
+  sw.style.borderColor = v.bc;
+
+  let motivos = '';
   (r.pontos_fortes || []).slice(0, 2).forEach(p => {
-    lista.innerHTML += `<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;">✓ <span>${p}</span></div>`;
+    motivos += `<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>${p}</span></div>`;
   });
-  (r.pontos_atencao || []).slice(0, 1).forEach(p => {
-    lista.innerHTML += `<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;">△ <span>${p}</span></div>`;
+  (r.pontos_atencao || []).slice(0, 2).forEach(p => {
+    motivos += `<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>${p}</span></div>`;
   });
+
+  sw.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
+      <span style="font-size:20px;line-height:1;">${v.icon}</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:${v.cor};line-height:1.2;">${v.titulo}</div>
+        <div style="font-size:11.5px;color:#5A6A7A;margin-top:2px;line-height:1.4;">${v.sub}</div>
+      </div>
+      <span style="font-size:16px;font-weight:800;color:${v.cor};white-space:nowrap;">${score}/100</span>
+    </div>
+    <div style="height:4px;background:#E5ECF2;border-radius:2px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:4px;width:${score}%;background:${v.cor};border-radius:2px;"></div>
+    </div>
+    ${motivos}
+  `;
 }
 
 // ── RENDER SINAL ─────────────────────────────────────────────────────
