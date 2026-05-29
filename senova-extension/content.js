@@ -66,10 +66,29 @@
       '.jobs-details-top-card__job-title'
     );
 
-    // 1b. Painel direito (split view) — tenta h1 e h2 DENTRO do painel (não global)
+    // 1b. Split-view: extrai título via currentJobId na URL → link no painel esquerdo
+    //     Mais confiável que seletores de classe (href contém o ID, texto contém o título)
+    if (!cargo) {
+      try {
+        const jobId = new URL(url).searchParams.get('currentJobId');
+        if (jobId) {
+          const cardLink = document.querySelector(`a[href*="${jobId}"]`);
+          if (cardLink) {
+            const firstLine = (cardLink.innerText || '').split('\n')
+              .map(s => s.trim()).find(s => s.length > 5 && s.length < 200 &&
+                !_LI_SECTION_HEADINGS.test(s) && !/^\d/.test(s));
+            if (firstLine) cargo = firstLine;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 1c. Painel direito — h1 e h2 dentro do container do painel (amplia seletores)
     if (!cargo) {
       const panel = document.querySelector(
-        '.scaffold-layout__detail, .jobs-search__job-details--container, [class*="job-details--container"]'
+        '.scaffold-layout__detail, .jobs-search__job-details--container, ' +
+        '[class*="job-details--container"], [class*="job-details--wrapper"], ' +
+        '.jobs-details, [data-view-name="job-details"]'
       );
       if (panel) {
         for (const sel of ['h1', 'h2']) {
