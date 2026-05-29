@@ -51,7 +51,7 @@
   }
 
   // Headings de seção do LinkedIn que NÃO são título de vaga
-  const _LI_SECTION_HEADINGS = /vagas que mais combinam|jobs you may be interested|recommended for you|sugerido para você|pesquisa de emprego|job search results|people also viewed/i;
+  const _LI_SECTION_HEADINGS = /vagas que mais combinam|jobs you may be interested|recommended for you|sugerido para você|pesquisa de emprego|job search results|people also viewed|notificaç|notification|^\d+\s/i;
 
   function extractLinkedIn() {
     // 1. Tenta seletores DOM específicos (mudam frequentemente — LinkedIn obfusca as classes)
@@ -89,11 +89,30 @@
       }
     }
 
-    // 1c. Fallback: todos os h1 e h2 filtrados (sem seção, sem texto longo de parágrafo)
+    // 1c. Sobe a partir do botão Candidatar-se (âncora estável) para achar o heading próximo
     if (!cargo) {
-      cargo = Array.from(document.querySelectorAll('h1, h2'))
+      const applyBtn = document.querySelector(
+        'button[aria-label*="andidatur"], button[aria-label*="pply"], ' +
+        '.jobs-apply-button--top-card, [class*="apply-button"]'
+      );
+      if (applyBtn) {
+        let el = applyBtn.parentElement;
+        for (let i = 0; i < 8 && el; i++) {
+          const h = el.querySelector('h1, h2');
+          const t = h?.innerText?.trim() || '';
+          if (t && t.length > 4 && t.length < 160 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) {
+            cargo = t; break;
+          }
+          el = el.parentElement;
+        }
+      }
+    }
+
+    // 1d. Fallback h1 filtrado (sem h2 global — muito ruidoso no LinkedIn)
+    if (!cargo) {
+      cargo = Array.from(document.querySelectorAll('h1'))
         .map(el => el.innerText?.trim())
-        .find(t => t && t.length > 3 && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) || '';
+        .find(t => t && t.length > 4 && t.length < 150 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) || '';
     }
 
     let empresa = txt(
