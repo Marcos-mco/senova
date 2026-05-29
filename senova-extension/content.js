@@ -98,14 +98,26 @@
       } catch (_) {}
     }
 
-    // 1c. Âncora "Sobre a vaga" — encontra o heading que vem ANTES dela no DOM
-    //     Não depende de seletores de classe (imune a mudanças do LinkedIn)
+    // 1c. Âncora "Sobre a vaga" — encontra o heading ANTES dela no DOM
+    //     Busca "Sobre a vaga" em QUALQUER elemento (não só headings) para cobrir
+    //     variações de marcação do LinkedIn. Inclui h4 e [role=heading].
     if (!cargo) {
       const _SKIP = /(pessoas que você|people you may|sobre o|about the company|candidatura|avalie|candidate|conexão|connection|promovida|promoted)/i;
-      const allH = Array.from(document.querySelectorAll('h1,h2,h3'));
-      const sobreIdx = allH.findIndex(h => /^(sobre a vaga|about the job|job description)$/i.test(h.innerText?.trim()));
-      if (sobreIdx > 0) {
-        const found = allH.slice(0, sobreIdx).reverse().find(h => {
+      const allH = Array.from(document.querySelectorAll('h1,h2,h3,h4,[role="heading"]'));
+
+      // Tenta encontrar "Sobre a vaga" nos headings primeiro, depois em qualquer elemento
+      let sobreEl = allH.find(h => /^(sobre a vaga|about the job|job description)$/i.test(h.innerText?.trim()));
+      if (!sobreEl) {
+        sobreEl = Array.from(document.querySelectorAll('strong,span,div,p')).find(
+          el => el.children.length === 0 && /^(sobre a vaga|about the job|job description)$/i.test((el.innerText||'').trim())
+        );
+      }
+
+      if (sobreEl) {
+        // Se o elemento está nos headings, usa a posição; senão, usa todos os headings antes
+        const sobreIdx = allH.indexOf(sobreEl);
+        const candidates = sobreIdx > 0 ? allH.slice(0, sobreIdx).reverse() : allH.slice().reverse();
+        const found = candidates.find(h => {
           const t = h.innerText?.trim() || '';
           return t.length > 5 && t.length < 160 &&
             !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t) && !_SKIP.test(t);
