@@ -1415,6 +1415,7 @@ select option { background: var(--bg2); }
               <div style="font-size:15px;font-weight:700;color:var(--navy);">Sofia</div>
               <div style="font-size:12px;color:var(--text3);">Assistente de carreira</div>
             </div>
+            <button id="sofia-tts-btn" onclick="sofiaToggleTts(this)" style="margin-left:auto;background:none;border:1.5px solid var(--border2);border-radius:var(--radius);padding:6px 10px;font-size:16px;cursor:pointer;color:var(--text2);transition:all 0.15s;" title="Sofia está falando (clique para silenciar)">🔊</button>
           </div>
           <div id="sofia-chat" style="min-height:200px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;"></div>
           <div id="sofia-input-area" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
@@ -1498,6 +1499,7 @@ select option { background: var(--bg2); }
           <textarea id="int-answer" rows="4" placeholder="Digite sua resposta aqui..." style="margin-bottom:10px;resize:vertical;"></textarea>
           <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button class="btn btn-ghost btn-sm" onclick="skipQuestion()">Pular pergunta</button>
+            <button id="int-tts-btn" onclick="sofiaToggleTts(this)" style="padding:6px 10px;font-size:15px;background:none;border:1.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;color:var(--text2);" title="Sofia está falando (clique para silenciar)">🔊</button>
             <button class="btn btn-primary" onclick="submitAnswer()" id="int-submit-btn">
               Enviar resposta →
             </button>
@@ -2851,6 +2853,7 @@ function iniciarSofia(){
   const h=new Date().getHours();
   const saud=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
   _sofiaBolha('sofia',`${saud}! Sou a Sofia. Estou aqui para te conhecer melhor — não o seu currículo, <em>você</em>. Quanto mais eu souber sobre o que importa para você, mais úteis serão as análises e os conselhos que vou te dar.<br><br>Vou fazer <strong>${SOFIA_ROTEIRO.length} perguntas</strong> — leva entre 12 e 15 minutos. Pode ser direto e natural, sem formalidade.<br><br><strong>1/${SOFIA_ROTEIRO.length}</strong> — ${SOFIA_ROTEIRO[0]}`);
+  _sofiaFalar(SOFIA_ROTEIRO[0]);
 }
 
 function _sofiaBolha(quem,html){
@@ -2880,6 +2883,7 @@ async function sofiaEnviar(){
     return;
   }
   _sofiaBolha('sofia',`<strong>${sofiaState.step+1}/${SOFIA_ROTEIRO.length}</strong> — ${SOFIA_ROTEIRO[sofiaState.step]}`);
+  _sofiaFalar(SOFIA_ROTEIRO[sofiaState.step]);
   sendBtn.disabled=false; sendBtn.textContent='Enviar →';
 }
 
@@ -2958,6 +2962,29 @@ function sofiaVoz(){
   };
   rec.onerror=()=>{ rec.stop(); showToast('Erro de microfone — tente novamente'); };
   rec.start();
+}
+
+let sofiaTtsOn = true;
+
+function _sofiaFalar(texto, lang) {
+  if (!sofiaTtsOn || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance((texto||'').trim());
+  u.lang = lang || 'pt-BR';
+  u.rate = 0.95;
+  u.pitch = 1.05;
+  window.speechSynthesis.speak(u);
+}
+
+function sofiaToggleTts(btn) {
+  sofiaTtsOn = !sofiaTtsOn;
+  if (!sofiaTtsOn) window.speechSynthesis.cancel();
+  btn.textContent = sofiaTtsOn ? '🔊' : '🔇';
+  btn.title = sofiaTtsOn ? 'Sofia está falando (clique para silenciar)' : 'Sofia silenciada (clique para ativar)';
+  ['sofia-tts-btn','int-tts-btn'].forEach(id=>{
+    const b = document.getElementById(id);
+    if (b && b !== btn) { b.textContent = btn.textContent; b.title = btn.title; }
+  });
 }
 
 function abrirImportLinkedIn(){
@@ -4889,6 +4916,8 @@ function renderInterview(){
     document.getElementById('int-input-label').textContent=`Sua resposta — Pergunta ${currentQ+1}`;
     document.getElementById('int-answer').value='';
     document.getElementById('int-answer').focus();
+    const _langMap={PT:'pt-BR',EN:'en-US',ES:'es-ES',DE:'de-DE'};
+    _sofiaFalar(questions[currentQ], _langMap[intState.lang]||'pt-BR');
   } else {
     document.getElementById('int-input-area').style.display='none';
     showFinalScore();
