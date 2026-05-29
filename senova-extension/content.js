@@ -66,13 +66,19 @@
       '.jobs-details-top-card__job-title'
     );
 
-    // 1b. Painel direito (split view: /jobs/search/, /jobs/collections/)
+    // 1b. Painel direito (split view) — tenta h1 e h2 DENTRO do painel (não global)
     if (!cargo) {
       const panel = document.querySelector(
         '.scaffold-layout__detail, .jobs-search__job-details--container, [class*="job-details--container"]'
       );
-      const panelTxt = panel?.querySelector('h1')?.innerText?.trim() || '';
-      if (panelTxt && !_LI_SECTION_HEADINGS.test(panelTxt)) cargo = panelTxt;
+      if (panel) {
+        for (const sel of ['h1', 'h2']) {
+          const t = panel.querySelector(sel)?.innerText?.trim() || '';
+          if (t && t.length > 3 && t.length < 160 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) {
+            cargo = t; break;
+          }
+        }
+      }
     }
 
     // 1c. Fallback h1 filtrado: ignora headings de seção e notificações (^\d)
@@ -286,8 +292,10 @@
     if (isVagaUrl || isVagaTitulo) {
       const h1 = document.querySelector('h1')?.innerText?.trim() || '';
       const desc = selecao || metaDesc || '';
-      // Filtra headings de seção do LinkedIn; aceita qualquer outro h1 ou o metaTitle
-      const cargoFinal = (h1 && !_LI_SECTION_HEADINGS.test(h1) && !/^\d/.test(h1)) ? h1 : metaTitle;
+      // Filtra section headings em h1 E em metaTitle — ambos podem conter lixo no LinkedIn
+      const h1Ok    = h1 && !_LI_SECTION_HEADINGS.test(h1) && !/^\d/.test(h1);
+      const titleOk = metaTitle && !_LI_SECTION_HEADINGS.test(metaTitle) && !/^\d/.test(metaTitle);
+      const cargoFinal = h1Ok ? h1 : (titleOk ? metaTitle : '');
       return {
         tipo: 'vaga',
         cargo: cargoFinal,
