@@ -5775,7 +5775,11 @@ window.__senovaImportar();
     atsEmpresa=d.empresa||'';atsCargo=d.cargo||'';
     const _ve=d.url?vagas.find(v=>v.origemUrl===d.url||String(v.id)===String(d.id)):null;
     if(_ve) atsOrigemVagaId=_ve.id;
-    if(d.descricao&&d.descricao.length>80) analyzeJob();
+    if(d.descricao&&d.descricao.length>80){
+      analyzeJob();
+    } else {
+      document.getElementById('result-area').innerHTML='<div class="card" style="padding:24px;text-align:center;"><div style="font-size:28px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:8px;">Descrição não capturada automaticamente</div><div style="font-size:13px;color:var(--text3);line-height:1.7;">Cole o texto completo da vaga no campo ao lado<br>e clique em <strong>Analisar vaga + gerar CV</strong>.</div></div>';
+    }
   }
   window.__senovaExtCarregar=_carregarExtData;
   // Recebe via CustomEvent (world:MAIN do executeScript)

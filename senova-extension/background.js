@@ -44,14 +44,15 @@ async function abrirAnalise(dados) {
 
   let targetTabId;
   if (senovaTab) {
-    await chrome.tabs.update(senovaTab.id, { active: true, url: extUrl });
     targetTabId = senovaTab.id;
+    // IMPORTANTE: gravar ANTES de navegar — onUpdated pode disparar antes do set terminar
+    await chrome.storage.session.set({ senova_ext_tabid: targetTabId });
+    await chrome.tabs.update(senovaTab.id, { active: true, url: extUrl });
   } else {
     const newTab = await chrome.tabs.create({ url: extUrl });
     targetTabId = newTab.id;
+    await chrome.storage.session.set({ senova_ext_tabid: targetTabId });
   }
-  // Grava o ID da aba alvo para o onUpdated não depender da URL
-  await chrome.storage.session.set({ senova_ext_tabid: targetTabId });
 }
 
 // Observa quando a aba alvo do Senova fica pronta

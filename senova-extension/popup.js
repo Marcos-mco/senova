@@ -71,8 +71,15 @@ function renderVaga(d) {
 // Usa chrome.storage.session para não recalcular ao reabrir o popup na mesma URL
 
 async function analisarComCache(d) {
-  // Sem descrição suficiente — score seria inútil e lento; encoraja usar Analisar ↗
-  if (!d.descricao || d.descricao.length < 100) { esconderScore(); return; }
+  // Sem descrição suficiente — orienta o usuário em vez de sumir silenciosamente
+  if (!d.descricao || d.descricao.length < 100) {
+    const sw = el('score-wrap');
+    sw.style.display = 'block';
+    sw.style.background = '#F8F9FB';
+    sw.style.borderColor = '#D0D9E4';
+    sw.innerHTML = '<div style="font-size:12px;color:#5A6A7A;padding:6px 0;text-align:center;line-height:1.6;">Descrição não capturada.<br>Use <strong>Analisar ↗</strong> para colar o texto completo.</div>';
+    return;
+  }
 
   const cacheKey = 'score_' + btoa(encodeURIComponent((d.url || d.cargo || '').slice(0, 80)));
 
