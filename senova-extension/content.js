@@ -89,7 +89,28 @@
       }
     }
 
-    // 1c. Sobe a partir do botão Candidatar-se (âncora estável) para achar o heading próximo
+    // 1c. Âncora "Sobre a vaga" / "About the job" — sobe o DOM até achar o heading da vaga
+    //     Mais confiável que seletores de classe (o texto é estável, as classes não são)
+    if (!cargo) {
+      const sobreH = Array.from(document.querySelectorAll('h2,h3,h4,span,strong,p'))
+        .find(el => /^(sobre a vaga|about the job|job description)$/i.test(el.innerText?.trim()));
+      if (sobreH) {
+        let container = sobreH.parentElement;
+        for (let i = 0; i < 12 && container; i++) {
+          const headings = Array.from(container.querySelectorAll('h1, h2'));
+          const found = headings.find(h => {
+            const t = h.innerText?.trim() || '';
+            return t && t.length > 4 && t.length < 160 &&
+              !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t) &&
+              !/^(sobre a vaga|about the job|job description)$/i.test(t);
+          });
+          if (found) { cargo = found.innerText.trim(); break; }
+          container = container.parentElement;
+        }
+      }
+    }
+
+    // 1d. Fallback: sobe a partir do botão Candidatar-se
     if (!cargo) {
       const applyBtn = document.querySelector(
         'button[aria-label*="andidatur"], button[aria-label*="pply"], ' +
@@ -108,7 +129,7 @@
       }
     }
 
-    // 1d. Fallback h1 filtrado (sem h2 global — muito ruidoso no LinkedIn)
+    // 1e. Último recurso: h1 global filtrado
     if (!cargo) {
       cargo = Array.from(document.querySelectorAll('h1'))
         .map(el => el.innerText?.trim())
