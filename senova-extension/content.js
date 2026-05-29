@@ -98,20 +98,19 @@
       } catch (_) {}
     }
 
-    // 1c. Painel direito — h1 e h2 dentro do container do painel (amplia seletores)
+    // 1c. Âncora "Sobre a vaga" — encontra o heading que vem ANTES dela no DOM
+    //     Não depende de seletores de classe (imune a mudanças do LinkedIn)
     if (!cargo) {
-      const panel = document.querySelector(
-        '.scaffold-layout__detail, .jobs-search__job-details--container, ' +
-        '[class*="job-details--container"], [class*="job-details--wrapper"], ' +
-        '.jobs-details, [data-view-name="job-details"]'
-      );
-      if (panel) {
-        for (const sel of ['h1', 'h2']) {
-          const t = panel.querySelector(sel)?.innerText?.trim() || '';
-          if (t && t.length > 3 && t.length < 160 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) {
-            cargo = t; break;
-          }
-        }
+      const _SKIP = /(pessoas que você|people you may|sobre o|about the company|candidatura|avalie|candidate|conexão|connection|promovida|promoted)/i;
+      const allH = Array.from(document.querySelectorAll('h1,h2,h3'));
+      const sobreIdx = allH.findIndex(h => /^(sobre a vaga|about the job|job description)$/i.test(h.innerText?.trim()));
+      if (sobreIdx > 0) {
+        const found = allH.slice(0, sobreIdx).reverse().find(h => {
+          const t = h.innerText?.trim() || '';
+          return t.length > 5 && t.length < 160 &&
+            !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t) && !_SKIP.test(t);
+        });
+        if (found) cargo = found.innerText.trim();
       }
     }
 
