@@ -208,7 +208,6 @@ async function salvarVaga() {
     btn.style.background = '#1A7A4A';
     const acoes = el('acoes-pos-save');
     if (acoes) acoes.style.display = 'block';
-    showToast('✓ Salvo no Pipeline');
   }
 }
 

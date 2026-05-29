@@ -1418,9 +1418,10 @@ select option { background: var(--bg2); }
           </div>
           <div id="sofia-chat" style="min-height:200px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-bottom:12px;"></div>
           <div id="sofia-input-area" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
-            <textarea id="sofia-answer" rows="3" placeholder="Digite sua resposta aqui..." style="margin-bottom:10px;resize:vertical;font-size:15px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sofiaEnviar();}"></textarea>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <span style="font-size:12px;color:var(--text3);align-self:center;">Enter para enviar</span>
+            <textarea id="sofia-answer" rows="3" placeholder="Digite sua resposta ou use o microfone..." style="margin-bottom:10px;resize:vertical;font-size:15px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sofiaEnviar();}"></textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+              <span style="font-size:12px;color:var(--text3);">Enter para enviar</span>
+              <button id="sofia-voz-btn" onclick="sofiaVoz()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg3);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text2);transition:all 0.15s;" title="Responder por voz">🎤 Falar</button>
               <button class="btn btn-primary" id="sofia-send-btn" onclick="sofiaEnviar()" style="padding:9px 20px;">Enviar →</button>
             </div>
           </div>
@@ -2514,16 +2515,13 @@ function renderATSResult(analise,cv,crm) {
       <div style="font-family:var(--font-display);font-size:38px;font-weight:700;color:${col};line-height:1;letter-spacing:-1px;">${score}<span style="font-size:16px;color:var(--text3);font-weight:400;">/100</span></div>
       <div style="flex:1;min-width:120px;"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
     </div>`:''}
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('analise',this)">Análise</button>
-      <button class="tab-btn" onclick="switchTab('cv',this)">Preparar Candidatura</button>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="tab-btn active" onclick="switchTab('analise',this)" style="flex:1;text-align:center;">📋 Análise</button>
+      <button class="btn" style="flex:1;justify-content:center;background:#1A7A4A;color:#fff;padding:9px 14px;font-size:13px;font-weight:600;border-radius:var(--radius);" onclick="candidatarVagaATS()">✓ Candidatar</button>
+      <button class="btn btn-danger" style="flex:1;justify-content:center;padding:9px 14px;font-size:13px;" onclick="declinarVagaATS()">✕ Declinar</button>
     </div>
     <div id="tab-analise">
       <div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div>
-      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-        <button class="btn" style="flex:1;justify-content:center;background:#1A7A4A;color:#fff;padding:11px 18px;font-size:14px;font-weight:600;" onclick="candidatarVagaATS()">✓ Candidatar a esta vaga</button>
-        <button class="btn btn-danger" style="flex:1;justify-content:center;padding:11px 18px;font-size:14px;" onclick="declinarVagaATS()">✕ Declinar</button>
-      </div>
       <div style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <span style="font-size:13.5px;font-weight:700;color:var(--text2);">✉️ Carta de Apresentação</span>
@@ -2555,7 +2553,8 @@ function renderATSResult(analise,cv,crm) {
         </div>
       </div>
     </div>
-    <div id="tab-cv" style="display:none;">
+    <div id="tab-cv" style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">📄 Preparar Candidatura — CV Otimizado</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
         <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .docx</button>
@@ -2568,9 +2567,8 @@ function renderATSResult(analise,cv,crm) {
 }
 
 function switchTab(tab,btn) {
-  ['analise','cv'].forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#result-area .tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
 }
 function copyEl(id,btn) {
   const el=document.getElementById(id); if(!el)return;
@@ -2884,6 +2882,31 @@ function fecharSofia(){
   sofiaState.active=false;
   const btn=document.getElementById('sofia-start-btn');
   btn.disabled=false; btn.textContent='✨ Iniciar entrevista com Sofia';
+}
+
+function sofiaVoz(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ showToast('Microfone não suportado — use Chrome ou Edge'); return; }
+  const btn=document.getElementById('sofia-voz-btn');
+  if(btn._rec){ btn._rec.stop(); return; }
+  const rec=new SR();
+  rec.lang='pt-BR'; rec.interimResults=true; rec.maxAlternatives=1; rec.continuous=false;
+  btn._rec=rec;
+  btn.textContent='🔴 Ouvindo... (clique para parar)';
+  btn.style.background='#FEF0EF'; btn.style.borderColor='var(--red)'; btn.style.color='var(--red)';
+  const ta=document.getElementById('sofia-answer');
+  const baseVal=ta.value;
+  rec.onresult=(e)=>{
+    const interim=Array.from(e.results).map(r=>r[0].transcript).join('');
+    ta.value=(baseVal?(baseVal+' '):'')+ interim;
+  };
+  rec.onend=()=>{
+    btn._rec=null;
+    btn.textContent='🎤 Falar';
+    btn.style.background=''; btn.style.borderColor=''; btn.style.color='';
+  };
+  rec.onerror=()=>{ rec.stop(); showToast('Erro de microfone — tente novamente'); };
+  rec.start();
 }
 
 function abrirImportLinkedIn(){
