@@ -79,14 +79,14 @@ Nenhum bug crítico aberto. ✅
 | U5 | Multi-select de cards para ações em lote (arrastar para lixeira, arquivar, mover coluna) |
 | ~~U6~~ | ~~Análise CV: campo de observação para o usuário adicionar contexto antes de gerar~~ ✅ |
 | U7 | Salvar arquivos gerados no card (CV, carta, email, PDF executivo) |
-| U8 | "Novo Processo" — fluxo simplificado (hoje fecha e já aparece como "Enviado") |
+| ~~U8~~ | ~~"Novo Processo" → navega ao CRM e mostra toast com o card criado~~ ✅ |
 | U9 | Card: identificar automaticamente a forma de candidatura (pegadinhas dos portais) |
 
 ### Home
 | # | Melhoria |
 |---|----------|
-| U10 | Home: redesenhar — dashs menores, mostrar só novidades e tarefas do dia |
-| U11 | Botão "Novo Processo" na home (não só no CRM) |
+| ~~U10~~ | ~~Home: KPIs compactos em strip 4 colunas com dados reais do CRM~~ ✅ |
+| ~~U11~~ | ~~Botão "Novo Processo" na home~~ ✅ |
 | U12 | Dashboard Pipeline: taxa de retorno, tempo médio no estágio, métricas reais |
 
 ### Emails / Central de Sinais
@@ -99,7 +99,7 @@ Nenhum bug crítico aberto. ✅
 ### Contatos
 | # | Melhoria |
 |---|----------|
-| U18 | Filtros de contatos: ordem alfabética, data de inclusão |
+| ~~U18~~ | ~~Filtros de contatos: A→Z, mais recente, mais antigo~~ ✅ |
 
 ### Perfil
 | # | Melhoria |
@@ -122,7 +122,7 @@ Nenhum bug crítico aberto. ✅
 | # | Feature | Fase |
 |---|---------|------|
 | F1 | **Sofia** — implementar onboarding em texto; voz (Web Speech API) na sequência | 1 |
-| F2 | **Aba "Mercado"** — inteligência executiva separada do processo (newsletters, Board Academy, conteúdo 50+) | 1 |
+| ~~F2~~ | ~~**Aba "Mercado"** — comunidades, newsletters, executive search, sinais recentes~~ ✅ | 1 |
 | F3 | 5ª fonte de leads: entrada manual melhorada (dicas, indicações, contatos diretos) | 1 |
 | F4 | Carta candidatura — reescrita de fluxo completo | 1 |
 | F5 | Preenchimento automático de vagas nos portais de emprego | 2 |

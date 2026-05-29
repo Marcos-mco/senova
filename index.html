@@ -358,6 +358,12 @@ select option { background: var(--bg2); }
       Processos
       <span class="nav-badge" id="crm-badge">—</span>
     </div>
+    <div class="nav-item" onclick="showPage('mercado')" id="nav-mercado">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2 12 L5 7 L8 9 L11 5 L14 8"/><circle cx="14" cy="4" r="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Mercado
+    </div>
   </div>
 
   <div class="sidebar-bottom">
@@ -1251,6 +1257,12 @@ select option { background: var(--bg2); }
           <option value="Parceiro">Parceiro</option>
           <option value="Outro">Outro</option>
         </select>
+        <select class="filter-select" id="ct-filter-ordem" onchange="filterContatoOrdem(this.value)">
+          <option value="temp">Por temperatura</option>
+          <option value="az">A → Z</option>
+          <option value="recente">Mais recente</option>
+          <option value="antigo">Mais antigo</option>
+        </select>
       </div>
       <div class="contact-list" id="contact-list"></div>
     </div>
@@ -1492,6 +1504,143 @@ select option { background: var(--bg2); }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: MERCADO             │
+     └─────────────────────────────┘ -->
+<div id="page-mercado" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Mercado</span>
+      <span class="page-sub">Inteligência executiva</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- Intro -->
+    <div style="background:linear-gradient(135deg,var(--navy) 0%,#2E6DA4 100%);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+      <div style="font-size:28px;flex-shrink:0;">📡</div>
+      <div>
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:#fff;margin-bottom:4px;">Inteligência de Mercado Executivo</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;">Movimentos do mercado, tendências do seu setor e oportunidades que aparecem antes de virar vaga pública.</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Fontes e comunidades -->
+      <div class="card" style="border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Comunidades Executivas 50+</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="https://www.boardacademy.com.br" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">🎓</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">Board Academy</div>
+              <div style="font-size:12px;color:var(--text3);">Conselho, governança e liderança sênior</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/groups/" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">💼</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">LinkedIn Groups</div>
+              <div style="font-size:12px;color:var(--text3);">Grupos de executivos e diretores do seu setor</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <a href="https://www.executiveplatform.com.br" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">🤝</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">Executive Platform</div>
+              <div style="font-size:12px;color:var(--text3);">Rede de C-Level e liderança executiva</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Newsletters e tendências -->
+      <div class="card" style="border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Newsletters de Mercado</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="https://www.meioemensagem.com.br/newsletters" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--action)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">📰</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">Meio & Mensagem</div>
+              <div style="font-size:12px;color:var(--text3);">Marketing, comunicação e mídia</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <a href="https://neofeed.com.br/newsletter" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--action)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">💡</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">NeoFeed</div>
+              <div style="font-size:12px;color:var(--text3);">Negócios, economia e movimentos corporativos</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <a href="https://www.exame.com/newsletters" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--action)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">📊</span>
+            <div>
+              <div style="font-size:13.5px;font-weight:600;color:var(--navy);">Exame</div>
+              <div style="font-size:12px;color:var(--text3);">Estratégia, gestão e carreira executiva</div>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Headhunters e firmas -->
+      <div class="card" style="border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Firmas de Executive Search</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${[
+            ['Korn Ferry','Posições C-Level e VP — foco em transformação digital','https://www.kornferry.com/careers'],
+            ['Spencer Stuart','Board, CEO e diretoria — forte em consumer e saúde','https://www.spencerstuart.com/'],
+            ['Egon Zehnder','Liderança sênior e desenvolvimento executivo','https://www.egonzehnder.com/'],
+            ['Russell Reynolds','C-Suite e posições globais','https://www.russellreynolds.com/'],
+            ['Heidrick & Struggles','Liderança executiva e digital','https://www.heidrick.com/'],
+            ['Michael Page','Diretores e gerentes seniores','https://www.michaelpage.com.br/'],
+          ].map(([n,d,u])=>`<a href="${u}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">${n}</span><span style="font-size:11.5px;color:var(--text3);flex:2;">${d}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>`).join('')}
+        </div>
+      </div>
+
+      <!-- Tendências e conteúdo -->
+      <div class="card" style="border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Tendências do Mercado</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="https://www.linkedin.com/pulse/topics/home/" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">🔥</span>
+            <div><div style="font-size:13.5px;font-weight:600;color:var(--navy);">LinkedIn Pulse</div><div style="font-size:12px;color:var(--text3);">Artigos e tendências da sua rede</div></div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <a href="https://www.mckinsey.com/capabilities/people-and-organizational-performance/our-insights" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:18px;">🌐</span>
+            <div><div style="font-size:13.5px;font-weight:600;color:var(--navy);">McKinsey Insights</div><div style="font-size:12px;color:var(--text3);">Gestão, liderança e futuro do trabalho</div></div>
+            <svg style="margin-left:auto;flex-shrink:0;" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg>
+          </a>
+          <div style="padding:12px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;">💡 Dica do Senova</div>
+            <div style="font-size:12.5px;color:var(--text3);line-height:1.65;">70–80% das vagas executivas nunca são publicadas. O mercado oculto se acessa por relacionamento e visibilidade — não por candidatura.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sinais de mercado da Home (reaproveitados) -->
+    <div class="card" style="margin-top:16px;border-top:3px solid var(--navy);">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Sinais de Mercado Recentes</div>
+      <div id="mercado-sinais-lista" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;color:var(--text3);text-align:center;padding:16px 0;">Carregando sinais...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2185,7 +2334,7 @@ DOCENCIA: ESAMC/ESPM — Maceió/AL (2002–2004): Marketing, Planificación Est
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['home','ats','linkedin','crm','sofia'];
+const PAGES = ['home','ats','linkedin','crm','sofia','mercado'];
 function sofiaTab(n){
   [1,2,3,4].forEach(i=>{
     document.getElementById('sofia-tab-'+i).style.display = i===n ? 'block' : 'none';
@@ -2211,6 +2360,7 @@ function showPage(page) {
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
+  if(page==='mercado'){ _renderMercadoSinais(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
   if(page==='sofia') sofiaTab(1);
 }
@@ -3044,7 +3194,7 @@ const DEFAULT_CONTATOS=[
 ];
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
-let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos';
+let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos', contatoOrdemFilter='temp';
 let _limpezaSelecionados=new Set();
 let colFilters={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
@@ -3816,6 +3966,9 @@ function renderCRM(){
   if(contatoTipoFilter!=='todos') filtered=filtered.filter(c=>(c.tipo||'Executivo')===contatoTipoFilter);
   if(_ctBusca && _ctBusca.length>=2) filtered=filtered.filter(c=>[c.nome,c.empresa,c.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(_ctBusca)));
   filtered.sort((a,b)=>{
+    if(contatoOrdemFilter==='az') return (a.nome||'').localeCompare(b.nome||'','pt');
+    if(contatoOrdemFilter==='recente') return (b.createdAt||b.lastContact||0)-(a.createdAt||a.lastContact||0);
+    if(contatoOrdemFilter==='antigo') return (a.createdAt||a.lastContact||0)-(b.createdAt||b.lastContact||0);
     const td=(TEMP_ORDER_CT[a.temp]??3)-(TEMP_ORDER_CT[b.temp]??3);
     return td!==0?td:(b.lastContact||0)-(a.lastContact||0);
   });
@@ -3863,6 +4016,29 @@ function filterContato(filter,btn){
 function filterContatoTipo(val){
   contatoTipoFilter=val;
   renderCRM();
+}
+function filterContatoOrdem(val){
+  contatoOrdemFilter=val;
+  renderCRM();
+}
+
+function _renderMercadoSinais(){
+  const el=document.getElementById('mercado-sinais-lista');
+  if(!el) return;
+  const sinais=[..._sinaisAlertas,..._sinaisMercado].slice(0,8);
+  if(!sinais.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);text-align:center;padding:16px 0;">Nenhum sinal de mercado recente. Conecte o Outlook para receber alertas de Google Alerts e newsletters.</div>';
+    return;
+  }
+  el.innerHTML=sinais.map(s=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+      <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${s.icone||'📡'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--navy);margin-bottom:2px;">${s.assunto||s.titulo||'Sinal'}</div>
+        <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.resumo||s.remetente||''}</div>
+      </div>
+      ${s.url?`<a href="${s.url}" target="_blank" style="font-size:12px;color:var(--action);font-weight:600;flex-shrink:0;white-space:nowrap;">Abrir →</a>`:''}
+    </div>`).join('');
 }
 
 // Vaga Modal
@@ -4104,6 +4280,7 @@ function saveVaga(){
   if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
   if(isNew) _clearDraftVaga();
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
+  if(isNew){ showPage('crm'); setTimeout(()=>showToast('✅ Processo criado — card em Oportunidades'),60); }
 }
 function confirmarRemoverVaga(){
   const btn=document.getElementById('mv-delete-btn');
