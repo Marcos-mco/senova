@@ -5759,7 +5759,8 @@ window.__senovaImportar();
 // Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;
-  history.replaceState(null,'',location.pathname); // limpa ?ext=1 da URL para refresh não redirecionar
+  // Adia o replaceState: onUpdated do background.js precisa ver ext=1 na URL antes de injetar dados
+  setTimeout(()=>history.replaceState(null,'',location.pathname), 3000);
   showPage('ats');
   function _carregarExtData(dados){
     const d=dados||window.__senovaExtData;

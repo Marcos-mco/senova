@@ -35,34 +35,40 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // ── ANÁLISE COMPLETA — injeta dados na aba do Senova ─────────────────
 
 async function abrirAnalise(dados) {
-  // Salva dados para injetar depois que a aba carregar
+  // Salva dados e ID da aba alvo — não depende da URL (history.replaceState limpa ?ext=1 antes do onUpdated)
   await chrome.storage.local.set({ senova_ext_pendente: dados });
 
-  // Timestamp garante URL diferente a cada clique — força reload mesmo se aba já está em ?ext=1
   const extUrl = APP_URL + '/?ext=1&t=' + Date.now();
-
   const allTabs = await chrome.tabs.query({});
   const senovaTab = allTabs.find(t => t.url && t.url.startsWith(APP_URL));
 
+  let targetTabId;
   if (senovaTab) {
     await chrome.tabs.update(senovaTab.id, { active: true, url: extUrl });
+    targetTabId = senovaTab.id;
   } else {
-    await chrome.tabs.create({ url: extUrl });
+    const newTab = await chrome.tabs.create({ url: extUrl });
+    targetTabId = newTab.id;
   }
+  // Grava o ID da aba alvo para o onUpdated não depender da URL
+  await chrome.storage.session.set({ senova_ext_tabid: targetTabId });
 }
 
-// Observa quando UMA aba do Senova com ?ext=1 fica pronta
+// Observa quando a aba alvo do Senova fica pronta
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
   if (!tab?.url?.includes('marcos-mco.github.io')) return;
-  if (!tab?.url?.includes('ext=1')) return;
+
+  // Verifica se é a aba que criamos para Analisar
+  const s = await chrome.storage.session.get('senova_ext_tabid');
+  if (s.senova_ext_tabid !== tabId) return;
 
   const store = await chrome.storage.local.get('senova_ext_pendente');
   const dados = store.senova_ext_pendente;
-  if (!dados) return;
+  if (!dados) { await chrome.storage.session.remove('senova_ext_tabid'); return; }
 
-  // Remove do storage antes de injetar (evita dupla-injeção em múltiplas tabs)
   await chrome.storage.local.remove('senova_ext_pendente');
+  await chrome.storage.session.remove('senova_ext_tabid');
 
   // Aguarda 400ms para o JS do app inicializar completamente
   await new Promise(r => setTimeout(r, 400));
