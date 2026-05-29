@@ -1,6 +1,6 @@
 # PENDENCIAS.md
 # Senova Suite — Backlog consolidado
-# Atualizado: 28/mai/2026 (noite)
+# Atualizado: 29/mai/2026
 
 ---
 
@@ -30,6 +30,14 @@
 | U2: "CV Otimizado" → "Preparar Candidatura" | 28/mai |
 | U3: Botão Declinar dentro da aba Análise (ao lado de Candidatar) | 28/mai |
 | U6: Campo "Contexto adicional" na Análise de Vaga (antes de gerar) | 28/mai |
+| Extensão v2.4→v2.12: LinkedIn split-view título (currentJobId + âncora "Sobre a vaga") | 29/mai |
+| U1: Popup veredicto coaching — 3 estados (✨ Ótima / 🔍 Pode valer / ⚡ Fora do perfil) | 29/mai |
+| Fix race condition Analisar ↗ — storage.session.set antes de tabs.update | 29/mai |
+| Fix TypeError candidatura-wrap — removido código JS sem correspondência no HTML | 29/mai |
+| Extensão: espera até 3.6s por título E descrição (SPA lazy load) | 29/mai |
+| esconderScore: mostra mensagem amigável em vez de ocultar silenciosamente | 29/mai |
+| Toast "Salvo no Pipeline" (remove "Importar Vagas") | 29/mai |
+| Remove bloco "Como candidatar" do popup | 29/mai |
 | MODELO_COMERCIAL.md — 4 tiers + projeções + base do pitch deck | 28/mai |
 | B2: Rascunho perdido ao fechar modal — flush síncrono em closeVagaModal + beforeunload | 28/mai |
 | B1: Cards não sumiam ao excluir — ID type mismatch (number vs string) corrigido em 9 funções | 28/mai |
@@ -60,7 +68,7 @@ Nenhum bug crítico aberto. ✅
 ### Extensão Chrome
 | # | Melhoria |
 |---|----------|
-| U1 | Popup: mais coaching — veredicto claro (ex: "Muito fora do perfil — analise antes de se candidatar") |
+| ~~U1~~ | ~~Popup: veredicto coaching 3 estados + motivos~~ ✅ |
 | ~~U2~~ | ~~Aba Analisar no app: renomear "CV Otimizado" → "Preparar Candidatura"~~ ✅ |
 | ~~U3~~ | ~~Aba Analisar: adicionar botão "Declinar" ao lado de "Análise"~~ ✅ |
 | U4 | Popup pequeno — mais informações e conselho visíveis sem scroll |
