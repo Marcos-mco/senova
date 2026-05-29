@@ -353,20 +353,23 @@
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type !== 'EXTRAIR_DADOS') return;
 
-    // LinkedIn SPA: job panel carrega após interação — tenta até 8× com 300ms de intervalo
+    // LinkedIn SPA: painel direito carrega após interação — espera até ter título E descrição
+    // Máximo 12 tentativas × 300ms = 3.6s; retorna imediatamente se ambos presentes
     if (host.includes('linkedin.com')) {
       let tries = 0;
       function tryLinkedIn() {
         const d = extractLinkedIn();
-        if (d.cargo || d.empresa || tries >= 8) {
-          sendResponse({ ok: true, dados: (d.cargo || d.empresa) ? d : extractGenerico() });
+        const hasTitle = !!(d.cargo || d.empresa);
+        const hasDesc  = !!(d.descricao && d.descricao.length > 80);
+        if ((hasTitle && hasDesc) || tries >= 12) {
+          sendResponse({ ok: true, dados: hasTitle ? d : extractGenerico() });
         } else {
           tries++;
           setTimeout(tryLinkedIn, 300);
         }
       }
       tryLinkedIn();
-      return true; // mantém canal aberto para resposta assíncrona
+      return true;
     }
 
     try {

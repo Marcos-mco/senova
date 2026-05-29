@@ -126,7 +126,11 @@ function mostrarScoreLoading() {
 }
 
 function esconderScore() {
-  el('score-wrap').style.display = 'none';
+  const sw = el('score-wrap');
+  sw.style.display = 'block';
+  sw.style.background = '#F8F9FB';
+  sw.style.borderColor = '#D0D9E4';
+  sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">🔍 Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
 }
 
 function renderScore(r) {
