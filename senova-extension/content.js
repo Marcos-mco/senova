@@ -55,32 +55,45 @@
 
   function extractLinkedIn() {
     // 1. Tenta seletores DOM específicos (mudam frequentemente — LinkedIn obfusca as classes)
+    //    Inclui h2 e anchors — LinkedIn usa h2 no painel de detalhe das coleções/busca
     let cargo = txt(
       'h1.job-details-jobs-unified-top-card__job-title',
       'h1[class*="job-title"]',
+      'h2[class*="job-title"]',
+      'a[class*="job-title"]',
       '.job-details-jobs-unified-top-card__job-title',
       '.jobs-unified-top-card__job-title h1',
+      '.jobs-unified-top-card__job-title h2',
       '.jobs-unified-top-card__job-title',
       '[class*="topcard"] h1',
+      '[class*="topcard"] h2 a',
+      '[class*="topcard"] h2',
       '.job-details-jobs-unified-top-card__job-title a',
       '.jobs-details-top-card__job-title'
-      // bare 'h1' removido — tratado abaixo com filtragem
     );
 
     // 1b. Painel direito nas páginas de busca/coleções (/jobs/search/, /jobs/collections/)
-    //     O painel de detalhe tem a vaga real; o h1 da página é o heading de seção
+    //     Tenta h1 e h2 no painel; filtra headings de seção
     if (!cargo) {
       const panel = document.querySelector(
-        '.scaffold-layout__detail, .jobs-search__job-details--container, [class*="job-details--container"]'
+        '.scaffold-layout__detail, .jobs-search__job-details--container, ' +
+        '[class*="job-details--container"], .job-view-layout, ' +
+        '[data-view-name="job-details"], .jobs-details, [class*="job-view"]'
       );
-      cargo = panel?.querySelector('h1')?.innerText?.trim() || '';
+      if (panel) {
+        for (const sel of ['h1', 'h2', 'h2 a', '[class*="title"] a', '[class*="title"]']) {
+          const el = panel.querySelector(sel);
+          const t = el?.innerText?.trim() || '';
+          if (t && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) { cargo = t; break; }
+        }
+      }
     }
 
-    // 1c. Fallback h1 filtrado: ignora headings de seção do LinkedIn
+    // 1c. Fallback: todos os h1 e h2 filtrados (sem seção, sem texto longo de parágrafo)
     if (!cargo) {
-      cargo = Array.from(document.querySelectorAll('h1'))
+      cargo = Array.from(document.querySelectorAll('h1, h2'))
         .map(el => el.innerText?.trim())
-        .find(t => t && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) || '';
+        .find(t => t && t.length > 3 && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) || '';
     }
 
     let empresa = txt(
@@ -280,14 +293,18 @@
     if (isVagaUrl || isVagaTitulo) {
       const h1 = document.querySelector('h1')?.innerText?.trim() || '';
       const desc = selecao || metaDesc || '';
+      // Para LinkedIn: nunca usar document.title como cargo — é sempre o título da página/feed
+      const isLinkedIn = host.includes('linkedin.com');
+      const h1Ok = h1 && (!isLinkedIn || !_LI_SECTION_HEADINGS.test(h1));
+      const titleOk = !isLinkedIn && metaTitle;
       return {
         tipo: 'vaga',
-        cargo: h1 || metaTitle,
-        empresa: empresaOg,
+        cargo: h1Ok ? h1 : (titleOk ? metaTitle : ''),
+        empresa: isLinkedIn ? '' : empresaOg,
         local: '',
         descricao: desc,
         forma_candidatura: emailNaDesc(desc) || 'Ver na vaga',
-        canal: 'Empresa',
+        canal: isLinkedIn ? 'LinkedIn' : 'Empresa',
         url,
       };
     }
