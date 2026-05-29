@@ -2510,15 +2510,32 @@ function renderATSResult(analise,cv,crm) {
     return `<div style="font-size:13.5px;color:var(--text2);line-height:1.7;">${l}</div>`;
   }).join('');
 
+  const _bar=document.getElementById('ats-decisao-bar');if(_bar)_bar.style.display='none';
   document.getElementById('result-area').innerHTML=`<div>
     ${score?`<div style="background:${bg};border:1.5px solid ${bc};border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
       <div style="font-family:var(--font-display);font-size:38px;font-weight:700;color:${col};line-height:1;letter-spacing:-1px;">${score}<span style="font-size:16px;color:var(--text3);font-weight:400;">/100</span></div>
       <div style="flex:1;min-width:120px;"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Match Score</div><div style="font-size:15px;font-weight:700;color:${col};">${veredicto}</div></div>
     </div>`:''}
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-      <button class="tab-btn active" onclick="switchTab('analise',this)" style="flex:1;text-align:center;">📋 Análise</button>
-      <button class="btn" style="flex:1;justify-content:center;background:#1A7A4A;color:#fff;padding:9px 14px;font-size:13px;font-weight:600;border-radius:var(--radius);" onclick="candidatarVagaATS()">✓ Candidatar</button>
+      <button class="tab-btn active" style="flex:1;text-align:center;" disabled>📋 Análise</button>
+      <button class="btn" style="flex:1;justify-content:center;background:#1A7A4A;color:#fff;padding:9px 14px;font-size:13px;font-weight:600;border-radius:var(--radius);" onclick="abrirPainelCandidatura(this)">✓ Candidatar</button>
       <button class="btn btn-danger" style="flex:1;justify-content:center;padding:9px 14px;font-size:13px;" onclick="declinarVagaATS()">✕ Declinar</button>
+    </div>
+    <div id="ats-cand-panel" style="display:none;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;">Como você quer prosseguir?</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+        ${[
+          ['chk-copiar','📋','Copiar CV (área de transferência)'],
+          ['chk-docx','📁','Baixar CV em Word (.docx)'],
+          ['chk-pdf','📄','Baixar CV em PDF'],
+          ['chk-pdf-premium','🏆','Baixar CV — PDF Premium'],
+          ['chk-carta','✉️','Gerar carta de apresentação'],
+          ['chk-email','💬','Compor e-mail de candidatura'],
+          ['chk-site','🌐','Preencher inscrição no site da vaga'],
+          ['chk-pipeline','✅','Registrar no Pipeline como Candidatado'],
+        ].map(([id,icon,label])=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 12px;background:var(--bg2);border-radius:8px;border:1.5px solid var(--border);"><input type="checkbox" id="${id}" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0;"> <span style="font-size:15px;flex-shrink:0;">${icon}</span> <span style="font-size:13.5px;color:var(--text2);">${label}</span></label>`).join('')}
+      </div>
+      <button class="btn btn-primary" onclick="executarCandidatura()" style="width:100%;justify-content:center;padding:12px;font-size:14px;">Executar →</button>
     </div>
     <div id="tab-analise">
       <div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;">${fmt}</div>
@@ -2554,12 +2571,12 @@ function renderATSResult(analise,cv,crm) {
       </div>
     </div>
     <div id="tab-cv" style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
-      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">📄 Preparar Candidatura — CV Otimizado</div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">📄 CV Otimizado para esta vaga</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
-        <button class="copy-btn" onclick="downloadDoc()">⬇️ Baixar .docx</button>
-        <button class="copy-btn" onclick="downloadPDF()">📄 PDF (ATS)</button>
-        <button class="copy-btn" onclick="downloadPDFExecutivo()" style="background:var(--navy);color:#fff;border-color:var(--navy);">PDF Executivo</button>
+        <button class="copy-btn" onclick="downloadDoc()">📁 Baixar Word</button>
+        <button class="copy-btn" onclick="downloadPDF()">📄 Baixar PDF</button>
+        <button class="copy-btn" onclick="downloadPDFExecutivo()" style="background:var(--navy);color:#fff;border-color:var(--navy);">🏆 PDF Premium</button>
       </div>
       <div class="result-box" id="cv-txt">${escHtml(cv)}</div>
     </div>
@@ -2569,6 +2586,41 @@ function renderATSResult(analise,cv,crm) {
 function switchTab(tab,btn) {
   document.querySelectorAll('#result-area .tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
+}
+
+function abrirPainelCandidatura(btn){
+  const p=document.getElementById('ats-cand-panel');
+  if(!p) return;
+  const open=p.style.display==='none';
+  p.style.display=open?'block':'none';
+  if(btn){ btn.textContent=open?'✓ Candidatar ▴':'✓ Candidatar'; }
+}
+
+async function executarCandidatura(){
+  const chk=id=>document.getElementById(id)?.checked;
+  if(!chk('chk-copiar')&&!chk('chk-docx')&&!chk('chk-pdf')&&!chk('chk-pdf-premium')&&!chk('chk-carta')&&!chk('chk-email')&&!chk('chk-site')&&!chk('chk-pipeline')){
+    showToast('Selecione ao menos uma ação'); return;
+  }
+  if(chk('chk-copiar')){ const el=document.getElementById('cv-txt'); if(el) await navigator.clipboard.writeText(el.textContent||el.innerText).catch(()=>{}); showToast('CV copiado'); }
+  if(chk('chk-docx')) downloadDoc();
+  if(chk('chk-pdf')) downloadPDF();
+  if(chk('chk-pdf-premium')) downloadPDFExecutivo();
+  if(chk('chk-carta')){
+    const cartaOut=document.getElementById('ats-carta-out');
+    if(cartaOut&&cartaOut.style.display!=='none') showToast('Carta já gerada — copie acima');
+    else gerarCartaATS(document.getElementById('ats-carta-btn'));
+  }
+  if(chk('chk-email')){
+    if(!lastCV){ const v=document.getElementById('vaga-input')?.value||''; if(v.length>=80) await analyzeJob(); }
+    candidatarVagaATS();
+  }
+  if(chk('chk-site')){
+    const url=vagas.find(v=>String(v.id)===String(atsOrigemVagaId))?.origemUrl||'';
+    if(url && url.startsWith('http')) window.open(url,'_blank');
+    else showToast('URL da vaga não disponível — abra a vaga original');
+  }
+  if(chk('chk-pipeline')) candidatarVagaATS();
+  document.getElementById('ats-cand-panel').style.display='none';
 }
 function copyEl(id,btn) {
   const el=document.getElementById(id); if(!el)return;
@@ -2866,9 +2918,8 @@ function _sofiaPreencherPerfil(j,transcricao){
   }catch(e){console.warn('_sofiaPreencherPerfil',e);}
   document.getElementById('sofia-resultado-texto').value=transcricao;
   document.getElementById('sofia-resultado-area').style.display='block';
-  _sofiaBolha('sofia','Muito obrigada por isso. Com o que você me contou, vou conseguir te dar conselhos muito mais precisos — não só sobre currículo, mas sobre se uma oportunidade realmente faz sentido para você.<br><br>✅ <strong>Perfil preenchido automaticamente.</strong> Clique em <em>"Ir para o Perfil"</em> para revisar e salvar.');
+  _sofiaBolha('sofia','Muito obrigada por isso. Com o que você me contou, vou conseguir te dar conselhos muito mais precisos — não só sobre currículo, mas sobre se uma oportunidade realmente faz sentido para você.<br><br>✅ <strong>Perfil preenchido.</strong> Clique em <em>"Ir para o Perfil"</em>, revise os campos e clique em <strong>Salvar perfil</strong> quando estiver pronto.');
   document.getElementById('sofia-chat').scrollTop=9999;
-  salvarPerfil().catch(()=>{});
 }
 
 function sofiaTransferirPerfil(){
@@ -3932,10 +3983,14 @@ function renderCRM(){
     let cards=listaBase.filter(v=>v.status===col);
     if(cf.pri!=='all') cards=cards.filter(c=>c.prioridade===cf.pri);
     if(cf.canal!=='all') cards=cards.filter(c=>(CANAL_MAP[cf.canal]||cf.canal)===c.canal);
+    // Sort por coluna (menu ⚙) — cede ao sort global se este estiver ativo
+    const _globalOrdem = filtroAtivo ? (document.getElementById('filter-ordem')?.value||'recente') : 'recente';
+    const _useColSort = cf.sort!=='default' || _globalOrdem==='recente';
     if(cf.sort==='newer') cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
     else if(cf.sort==='az') cards=[...cards].sort((a,b)=>(a.empresa||'').localeCompare(b.empresa||'','pt'));
-    else cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
+    else if(_globalOrdem==='recente') cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
+    // else: sort global (az, antigo, prioridade) preserva a ordem de listaBase
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
     const filterMenu=`<div class="col-filter-menu" id="cf-${col}" style="display:none" onclick="event.stopPropagation()">
