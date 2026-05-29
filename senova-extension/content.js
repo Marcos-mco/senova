@@ -66,18 +66,33 @@
       '.jobs-details-top-card__job-title'
     );
 
-    // 1b. Split-view: extrai título via currentJobId na URL → link no painel esquerdo
-    //     Mais confiável que seletores de classe (href contém o ID, texto contém o título)
+    // 1b. Split-view: currentJobId → busca o card no painel esquerdo
+    //     Usa strong interno ou split por separadores LinkedIn (·, •) com filtro de metadados
     if (!cargo) {
       try {
         const jobId = new URL(url).searchParams.get('currentJobId');
         if (jobId) {
-          const cardLink = document.querySelector(`a[href*="${jobId}"]`);
+          // Prefere href com /jobs/view/ID (mais preciso que qualquer href com o número)
+          const cardLink = document.querySelector(
+            `a[href*="/jobs/view/${jobId}"], a[href*="currentJobId=${jobId}"]`
+          );
           if (cardLink) {
-            const firstLine = (cardLink.innerText || '').split('\n')
-              .map(s => s.trim()).find(s => s.length > 5 && s.length < 200 &&
-                !_LI_SECTION_HEADINGS.test(s) && !/^\d/.test(s));
-            if (firstLine) cargo = firstLine;
+            // 1ª opção: elemento <strong> — LinkedIn coloca o título da vaga nele
+            const strongTxt = cardLink.querySelector('strong')?.innerText?.trim() || '';
+            if (strongTxt && strongTxt.length > 5 && strongTxt.length < 150 &&
+                !_LI_SECTION_HEADINGS.test(strongTxt) && !/^\d/.test(strongTxt)) {
+              cargo = strongTxt;
+            } else {
+              // 2ª opção: divide por separadores LinkedIn e filtra metadados
+              const seg = (cardLink.innerText || '')
+                .replace(/\(vaga verificada\)/gi, '')
+                .split(/[\n·•|]/)
+                .map(s => s.trim())
+                .find(s => s.length > 5 && s.length < 150 &&
+                  !_LI_SECTION_HEADINGS.test(s) && !/^\d/.test(s) &&
+                  !/(presencial|remoto|híbrido|há \d|mes(es)?|visto|verificad|anunciada|promovida|contrato|brasil|visualizad)/i.test(s));
+              if (seg) cargo = seg;
+            }
           }
         }
       } catch (_) {}
