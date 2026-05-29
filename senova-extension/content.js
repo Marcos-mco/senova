@@ -54,86 +54,33 @@
   const _LI_SECTION_HEADINGS = /vagas que mais combinam|jobs you may be interested|recommended for you|sugerido para você|pesquisa de emprego|job search results|people also viewed|notificaç|notification|^\d+\s/i;
 
   function extractLinkedIn() {
-    // 1. Tenta seletores DOM específicos (mudam frequentemente — LinkedIn obfusca as classes)
-    //    Inclui h2 e anchors — LinkedIn usa h2 no painel de detalhe das coleções/busca
+    // 1. Seletores DOM específicos (LinkedIn obfusca classes — lista atualizada 2025)
     let cargo = txt(
       'h1.job-details-jobs-unified-top-card__job-title',
       'h1[class*="job-title"]',
-      'h2[class*="job-title"]',
-      'a[class*="job-title"]',
       '.job-details-jobs-unified-top-card__job-title',
       '.jobs-unified-top-card__job-title h1',
-      '.jobs-unified-top-card__job-title h2',
       '.jobs-unified-top-card__job-title',
       '[class*="topcard"] h1',
-      '[class*="topcard"] h2 a',
-      '[class*="topcard"] h2',
       '.job-details-jobs-unified-top-card__job-title a',
       '.jobs-details-top-card__job-title'
     );
 
-    // 1b. Painel direito nas páginas de busca/coleções (/jobs/search/, /jobs/collections/)
-    //     Tenta h1 e h2 no painel; filtra headings de seção
+    // 1b. Painel direito (split view: /jobs/search/, /jobs/collections/)
     if (!cargo) {
       const panel = document.querySelector(
-        '.scaffold-layout__detail, .jobs-search__job-details--container, ' +
-        '[class*="job-details--container"], .job-view-layout, ' +
-        '[data-view-name="job-details"], .jobs-details, [class*="job-view"]'
+        '.scaffold-layout__detail, .jobs-search__job-details--container, [class*="job-details--container"]'
       );
-      if (panel) {
-        for (const sel of ['h1', 'h2', 'h2 a', '[class*="title"] a', '[class*="title"]']) {
-          const el = panel.querySelector(sel);
-          const t = el?.innerText?.trim() || '';
-          if (t && t.length < 150 && !_LI_SECTION_HEADINGS.test(t)) { cargo = t; break; }
-        }
-      }
+      const panelTxt = panel?.querySelector('h1')?.innerText?.trim() || '';
+      if (panelTxt && !_LI_SECTION_HEADINGS.test(panelTxt)) cargo = panelTxt;
     }
 
-    // 1c. Âncora "Sobre a vaga" / "About the job" — sobe o DOM até achar o heading da vaga
-    //     Mais confiável que seletores de classe (o texto é estável, as classes não são)
-    if (!cargo) {
-      const sobreH = Array.from(document.querySelectorAll('h2,h3,h4,span,strong,p'))
-        .find(el => /^(sobre a vaga|about the job|job description)$/i.test(el.innerText?.trim()));
-      if (sobreH) {
-        let container = sobreH.parentElement;
-        for (let i = 0; i < 12 && container; i++) {
-          const headings = Array.from(container.querySelectorAll('h1, h2'));
-          const found = headings.find(h => {
-            const t = h.innerText?.trim() || '';
-            return t && t.length > 4 && t.length < 160 &&
-              !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t) &&
-              !/^(sobre a vaga|about the job|job description)$/i.test(t);
-          });
-          if (found) { cargo = found.innerText.trim(); break; }
-          container = container.parentElement;
-        }
-      }
-    }
-
-    // 1d. Fallback: sobe a partir do botão Candidatar-se
-    if (!cargo) {
-      const applyBtn = document.querySelector(
-        'button[aria-label*="andidatur"], button[aria-label*="pply"], ' +
-        '.jobs-apply-button--top-card, [class*="apply-button"]'
-      );
-      if (applyBtn) {
-        let el = applyBtn.parentElement;
-        for (let i = 0; i < 8 && el; i++) {
-          const h = el.querySelector('h1, h2');
-          const t = h?.innerText?.trim() || '';
-          if (t && t.length > 4 && t.length < 160 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) {
-            cargo = t; break;
-          }
-          el = el.parentElement;
-        }
-      }
-    }
-
-    // 1e. Último recurso: h1 global filtrado
+    // 1c. Fallback h1 filtrado: ignora headings de seção e notificações (^\d)
     if (!cargo) {
       cargo = Array.from(document.querySelectorAll('h1'))
         .map(el => el.innerText?.trim())
-        .find(t => t && t.length > 4 && t.length < 150 && !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) || '';
+        .find(t => t && t.length > 3 && t.length < 150 &&
+             !_LI_SECTION_HEADINGS.test(t) && !/^\d/.test(t)) || '';
     }
 
     let empresa = txt(
@@ -215,6 +162,12 @@
     // Fallback final: og:description → texto selecionado pelo usuário
     if (!desc && ogDesc && ogDesc.length > 80) desc = ogDesc.slice(0, 5000);
     if (!desc) desc = (window.getSelection()?.toString().trim() || '').slice(0, 5000);
+
+    // Limpeza: remove URLs de tracking do LinkedIn (comm/feed, lipi=, etc.) e linhas em branco excessivas
+    if (desc) {
+      desc = desc.replace(/https?:\/\/[^\s]{30,}/g, '').replace(/\n{3,}/g, '\n\n').trim();
+      if (desc.length < 80) desc = '';
+    }
 
     // 5. Forma de candidatura
     let forma = '';
@@ -333,18 +286,16 @@
     if (isVagaUrl || isVagaTitulo) {
       const h1 = document.querySelector('h1')?.innerText?.trim() || '';
       const desc = selecao || metaDesc || '';
-      // Para LinkedIn: nunca usar document.title como cargo — é sempre o título da página/feed
-      const isLinkedIn = host.includes('linkedin.com');
-      const h1Ok = h1 && (!isLinkedIn || !_LI_SECTION_HEADINGS.test(h1));
-      const titleOk = !isLinkedIn && metaTitle;
+      // Filtra headings de seção do LinkedIn; aceita qualquer outro h1 ou o metaTitle
+      const cargoFinal = (h1 && !_LI_SECTION_HEADINGS.test(h1) && !/^\d/.test(h1)) ? h1 : metaTitle;
       return {
         tipo: 'vaga',
-        cargo: h1Ok ? h1 : (titleOk ? metaTitle : ''),
-        empresa: isLinkedIn ? '' : empresaOg,
+        cargo: cargoFinal,
+        empresa: empresaOg,
         local: '',
         descricao: desc,
         forma_candidatura: emailNaDesc(desc) || 'Ver na vaga',
-        canal: isLinkedIn ? 'LinkedIn' : 'Empresa',
+        canal: 'Empresa',
         url,
       };
     }

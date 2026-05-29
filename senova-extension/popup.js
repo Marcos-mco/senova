@@ -191,10 +191,9 @@ async function salvarVaga() {
   } else {
     btn.textContent = '✓ Salvo!';
     btn.style.background = '#1A7A4A';
-    // Mostra botão de ação após salvar
     const acoes = el('acoes-pos-save');
     if (acoes) acoes.style.display = 'block';
-    showToast('✓ Salvo! Abra o app → Importar Vagas para ver.');
+    showToast('✓ Salvo no Pipeline');
   }
 }
 
