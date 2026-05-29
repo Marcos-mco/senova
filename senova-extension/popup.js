@@ -57,11 +57,6 @@ function renderVaga(d) {
   el('vaga-canal').textContent   = d.canal || '';
   el('vaga-local').textContent   = d.local || '';
 
-  if (d.forma_candidatura) {
-    el('candidatura-tipo').textContent = d.forma_candidatura;
-    el('candidatura-wrap').style.display = 'flex';
-  }
-
   el('btn-salvar').addEventListener('click', salvarVaga);
   el('btn-analisar').addEventListener('click', abrirAnalisar);
   el('btn-ver-processos').addEventListener('click', abrirProcessos);
