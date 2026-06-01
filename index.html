@@ -2456,7 +2456,7 @@ async function analyzeJob() {
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional do candidato: '+c:'';})()}`}]})
     });
@@ -4956,7 +4956,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();
