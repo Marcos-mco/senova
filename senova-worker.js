@@ -18,16 +18,18 @@ const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 
 const PERFIL_MARCOS = `
 Marcos Franco, 57 anos, Curitiba/PR — Brasil.
-Executivo sênior de marketing e negócios, 30 anos de experiência.
-Formação: Master's Barcelona (Marketing), MBA FGV, FAAP Publicidade.
+Executivo sênior com 30 anos de experiência em marketing, vendas/comercial e negócios.
+Formação: Master em Vendas/Sales · Barcelona (2014–15); MBA Administração · FGV; FAAP Publicidade.
 Idiomas: português nativo, inglês avançado, espanhol avançado.
 Experiências:
-- RPC/Globo: Diretor de Marketing (2012-2019) — 30 pessoas, 8 afiliadas, R$500mi
-- Popper: Head de Expansão & Novos Negócios (2024-2025)
-- Consigliere: Consultor Sênior C-Level (dez/2025-atual)
-Cargos-alvo: CEO, CMO, CSO, Diretor, Head, Gerente Sênior
-Pretensão: R$19-25k CLT · Aceita PJ · Aceita relocação SC
+- Editel Listas Telefônicas (Grupo Carvajal): Superintendente Regional de Vendas – Nordeste (2001–2005) — equipe 45 pessoas, orçamento R$5mi/ano
+- RPC/Globo: Gerente (2008–2012) + Diretor (2012–2019) — 30 pessoas, 8 afiliadas, R$500mi/ano
+- Popper: Head de Expansão & Novos Negócios (2024–2025)
+- Consigliere: Consultor Sênior C-Level (dez/2025–atual)
+Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
+Pretensão: R$19–25k CLT · Aceita PJ · Aceita relocação SC
 Aberto a: Brasil, Espanha, Alemanha, Portugal, remoto
+IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
 `.trim();
 
 const CONFIG_PADRAO = {
@@ -154,12 +156,13 @@ async function classificarEmails(emails, whitelist, env) {
   if (!emails.length) return [];
 
   const CATEGORIAS = {
-    positivo:    { label: 'Retorno positivo',      emoji: '🟢', prioridade: 1 },
-    pipeline:    { label: 'Pipeline ativo',         emoji: '⭐', prioridade: 2 },
-    hunter:      { label: 'Contato de headhunter',  emoji: '🎯', prioridade: 3 },
-    vaga:        { label: 'Vaga nova',              emoji: '📋', prioridade: 4 },
-    negativo:    { label: 'Retorno negativo',       emoji: '⚫', prioridade: 5 },
-    irrelevante: { label: 'Irrelevante',            emoji: '—',  prioridade: 9 },
+    positivo:    { label: 'Retorno positivo',        emoji: '🟢', prioridade: 1 },
+    pipeline:    { label: 'Pipeline ativo',           emoji: '⭐', prioridade: 2 },
+    hunter:      { label: 'Contato de headhunter',    emoji: '🎯', prioridade: 3 },
+    vaga:        { label: 'Vaga nova',                emoji: '📋', prioridade: 4 },
+    negativo:    { label: 'Retorno negativo',         emoji: '⚫', prioridade: 5 },
+    mercado:     { label: 'Inteligência de Mercado',  emoji: '📰', prioridade: 6 },
+    irrelevante: { label: 'Irrelevante',              emoji: '—',  prioridade: 9 },
   };
 
   const resultados = [];
@@ -174,7 +177,7 @@ async function classificarEmails(emails, whitelist, env) {
 PERFIL: ${PERFIL_MARCOS}
 ${wlStr}
 
-Classifique cada e-mail em: positivo | pipeline | hunter | vaga | negativo | irrelevante
+Classifique cada e-mail em: positivo | pipeline | hunter | vaga | negativo | mercado | irrelevante
 
 Regras críticas:
 - Emails automáticos de confirmação de candidatura ("sua inscrição foi recebida", "application received", "thank you for applying", "confirmamos sua candidatura") → SEMPRE irrelevante
@@ -183,6 +186,8 @@ Regras críticas:
 - Email de RH sobre vaga em que Marcos já se candidatou → pipeline
 - Resposta positiva de empresa (convite para entrevista, proposta) → positivo
 - Resposta negativa (não aprovado, vaga preenchida) → negativo
+- Newsletter de mercado, conteúdo executivo, Board Academy, artigos de liderança, insights de carreira, tendências do setor → mercado
+- Spam, promoções, marketing sem relação com recolocação → irrelevante
 
 Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resumo":"resumo em 1 linha"},...]}
 
@@ -209,7 +214,7 @@ ${listaEmails}`;
     }
   }
 
-  return resultados.filter(e => e.categoria !== 'irrelevante').sort((a,b) => a.prioridade - b.prioridade);
+  return resultados.sort((a,b) => a.prioridade - b.prioridade);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -479,7 +484,7 @@ export default {
       const emailsNormais = novosComConteudo.filter(e => !isAlertaFn(e));
 
       const whitelist = await getWhitelist(env);
-      const classificados = await classificarEmails(emailsNormais, whitelist, env);
+      const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
       // Marcar como lido no Outlook em background (não bloqueia a resposta)
@@ -490,6 +495,9 @@ export default {
           body: JSON.stringify({ isRead: true }),
         })
       )));
+
+      const classificados = todoClassificados.filter(e => e.categoria !== 'irrelevante');
+      const irrelevantes  = todoClassificados.filter(e => e.categoria === 'irrelevante').slice(0, 10);
 
       // Stats do dia no KV
       const totalAlertas = alertasNovos.length;
@@ -502,7 +510,7 @@ export default {
       await env.SENOVA_KV.put(statsKey, JSON.stringify(statsAtuais), { expirationTtl: 86400 });
 
       return json({
-        emails: classificados, alertas: todosAlertas, total_lidos: emails.length,
+        emails: classificados, irrelevantes, alertas: todosAlertas, total_lidos: emails.length,
         total_novos: novos.length, total_relevantes: classificados.length, whitelist,
       });
     }

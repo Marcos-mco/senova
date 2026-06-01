@@ -3753,6 +3753,9 @@ let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _emailsAvulsos=[];
+let _emailsProcesso=[];
+let _emailsMercado=[];
+let _emailsIrrelevantes=[];
 let _emailsNovosHoje=0;
 let _alertasHoje=0;
 let _outlookStatus='unknown'; // 'unknown' | 'conectado' | 'desconectado'
@@ -5096,8 +5099,11 @@ function atualizarSinais(){
       s1.onclick=conectarOutlook;
       s1.style.opacity='0.6';
     } else {
-      const novos=_emailsNovosHoje;
-      s1txt.textContent=`Emails — ${novos} novo${novos===1?'':'s'} hoje`;
+      const partes=[];
+      if(_emailsProcesso.length) partes.push(`${_emailsProcesso.length} processo`);
+      if(_emailsMercado.length) partes.push(`${_emailsMercado.length} mercado`);
+      if(_emailsIrrelevantes.length) partes.push(`${_emailsIrrelevantes.length} bloquear`);
+      s1txt.textContent=partes.length?`Emails — ${partes.join(' · ')}`:`Emails — ${_emailsNovosHoje} novo${_emailsNovosHoje===1?'':'s'} hoje`;
       s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
     }
@@ -5153,30 +5159,94 @@ function toggleEmailsAvulsos(){
 function renderEmailsAvulsos(){
   const lista=document.getElementById('emails-avulsos-lista');
   if(!lista||lista.style.display==='none') return;
-  if(!_emailsAvulsos.length){
+  const temAlgum=_emailsProcesso.length||_emailsMercado.length||_emailsIrrelevantes.length;
+  if(!temAlgum){
     const n=_emailsNovosHoje;
     const msg=n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje — já importados para o Pipeline.`:'Nenhum email novo.';
     lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar e-mails</button></div>`;
     return;
   }
-  lista.innerHTML=_emailsAvulsos.map((e,i)=>{
+  const renderFluxoHeader=(id,emoji,titulo,count,cor,aberto)=>`
+    <div onclick="toggleFluxoEmail('${id}')" style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:${cor}18;border-radius:7px;cursor:pointer;margin-bottom:${aberto?'0':'4px'};">
+      <span style="font-size:13px;">${emoji}</span>
+      <span style="font-size:12.5px;font-weight:700;color:${cor};flex:1;">${titulo}</span>
+      <span style="font-size:12px;font-weight:600;color:${cor};background:${cor}28;border-radius:10px;padding:1px 8px;">${count}</span>
+      <svg id="chev-${id}" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="${cor}" stroke-width="2.5" style="transition:transform .2s;${aberto?'transform:rotate(90deg)':''}"><path d="M6 3l5 5-5 5"/></svg>
+    </div>`;
+  const renderEmailItem=(e,idx,fonte,acaoBotao)=>{
     const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     const remetente=e.from_name||e.from||'(remetente)';
-    const preview=(e.resumo||e.preview||'').slice(0,100);
-    return `<div class="home-acao-item" style="cursor:pointer;align-items:flex-start;" onclick="abrirModalResponder(${i})">
-      <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
+    const preview=(e.resumo||e.preview||'').slice(0,90);
+    const cor=fonte==='processo'?'#2563EB':fonte==='mercado'?'#7C3AED':'#9CA3AF';
+    return `<div class="home-acao-item" style="cursor:pointer;align-items:flex-start;" onclick="${acaoBotao==='responder'?`abrirModalResponder_fluxo('${fonte}',${idx})`:`bloquearEmailIdx('${fonte}',${idx})`}">
+      <div class="home-acao-dot" style="background:${cor};margin-top:6px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
-          <span style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
+          <span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
           <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
         </div>
         <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.subject||'(sem assunto)')}</div>
-        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}${e.from&&e.from!==remetente?' &lt;'+escHtml(e.from)+'&gt;':''}</div>
+        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}</div>
         ${preview?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}</div>`:''}
       </div>
-      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="abrirModalResponder(${i})">↩ Responder</button>
+      ${acaoBotao==='responder'
+        ?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="event.stopPropagation();abrirModalResponder_fluxo('${fonte}',${idx})">↩ Responder</button>`
+        :`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;color:#9CA3AF;" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫 Bloquear</button>`
+      }
     </div>`;
-  }).join('');
+  };
+  let html='';
+  // ── Fluxo Processo ──
+  if(_emailsProcesso.length){
+    const aberto=_fluxosAbertos.processo!==false;
+    html+=renderFluxoHeader('processo','🎯','Processo',_emailsProcesso.length,'#2563EB',aberto);
+    html+=`<div id="fluxo-processo" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
+    html+=_emailsProcesso.map((e,i)=>renderEmailItem(e,i,'processo','responder')).join('');
+    html+='</div>';
+  }
+  // ── Fluxo Mercado ──
+  if(_emailsMercado.length){
+    const aberto=_fluxosAbertos.mercado!==false;
+    html+=renderFluxoHeader('mercado','📰','Inteligência de Mercado',_emailsMercado.length,'#7C3AED',aberto);
+    html+=`<div id="fluxo-mercado" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
+    html+=_emailsMercado.map((e,i)=>renderEmailItem(e,i,'mercado','arquivar')).join('');
+    html+='</div>';
+  }
+  // ── Fluxo Irrelevante ──
+  if(_emailsIrrelevantes.length){
+    const aberto=_fluxosAbertos.irrelevante===true;
+    html+=renderFluxoHeader('irrelevante','🚫','Para Bloquear',_emailsIrrelevantes.length,'#9CA3AF',aberto);
+    html+=`<div id="fluxo-irrelevante" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
+    html+=_emailsIrrelevantes.map((e,i)=>renderEmailItem(e,i,'irrelevante','bloquear')).join('');
+    html+='</div>';
+  }
+  lista.innerHTML=html;
+}
+const _fluxosAbertos={processo:true,mercado:false,irrelevante:false};
+function toggleFluxoEmail(id){
+  _fluxosAbertos[id]=!_fluxosAbertos[id];
+  const div=document.getElementById('fluxo-'+id);
+  const chev=document.getElementById('chev-'+id);
+  if(div) div.style.display=_fluxosAbertos[id]?'flex':'none';
+  if(chev) chev.style.transform=_fluxosAbertos[id]?'rotate(90deg)':'';
+}
+function abrirModalResponder_fluxo(fonte,idx){
+  const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
+  _emailsAvulsos=arr;
+  abrirModalResponder(idx);
+}
+function bloquearEmailIdx(fonte,idx){
+  const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
+  const e=arr[idx]; if(!e) return;
+  const from=(e.from||'').toLowerCase().trim();
+  if(!from) return;
+  let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
+  if(!bloqueados.includes(from)){bloqueados.push(from);localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}
+  if(fonte==='processo') _emailsProcesso=_emailsProcesso.filter((_,i)=>i!==idx);
+  else if(fonte==='mercado') _emailsMercado=_emailsMercado.filter((_,i)=>i!==idx);
+  else _emailsIrrelevantes=_emailsIrrelevantes.filter((_,i)=>i!==idx);
+  renderEmailsAvulsos();
+  atualizarSinais();
 }
 function stripHtml(html){
   if(!html) return '';
@@ -5268,11 +5338,18 @@ function fecharModalEmailResponder(){
   document.getElementById('modal-email-responder').style.display='none';
   _emailAtual=null;
 }
+function _removeEmailAtualFluxos(){
+  _emailsProcesso=_emailsProcesso.filter(e=>e!==_emailAtual);
+  _emailsMercado=_emailsMercado.filter(e=>e!==_emailAtual);
+  _emailsIrrelevantes=_emailsIrrelevantes.filter(e=>e!==_emailAtual);
+  _emailsAvulsos=_emailsAvulsos.filter(e=>e!==_emailAtual);
+}
 function arquivarEmailAvulso(){
   if(!_emailAtual) return;
-  _emailsAvulsos=_emailsAvulsos.filter(e=>e!==_emailAtual);
+  _removeEmailAtualFluxos();
   fecharModalEmailResponder();
   renderEmailsAvulsos();
+  atualizarSinais();
 }
 function excluirEmailAvulso(){
   if(!_emailAtual) return;
@@ -5282,9 +5359,10 @@ function excluirEmailAvulso(){
     try{excluidos=JSON.parse(localStorage.getItem('emails_excluidos')||'[]');}catch{}
     if(!excluidos.includes(id)){ excluidos.push(id); try{localStorage.setItem('emails_excluidos',JSON.stringify(excluidos));}catch{} }
   }
-  _emailsAvulsos=_emailsAvulsos.filter(e=>e!==_emailAtual);
+  _removeEmailAtualFluxos();
   fecharModalEmailResponder();
   renderEmailsAvulsos();
+  atualizarSinais();
 }
 function bloquearRemetente(){
   if(!_emailAtual) return;
@@ -5293,9 +5371,13 @@ function bloquearRemetente(){
   let bloqueados=[];
   try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
   if(!bloqueados.includes(from)){ bloqueados.push(from); try{localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}catch{} }
+  _emailsProcesso=_emailsProcesso.filter(e=>(e.from||'').toLowerCase()!==from);
+  _emailsMercado=_emailsMercado.filter(e=>(e.from||'').toLowerCase()!==from);
+  _emailsIrrelevantes=_emailsIrrelevantes.filter(e=>(e.from||'').toLowerCase()!==from);
   _emailsAvulsos=_emailsAvulsos.filter(e=>(e.from||'').toLowerCase()!==from);
   fecharModalEmailResponder();
   renderEmailsAvulsos();
+  atualizarSinais();
   showToast(`Remetente bloqueado: ${from}`);
 }
 function abrirModalVagaFromEmail(){
@@ -5606,8 +5688,11 @@ async function carregarEmails(forcar){
     // Google Alerts retornam em chave separada do Worker (não passam pela classificação IA)
     _sinaisAlertas=(data.alertas||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
     if(_sinaisAlertas.length){_alertasHoje=_sinaisAlertas.length;}
-    const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante');
-    _sinaisEmails={classificados:emailsVaga.length,leads:0};
+    const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante'&&e.categoria!=='mercado');
+    _emailsProcesso=emailsVaga;
+    _emailsMercado=emails.filter(e=>e.categoria==='mercado');
+    _emailsIrrelevantes=data.irrelevantes||[];
+    _sinaisEmails={classificados:emailsVaga.length+_emailsMercado.length,leads:0};
     // Criar cards no Pipeline apenas para vagas novas e contatos de headhunter
     // (pipeline/positivo/negativo são respostas a processos já existentes — não geram card novo)
     const emailsParaCard=emails.filter(e=>e.categoria==='vaga'||e.categoria==='hunter');
@@ -5634,7 +5719,7 @@ async function carregarEmails(forcar){
       });
       if(_sinaisEmails.leads>0) saveVagas();
     }
-    if(emailsVaga.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje=Math.max(_emailsNovosHoje,emailsVaga.length); }
+    if(emailsVaga.length||_emailsMercado.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje=Math.max(_emailsNovosHoje,emailsVaga.length+_emailsMercado.length); }
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
