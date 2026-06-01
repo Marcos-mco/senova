@@ -2456,7 +2456,7 @@ async function analyzeJob() {
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional do candidato: '+c:'';})()}`}]})
     });
@@ -2643,7 +2643,7 @@ async function gerarCartaATS(btn){
   btn.textContent='Gerando\u2026'; btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:900,
         system:`Voc\u00ea escreve cartas de apresenta\u00e7\u00e3o executivas em ${langLabel[_cartaLang]||'portugu\u00eas'}. Tom formal, personalizado, persuasivo. M\u00e1ximo 3 par\u00e1grafos concisos. Retorne APENAS o texto da carta, sem t\u00edtulos nem cabe\u00e7alhos.`,
         messages:[{role:'user',content:`Escreva uma carta de apresenta\u00e7\u00e3o em ${langLabel[_cartaLang]||'portugu\u00eas'} para a vaga de ${cargo} na empresa ${empresa}.\n\nContexto da an\u00e1lise de compatibilidade:\n${resumo}\n\nO candidato \u00e9 Marcos Franco, executivo de neg\u00f3cios em Curitiba com background em gest\u00e3o, marketing e transforma\u00e7\u00e3o estrat\u00e9gica. A carta deve mencionar especificamente ${empresa} e ${cargo}, mostrar interesse genu\u00edno e destacar fit cultural.`}]
       })
@@ -2665,7 +2665,7 @@ async function sugerirRespostaATS(btn){
   btn.textContent='Gerando\u2026'; btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:600,
         system:'Voc\u00ea sugere respostas profissionais a emails e mensagens sobre processos seletivos para executivos. Tom adequado ao contexto (formal se RH corporativo, mais direto se headhunter). Retorne APENAS o texto da resposta, sem t\u00edtulo.',
         messages:[{role:'user',content:`Mensagem recebida sobre a vaga de ${cargo} na ${empresa}:\n\n"${msg}"\n\nSuggira uma resposta profissional para Marcos Franco, executivo candidato. Seja conciso, mostre interesse e disponibilidade.`}]
       })
@@ -2896,7 +2896,7 @@ async function _sofiaGerarPerfil(){
   let j={};
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:extrPrompt}]})});
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,messages:[{role:'user',content:extrPrompt}]})});
     const data=await res.json();
     const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
     const m=raw.match(/\{[\s\S]*\}/);
@@ -3194,7 +3194,7 @@ Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} d
   try {
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -4783,7 +4783,7 @@ async function gerarComunicacao(){
       prompt=`Canal: ${canal}\nRemetente: ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}\nMensagem recebida:\n"${recebida}"\n\nMarcos Franco é o destinatário.`;
     }
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:600,system,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const raw=(data.content?.[0]?.text||'').trim();
     if(_comunicacaoMode==='responder'){
@@ -4870,7 +4870,7 @@ Formato:
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
     });
     const data=await res.json();
@@ -4956,7 +4956,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();
@@ -5002,7 +5002,7 @@ Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
     });
     const data=await res.json();
@@ -5341,7 +5341,7 @@ async function gerarRespostaEmailAvulso(btn){
   btn.textContent='Gerando…';btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:600,
         system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
         messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de marketing/negócios (Curitiba, PR, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
       })
@@ -5573,7 +5573,7 @@ ${JSON.stringify(lista)}`;
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       signal:ctrl.signal,
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
     clearTimeout(timer);
     const data=await res.json();
