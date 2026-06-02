@@ -276,6 +276,32 @@ select option { background: var(--bg2); }
 .sinal-item:hover { border-color:var(--border2); transform:translateX(2px); box-shadow:var(--shadow); }
 .sinal-icon { font-size:16px; flex-shrink:0; line-height:1; }
 .sinal-txt { flex:1; font-size:14px; font-weight:500; color:var(--text); }
+/* ── TABS DE EMAIL ── */
+.email-tabs { display:flex; gap:4px; padding:10px 14px 0; }
+.email-tab { display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; border:1.5px solid var(--border); background:transparent; font-size:12.5px; font-weight:600; color:var(--text3); cursor:pointer; font-family:var(--font); transition:all .15s; white-space:nowrap; }
+.email-tab:hover { border-color:var(--border2); color:var(--text2); }
+.email-tab.ativa { background:var(--navy); border-color:var(--navy); color:#fff; }
+.email-tab.ativa .etab-count { background:rgba(255,255,255,0.25); color:#fff; }
+.etab-count { font-size:11px; font-weight:700; background:var(--bg3); color:var(--text3); border-radius:10px; padding:1px 6px; transition:all .15s; }
+/* ── CARDS DE EMAIL ── */
+.email-card { display:flex; align-items:flex-start; gap:0; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:all .15s; cursor:pointer; }
+.email-card:hover { border-color:var(--border2); box-shadow:var(--shadow); transform:translateX(2px); }
+.email-card-band { width:4px; flex-shrink:0; align-self:stretch; }
+.email-card-body { flex:1; min-width:0; padding:11px 13px; }
+.email-card-meta { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+.email-cat-badge { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:1px 7px; border-radius:10px; }
+.email-card-time { font-size:11px; color:var(--text3); margin-left:auto; }
+.email-card-subject { font-size:13.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.email-card-from { font-size:12px; color:var(--text2); margin-bottom:2px; }
+.email-card-preview { font-size:12px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.email-card-action { flex-shrink:0; padding:11px 13px; display:flex; align-items:center; }
+.btn-email-action { padding:5px 11px; border-radius:6px; font-size:12px; font-weight:600; font-family:var(--font); border:1.5px solid; cursor:pointer; white-space:nowrap; transition:all .15s; }
+.btn-email-resp { background:var(--navy); color:#fff; border-color:var(--navy); }
+.btn-email-resp:hover { background:#0F2A4A; }
+.btn-email-open { background:transparent; color:var(--amber); border-color:var(--amber); }
+.btn-email-open:hover { background:var(--amber-bg); }
+.btn-email-block { background:transparent; color:var(--text3); border-color:var(--border2); }
+.btn-email-block:hover { background:var(--red-bg); color:var(--red); border-color:var(--red); }
 /* ── PAINEL ALERTAS ── */
 .alerta-item { padding:10px 0; border-bottom:1px solid var(--border); }
 .alerta-item:last-child { border-bottom:none; }
@@ -5163,77 +5189,89 @@ function renderEmailsAvulsos(){
   if(!temAlgum){
     const n=_emailsNovosHoje;
     const msg=n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje — já importados para o Pipeline.`:'Nenhum email novo.';
-    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar e-mails</button></div>`;
+    lista.innerHTML=`<div style="padding:10px 14px;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
     return;
   }
-  const renderFluxoHeader=(id,emoji,titulo,count,cor,aberto)=>`
-    <div onclick="toggleFluxoEmail('${id}')" style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:${cor}18;border-radius:7px;cursor:pointer;margin-bottom:${aberto?'0':'4px'};">
-      <span style="font-size:13px;">${emoji}</span>
-      <span style="font-size:12.5px;font-weight:700;color:${cor};flex:1;">${titulo}</span>
-      <span style="font-size:12px;font-weight:600;color:${cor};background:${cor}28;border-radius:10px;padding:1px 8px;">${count}</span>
-      <svg id="chev-${id}" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="${cor}" stroke-width="2.5" style="transition:transform .2s;${aberto?'transform:rotate(90deg)':''}"><path d="M6 3l5 5-5 5"/></svg>
-    </div>`;
-  const renderEmailItem=(e,idx,fonte,acaoBotao)=>{
-    const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+
+  // Decide qual tab mostrar: se não há processo, ir para mercado; senão processo
+  if(!_emailsProcesso.length && _emailTabAtiva==='processo'){
+    _emailTabAtiva=_emailsMercado.length?'mercado':'limpar';
+  }
+
+  const CAT_COR={positivo:['#1A7A4A','#EAF7EF'],pipeline:['#B8670A','#FFF8EC'],hunter:['#1A3A5C','#EEF4FA'],vaga:['#2E6DA4','#EEF4FA'],negativo:['#8A8680','#F4F3F0'],mercado:['#7C3AED','#F3F0FF'],irrelevante:['#B0ABA4','#F4F3F0']};
+
+  const renderCard=(e,idx,fonte)=>{
+    const cat=e.categoria||'vaga';
+    const [cor,bg]=CAT_COR[cat]||CAT_COR.vaga;
+    const dataTxt=e.date?_tempoRelativo(e.date):'';
     const remetente=e.from_name||e.from||'(remetente)';
-    const preview=(e.resumo||e.preview||'').slice(0,90);
-    const cor=fonte==='processo'?'#2563EB':fonte==='mercado'?'#7C3AED':'#9CA3AF';
-    return `<div class="home-acao-item" style="cursor:pointer;align-items:flex-start;" onclick="${acaoBotao==='responder'?`abrirModalResponder_fluxo('${fonte}',${idx})`:`bloquearEmailIdx('${fonte}',${idx})`}">
-      <div class="home-acao-dot" style="background:${cor};margin-top:6px;flex-shrink:0;"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
-          <span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${e.emoji||'📧'} ${e.label||'Email'}</span>
-          <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+    const preview=(e.resumo||e.preview||'').slice(0,95);
+    const acoes=fonte==='processo'
+      ?`<button class="btn-email-action btn-email-resp" onclick="event.stopPropagation();abrirModalResponder_fluxo('${fonte}',${idx})">↩ Responder</button>`
+      :fonte==='mercado'
+      ?`<button class="btn-email-action btn-email-open" onclick="event.stopPropagation();${e.webLink?`window.open('${e.webLink}','_blank','noopener')`:`abrirModalResponder_fluxo('mercado',${idx})`}">↗ Abrir</button>`
+      :`<button class="btn-email-action btn-email-block" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫 Bloquear</button>`;
+    return `<div class="email-card" onclick="abrirModalResponder_fluxo('${fonte}',${idx})">
+      <div class="email-card-band" style="background:${cor};"></div>
+      <div class="email-card-body">
+        <div class="email-card-meta">
+          <span class="email-cat-badge" style="color:${cor};background:${bg};">${e.emoji||'📧'} ${e.label||'Email'}</span>
+          <span class="email-card-time">${dataTxt}</span>
         </div>
-        <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(e.subject||'(sem assunto)')}</div>
-        <div style="font-size:12px;color:var(--text2);">${escHtml(remetente)}</div>
-        ${preview?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(preview)}</div>`:''}
+        <div class="email-card-subject">${escHtml(e.subject||'(sem assunto)')}</div>
+        <div class="email-card-from">${escHtml(remetente)}</div>
+        ${preview?`<div class="email-card-preview">${escHtml(preview)}</div>`:''}
       </div>
-      ${acaoBotao==='responder'
-        ?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;" onclick="event.stopPropagation();abrirModalResponder_fluxo('${fonte}',${idx})">↩ Responder</button>`
-        :`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:12px;margin-top:2px;color:#9CA3AF;" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫 Bloquear</button>`
-      }
+      <div class="email-card-action">${acoes}</div>
     </div>`;
   };
-  let html='';
-  // ── Fluxo Processo ──
-  if(_emailsProcesso.length){
-    const aberto=_fluxosAbertos.processo!==false;
-    html+=renderFluxoHeader('processo','🎯','Processo',_emailsProcesso.length,'#2563EB',aberto);
-    html+=`<div id="fluxo-processo" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
-    html+=_emailsProcesso.map((e,i)=>renderEmailItem(e,i,'processo','responder')).join('');
-    html+='</div>';
+
+  const tab=_emailTabAtiva;
+  const arrAtual=tab==='processo'?_emailsProcesso:tab==='mercado'?_emailsMercado:_emailsIrrelevantes;
+
+  const tabs=[
+    {id:'processo',emoji:'🎯',label:'Processo',count:_emailsProcesso.length},
+    {id:'mercado', emoji:'📰',label:'Mercado', count:_emailsMercado.length},
+    {id:'limpar',  emoji:'🚫',label:'Limpar',  count:_emailsIrrelevantes.length},
+  ].filter(t=>t.count>0);
+
+  let html=`<div class="email-tabs">`;
+  tabs.forEach(t=>{
+    html+=`<button class="email-tab${tab===t.id?' ativa':''}" onclick="switchEmailTab('${t.id}')">${t.emoji} ${t.label} <span class="etab-count">${t.count}</span></button>`;
+  });
+  html+=`</div>`;
+  html+=`<div style="display:flex;flex-direction:column;gap:6px;padding:8px 14px 12px;">`;
+  if(arrAtual.length){
+    html+=arrAtual.map((e,i)=>renderCard(e,i,tab==='limpar'?'irrelevante':tab)).join('');
+  } else {
+    html+=`<div style="padding:12px 0;font-size:13px;color:var(--text3);">Nenhum email nesta categoria.</div>`;
   }
-  // ── Fluxo Mercado ──
-  if(_emailsMercado.length){
-    const aberto=_fluxosAbertos.mercado!==false;
-    html+=renderFluxoHeader('mercado','📰','Inteligência de Mercado',_emailsMercado.length,'#7C3AED',aberto);
-    html+=`<div id="fluxo-mercado" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
-    html+=_emailsMercado.map((e,i)=>renderEmailItem(e,i,'mercado','arquivar')).join('');
-    html+='</div>';
-  }
-  // ── Fluxo Irrelevante ──
-  if(_emailsIrrelevantes.length){
-    const aberto=_fluxosAbertos.irrelevante===true;
-    html+=renderFluxoHeader('irrelevante','🚫','Para Bloquear',_emailsIrrelevantes.length,'#9CA3AF',aberto);
-    html+=`<div id="fluxo-irrelevante" style="display:${aberto?'flex':'none'};flex-direction:column;gap:6px;padding:4px 0 8px;">`;
-    html+=_emailsIrrelevantes.map((e,i)=>renderEmailItem(e,i,'irrelevante','bloquear')).join('');
-    html+='</div>';
-  }
+  html+=`</div>`;
   lista.innerHTML=html;
 }
-const _fluxosAbertos={processo:true,mercado:false,irrelevante:false};
-function toggleFluxoEmail(id){
-  _fluxosAbertos[id]=!_fluxosAbertos[id];
-  const div=document.getElementById('fluxo-'+id);
-  const chev=document.getElementById('chev-'+id);
-  if(div) div.style.display=_fluxosAbertos[id]?'flex':'none';
-  if(chev) chev.style.transform=_fluxosAbertos[id]?'rotate(90deg)':'';
+let _emailTabAtiva='processo';
+function switchEmailTab(id){
+  _emailTabAtiva=id;
+  renderEmailsAvulsos();
+}
+function _tempoRelativo(dateStr){
+  if(!dateStr) return '';
+  const diff=Date.now()-new Date(dateStr).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<60) return `há ${m||1}min`;
+  const h=Math.floor(m/60);
+  if(h<24) return `há ${h}h`;
+  return `há ${Math.floor(h/24)}d`;
 }
 function abrirModalResponder_fluxo(fonte,idx){
   const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
   _emailsAvulsos=arr;
   abrirModalResponder(idx);
+  // Ajusta label do botão Responder para Mercado
+  if(fonte==='mercado'){
+    const btn=document.getElementById('mer-enviar-btn');
+    if(btn) btn.textContent='Enviar pelo Outlook';
+  }
 }
 function bloquearEmailIdx(fonte,idx){
   const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
