@@ -197,9 +197,9 @@ select option { background: var(--bg2); }
 .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── HOME COCKPIT ── */
-.home-acao-item { background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
-.home-acao-item:hover { border-color: var(--border2); box-shadow: var(--shadow); transform: translateX(2px); }
-.home-acao-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.home-acao-item { background:transparent; border:none; border-bottom:1px solid var(--border); border-left:4px solid var(--border2); padding:11px 16px 11px 18px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:background 0.1s; }
+.home-acao-item:hover { background:var(--bg3); }
+.home-acao-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .home-stat-box { background: var(--bg2); border: 1px solid var(--border); border-top: 3px solid var(--navy); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow); }
 .home-stat-box:hover { border-top-color: var(--action); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .home-stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--navy); }
@@ -324,47 +324,38 @@ select option { background: var(--bg2); }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HOME v3.24 — mesmo padrão visual do Mercado
+   SENOVA HOME v3.25 — Design System aprovado 03/jun/2026
+   Regras: sem border-top colorida · sem icon box · cor = sinal
 ═══════════════════════════════════════════════════════════════════ */
-.h-grid { display:grid; grid-template-columns:1fr 310px; gap:16px; align-items:start; }
-@media (max-width:1100px) { .h-grid { grid-template-columns:1fr; } }
-.h-right-col { display:flex; flex-direction:column; gap:12px; }
+.sh-grid { display:grid; grid-template-columns:1fr 285px; gap:16px; align-items:start; }
+@media (max-width:1100px) { .sh-grid { grid-template-columns:1fr; } }
+.sh-right { display:flex; flex-direction:column; gap:12px; }
 
-/* card-title: mesmo padrão dos cards do Mercado */
-.h-card-title { font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--navy); }
+.sh-card { background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06); overflow:hidden; }
+.sh-card-accent { border-left:3px solid var(--gold); }
 
-/* Sinal rows — mesmo estilo dos link-items do Mercado */
-.h-sinal-row { display:flex; align-items:center; gap:12px; padding:12px 22px; cursor:pointer; transition:background 0.12s, border-color 0.12s; border-bottom:1px solid var(--border); }
-.h-sinal-row:last-of-type { border-bottom:none; }
-.h-sinal-row:hover { background:#EEF4FA; }
-.h-sinal-row:hover .h-sinal-ic { border-color:var(--gold); }
-.h-sinal-ic { width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:var(--bg3); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.15s; }
-.h-sinal-body { flex:1; min-width:0; }
-.h-sinal-label { font-size:14px; font-weight:600; color:var(--text); }
-.h-sinal-sub { font-size:12px; color:var(--text3); margin-top:1px; }
-.h-sinal-chev { color:var(--text3); flex-shrink:0; transition:transform 0.15s; }
+.sh-head { display:flex; align-items:center; gap:10px; padding:15px 22px 13px; border-bottom:1px solid var(--border); }
+.sh-head-title { font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--navy); }
+.sh-head-meta { font-size:12px; color:var(--text3); }
+.sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--action); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
 
-/* Pipeline KPIs */
-.h-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px 22px; }
-.h-kpi { background:var(--bg3); border-radius:var(--radius); padding:16px 12px; text-align:center; cursor:pointer; transition:all 0.12s; border:1px solid transparent; }
-.h-kpi:hover { border-color:var(--gold); transform:translateY(-1px); box-shadow:var(--shadow-md); }
-.h-kpi-num { font-family:var(--font-display); font-size:28px; font-weight:700; color:var(--navy); line-height:1.1; }
-.h-kpi-lbl { font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; margin-top:4px; }
+.sh-item { display:flex; align-items:center; gap:12px; padding:11px 22px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.sh-item:last-of-type { border-bottom:none; }
+.sh-item:hover { background:var(--bg3); }
+.sh-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.sh-item-body { flex:1; min-width:0; }
+.sh-item-label { font-size:13.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sh-item-sub { font-size:12px; color:var(--text3); margin-top:1px; }
+.sh-item-chev { color:var(--text3); flex-shrink:0; transition:transform 0.15s; }
 
-/* Card-link row (Relatórios, etc.) */
-.h-card-link { display:flex; align-items:center; gap:12px; padding:14px 22px; cursor:pointer; transition:background 0.12s; }
-.h-card-link:hover { background:var(--bg3); }
-.h-card-link:hover .h-sinal-ic { border-color:var(--gold); }
+.sh-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px 16px; }
+.sh-kpi { background:var(--bg3); border-radius:10px; padding:14px 10px; text-align:center; cursor:pointer; transition:all 0.12s; }
+.sh-kpi:hover { background:var(--bg4); transform:translateY(-1px); box-shadow:0 2px 8px rgba(26,58,92,0.1); }
+.sh-kpi-num { font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--navy); line-height:1.1; }
+.sh-kpi-lbl { font-size:10.5px; color:var(--text3); margin-top:3px; line-height:1.35; }
 
-/* compat aliases para código JS que usa classes antigas */
-.home-briefing-grid { display:grid; grid-template-columns:1fr 310px; gap:16px; align-items:start; }
-@media (max-width:1100px) { .home-briefing-grid { grid-template-columns:1fr; } }
-.novidade-row { display:flex; align-items:center; gap:12px; padding:11px 20px; cursor:pointer; border-bottom:1px solid var(--border); }
-.novidade-chev { color:var(--text3); flex-shrink:0; transition:transform 0.15s; }
-.pip-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px; }
-.pip-kpi { background:var(--bg3); border-radius:var(--radius); padding:14px 12px; text-align:center; cursor:pointer; transition:all 0.12s; }
-.pip-num { font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--navy); line-height:1.1; }
-.pip-lbl { font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; margin-top:3px; }
+.sh-ver-mais { display:block; width:100%; padding:9px 22px; font-size:12.5px; color:var(--action); font-weight:500; cursor:pointer; border:none; border-top:1px solid var(--border); background:none; font-family:var(--font); text-align:left; transition:background 0.1s; }
+.sh-ver-mais:hover { background:var(--bg3); }
 
 /* ── BADGE REVISAR ── */
 .badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
@@ -418,13 +409,13 @@ select option { background: var(--bg2); }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M3 2h7l3 3v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M9 2v4h3"/><path d="M5 8h4M5 10.5h3M5 13h2"/>
       </svg>
-      Análise de Vaga
+      Avaliar Posição
     </div>
     <div class="nav-item" onclick="showPage('crm')" id="nav-crm">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M2 4h12M2 8h8M2 12h5"/><rect x="11" y="7" width="3" height="5" rx="1"/>
       </svg>
-      Processos
+      Sua Busca
       <span class="nav-badge" id="crm-badge">—</span>
     </div>
     <div class="nav-item" onclick="showPage('mercado')" id="nav-mercado">
@@ -437,7 +428,7 @@ select option { background: var(--bg2); }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="2" y="9" width="3" height="5" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="3" width="3" height="11" rx="1"/>
       </svg>
-      Relatórios
+      Seu Painel
     </div>
   </div>
 
@@ -474,174 +465,142 @@ select option { background: var(--bg2); }
         </div>
       </div>
       <button onclick="showPage('crm');setTimeout(()=>openVagaModal('new'),120);" style="display:flex;align-items:center;gap:5px;padding:7px 16px;border-radius:20px;border:none;background:var(--navy);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;box-shadow:var(--shadow);">
-        + Novo Processo
+        + Incluir
       </button>
     </div>
   </div>
 
   <div class="content">
 
-    <!-- ── Hero banner — mesmo padrão do Mercado ── -->
-    <div style="background:linear-gradient(135deg,var(--navy) 0%,#2E6DA4 100%);border-radius:var(--radius-lg);padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
-      <div style="width:44px;height:44px;border-radius:12px;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <!-- Para Hoje -->
+    <div class="sh-card sh-card-accent" style="margin-bottom:16px;">
+      <div class="sh-head">
+        <span class="sh-head-title">Para Hoje</span>
+        <span class="sh-head-meta" id="home-acoes-badge"></span>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()" style="font-size:11.5px;padding:3px 6px;height:26px;">
+            <option value="all">Prioridade</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+          <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()" style="font-size:11.5px;padding:3px 6px;height:26px;">
+            <option value="all">Canal</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="email">E-mail</option>
+            <option value="headhunter">Headhunter</option>
+            <option value="indicacao">Indicação</option>
+            <option value="direto">Direto</option>
+          </select>
+        </div>
       </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;margin-bottom:3px;">Centro de Comando</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;">Suas prioridades, novidades e o estado do pipeline — tudo em um lugar.</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;padding-left:16px;border-left:1px solid rgba(255,255,255,0.15);">
-        <div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">Ações hoje</div>
-        <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--gold);line-height:1;" id="home-acoes-badge">—</div>
-      </div>
+      <div id="home-acoes-list" style="max-height:198px;overflow:hidden;transition:max-height 0.3s ease;"></div>
+      <button class="sh-ver-mais" id="home-ver-mais" style="display:none;" onclick="_homeVerMais(this)"></button>
     </div>
 
-    <!-- ── Prioridades do Dia ── -->
-    <div class="card" style="border-top:3px solid var(--gold);padding:0;margin-bottom:16px;">
-      <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
-        <div style="flex:1;min-width:0;">
-          <div class="h-card-title">Prioridades do Dia</div>
-          <div class="gold-line" style="margin-top:8px;margin-bottom:0;width:56px;"></div>
-        </div>
-        <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
-          <option value="all">Prioridade</option>
-          <option value="alta">Alta</option>
-          <option value="media">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
-        <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
-          <option value="all">Canal</option>
-          <option value="LinkedIn">LinkedIn</option>
-          <option value="email">E-mail</option>
-          <option value="headhunter">Headhunter</option>
-          <option value="indicacao">Indicação</option>
-          <option value="direto">Direto</option>
-        </select>
-      </div>
-      <div id="home-acoes-list" style="padding:6px 0;"></div>
-    </div>
+    <!-- Grid 2 colunas -->
+    <div class="sh-grid">
 
-    <!-- ── Grid 2 colunas ── -->
-    <div class="h-grid">
-
-      <!-- Novidades -->
-      <div class="card" style="border-top:3px solid var(--navy);padding:0;">
-        <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);">
-          <div class="h-card-title">Novidades</div>
-          <div class="gold-line" style="margin-top:8px;width:40px;"></div>
+      <!-- O que chegou -->
+      <div class="sh-card">
+        <div class="sh-head">
+          <span class="sh-head-title">O que chegou</span>
         </div>
 
-        <div id="sinal-emails" class="h-sinal-row" onclick="toggleEmailsAvulsos()">
-          <div class="h-sinal-ic">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 5l7 5 7-5"/></svg>
+        <div id="sinal-emails" class="sh-item" onclick="toggleEmailsAvulsos()">
+          <div class="sh-dot" style="background:var(--action);"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-emails-txt">E-mails</div>
           </div>
-          <div class="h-sinal-body">
-            <div class="h-sinal-label" id="sinal-emails-txt">E-mails</div>
-          </div>
-          <svg class="h-sinal-chev" id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
         <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
-        <div id="sinal-alertas" class="h-sinal-row" onclick="toggleAlertasInline()">
-          <div class="h-sinal-ic">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.6"><path d="M8 2a5.5 5.5 0 0 1 5.5 5.5c0 3-1.3 4.5-1.3 4.5H3.8S2.5 10.5 2.5 7.5A5.5 5.5 0 0 1 8 2z"/><path d="M6.2 12a1.8 1.8 0 0 0 3.6 0"/></svg>
+        <div id="sinal-alertas" class="sh-item" onclick="toggleAlertasInline()">
+          <div class="sh-dot" style="background:var(--navy);"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-alertas-txt">O que chegou</div>
           </div>
-          <div class="h-sinal-body">
-            <div class="h-sinal-label" id="sinal-alertas-txt">Inteligência de Mercado</div>
-          </div>
-          <svg class="h-sinal-chev" id="sinal-alertas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" id="sinal-alertas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
         <div id="alertas-inline-lista" style="display:none;flex-direction:column;gap:8px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
-        <div id="sinal-vagas" class="h-sinal-row" style="display:none;" onclick="toggleRevisaoLista()">
-          <div class="h-sinal-ic" style="background:var(--amber-bg);border-color:rgba(184,103,10,0.25);">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.6"><path d="M3 2h7l3 3v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M9 2v4h3"/><path d="M5 8h4M5 11h2"/></svg>
+        <div id="sinal-vagas" class="sh-item" style="display:none;" onclick="toggleRevisaoLista()">
+          <div class="sh-dot" style="background:var(--amber);"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-vagas-txt" style="color:var(--amber);">Oportunidades para revisar</div>
           </div>
-          <div class="h-sinal-body">
-            <div class="h-sinal-label" id="sinal-vagas-txt" style="color:var(--amber);">Vagas para revisar</div>
-          </div>
-          <svg class="h-sinal-chev" id="sinal-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" id="sinal-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
         <div id="home-revisao-lista" style="padding:0 4px;"></div>
 
-        <div id="sinal-inativos" class="h-sinal-row" style="display:none;" onclick="irParaInativos()">
-          <div class="h-sinal-ic" style="background:var(--red-bg);border-color:rgba(192,40,30,0.25);">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--red)" stroke-width="1.6"><path d="M8 2l6 12H2L8 2z"/><path d="M8 6v3.5M8 11v.5"/></svg>
+        <div id="sinal-inativos" class="sh-item" style="display:none;" onclick="irParaInativos()">
+          <div class="sh-dot" style="background:var(--red);"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-inativos-txt" style="color:var(--red);">Processos precisam de atenção</div>
           </div>
-          <div class="h-sinal-body">
-            <div class="h-sinal-label" id="sinal-inativos-txt" style="color:var(--red);">Processos sem atualização</div>
-          </div>
-          <svg class="h-sinal-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
-      </div><!-- /novidades -->
+      </div>
 
       <!-- Coluna direita -->
-      <div class="h-right-col">
+      <div class="sh-right">
 
-        <!-- Pipeline -->
-        <div class="card" style="border-top:3px solid var(--navy);padding:0;">
-          <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;">
-            <div>
-              <div class="h-card-title">Pipeline</div>
-              <div class="gold-line" style="margin-top:8px;width:36px;"></div>
-            </div>
-            <button onclick="showPage('crm')" style="font-size:12.5px;font-weight:600;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding-bottom:2px;">Ver tudo →</button>
+        <!-- Sua Situação -->
+        <div class="sh-card">
+          <div class="sh-head">
+            <span class="sh-head-title">Sua Situação</span>
+            <button class="sh-head-action" onclick="showPage('crm')">ver tudo →</button>
           </div>
-          <div class="h-kpi-grid">
-            <div class="h-kpi" onclick="showPage('crm')">
-              <div class="h-kpi-num" id="stat-lead">—</div>
-              <div class="h-kpi-lbl">Oportunidades</div>
+          <div class="sh-kpi-grid">
+            <div class="sh-kpi" onclick="showPage('crm')">
+              <div class="sh-kpi-num" id="stat-lead">—</div>
+              <div class="sh-kpi-lbl">em vista</div>
             </div>
-            <div class="h-kpi" onclick="showPage('crm')">
-              <div class="h-kpi-num" id="stat-candidatados">—</div>
-              <div class="h-kpi-lbl">Candidaturas</div>
+            <div class="sh-kpi" onclick="showPage('crm')">
+              <div class="sh-kpi-num" id="stat-candidatados">—</div>
+              <div class="sh-kpi-lbl">aguardando retorno</div>
             </div>
-            <div class="h-kpi" onclick="showPage('crm')">
-              <div class="h-kpi-num" id="stat-pipeline">—</div>
-              <div class="h-kpi-lbl">Em Processo</div>
+            <div class="sh-kpi" onclick="showPage('crm')">
+              <div class="sh-kpi-num" id="stat-pipeline">—</div>
+              <div class="sh-kpi-lbl">em conversa</div>
             </div>
-            <div class="h-kpi" onclick="showPage('crm')">
-              <div class="h-kpi-num" id="stat-proposta">—</div>
-              <div class="h-kpi-lbl">Propostas</div>
+            <div class="sh-kpi" onclick="showPage('crm')">
+              <div class="sh-kpi-num" id="stat-proposta">—</div>
+              <div class="sh-kpi-lbl">com proposta</div>
             </div>
           </div>
         </div>
 
-        <!-- Relatórios -->
-        <div class="card" style="padding:0;cursor:pointer;" onclick="showPage('relatorios')">
-          <div class="h-card-link">
-            <div class="h-sinal-ic">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.5"><rect x="2" y="9" width="3" height="5" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="3" width="3" height="11" rx="1"/></svg>
+        <!-- Seu Painel -->
+        <div class="sh-card" style="cursor:pointer;" onclick="showPage('relatorios')">
+          <div class="sh-item" style="border-bottom:none;">
+            <div class="sh-dot" style="background:var(--navy);"></div>
+            <div class="sh-item-body">
+              <div class="sh-item-label">Seu Painel</div>
+              <div class="sh-item-sub">funil · taxa de retorno · histórico</div>
             </div>
-            <div class="h-sinal-body">
-              <div class="h-sinal-label">Relatórios</div>
-              <div class="h-sinal-sub">Funil · taxa por canal · tempo médio</div>
-            </div>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+            <svg class="sh-item-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
           </div>
         </div>
 
-        <!-- Limpeza Expressa (condicional) -->
-        <div class="card" id="home-limpeza-card" style="display:none;border-top:3px solid var(--amber);padding:0;">
-          <div style="padding:16px 22px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
-            <div class="h-sinal-ic" style="background:var(--amber-bg);border-color:rgba(184,103,10,0.25);">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.6"><path d="M2 4h12M5 4V2h6v2M7 7v5M9 7v5M3 4l1 10h8l1-10"/></svg>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13.5px;font-weight:700;color:var(--amber);">Pipeline com acúmulo</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:1px;" id="home-limpeza-count"></div>
-            </div>
+        <!-- Oportunidades acumuladas (condicional) -->
+        <div class="sh-card" id="home-limpeza-card" style="display:none;border-left:3px solid var(--amber);">
+          <div class="sh-head">
+            <div class="sh-dot" style="background:var(--amber);flex-shrink:0;"></div>
+            <span class="sh-head-title" style="color:var(--amber);">Oportunidades acumuladas</span>
+            <span class="sh-head-meta" id="home-limpeza-count" style="color:var(--amber);margin-left:4px;"></span>
           </div>
-          <div style="padding:12px 22px 4px;font-size:13px;color:var(--text3);line-height:1.55;" id="home-limpeza-desc"></div>
-          <div style="padding:10px 22px 16px;display:flex;flex-direction:column;gap:6px;">
-            <button onclick="limpezaExpressa()" style="width:100%;padding:9px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Arquivar leads inativos →</button>
+          <div style="padding:8px 22px 6px;font-size:13px;color:var(--text3);line-height:1.5;" id="home-limpeza-desc"></div>
+          <div style="padding:4px 22px 16px;display:flex;flex-direction:column;gap:6px;">
+            <button onclick="limpezaExpressa()" style="width:100%;padding:9px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Guardar no histórico →</button>
             <button onclick="showPage('crm');setTimeout(abrirLimpezaLote,200);" style="width:100%;padding:7px 14px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font);">Selecionar manualmente</button>
           </div>
         </div>
 
-      </div><!-- /h-right-col -->
-    </div><!-- /h-grid -->
-  </div><!-- /content -->
+      </div>
+    </div>
+  </div>
 </div><!-- /page-home -->
 
 <!-- ═══ MODAL: DEDUPLICAÇÃO DE VAGAS ═══════════════════════════════════ -->
@@ -5572,6 +5531,21 @@ function abrirModalAlerta(idx){
   renderAlertasInline();
   atualizarSinais();
 }
+function _homeVerMais(btn){
+  const list=document.getElementById('home-acoes-list');
+  if(!list) return;
+  const expanded=list.dataset.expanded==='1';
+  if(expanded){
+    list.style.maxHeight='198px';
+    list.dataset.expanded='0';
+    const total=list.children.length;
+    btn.textContent=`ver mais ${Math.max(0,total-3)} ${total-4===0?'item':'itens'} →`;
+  } else {
+    list.style.maxHeight=list.scrollHeight+'px';
+    list.dataset.expanded='1';
+    btn.textContent='↑ ver menos';
+  }
+}
 function _dispensarAlerta(idx){
   _sinaisAlertas.splice(idx,1);
   renderAlertasInline();
@@ -6195,6 +6169,21 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
       el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCRM};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Contato</span><span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">${badgeTxt}</span><span style="font-size:11px;color:var(--text3);">📅 ${dataFmt}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.next}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
       list.appendChild(el);
     });
+  }
+  // Ver mais — acionar após renderizar todos os itens
+  const verMaisBtn=document.getElementById('home-ver-mais');
+  const listEl=document.getElementById('home-acoes-list');
+  if(verMaisBtn&&listEl){
+    listEl.style.maxHeight='198px';
+    listEl.dataset.expanded='0';
+    const totalItens=listEl.children.length;
+    if(totalItens>3){
+      const hidden=totalItens-3;
+      verMaisBtn.style.display='block';
+      verMaisBtn.textContent=`ver mais ${hidden} ${hidden===1?'item':'itens'} →`;
+    } else {
+      verMaisBtn.style.display='none';
+    }
   }
 }
 
