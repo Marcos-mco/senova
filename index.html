@@ -583,6 +583,20 @@ select option { background: var(--bg2); }
           </div>
         </div>
 
+        <!-- Limpeza Expressa -->
+        <div class="brf-block" id="home-limpeza-card" style="display:none;">
+          <div class="brf-head" style="padding-bottom:13px;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.5" style="flex-shrink:0;"><path d="M2 4h12M5 4V2h6v2M7 7v5M9 7v5M3 4l1 10h8l1-10"/></svg>
+            <span class="brf-head-title" style="color:var(--amber);">Pipeline com acúmulo</span>
+            <div class="brf-head-right"><span id="home-limpeza-count" style="font-size:12px;color:var(--amber);font-weight:700;"></span></div>
+          </div>
+          <div style="padding:0 20px 14px;">
+            <div style="font-size:13px;color:var(--text3);line-height:1.5;margin-bottom:10px;" id="home-limpeza-desc"></div>
+            <button onclick="limpezaExpressa()" style="width:100%;padding:8px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Arquivar leads inativos →</button>
+            <button onclick="showPage('crm');setTimeout(abrirLimpezaLote,200);" style="width:100%;margin-top:6px;padding:7px 14px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font);">Ver e selecionar manualmente</button>
+          </div>
+        </div>
+
         <!-- Acesso rápido: Relatórios -->
         <div class="brf-block" style="cursor:pointer;" onclick="showPage('relatorios')">
           <div class="brf-head" style="padding-bottom:13px;">
@@ -1311,6 +1325,7 @@ select option { background: var(--bg2); }
         <option value="az">Empresa A-Z</option>
       </select>
       <button class="btn-filter-limpar" onclick="limparFiltros()">Limpar filtros</button>
+      <button id="btn-limpeza-lote" onclick="abrirLimpezaLote()" style="display:none;font-size:12px;font-weight:600;color:var(--amber);background:var(--amber-bg);border:1px solid rgba(184,103,10,0.3);border-radius:16px;padding:5px 14px;cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0;">Limpeza em lote</button>
     </div>
 
     <!-- Vagas Kanban -->
@@ -2480,7 +2495,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
@@ -4086,6 +4101,50 @@ function arquivarSelecionadosLote(){
     const painel=document.getElementById('limpeza-lote-painel');
     if(painel) painel.style.display='none';
   },2000);
+}
+
+function limpezaExpressa(){
+  const ARQUIVADOS=['aceito','negado','descartado'];
+  const limite=60*24*3600*1000;
+  const agora=Date.now();
+  const candidatos=vagas.filter(v=>{
+    if(ARQUIVADOS.includes(v.status)) return false;
+    if(v.status!=='lead') return false;
+    return !v.updatedAt||(agora-v.updatedAt)>=limite;
+  });
+  if(!candidatos.length){
+    showToast('Nenhum lead inativo há 60+ dias. Pipeline limpo!');
+    return;
+  }
+  const n=candidatos.length;
+  const exemplos=candidatos.slice(0,3).map(v=>v.empresa||'—').join(', ')+(n>3?` e mais ${n-3}`:'');
+  if(!confirm(`Arquivar ${n} oportunidade${n>1?'s':''} sem atualização há 60+ dias?\n\nExemplos: ${exemplos}\n\nVocê poderá ver os arquivados no Pipeline a qualquer momento.`)) return;
+  candidatos.forEach(v=>{
+    v.status='descartado'; v.updatedAt=agora;
+    if(!v.timeline) v.timeline=[];
+    v.timeline.push({ts:agora,texto:'Arquivado via Limpeza Expressa (60+ dias inativo)'});
+  });
+  saveVagas();
+  atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); _avaliarLimpezaCard();
+  showToast(`${n} oportunidade${n>1?'s':''} arquivada${n>1?'s':''} — Pipeline atualizado`);
+}
+
+function _avaliarLimpezaCard(){
+  const card=document.getElementById('home-limpeza-card');
+  if(!card) return;
+  const ARQUIVADOS=['aceito','negado','descartado'];
+  const limite=60*24*3600*1000;
+  const agora=Date.now();
+  const velhos=vagas.filter(v=>!ARQUIVADOS.includes(v.status)&&v.status==='lead'&&(!v.updatedAt||(agora-v.updatedAt)>=limite));
+  const count=document.getElementById('home-limpeza-count');
+  const desc=document.getElementById('home-limpeza-desc');
+  if(velhos.length>0){
+    card.style.display='block';
+    if(count) count.textContent=`${velhos.length} lead${velhos.length>1?'s':''}`;
+    if(desc) desc.textContent=`${velhos.length} oportunidade${velhos.length>1?'s':''} sem movimentação há 60+ dias ocupando espaço no Pipeline.`;
+  } else {
+    card.style.display='none';
+  }
 }
 
 function setCrmTab(tab,btn){
