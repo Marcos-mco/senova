@@ -318,10 +318,40 @@ select option { background: var(--bg2); }
 .outlook-toggle-knob { position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.28); transition:left 0.22s; }
 .outlook-toggle.on .outlook-toggle-knob { left:27px; }
 
-/* ── HOME GRID (duas colunas) ── */
+/* ── HOME GRID (duas colunas) — legado ── */
 .home-grid { display:grid; grid-template-columns:5fr 7fr; gap:16px; align-items:start; }
 @media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   NOVA HOME v3.23 — Briefing do Dia
+═══════════════════════════════════════════════════════════════════ */
+.home-briefing-grid { display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start; }
+@media (max-width:1100px) { .home-briefing-grid { grid-template-columns:1fr; } }
+
+.brf-block { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden; }
+.brf-head { display:flex; align-items:center; gap:10px; padding:13px 20px 12px; border-bottom:1px solid var(--border); }
+.brf-head-title { font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--navy); letter-spacing:-0.1px; }
+.brf-head-badge { font-size:12px; color:var(--text3); }
+.brf-head-right { margin-left:auto; display:flex; align-items:center; gap:6px; }
+
+.brf-prioridades { border-left:4px solid var(--gold); margin-bottom:16px; }
+.brf-prioridades .brf-head { background:linear-gradient(to right,rgba(201,168,76,0.07),transparent); }
+
+.novidade-row { display:flex; align-items:center; gap:12px; padding:11px 20px; cursor:pointer; transition:background 0.12s; }
+.novidade-row:not(:last-child) { border-bottom:1px solid var(--border); }
+.novidade-row:hover { background:var(--bg3); }
+.novidade-ic { width:30px; height:30px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--bg3); }
+.novidade-body { flex:1; min-width:0; }
+.novidade-label { font-size:13.5px; font-weight:600; color:var(--text); }
+.novidade-sub { font-size:12px; color:var(--text3); margin-top:1px; }
+.novidade-chev { color:var(--text3); flex-shrink:0; transition:transform 0.15s; }
+
+.pip-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px; }
+.pip-kpi { background:var(--bg3); border-radius:var(--radius); padding:14px 12px; text-align:center; cursor:pointer; transition:all 0.12s; }
+.pip-kpi:hover { background:var(--bg4); transform:translateY(-1px); box-shadow:var(--shadow); }
+.pip-num { font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--navy); line-height:1.1; }
+.pip-lbl { font-size:10.5px; color:var(--text3); text-transform:uppercase; letter-spacing:0.07em; font-weight:600; margin-top:3px; }
 
 /* ── BADGE REVISAR ── */
 .badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
@@ -390,6 +420,12 @@ select option { background: var(--bg2); }
       </svg>
       Mercado
     </div>
+    <div class="nav-item" onclick="showPage('relatorios')" id="nav-relatorios">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="9" width="3" height="5" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="3" width="3" height="11" rx="1"/>
+      </svg>
+      Relatórios
+    </div>
   </div>
 
   <div class="sidebar-bottom">
@@ -409,7 +445,7 @@ select option { background: var(--bg2); }
 <main class="main">
 
 <!-- ┌─────────────────────────────┐
-     │  PAGE: HOME (cockpit)      │
+     │  PAGE: HOME — Briefing     │
      └─────────────────────────────┘ -->
 <div id="page-home" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
@@ -418,154 +454,150 @@ select option { background: var(--bg2); }
       <span class="page-sub" id="home-date-sub"></span>
     </div>
     <div class="topbar-right">
-      <div class="outlook-toggle-wrap" onclick="toggleOutlook()" title="Clique para conectar/desconectar o Outlook">
+      <div class="outlook-toggle-wrap" onclick="toggleOutlook()" title="Conectar / desconectar Outlook">
         <span class="outlook-toggle-label">Outlook</span>
         <div id="outlook-toggle" class="outlook-toggle">
           <div class="outlook-toggle-knob"></div>
         </div>
       </div>
-      <button onclick="fetch('https://senova-proxy.marcos-mco.workers.dev/api/emails/limpar-vistos').then(()=>{this.textContent='Buscando...';setTimeout(()=>{this.textContent='↺ Recarregar e-mails';carregarEmails(true);},1500);})" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);color:var(--text3);" title="Buscar e-mails novos do Outlook e reclassificar">
-        ↺ Recarregar e-mails
-      </button>
       <button onclick="showPage('crm');setTimeout(()=>openVagaModal('new'),120);" style="display:flex;align-items:center;gap:5px;padding:7px 16px;border-radius:20px;border:none;background:var(--navy);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;box-shadow:var(--shadow);">
         + Novo Processo
       </button>
     </div>
   </div>
+
   <div class="content">
 
-    <!-- ── KPIs compactos (faixa 4 colunas) ── -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
-      <div class="home-kpi-strip" onclick="showPage('crm')">
-        <span style="font-size:20px;flex-shrink:0;">🗂</span>
-        <div>
-          <div class="home-kpi-num" id="stat-lead">—</div>
-          <div class="home-kpi-lbl">Oportunidades</div>
-          <div class="home-kpi-sub">vagas identificadas</div>
+    <!-- ── Prioridades do Dia — bloco hero ── -->
+    <div class="brf-block brf-prioridades">
+      <div class="brf-head">
+        <span class="brf-head-title">Prioridades do Dia</span>
+        <span class="brf-head-badge" id="home-acoes-badge"></span>
+        <div class="brf-head-right">
+          <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
+            <option value="all">Prioridade</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+          <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
+            <option value="all">Canal</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="email">E-mail</option>
+            <option value="headhunter">Headhunter</option>
+            <option value="indicacao">Indicação</option>
+            <option value="direto">Direto</option>
+          </select>
         </div>
       </div>
-      <div class="home-kpi-strip" onclick="showPage('crm')">
-        <span style="font-size:20px;flex-shrink:0;">✉️</span>
-        <div>
-          <div class="home-kpi-num" id="stat-candidatados">—</div>
-          <div class="home-kpi-lbl">Candidaturas</div>
-          <div class="home-kpi-sub">CV enviado aguardando</div>
-        </div>
-      </div>
-      <div class="home-kpi-strip" onclick="showPage('crm')">
-        <span style="font-size:20px;flex-shrink:0;">🎤</span>
-        <div>
-          <div class="home-kpi-num" id="stat-pipeline">—</div>
-          <div class="home-kpi-lbl">Em processo</div>
-          <div class="home-kpi-sub">entrevista/contato ativo</div>
-        </div>
-      </div>
-      <div class="home-kpi-strip" onclick="showPage('crm')">
-        <span style="font-size:20px;flex-shrink:0;">📄</span>
-        <div>
-          <div class="home-kpi-num" id="stat-proposta">—</div>
-          <div class="home-kpi-lbl">Propostas</div>
-          <div class="home-kpi-sub">oferta recebida</div>
-        </div>
-      </div>
+      <div style="padding:6px 0;" id="home-acoes-list"></div>
     </div>
 
-    <!-- ── Duas colunas ── -->
-    <div class="home-grid">
+    <!-- ── Grid 2 colunas: Novidades | Pipeline ── -->
+    <div class="home-briefing-grid">
 
-      <!-- COLUNA ESQUERDA: funil + canal + tempo -->
-      <div style="display:flex;flex-direction:column;gap:10px;">
+      <!-- Novidades (substitui Central de Sinais) -->
+      <div class="brf-block">
 
-        <div id="dash-pipeline-section">
-
-          <!-- Funil visual -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:10px;box-shadow:var(--shadow);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              <span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Funil do Pipeline</span>
-              <span id="dash-totals" style="font-size:12px;color:var(--text3);">—</span>
-            </div>
-            <div id="dash-funil" style="display:flex;flex-direction:column;gap:7px;"></div>
-          </div>
-
-          <!-- Taxa por canal -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow);">
-            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Taxa de Retorno por Canal</div>
-            <div id="dash-canais" style="display:flex;flex-direction:column;gap:5px;"></div>
-          </div>
-
-          <!-- Tempo médio por estágio -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;box-shadow:var(--shadow);">
-            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Tempo Médio por Estágio</div>
-            <div id="dash-tempo" style="display:flex;flex-direction:column;gap:5px;"></div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- COLUNA DIREITA: sinais + revisão + ações -->
-      <div class="home-right-col">
-
-        <!-- Central de Sinais (topo) -->
-        <div id="sinais-section">
-          <div class="section-head" style="margin-bottom:8px;">
-            <span class="section-title" style="font-size:13px;">Central de Sinais</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <div id="sinal-emails" class="sinal-item" onclick="toggleEmailsAvulsos()">
-              <span class="sinal-icon">📧</span>
-              <span id="sinal-emails-txt" class="sinal-txt"></span>
-              <svg id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-            </div>
-            <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;"></div>
-            <div id="sinal-alertas" class="sinal-item" onclick="toggleAlertasInline()">
-              <span class="sinal-icon">🔔</span>
-              <span id="sinal-alertas-txt" class="sinal-txt"></span>
-              <svg id="sinal-alertas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-            </div>
-            <div id="alertas-inline-lista" style="display:none;flex-direction:column;gap:8px;"></div>
-            <div id="sinal-vagas" class="sinal-item" onclick="toggleRevisaoLista()">
-              <span class="sinal-icon">📋</span>
-              <span id="sinal-vagas-txt" class="sinal-txt"></span>
-              <svg id="sinal-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-            </div>
-            <div id="home-revisao-lista" style="padding:0 4px;"></div>
-            <div id="sinal-inativos" class="sinal-item" style="display:none;" onclick="irParaInativos()">
-              <span class="sinal-icon">⚠</span>
-              <span id="sinal-inativos-txt" class="sinal-txt"></span>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-            </div>
-          </div>
+        <div class="brf-head">
+          <span class="brf-head-title">Novidades</span>
         </div>
 
-        <!-- Próximas Ações (base) -->
-        <div>
-          <div class="section-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-            <span class="section-title">Próximas Ações</span>
-            <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;">
-              <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()">
-                <option value="all">Prioridade</option>
-                <option value="alta">Alta</option>
-                <option value="media">Média</option>
-                <option value="baixa">Baixa</option>
-              </select>
-              <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()">
-                <option value="all">Canal</option>
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="email">E-mail</option>
-                <option value="headhunter">Headhunter</option>
-                <option value="indicacao">Indicação</option>
-                <option value="direto">Direto</option>
-              </select>
-            </div>
+        <!-- E-mails relevantes -->
+        <div id="sinal-emails" class="novidade-row" onclick="toggleEmailsAvulsos()">
+          <div class="novidade-ic">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.7"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 5l7 5 7-5"/></svg>
           </div>
-          <div style="display:flex;flex-direction:column;gap:8px;" id="home-acoes-list"></div>
+          <div class="novidade-body">
+            <div class="novidade-label" id="sinal-emails-txt">E-mails</div>
+          </div>
+          <svg class="novidade-chev" id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        </div>
+        <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);"></div>
 
+        <!-- Inteligência de Mercado -->
+        <div id="sinal-alertas" class="novidade-row" onclick="toggleAlertasInline()">
+          <div class="novidade-ic">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.7"><path d="M8 2a5.5 5.5 0 0 1 5.5 5.5c0 3-1.3 4.5-1.3 4.5H3.8S2.5 10.5 2.5 7.5A5.5 5.5 0 0 1 8 2z"/><path d="M6.2 12a1.8 1.8 0 0 0 3.6 0"/></svg>
+          </div>
+          <div class="novidade-body">
+            <div class="novidade-label" id="sinal-alertas-txt">Inteligência de Mercado</div>
+          </div>
+          <svg class="novidade-chev" id="sinal-alertas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        </div>
+        <div id="alertas-inline-lista" style="display:none;flex-direction:column;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);"></div>
+
+        <!-- Vagas para revisar (oculto quando vazio) -->
+        <div id="sinal-vagas" class="novidade-row" style="display:none;" onclick="toggleRevisaoLista()">
+          <div class="novidade-ic">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.7"><path d="M3 2h7l3 3v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M9 2v4h3"/><path d="M5 8h4M5 11h2"/></svg>
+          </div>
+          <div class="novidade-body">
+            <div class="novidade-label" id="sinal-vagas-txt" style="color:var(--amber);">Vagas para revisar</div>
+          </div>
+          <svg class="novidade-chev" id="sinal-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        </div>
+        <div id="home-revisao-lista" style="padding:0 4px;"></div>
+
+        <!-- Processos inativos (oculto por padrão) -->
+        <div id="sinal-inativos" class="novidade-row" style="display:none;" onclick="irParaInativos()">
+          <div class="novidade-ic" style="background:#FEF0EF;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#C0281E" stroke-width="1.7"><path d="M8 2l6 12H2L8 2z"/><path d="M8 6v3.5M8 11v.5"/></svg>
+          </div>
+          <div class="novidade-body">
+            <div class="novidade-label" id="sinal-inativos-txt" style="color:var(--red);">Processos sem atualização</div>
+          </div>
+          <svg class="novidade-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
 
-      </div><!-- /coluna direita -->
-    </div><!-- /home-grid -->
-  </div>
-</div>
+      </div><!-- /novidades -->
+
+      <!-- Coluna direita: Pipeline + Relatórios -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <!-- Pipeline snapshot -->
+        <div class="brf-block">
+          <div class="brf-head">
+            <span class="brf-head-title">Pipeline</span>
+            <div class="brf-head-right">
+              <button onclick="showPage('crm')" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);">Ver tudo →</button>
+            </div>
+          </div>
+          <div class="pip-grid">
+            <div class="pip-kpi" onclick="showPage('crm')">
+              <div class="pip-num" id="stat-lead">—</div>
+              <div class="pip-lbl">Oportunidades</div>
+            </div>
+            <div class="pip-kpi" onclick="showPage('crm')">
+              <div class="pip-num" id="stat-candidatados">—</div>
+              <div class="pip-lbl">Candidaturas</div>
+            </div>
+            <div class="pip-kpi" onclick="showPage('crm')">
+              <div class="pip-num" id="stat-pipeline">—</div>
+              <div class="pip-lbl">Em Processo</div>
+            </div>
+            <div class="pip-kpi" onclick="showPage('crm')">
+              <div class="pip-num" id="stat-proposta">—</div>
+              <div class="pip-lbl">Propostas</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acesso rápido: Relatórios -->
+        <div class="brf-block" style="cursor:pointer;" onclick="showPage('relatorios')">
+          <div class="brf-head" style="padding-bottom:13px;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.5" style="flex-shrink:0;"><rect x="2" y="9" width="3" height="5" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="3" width="3" height="11" rx="1"/><path d="M3 6l3.5-3 3 2.5 4-3.5" stroke-width="1.3"/></svg>
+            <span class="brf-head-title">Relatórios</span>
+            <div class="brf-head-right"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>
+          </div>
+          <div style="padding:0 20px 14px;font-size:13px;color:var(--text3);line-height:1.55;">Funil, taxa por canal e tempo médio por estágio.</div>
+        </div>
+
+      </div><!-- /col direita -->
+
+    </div><!-- /home-briefing-grid -->
+  </div><!-- /content -->
+</div><!-- /page-home -->
 
 <!-- ═══ MODAL: DEDUPLICAÇÃO DE VAGAS ═══════════════════════════════════ -->
 <div id="modal-dedup" style="display:none;" class="modal-overlay">
@@ -603,6 +635,67 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
+
+<!-- ┌─────────────────────────────┐
+     │  PAGE: RELATÓRIOS          │
+     └─────────────────────────────┘ -->
+<div id="page-relatorios" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+  <div class="topbar">
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="page-title">Relatórios</span>
+      <span class="page-sub">Análise de performance do pipeline</span>
+    </div>
+    <div class="topbar-right">
+      <span id="dash-totals" style="font-size:12px;color:var(--text3);"></span>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Funil do Pipeline -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Funil do Pipeline</div>
+        <div id="dash-funil" style="display:flex;flex-direction:column;gap:9px;"></div>
+      </div>
+
+      <!-- Taxa de Retorno por Canal -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Taxa de Retorno por Canal</div>
+        <div id="dash-canais" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Tempo Médio por Estágio -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Tempo Médio por Estágio</div>
+        <div id="dash-tempo" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
+      <!-- Resumo rápido -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Visão Geral</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="text-align:center;background:var(--bg3);border-radius:var(--radius);padding:14px 10px;cursor:pointer;" onclick="showPage('crm')">
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--navy);" id="rel-stat-lead">—</div>
+            <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-top:3px;">Oportunidades</div>
+          </div>
+          <div style="text-align:center;background:var(--bg3);border-radius:var(--radius);padding:14px 10px;cursor:pointer;" onclick="showPage('crm')">
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--navy);" id="rel-stat-candidatados">—</div>
+            <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-top:3px;">Candidaturas</div>
+          </div>
+          <div style="text-align:center;background:var(--bg3);border-radius:var(--radius);padding:14px 10px;cursor:pointer;" onclick="showPage('crm')">
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--navy);" id="rel-stat-pipeline">—</div>
+            <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-top:3px;">Em Processo</div>
+          </div>
+          <div style="text-align:center;background:var(--bg3);border-radius:var(--radius);padding:14px 10px;cursor:pointer;" onclick="showPage('crm')">
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--navy);" id="rel-stat-proposta">—</div>
+            <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-top:3px;">Propostas</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- ┌─────────────────────────────┐
      │  PAGE: ANTI-ATS            │
@@ -2363,7 +2456,7 @@ DOCENCIA: ESAMC/ESPM — Maceió/AL (2002–2004): Marketing, Planificación Est
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGES = ['home','ats','linkedin','crm','sofia','mercado'];
+const PAGES = ['home','ats','linkedin','crm','sofia','mercado','relatorios'];
 function sofiaTab(n){
   [1,2,3,4].forEach(i=>{
     document.getElementById('sofia-tab-'+i).style.display = i===n ? 'block' : 'none';
@@ -2388,6 +2481,7 @@ function showPage(page) {
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); }
+  if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
@@ -3680,10 +3774,10 @@ function renderWidgetRevisao(){
   const expandido = listaEl.dataset.expandido === '1';
   const ch=document.getElementById('sinal-vagas-chevron');
   if(ch) ch.style.transform=expandido?'rotate(90deg)':'';
+  const vagasRow=document.getElementById('sinal-vagas');
+  if(vagasRow) vagasRow.style.display=qtd>0?'flex':'none';
   if(qtd > 0){
-    sinalTxt.innerHTML = `Vagas abaixo do limiar — <strong>${qtd}</strong> para revisar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
-  } else {
-    sinalTxt.textContent = 'Vagas abaixo do limiar — nenhuma para revisar';
+    sinalTxt.innerHTML = `<strong>${qtd}</strong> vaga${qtd===1?'':' s'} abaixo do limiar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
   }
   if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
   const cor=s=>s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';
@@ -5121,15 +5215,15 @@ function atualizarSinais(){
   if(s1){
     s1.style.display='flex';
     if(_outlookStatus==='desconectado'){
-      s1txt.textContent='Emails — Conectar Outlook';
+      s1txt.textContent='E-mails — Conectar Outlook para receber';
       s1.onclick=conectarOutlook;
       s1.style.opacity='0.6';
     } else {
       const partes=[];
-      if(_emailsProcesso.length) partes.push(`${_emailsProcesso.length} processo`);
+      if(_emailsProcesso.length) partes.push(`${_emailsProcesso.length} sobre processo${_emailsProcesso.length>1?'s':''}`);
       if(_emailsMercado.length) partes.push(`${_emailsMercado.length} mercado`);
-      if(_emailsIrrelevantes.length) partes.push(`${_emailsIrrelevantes.length} bloquear`);
-      s1txt.textContent=partes.length?`Emails — ${partes.join(' · ')}`:`Emails — ${_emailsNovosHoje} novo${_emailsNovosHoje===1?'':'s'} hoje`;
+      if(_emailsIrrelevantes.length) partes.push(`${_emailsIrrelevantes.length} a limpar`);
+      s1txt.textContent=partes.length?`E-mails — ${partes.join(' · ')}`:'E-mails — nenhum novo';
       s1.onclick=toggleEmailsAvulsos;
       s1.style.opacity='1';
     }
@@ -5143,14 +5237,14 @@ function atualizarSinais(){
     s2.onclick=toggleAlertasInline;
     const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
     if(totalSinais>0){
-      const fontes=[];
-      if(_sinaisAlertas.length) fontes.push(`${_sinaisAlertas.length} Google Alert${_sinaisAlertas.length===1?'':'s'}`);
-      if(_sinaisMercado.length) fontes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
-      s2txt.textContent=`Alertas — ${fontes.join(' + ')}`;
+      const partes=[];
+      if(_sinaisAlertas.length) partes.push(`${_sinaisAlertas.length} alerta${_sinaisAlertas.length===1?'':'s'}`);
+      if(_sinaisMercado.length) partes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
+      s2txt.textContent=`Inteligência de Mercado — ${partes.join(' · ')}`;
     } else if(_alertasHoje>0){
-      s2txt.textContent=`Alertas — ${_alertasHoje} Google Alert${_alertasHoje===1?'':'s'} hoje`;
+      s2txt.textContent=`Inteligência de Mercado — ${_alertasHoje} sinal${_alertasHoje===1?'':'s'} hoje`;
     } else {
-      s2txt.textContent='Alertas — nenhum sinal hoje';
+      s2txt.textContent='Inteligência de Mercado — sem novidades';
     }
   }
   // Sinal 3 — Inativos
@@ -5370,7 +5464,28 @@ function abrirModalResponder(idx){
 }
 function abrirModalAlerta(idx){
   const e=_sinaisAlertas[idx]; if(!e) return;
-  window.open(e.webLink||'https://outlook.live.com/mail/','_blank','noopener');
+  // Abre in-app: pré-carrega Sofia com o conteúdo do alerta
+  const conteudo=[
+    'Analise este alerta de mercado e me diga o que devo fazer como executivo em busca de recolocação:\n',
+    'Assunto: '+(e.subject||e.assunto||''),
+    e.body||e.preview||e.resumo||''
+  ].filter(Boolean).join('\n\n');
+  const inp=document.getElementById('sofia-answer');
+  if(inp){
+    inp.value=conteudo;
+    showPage('sofia');
+    sofiaTab(3);
+    inp.focus();
+  }
+  // Marcar alerta como visto (remover da lista)
+  _sinaisAlertas.splice(idx,1);
+  renderAlertasInline();
+  atualizarSinais();
+}
+function _dispensarAlerta(idx){
+  _sinaisAlertas.splice(idx,1);
+  renderAlertasInline();
+  atualizarSinais();
 }
 function fecharModalEmailResponder(){
   document.getElementById('modal-email-responder').style.display='none';
@@ -5599,18 +5714,26 @@ function _buildAlertasHtml(){
   }
   if(_sinaisAlertas.length){
     if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
-    html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Google Alerts — emails</div>`;
+    html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Alertas recebidos</div>`;
     html+=_sinaisAlertas.map((e,i)=>{
-      const assunto=(e.subject||e.assunto||'Alerta Google').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const assunto=(e.subject||e.assunto||'Alerta').replace(/&/g,'&amp;').replace(/</g,'&lt;');
       const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-      return `<div class="home-acao-item" style="cursor:pointer;align-items:flex-start;" onclick="abrirModalAlerta(${i})">
-        <div class="home-acao-dot" style="background:#2563EB;margin-top:6px;flex-shrink:0;"></div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.06em;">🔔 Google Alert</span>
-            <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+      const preview=(e.body||e.preview||e.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,100);
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px;">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;">Alerta</span>
+              <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:${preview?'4px':'0'}">${assunto}</div>
+            ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.45;">${preview}…</div>`:''}
           </div>
-          <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</div>
+          <button onclick="event.stopPropagation();_dispensarAlerta(${i})" title="Marcar como visto" style="font-size:16px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">×</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button onclick="event.stopPropagation();abrirModalAlerta(${i})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:var(--font);">Analisar com Sofia →</button>
+          ${(e.webLink||e.link)?`<a href="${e.webLink||e.link}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--text3);border:1px solid var(--border);background:var(--bg2);border-radius:6px;padding:5px 10px;text-decoration:none;">Ver fonte ↗</a>`:''}
         </div>
       </div>`;
     }).join('');
@@ -5773,7 +5896,17 @@ function atualizarStatsHome(){
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     set('stat-lead',lead); set('stat-candidatados',candidatados);
     set('stat-pipeline',pipeline); set('stat-proposta',proposta);
-    renderDashboardPipeline();
+  } catch{}
+}
+function _syncRelatoriosStats(){
+  try{
+    const lead=vagas.filter(v=>v.status==='lead').length;
+    const candidatados=vagas.filter(v=>v.status==='aplicado').length;
+    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+    const proposta=vagas.filter(v=>v.status==='proposta').length;
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    set('rel-stat-lead',lead); set('rel-stat-candidatados',candidatados);
+    set('rel-stat-pipeline',pipeline); set('rel-stat-proposta',proposta);
   } catch{}
 }
 
@@ -5913,16 +6046,20 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     return el;
   }
   list.innerHTML='';
+  // Badge com contagem de prioridades
+  const badge=document.getElementById('home-acoes-badge');
+  const total=nivel3SemData.length+comData.length;
+  if(badge) badge.textContent=total>0?`${total} ação${total===1?'':'ões'} agendada${total===1?'':'s'}`:'';
   // Renderizar nível 3 sem data no topo
   nivel3SemData.forEach(v=>{
     const diasSem=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
-    const badge=`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${diasSem}d</span>`;
-    list.appendChild(_buildCardVaga(v,badge,'#CC0000','#FFF0F0'));
+    const bdg=`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${diasSem}d</span>`;
+    list.appendChild(_buildCardVaga(v,bdg,'#CC0000','#FFF0F0'));
   });
   if(!comData.length&&!nivel3SemData.length){
     const el=document.createElement('div');
-    el.style.cssText='padding:18px 20px;color:var(--text3);font-size:13.5px;text-align:center;';
-    el.textContent='Nenhuma ação agendada.';
+    el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
+    el.textContent='Nenhuma ação agendada. Adicione datas de follow-up nos seus processos.';
     list.appendChild(el);
   } else {
     comData.forEach(({v,dt})=>{
@@ -6134,7 +6271,7 @@ loadCRM();
 // Roteamento por URL param: ?page=crm abre Pipeline direto (usado pelo botão "Ver no Pipeline" da extensão)
 (function(){
   const _p=new URLSearchParams(location.search).get('page');
-  const _validPages=['home','crm','ats','emails','radar','contatos','perfil'];
+  const _validPages=['home','crm','ats','emails','radar','contatos','perfil','relatorios'];
   if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
   if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
 })();
