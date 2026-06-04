@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Senova Suite — Recolocação Executiva</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
 <style>
@@ -13,27 +13,27 @@
   --navy: #1A3A5C;
   --gold: #C9A84C;
   --action: #2E6DA4;
-  --bg: #F7F5F0;
+  --bg: #F5F5F7;
   --bg2: #ffffff;
-  --bg3: #F0EDE6;
-  --bg4: #E8E4DB;
-  --border: #DDD9CF;
+  --bg3: #EFEFEF;
+  --bg4: #E4E4E4;
+  --border: #E2E2E2;
   --border2: #C8C3B6;
-  --text: #1A1A16;
-  --text2: #4A4740;
-  --text3: #8A8680;
-  --green: #1A7A4A;
+  --text: #1A1A1A;
+  --text2: #48484A;
+  --text3: #98989D;
+  --green: #1A6840;
   --green-bg: #EAF7EF;
-  --amber: #B8670A;
+  --amber: #9C5800;
   --amber-bg: #FFF8EC;
-  --red: #C0281E;
+  --red: #B52419;
   --red-bg: #FEF0EF;
-  --radius: 10px;
-  --radius-lg: 14px;
+  --radius: 6px;
+  --radius-lg: 6px;
   --font-display: 'Playfair Display', Georgia, serif;
   --font: 'Inter', -apple-system, sans-serif;
-  --shadow: 0 1px 3px rgba(26,58,92,0.07), 0 1px 2px rgba(26,58,92,0.04);
-  --shadow-md: 0 4px 16px rgba(26,58,92,0.10);
+  --shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
@@ -327,26 +327,47 @@ select option { background: var(--bg2); }
    SENOVA HOME v3.25 — Design System aprovado 03/jun/2026
    Regras: sem border-top colorida · sem icon box · cor = sinal
 ═══════════════════════════════════════════════════════════════════ */
-.sh-grid { display:grid; grid-template-columns:1fr 285px; gap:16px; align-items:start; }
-@media (max-width:1100px) { .sh-grid { grid-template-columns:1fr; } }
+.sh-grid { display:grid; grid-template-columns:1fr; gap:14px; align-items:start; }
 .sh-right { display:flex; flex-direction:column; gap:12px; }
 
-.sh-card { background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06); overflow:hidden; }
-.sh-card-accent { border-left:3px solid var(--gold); }
+/* coluna única centralizada */
+#page-home .content { display:flex; flex-direction:column; align-items:center; }
+#page-home .content > * { width:100%; max-width:640px; }
 
-.sh-head { display:flex; align-items:center; gap:10px; padding:15px 22px 13px; border-bottom:1px solid var(--border); }
-.sh-head-title { font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--navy); }
-.sh-head-meta { font-size:12px; color:var(--text3); }
-.sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--action); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
+.sh-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+.sh-card-accent { border-left:none; }
 
-.sh-item { display:flex; align-items:center; gap:12px; padding:11px 22px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.sh-head { display:flex; align-items:baseline; gap:10px; padding:20px 24px 15px; background:var(--navy); border-bottom:none; }
+.sh-head-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:700; color:#fff; letter-spacing:-0.3px; line-height:1; }
+.sh-head-meta { font-size:11.5px; color:rgba(255,255,255,0.45); margin-left:auto; font-weight:400; }
+.sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--gold); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
+
+/* ocultar filtros do Para Hoje */
+#hf-prioridade, #hf-canal { display:none; }
+/* topbar home: só saudação */
+#page-home .topbar-right { display:none; }
+#page-home #home-saudacao { font-family:'Cormorant Garamond',Georgia,serif; font-size:19px; font-weight:700; letter-spacing:-0.2px; }
+/* ocultar "Sua Situação" e "Seu Painel" — números ficam em Seu Painel */
+.sh-right > .sh-card:first-child { display:none; }
+.sh-right > .sh-card:nth-child(2) { display:none; }
+
+/* itens Para Hoje — sem borda esquerda, sem fundo colorido */
+.home-acao-item { border-left:none !important; background:transparent !important; padding:13px 24px; align-items:flex-start; }
+/* ocultar linha de badges (status, prioridade, vencido) */
+.home-acao-item > div:nth-child(2) > div:first-child { display:none !important; }
+/* nome em destaque */
+.home-acao-item > div:nth-child(2) > div:nth-child(2) { font-size:15px !important; font-weight:600 !important; margin-bottom:3px; }
+/* tarefa em cinza */
+.home-acao-item > div:nth-child(2) > div:nth-child(3) { font-size:13px !important; color:var(--text3) !important; }
+
+.sh-item { display:flex; align-items:center; gap:12px; padding:13px 24px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
 .sh-item:last-of-type { border-bottom:none; }
 .sh-item:hover { background:var(--bg3); }
-.sh-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.sh-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .sh-item-body { flex:1; min-width:0; }
-.sh-item-label { font-size:13.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.sh-item-sub { font-size:12px; color:var(--text3); margin-top:1px; }
-.sh-item-chev { color:var(--text3); flex-shrink:0; transition:transform 0.15s; }
+.sh-item-label { font-size:15px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sh-item-sub { font-size:12.5px; color:var(--text3); margin-top:2px; }
+.sh-item-chev { color:var(--text3); flex-shrink:0; }
 
 .sh-kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px 16px; }
 .sh-kpi { background:var(--bg3); border-radius:10px; padding:14px 10px; text-align:center; cursor:pointer; transition:all 0.12s; }
@@ -354,8 +375,8 @@ select option { background: var(--bg2); }
 .sh-kpi-num { font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--navy); line-height:1.1; }
 .sh-kpi-lbl { font-size:10.5px; color:var(--text3); margin-top:3px; line-height:1.35; }
 
-.sh-ver-mais { display:block; width:100%; padding:9px 22px; font-size:12.5px; color:var(--action); font-weight:500; cursor:pointer; border:none; border-top:1px solid var(--border); background:none; font-family:var(--font); text-align:left; transition:background 0.1s; }
-.sh-ver-mais:hover { background:var(--bg3); }
+.sh-ver-mais { display:block; width:100%; padding:10px 24px; font-size:12px; color:var(--navy); font-weight:500; opacity:0.55; cursor:pointer; border:none; border-top:1px solid var(--border); background:none; font-family:var(--font); text-align:left; transition:background 0.1s,opacity 0.1s; letter-spacing:0.01em; }
+.sh-ver-mais:hover { background:var(--bg3); opacity:1; }
 
 /* ── BADGE REVISAR ── */
 .badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
@@ -6088,25 +6109,23 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     if(n3a&&!n3b) return -1; if(!n3a&&n3b) return 1;
     return a.dt-b.dt;
   });
-  function _buildCardVaga(v,badgeHtml,bordaCor,bgColor){
+  function _buildCardVaga(v,diff,bgColor){
     const nv=nivelInativo(v);
-    const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
-    const cor=corSt[v.status]||'#9CA3AF';
-    const lbl=lblSt[v.status]||v.status;
-    const priCor=corPriH[v.prioridade]||'#9CA3AF';
-    const priLbl=v.prioridade==='alta'?'Alta':v.prioridade==='media'?'Média':'Baixa';
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
     const acaoTxt=v.proxima||'';
-    const borda=nv>0?nvColor:bordaCor;
-    const inativoBadge=nv===1?`<span class="badge badge-inativo-1" style="flex-shrink:0;">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2" style="flex-shrink:0;">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${_diasInativo*3}d</span>`:'';
+    let dotColor,dateTxt,dateColor;
+    if(nv>=3&&diff===null){
+      const d=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
+      dotColor='var(--red)'; dateTxt=`há ${d}d`; dateColor='var(--red)';
+    } else if(diff!==null){
+      if(diff<0){ dotColor='var(--red)'; dateTxt=`há ${-diff}d`; dateColor='var(--red)'; }
+      else if(diff===0){ dotColor='var(--amber)'; dateTxt='Hoje'; dateColor='var(--amber)'; }
+      else{ dotColor='var(--text3)'; dateTxt=formatDataCard(v.data); dateColor='var(--text3)'; }
+    } else { dotColor='var(--text3)'; dateTxt=''; dateColor='var(--text3)'; }
     const el=document.createElement('div');
     el.className='home-acao-item';
-    el.style.borderLeftColor=borda;
-    if(bgColor) el.style.background=bgColor;
-    else if(nv===3) el.style.background='#FFF0F0';
-    else if(nv>0) el.style.background='#FFF8F5';
     el.onclick=()=>openVagaModal(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:${borda};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;">${lbl}</span><span style="font-size:11px;font-weight:600;color:${priCor};background:${priCor}18;border-radius:4px;padding:0 5px;">${priLbl}</span>${badgeHtml}${inativoBadge}</div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    el.innerHTML=`<div class="home-acao-dot" style="background:${dotColor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">${dateTxt?`<span style="font-size:11.5px;font-weight:500;color:${dateColor};white-space:nowrap;">${dateTxt}</span>`:''}<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
     return el;
   }
   list.innerHTML='';
@@ -6116,9 +6135,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   if(badge) badge.textContent=total>0?`${total} ação${total===1?'':'ões'} agendada${total===1?'':'s'}`:'';
   // Renderizar nível 3 sem data no topo
   nivel3SemData.forEach(v=>{
-    const diasSem=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
-    const bdg=`<span class="badge badge-inativo-3" style="flex-shrink:0;">🚨 ${diasSem}d</span>`;
-    list.appendChild(_buildCardVaga(v,bdg,'#CC0000','#FFF0F0'));
+    list.appendChild(_buildCardVaga(v,null,null));
   });
   if(!comData.length&&!nivel3SemData.length){
     const el=document.createElement('div');
@@ -6128,18 +6145,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   } else {
     comData.forEach(({v,dt})=>{
       const diff=Math.round((dt-todayMs)/86400000);
-      let badgeHtml='',bordaCor=corPriH[v.prioridade]||'#9CA3AF',bgColor=null;
-      if(diff<0){
-        badgeHtml=`<span style="background:#FEF0EF;color:#CC0000;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">⚠ Vencido ${-diff}d</span>`;
-        bordaCor='#CC0000'; bgColor='#FEF0EF';
-      } else if(diff===0){
-        badgeHtml=`<span style="background:#EFF6FF;color:#1D4ED8;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">Hoje</span>`;
-        bordaCor='#1D4ED8';
-      } else {
-        const fmtDt=formatDataCard(v.data);
-        badgeHtml=`<span style="background:#FFF8EC;color:#B8670A;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">⏰ ${fmtDt}</span>`;
-      }
-      list.appendChild(_buildCardVaga(v,badgeHtml,bordaCor,bgColor));
+      list.appendChild(_buildCardVaga(v,diff,null));
     });
   }
   // ── CRM Contatos ──
