@@ -646,7 +646,7 @@ select option { background: var(--bg2); }
     <div style="padding:24px 28px 0;">
       <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;" id="dedup-counter"></div>
       <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px;">Vaga possivelmente duplicada</div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Esta vaga parece similar a uma que você já tem no Pipeline.</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:18px;">Esta vaga parece similar a uma que você já tem nos Processos.</div>
     </div>
     <div class="modal-body">
       <!-- Vaga nova -->
@@ -659,7 +659,7 @@ select option { background: var(--bg2); }
       </div>
       <!-- Vaga existente -->
       <div style="background:var(--amber-bg);border:1px solid rgba(184,103,10,0.2);border-radius:var(--radius);padding:14px 16px;">
-        <div style="font-size:10.5px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Já no Pipeline</div>
+        <div style="font-size:10.5px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Já nos Processos</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);" id="dedup-exist-titulo"></div>
         <div style="font-size:12.5px;color:var(--text3);margin-top:3px;" id="dedup-exist-empresa"></div>
         <div style="font-size:11.5px;color:var(--text3);margin-top:2px;" id="dedup-exist-status"></div>
@@ -970,7 +970,7 @@ select option { background: var(--bg2); }
               <span id="vsm-us-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">65</span>
             </div>
           </div>
-          <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Vagas abaixo do critério da região não entram no Pipeline</div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Vagas abaixo do critério da região não entram nos Processos</div>
         </div>
       </div>
 
@@ -990,7 +990,7 @@ select option { background: var(--bg2); }
             <input type="radio" name="perfil-freq-varredura" id="perfil-freq-diaria" value="diaria" style="accent-color:var(--navy);width:16px;height:16px;margin-top:2px;flex-shrink:0;">
             <div>
               <div style="font-size:14px;font-weight:600;color:var(--navy);">Varredura diária automática</div>
-              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Todo dia às 07:00 BRT o Senova varre os portais e traz as novidades para o seu Pipeline</div>
+              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Todo dia às 07:00 BRT o Senova varre os portais e traz as novidades para os seus Processos</div>
             </div>
           </label>
           <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:var(--bg3);border-radius:var(--radius);border:1.5px solid var(--border);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.querySelector('input').checked?this.style.borderColor='var(--navy)':this.style.borderColor='var(--border)'">
@@ -1545,7 +1545,7 @@ select option { background: var(--bg2); }
               <span style="font-size:20px;">🔍</span>
               <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">5. Busca de Vagas</span>
             </div>
-            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Varredura automática diária às 07h BRT via Adzuna + Jobicy (BR · ES · DE · PT · Remoto). Importe as oportunidades para o Pipeline com um clique.</div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Varredura automática diária às 07h BRT via Adzuna + Jobicy (BR · ES · DE · PT · Remoto). Importe as oportunidades para os Processos com um clique.</div>
           </div>
           <button class="btn btn-ghost" onclick="showPage('crm')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
         </div>
@@ -2067,7 +2067,7 @@ select option { background: var(--bg2); }
       <!-- Ações secundárias -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button onclick="abrirModalVagaFromEmail()" class="btn btn-ghost btn-sm" style="font-size:12px;">+ Card no Pipeline</button>
+          <button onclick="abrirModalVagaFromEmail()" class="btn btn-ghost btn-sm" style="font-size:12px;">+ Novo Processo</button>
           <button onclick="merMostrarEtapa('andamento')" class="btn btn-ghost btn-sm" style="font-size:12px;">📅 Atualizar status</button>
           <button onclick="arquivarEmailAvulso()" class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--text3);">👁 Ver depois</button>
           <button onclick="bloquearRemetente()" class="btn btn-ghost btn-sm" style="font-size:12px;color:#C0281E;">🚫 Bloquear</button>
@@ -2739,7 +2739,7 @@ function renderATSResult(analise,cv,crm) {
           ['chk-carta','✉️','Gerar carta de apresentação'],
           ['chk-email','💬','Compor e-mail de candidatura'],
           ['chk-site','🌐','Preencher inscrição no site da vaga'],
-          ['chk-pipeline','✅','Registrar no Pipeline como Candidatado'],
+          ['chk-pipeline','✅','Registrar nos Processos como Candidatado'],
         ].map(([id,icon,label])=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 12px;background:var(--bg2);border-radius:8px;border:1.5px solid var(--border);"><input type="checkbox" id="${id}" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0;"> <span style="font-size:15px;flex-shrink:0;">${icon}</span> <span style="font-size:13.5px;color:var(--text2);">${label}</span></label>`).join('')}
       </div>
       <button class="btn btn-primary" onclick="executarCandidatura()" style="width:100%;justify-content:center;padding:12px;font-size:14px;">Executar →</button>
@@ -3803,7 +3803,7 @@ function _dedupAdicionar(){
   saveVagas();
   _dedupIdx++;
   _mostrarProximoDup();
-  showToast('Vaga adicionada ao Pipeline.');
+  showToast('Vaga adicionada aos Processos.');
 }
 
 function _scoreMinParaVaga(v, config){
@@ -3901,7 +3901,7 @@ function adicionarVagaRejeitada(idx){
   lista.splice(idx, 1);
   try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
   renderWidgetRevisao();
-  showToast('✅ Vaga adicionada ao Pipeline');
+  showToast('✅ Vaga adicionada aos Processos');
 }
 
 function descartarVagaRejeitada(idx){
@@ -4183,12 +4183,12 @@ function limpezaExpressa(){
     return !v.updatedAt||(agora-v.updatedAt)>=limite;
   });
   if(!candidatos.length){
-    showToast('Nenhum lead inativo há 60+ dias. Pipeline limpo!');
+    showToast('Nenhum lead inativo há 60+ dias. Processos em dia!');
     return;
   }
   const n=candidatos.length;
   const exemplos=candidatos.slice(0,3).map(v=>v.empresa||'—').join(', ')+(n>3?` e mais ${n-3}`:'');
-  if(!confirm(`Arquivar ${n} oportunidade${n>1?'s':''} sem atualização há 60+ dias?\n\nExemplos: ${exemplos}\n\nVocê poderá ver os arquivados no Pipeline a qualquer momento.`)) return;
+  if(!confirm(`Arquivar ${n} oportunidade${n>1?'s':''} sem atualização há 60+ dias?\n\nExemplos: ${exemplos}\n\nVocê poderá ver os arquivados nos Processos a qualquer momento.`)) return;
   candidatos.forEach(v=>{
     v.status='descartado'; v.updatedAt=agora;
     if(!v.timeline) v.timeline=[];
@@ -4196,7 +4196,7 @@ function limpezaExpressa(){
   });
   saveVagas();
   atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); _avaliarLimpezaCard();
-  showToast(`${n} oportunidade${n>1?'s':''} arquivada${n>1?'s':''} — Pipeline atualizado`);
+  showToast(`${n} oportunidade${n>1?'s':''} arquivada${n>1?'s':''} — Processos atualizados`);
 }
 
 function _avaliarLimpezaCard(){
@@ -4211,7 +4211,7 @@ function _avaliarLimpezaCard(){
   if(velhos.length>0){
     card.style.display='block';
     if(count) count.textContent=`${velhos.length} lead${velhos.length>1?'s':''}`;
-    if(desc) desc.textContent=`${velhos.length} oportunidade${velhos.length>1?'s':''} sem movimentação há 60+ dias ocupando espaço no Pipeline.`;
+    if(desc) desc.textContent=`${velhos.length} oportunidade${velhos.length>1?'s':''} sem movimentação há 60+ dias ocupando espaço nos Processos.`;
   } else {
     card.style.display='none';
   }
@@ -5381,11 +5381,7 @@ function atualizarSinais(){
   const s3txt=document.getElementById('sinal-inativos-txt');
   if(s3){
     const ni=vagas.filter(isInativo).length;
-    if(ni>0){
-      s3.style.display='flex';
-      s3.style.opacity='1';
-      s3txt.textContent=`${ni} card${ni===1?'':'s'} sem atualização há ${_diasInativo}+ dias`;
-    } else { s3.style.display='none'; }
+    s3.style.display='none'; // movido para Para Hoje via renderHomeAcoes
   }
   const _la=document.getElementById('alertas-inline-lista');
   if(_la&&_la.style.display==='flex') renderAlertasInline();
@@ -5411,7 +5407,7 @@ function renderEmailsAvulsos(){
   const temAlgum=_emailsProcesso.length||_emailsMercado.length||_emailsIrrelevantes.length;
   if(!temAlgum){
     const n=_emailsNovosHoje;
-    const msg=n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje — já importados para o Pipeline.`:'Nenhum email novo.';
+    const msg=n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje — já importados para os Processos.`:'Nenhum email novo.';
     lista.innerHTML=`<div style="padding:10px 14px;font-size:13px;color:var(--text3);">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
     return;
   }
@@ -6199,7 +6195,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   if(!comData.length&&!nivel3SemData.length){
     const el=document.createElement('div');
     el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
-    el.textContent='Nenhuma ação agendada. Adicione datas de follow-up nos seus processos.';
+    el.textContent='Nenhuma nova ação agendada para hoje.';
     list.appendChild(el);
   } else {
     comData.forEach(({v,dt})=>{
@@ -6235,6 +6231,20 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
       list.appendChild(el);
     });
   }
+  // Processos sem atualização → item de atenção em Para Hoje
+  const niTotal=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado'&&isInativo(v)).length;
+  if(niTotal>0){
+    const sepAt=document.createElement('div');
+    sepAt.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
+    sepAt.textContent='Atenção';
+    list.appendChild(sepAt);
+    const elAt=document.createElement('div');
+    elAt.className='home-acao-item';
+    elAt.onclick=irParaInativos;
+    elAt.innerHTML=`<div class="home-acao-dot" style="background:var(--red);margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--red);">${niTotal} processo${niTotal===1?'':'s'} sem atualização</div><div style="font-size:13px;color:var(--text3);">há ${_diasInativo}+ dias — clique para revisar</div></div><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
+    list.appendChild(elAt);
+  }
+
   // Ver mais — acionar após renderizar todos os itens
   const verMaisBtn=document.getElementById('home-ver-mais');
   const listEl=document.getElementById('home-acoes-list');
