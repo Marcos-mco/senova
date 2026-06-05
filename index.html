@@ -45,7 +45,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .sidebar { width: 238px; background: var(--navy); display: flex; flex-direction: column; flex-shrink: 0; }
 .sidebar-logo { padding: 24px 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .logo-mark { display: flex; align-items: center; gap: 12px; }
-.logo-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,var(--gold),#A8852E); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--navy); flex-shrink: 0; letter-spacing: -0.5px; box-shadow: 0 2px 8px rgba(201,168,76,0.4); }
+.logo-icon { width: 38px; height: 38px; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg,var(--gold),#A8852E); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 34px; font-weight: 700; color: var(--navy); flex-shrink: 0; box-shadow: 0 2px 8px rgba(201,168,76,0.4); }
 .logo-text { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 2px; }
 .logo-sub { font-size: 10.5px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 300; letter-spacing: 0.05em; }
 
@@ -97,8 +97,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* ── FORM ── */
 .field-label { display: block; font-size: 12.5px; color: var(--text2); margin-bottom: 7px; font-weight: 600; letter-spacing: 0.01em; }
-textarea, input, select { width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 13px; font-size: 14px; color: var(--text); font-family: var(--font); outline: none; transition: border 0.15s, box-shadow 0.15s; }
-textarea:focus, input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); background: var(--bg2); }
+textarea, input, select { width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 13px; font-size: 14px; color: var(--text); font-family: var(--font); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+textarea { resize: both; }
+textarea:hover { border-color: rgba(26,58,92,0.35); }
+textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(26,58,92,0.1); background: var(--bg2); }
+input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); background: var(--bg2); }
 select option { background: var(--bg2); }
 
 /* ── TABS ── */
@@ -327,20 +330,24 @@ select option { background: var(--bg2); }
    SENOVA HOME v3.25 — Design System aprovado 03/jun/2026
    Regras: sem border-top colorida · sem icon box · cor = sinal
 ═══════════════════════════════════════════════════════════════════ */
-.sh-grid { display:grid; grid-template-columns:1fr; gap:14px; align-items:start; }
+.sh-grid { display:grid; grid-template-columns:1fr; gap:24px; align-items:start; }
 .sh-right { display:flex; flex-direction:column; gap:12px; }
 
-/* coluna única centralizada */
-#page-home .content { display:flex; flex-direction:column; align-items:center; }
-#page-home .content > * { width:100%; max-width:640px; }
+/* coluna única left-aligned */
+#page-home .content { display:flex; flex-direction:column; align-items:flex-start; padding-top:59px; }
+#home-wrap { width:560px; margin-left:calc(50vw - 518px); position:relative; border-radius:8px; box-shadow:0 0 0 1.5px transparent; transition:box-shadow 0.15s; }
+#home-wrap.hw-hover { box-shadow:0 0 0 1.5px rgba(26,58,92,0.28); }
+#home-wrap.hw-drag  { box-shadow:0 0 0 1.5px rgba(26,58,92,0.6); }
+.hw-grip { position:absolute; right:-1px; top:50%; transform:translateY(-50%); opacity:0; transition:opacity 0.15s; pointer-events:none; }
+#home-wrap:hover .hw-grip { opacity:1; }
 
 .sh-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
 .sh-card-accent { border-left:none; }
 
-.sh-head { display:flex; align-items:baseline; gap:10px; padding:20px 24px 15px; background:var(--navy); border-bottom:none; }
-.sh-head-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:700; color:#fff; letter-spacing:-0.3px; line-height:1; }
-.sh-head-meta { font-size:11.5px; color:rgba(255,255,255,0.45); margin-left:auto; font-weight:400; }
-.sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--gold); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
+.sh-head { display:flex; align-items:baseline; gap:10px; padding:20px 24px 15px; background:transparent; border-bottom:2px solid var(--border); }
+.sh-head-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:700; color:var(--navy); letter-spacing:-0.3px; line-height:1; }
+.sh-head-meta { font-size:11.5px; color:var(--text3); margin-left:auto; font-weight:400; }
+.sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--action); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
 
 /* ocultar filtros do Para Hoje */
 #hf-prioridade, #hf-canal { display:none; }
@@ -492,6 +499,14 @@ select option { background: var(--bg2); }
   </div>
 
   <div class="content">
+  <div id="home-wrap">
+    <!-- grip resize borda direita -->
+    <div class="hw-grip">
+      <svg viewBox="0 0 6 20" width="6" height="20" fill="none">
+        <line x1="1" y1="4" x2="1" y2="16" stroke="#1A3A5C" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+        <line x1="5" y1="4" x2="5" y2="16" stroke="#1A3A5C" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+      </svg>
+    </div>
 
     <!-- Para Hoje -->
     <div class="sh-card sh-card-accent" style="margin-bottom:16px;">
@@ -525,7 +540,7 @@ select option { background: var(--bg2); }
       <!-- O que chegou -->
       <div class="sh-card">
         <div class="sh-head">
-          <span class="sh-head-title">O que chegou</span>
+          <span class="sh-head-title">O que há de novo</span>
         </div>
 
         <div id="sinal-emails" class="sh-item" onclick="toggleEmailsAvulsos()">
@@ -621,6 +636,7 @@ select option { background: var(--bg2); }
 
       </div>
     </div>
+  </div><!-- /home-wrap -->
   </div>
 </div><!-- /page-home -->
 
@@ -2345,6 +2361,49 @@ select option { background: var(--bg2); }
 </div>
 
 <script>
+// ─── Resize #home-wrap ───────────────────────────
+(function() {
+  const MIN_W = 400, MAX_W = 960, EDGE = 8, LS_KEY = 'sn_home_wrap_w';
+  document.addEventListener('DOMContentLoaded', () => {
+    const hw = document.getElementById('home-wrap');
+    if (!hw) return;
+    const saved = parseInt(localStorage.getItem(LS_KEY));
+    if (saved) hw.style.width = Math.min(MAX_W, Math.max(MIN_W, saved)) + 'px';
+    let dragging = false, mode = null, startX, startW;
+    hw.addEventListener('mousemove', e => {
+      if (dragging) return;
+      const r = hw.getBoundingClientRect();
+      mode = e.clientX >= r.right - EDGE ? 'e' : null;
+      hw.style.cursor = mode ? 'ew-resize' : '';
+      hw.classList.toggle('hw-hover', mode !== null);
+    });
+    hw.addEventListener('mouseleave', () => {
+      if (!dragging) { hw.style.cursor = ''; mode = null; hw.classList.remove('hw-hover'); }
+    });
+    hw.addEventListener('mousedown', e => {
+      if (!mode) return;
+      e.preventDefault(); dragging = true;
+      startX = e.clientX; startW = hw.offsetWidth;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'ew-resize';
+      hw.classList.add('hw-drag');
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const w = Math.min(MAX_W, Math.max(MIN_W, startW + (e.clientX - startX)));
+      hw.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      hw.classList.remove('hw-drag');
+      localStorage.setItem(LS_KEY, hw.offsetWidth);
+    });
+  });
+})();
+
 // ═══════════════════════════════════════════════
 //  DADOS BASE
 // ═══════════════════════════════════════════════
