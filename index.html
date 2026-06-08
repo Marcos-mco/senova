@@ -531,21 +531,21 @@ select option { background: var(--bg2); }
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <!-- Novas vagas -->
-        <div id="sinal-novas-vagas" class="sh-item" onclick="toggleNovasVagas()">
+        <!-- Novas vagas (informativo — já estão em Processos) -->
+        <div id="sinal-novas-vagas" class="sh-item" onclick="carregarEmails(true)" style="cursor:pointer;">
           <div class="sh-dot" style="background:var(--action);"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas</div>
+            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas — carregando…</div>
           </div>
-          <svg class="sh-item-chev" id="sinal-novas-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <span style="font-size:13px;color:var(--action);flex-shrink:0;" title="Recarregar">↺</span>
         </div>
-        <div id="novas-vagas-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
         <!-- Retornos -->
         <div id="sinal-retornos" class="sh-item" onclick="toggleRetornos()">
           <div class="sh-dot" style="background:var(--navy);"></div>
           <div class="sh-item-body">
             <div class="sh-item-label" id="sinal-retornos-txt">Retornos</div>
+            <div class="sh-item-sub" id="sinal-retornos-sub" style="display:none;font-size:11px;color:var(--text3);">Emails carregados são marcados como lidos no Outlook</div>
           </div>
           <svg class="sh-item-chev" id="sinal-retornos-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
@@ -574,43 +574,6 @@ select option { background: var(--bg2); }
       </div>
     </div><!-- /sh-home-2col -->
 
-    <!-- Linha inferior: Situação + Painel -->
-    <div class="sh-bottom-row">
-      <div class="sh-card">
-        <div class="sh-head">
-          <span class="sh-head-title">Sua Situação</span>
-          <button class="sh-head-action" onclick="showPage('crm')">ver tudo →</button>
-        </div>
-        <div class="sh-kpi-grid">
-          <div class="sh-kpi" onclick="showPage('crm')">
-            <div class="sh-kpi-num" id="stat-lead">—</div>
-            <div class="sh-kpi-lbl">em vista</div>
-          </div>
-          <div class="sh-kpi" onclick="showPage('crm')">
-            <div class="sh-kpi-num" id="stat-candidatados">—</div>
-            <div class="sh-kpi-lbl">aguardando retorno</div>
-          </div>
-          <div class="sh-kpi" onclick="showPage('crm')">
-            <div class="sh-kpi-num" id="stat-pipeline">—</div>
-            <div class="sh-kpi-lbl">em conversa</div>
-          </div>
-          <div class="sh-kpi" onclick="showPage('crm')">
-            <div class="sh-kpi-num" id="stat-proposta">—</div>
-            <div class="sh-kpi-lbl">com proposta</div>
-          </div>
-        </div>
-      </div>
-      <div class="sh-card" style="cursor:pointer;" onclick="showPage('relatorios')">
-        <div class="sh-item" style="border-bottom:none;">
-          <div class="sh-dot" style="background:var(--navy);"></div>
-          <div class="sh-item-body">
-            <div class="sh-item-label">Seu Painel</div>
-            <div class="sh-item-sub">funil · taxa de retorno · histórico</div>
-          </div>
-          <svg class="sh-item-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-        </div>
-      </div>
-    </div><!-- /sh-bottom-row -->
 
     <!-- Oportunidades acumuladas (condicional) -->
     <div class="sh-card" id="home-limpeza-card" style="display:none;border-left:3px solid var(--amber);margin-bottom:14px;">
@@ -1849,24 +1812,13 @@ select option { background: var(--bg2); }
           </select>
         </div>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Plano</label>
-          <select id="mv-plano">
-            <option value="">— Sem plano —</option>
-            <option value="A">A — CLT executivo</option>
-            <option value="B">B — Consultoria</option>
-            <option value="C">C — Senova SaaS</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Prioridade</label>
-          <select id="mv-prioridade-vis" onchange="document.getElementById('mv-prioridade').value=this.value">
-            <option value="alta">🔴 Alta</option>
-            <option value="media" selected>🔵 Média</option>
-            <option value="baixa">🟢 Baixa</option>
-          </select>
-        </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <label class="field-label">Prioridade</label>
+        <select id="mv-prioridade-vis" onchange="document.getElementById('mv-prioridade').value=this.value">
+          <option value="alta">🔴 Alta</option>
+          <option value="media" selected>🔵 Média</option>
+          <option value="baixa">🟢 Baixa</option>
+        </select>
       </div>
       <div class="form-row">
         <label class="field-label">Localização</label>
@@ -1901,10 +1853,10 @@ select option { background: var(--bg2); }
       </div>
       <div class="form-row">
         <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise de Vaga)</span></label>
-        <textarea id="mv-job-desc" rows="4" placeholder="Cole o texto completo da vaga aqui…" oninput="extrairDadosDescricao(this.value)"></textarea>
+        <textarea id="mv-job-desc" rows="9" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13.5px;line-height:1.7;font-family:var(--font);" oninput="extrairDadosDescricao(this.value)"></textarea>
       </div>
       <div class="form-row">
-        <label class="field-label">Email do recrutador</label>
+        <label class="field-label">Email do recrutador <span style="font-weight:400;color:var(--text3);font-size:12px;">(só se for contato real)</span></label>
         <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
       </div>
       <div class="form-row" style="margin-bottom:8px;">
@@ -4409,7 +4361,9 @@ function openVagaModal(id){
     document.getElementById('mv-modelo').value=({hibrido:'Híbrido',presencial:'Presencial',remoto:'Remoto'})[v.modelo?.toLowerCase()]||v.modelo||'';
     document.getElementById('mv-regime').value=({clt:'CLT',pj:'PJ',ambos:'Ambos'})[v.regime?.toLowerCase()]||v.regime||'';
     document.getElementById('mv-notas').value=v.notas||'';
-    document.getElementById('mv-email-dest').value=v.emailDest||'';
+    const emailDestVal=v.emailDest||'';
+    const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailDestVal);
+    document.getElementById('mv-email-dest').value=isNoReply?'':emailDestVal;
     document.getElementById('mv-origem-url').value=v.origemUrl||'';
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
@@ -4529,7 +4483,7 @@ function extrairDadosDescricao(texto){
   clearTimeout(_extrairTimer);
   _extrairTimer=setTimeout(async()=>{
     try{
-      const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`Extraia do texto abaixo apenas: empresa, cargo e localização. Responda SOMENTE em JSON com as chaves "empresa", "cargo", "localizacao". Se não encontrar um campo, use string vazia. Texto:\n\n${texto.slice(0,3000)}`}],model:'claude-haiku-4-5-20251001',max_tokens:200})});
+      const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`Extraia do texto abaixo: empresa, cargo, localização, modelo de trabalho (Presencial/Híbrido/Remoto) e regime (CLT/PJ). Responda SOMENTE em JSON com as chaves "empresa","cargo","localizacao","modelo","regime". Se não encontrar, use string vazia. Texto:\n\n${texto.slice(0,3000)}`}],model:'claude-haiku-4-5-20251001',max_tokens:250})});
       if(!res.ok) return;
       const data=await res.json();
       const raw=data.content?.[0]?.text||data.choices?.[0]?.message?.content||'';
@@ -4540,6 +4494,8 @@ function extrairDadosDescricao(texto){
       if(parsed.empresa){const el=document.getElementById('mv-empresa');if(el&&!el.value.trim()){el.value=parsed.empresa;highlight(el);}}
       if(parsed.cargo){const el=document.getElementById('mv-cargo');if(el&&!el.value.trim()){el.value=parsed.cargo;highlight(el);}}
       if(parsed.localizacao){const el=document.getElementById('mv-localizacao');if(el&&!el.value.trim()){el.value=parsed.localizacao;highlight(el);}}
+      if(parsed.modelo){const el=document.getElementById('mv-modelo');if(el&&!el.value){el.value=parsed.modelo;highlight(el);}}
+      if(parsed.regime){const el=document.getElementById('mv-regime');if(el&&!el.value){el.value=parsed.regime;highlight(el);}}
       validarVagaForm();
     }catch{}
   },800);
@@ -5327,28 +5283,29 @@ async function checkOutlookStatus(){
 }
 
 function atualizarSinais(){
-  // Sinal 1 — Novas vagas (geradas automaticamente nesta sessão)
-  const s1=document.getElementById('sinal-novas-vagas');
+  // Sinal 1 — Novas vagas (informativo — já em Processos)
   const s1txt=document.getElementById('sinal-novas-vagas-txt');
-  if(s1&&s1txt){
+  if(s1txt){
     const n=_sinaisEmails.leads;
-    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} adicionada${n===1?'':'s'}`:'Novas vagas — nenhuma nova';
-    s1.style.opacity=n>0?'1':'0.6';
+    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} adicionada${n===1?'':'s'} hoje`:'Novas vagas — nenhuma nova';
   }
   // Sinal 2 — Retornos (respostas de processos em andamento)
   const s2=document.getElementById('sinal-retornos');
   const s2txt=document.getElementById('sinal-retornos-txt');
+  const s2sub=document.getElementById('sinal-retornos-sub');
   if(s2&&s2txt){
     if(_outlookStatus==='desconectado'){
       s2txt.textContent='Retornos — conectar Outlook';
       s2.onclick=conectarOutlook;
       s2.style.opacity='0.5';
+      if(s2sub) s2sub.style.display='none';
     } else {
       const retornos=_emailsProcesso.filter(e=>e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='negativo'||e.categoria==='hunter');
       const n=retornos.length;
       s2txt.textContent=n>0?`${n} retorno${n===1?'':'s'} de processo${n===1?'':'s'}`:'Retornos — nenhum novo';
       s2.onclick=toggleRetornos;
       s2.style.opacity=n>0?'1':'0.6';
+      if(s2sub) s2sub.style.display=n>0?'block':'none';
     }
   }
   // Sinal 3 — Novidades no mercado (alertas + notícias, fonte oculta)
@@ -5838,24 +5795,28 @@ function _buildAlertasHtml(){
       </div>
     </div>`;
   }).join('');
-  // Alertas — ações inline, sem link externo
+  // Alertas — conteúdo limpo, mesmas 3 ações das notícias
   html+=_sinaisAlertas.map((e,i)=>{
-    const assunto=(e.subject||e.assunto||'Alerta').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const rawAssunto=e.subject||e.assunto||'Alerta';
+    const titulo=rawAssunto.replace(/^(Alerta do Google|Google Alert)\s*[-–—]\s*/i,'').replace(/&/g,'&amp;').replace(/</g,'&lt;')||rawAssunto;
     const dataTxt=e.date?_tempoRelativo(e.date):'';
-    const preview=(e.body||e.preview||e.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,90);
+    const rawPreview=e.body||e.preview||e.resumo||'';
+    const preview=rawPreview
+      .replace(/\[Google\]\s*<https?:\/\/[^>]+>/gi,'')
+      .replace(/<https?:\/\/[^\s>]+>/gi,'')
+      .replace(/https?:\/\/\S+/gi,'')
+      .replace(/&lt;|&gt;/g,'').replace(/&amp;/g,'&')
+      .replace(/\s+/g,' ').trim().slice(0,100);
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;align-items:flex-start;gap:8px;">
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-            <span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</span>
-            <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
-          </div>
-          ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:8px;">${preview}…</div>`:''}
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${titulo}</div>
+          ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.4;">${preview}</div>`:''}
         </div>
-        <button onclick="event.stopPropagation();_dispensarAlerta(${i})" title="Dispensar" style="font-size:16px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">×</button>
+        <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="event.stopPropagation();abrirModalAlerta(${i})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Avaliar →</button>
+        <button onclick="event.stopPropagation();_abrirProcessoDeNoticia('')" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">+ Abrir processo</button>
         <button onclick="event.stopPropagation();_dispensarAlerta(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
       </div>
     </div>`;
@@ -6075,14 +6036,22 @@ async function carregarEmails(forcar){
         const assunto=e.subject||e.assunto||'';
         const preview=e.resumo||e.preview||e.bodyPreview||'';
         const conteudoVaga=e.conteudo_vaga||preview;
-        const linkVaga=e.link_vaga||e.origemUrl||emailAddr;
-        const jaExiste=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr&&(v.emailAssunto||'')===(assunto||''));
+        // URL limpa: só usar se não for endereço de email
+        const rawLink=e.link_vaga||e.origemUrl||'';
+        const linkVaga=rawLink&&!rawLink.includes('@')?rawLink:'';
+        // Canal inteligente: detectar pela URL ou remetente
+        const _fonteStr=(linkVaga+' '+(emailAddr||'')+' '+(assunto||'')).toLowerCase();
+        const canal=_fonteStr.includes('linkedin')?'LinkedIn':_fonteStr.includes('indeed')?'Indeed':_fonteStr.includes('gupy')?'Gupy':_fonteStr.includes('infojobs')?'InfoJobs':_fonteStr.includes('catho')?'Catho':'Email';
+        // Email recrutador: ignorar no-reply
+        const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailAddr);
+        const emailDestFinal=isNoReply?'':emailAddr;
+        const jaExiste=vagas.find(v=>v.emailAssunto&&v.emailAssunto===assunto&&v.empresa);
         if(!jaExiste){
           const ext=extraidos?.[i];
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
-          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal:'Email',prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailAddr,emailAssunto:assunto,origemUrl:linkVaga||emailAddr,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
         }
       });
