@@ -531,7 +531,18 @@ select option { background: var(--bg2); }
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <!-- Novas vagas -->
+        <!-- Varredura automática -->
+        <div id="sinal-varredura" class="sh-item" onclick="toggleVarreduraHome()">
+          <div class="sh-dot" style="background:#059669;"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-varredura-txt">Varredura automática</div>
+            <div class="sh-item-sub" id="sinal-varredura-sub"></div>
+          </div>
+          <svg class="sh-item-chev" id="sinal-varredura-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        </div>
+        <div id="varredura-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
+
+      <!-- Novas vagas -->
         <div id="sinal-novas-vagas" class="sh-item" onclick="toggleNovasVagas()">
           <div class="sh-dot" style="background:var(--action);"></div>
           <div class="sh-item-body">
@@ -2507,7 +2518,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); _avaliarLimpezaCard(); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
@@ -3899,6 +3910,8 @@ let _mostrarArquivados=false;
 let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
+let _vagasLeadPendentes=[];
+let _varreduraStatus=null;
 let _emailsAvulsos=[];
 let _emailsProcesso=[];
 let _emailsMercado=[];
@@ -5281,6 +5294,74 @@ async function checkOutlookStatus(){
     _outlookStatus='desconectado';
     return false;
   }
+}
+
+// ── Varredura automática — sinal na Home ──
+async function verificarVagasVarredura(){
+  try{
+    const [resLead, resSt]=await Promise.all([
+      fetch(WORKER_URL+'/api/vagas-lead'),
+      fetch(WORKER_URL+'/api/varredura-status'),
+    ]);
+    const dataLead=await resLead.json();
+    _varreduraStatus=resSt.ok?await resSt.json():null;
+    const deletados=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    _vagasLeadPendentes=(dataLead.vagas||[])
+      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id)))
+      .sort((a,b)=>(b.score||0)-(a.score||0));
+    atualizarSinalVarredura();
+  }catch{ atualizarSinalVarredura(); }
+}
+function atualizarSinalVarredura(){
+  const txt=document.getElementById('sinal-varredura-txt');
+  const sub=document.getElementById('sinal-varredura-sub');
+  const s=document.getElementById('sinal-varredura');
+  if(!txt) return;
+  const n=_vagasLeadPendentes.length;
+  if(n>0){
+    txt.textContent=`${n} vaga${n===1?'':'s'} encontrada${n===1?'':'s'} pela varredura`;
+    s&&(s.style.opacity='1');
+  } else {
+    txt.textContent='Varredura automática — nenhuma pendente';
+    s&&(s.style.opacity='0.6');
+  }
+  if(sub&&_varreduraStatus&&_varreduraStatus.ultima_execucao){
+    const dt=new Date(_varreduraStatus.ultima_execucao);
+    sub.textContent=`Última: ${dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} às ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${_varreduraStatus.pais_varrido||''}`;
+  }
+  const lista=document.getElementById('varredura-inline-lista');
+  if(lista&&lista.style.display==='flex') renderVarreduraHome();
+}
+function toggleVarreduraHome(){
+  const lista=document.getElementById('varredura-inline-lista');
+  const chev=document.getElementById('sinal-varredura-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display==='flex';
+  lista.style.display=aberto?'none':'flex';
+  if(chev) chev.style.transform=aberto?'':'rotate(90deg)';
+  if(!aberto) renderVarreduraHome();
+}
+function renderVarreduraHome(){
+  const lista=document.getElementById('varredura-inline-lista');
+  if(!lista||lista.style.display==='none') return;
+  if(!_vagasLeadPendentes.length){
+    lista.innerHTML=`<div style="font-size:13px;color:var(--text3);">Nenhuma vaga pendente. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
+    return;
+  }
+  const preview=_vagasLeadPendentes.slice(0,5).map(v=>{
+    const score=typeof v.score==='number'?v.score:null;
+    const scoreCor=score>=75?'#1A7A4A':score>=55?'#B8670A':'#CC0000';
+    const scoreBg=score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.empresa||'—').replace(/&/g,'&amp;')}</div>
+        <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.titulo||'').replace(/&/g,'&amp;')}</div>
+      </div>
+      ${score!==null?`<span style="font-size:11px;font-weight:700;color:${scoreCor};background:${scoreBg};padding:2px 7px;border-radius:10px;flex-shrink:0;">${score}</span>`:''}
+    </div>`;
+  }).join('');
+  const mais=_vagasLeadPendentes.length>5?`<div style="font-size:12px;color:var(--text3);padding:6px 0;">+${_vagasLeadPendentes.length-5} mais no Processos</div>`:'';
+  lista.innerHTML=preview+mais+`<button onclick="importarVagasLead()" style="width:100%;margin-top:8px;padding:8px 14px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar para Processos →</button>`;
 }
 
 function atualizarSinais(){
