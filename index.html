@@ -531,14 +531,15 @@ select option { background: var(--bg2); }
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <!-- Novas vagas (informativo — já estão em Processos) -->
-        <div id="sinal-novas-vagas" class="sh-item" onclick="carregarEmails(true)" style="cursor:pointer;">
+        <!-- Novas vagas -->
+        <div id="sinal-novas-vagas" class="sh-item" onclick="toggleNovasVagas()">
           <div class="sh-dot" style="background:var(--action);"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas — carregando…</div>
+            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas</div>
           </div>
-          <span style="font-size:13px;color:var(--action);flex-shrink:0;" title="Recarregar">↺</span>
+          <svg class="sh-item-chev" id="sinal-novas-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
+        <div id="novas-vagas-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
         <!-- Retornos -->
         <div id="sinal-retornos" class="sh-item" onclick="toggleRetornos()">
@@ -5283,11 +5284,11 @@ async function checkOutlookStatus(){
 }
 
 function atualizarSinais(){
-  // Sinal 1 — Novas vagas (informativo — já em Processos)
+  // Sinal 1 — Novas vagas
   const s1txt=document.getElementById('sinal-novas-vagas-txt');
   if(s1txt){
     const n=_sinaisEmails.leads;
-    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} adicionada${n===1?'':'s'} hoje`:'Novas vagas — nenhuma nova';
+    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} processada${n===1?'':'s'}`:'Novas vagas — nenhuma nova sessão';
   }
   // Sinal 2 — Retornos (respostas de processos em andamento)
   const s2=document.getElementById('sinal-retornos');
@@ -5773,26 +5774,20 @@ function limparFiltroInativo(){
 }
 function _buildAlertasHtml(){
   let html='';
-  // Notícias de mercado — 3 ações inline, fonte oculta
+  // Notícias de mercado — título como hiperlink, extensão faz análise na página
   html+=_sinaisMercado.map((s,i)=>{
     const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const tipoLabel={movimento_exec:'Movimento executivo',expansao:'Expansão',fusao:'Fusão/M&A',outro:'Notícia'}[s.tipo]||'Notícia';
-    const rel=s.relevancia||3;
-    const relColor=rel>=5?'var(--red)':rel>=4?'var(--amber)':'var(--text3)';
-    const empresaEsc=(s.empresa||'').replace(/'/g,"\\'");
+    const url=s.url||s.link||'';
+    const meta=[tipoLabel,s.empresa].filter(Boolean).join(' · ');
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-        <span style="font-size:11px;color:var(--text3);">${tipoLabel}</span>
-        <span style="font-size:11px;font-weight:600;color:${relColor};">● ${rel}/5</span>
-      </div>
-      ${s.empresa?`<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${s.empresa}</div>`:''}
-      <div style="font-size:12px;color:var(--text3);line-height:1.45;margin-bottom:8px;">${resumo||titulo}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="event.stopPropagation();_abrirProcessoDeNoticia('${empresaEsc}')" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">+ Abrir processo</button>
-        <button onclick="event.stopPropagation();_buscarContatoPorEmpresa('${empresaEsc}')" style="font-size:12px;color:var(--action);background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Buscar contato</button>
-        <button onclick="event.stopPropagation();_dispensarNoticia(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
-      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">${meta}</div>
+      ${url
+        ?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:13px;font-weight:600;color:var(--action);text-decoration:none;line-height:1.45;display:block;margin-bottom:4px;">${titulo||resumo} ↗</a>`
+        :`<div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:4px;">${titulo||resumo}</div>`
+      }
+      ${resumo&&titulo?`<div style="font-size:12px;color:var(--text3);line-height:1.4;">${resumo}</div>`:''}
     </div>`;
   }).join('');
   // Alertas — conteúdo limpo, mesmas 3 ações das notícias
@@ -5852,7 +5847,7 @@ function renderAlertasInline(){
   lista.innerHTML=html;
 }
 
-// ── Novas vagas (leads criados automaticamente) ──
+// ── Novas vagas (contador + Recarregar — já estão em Processos) ──
 function toggleNovasVagas(){
   const lista=document.getElementById('novas-vagas-inline-lista');
   const chev=document.getElementById('sinal-novas-vagas-chevron');
@@ -5865,20 +5860,11 @@ function toggleNovasVagas(){
 function renderNovasVagas(){
   const lista=document.getElementById('novas-vagas-inline-lista');
   if(!lista||lista.style.display==='none') return;
-  const recentes=vagas.filter(v=>v.status==='lead').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
-  if(!recentes.length){
-    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">Nenhuma vaga nova no momento.</div>`;
-    return;
-  }
-  lista.innerHTML=recentes.map(v=>{
-    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>
-      </div>
-      <button onclick="openVagaModal(${v.id})" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;padding:0;">Ver →</button>
-    </div>`;
-  }).join('');
+  const n=_sinaisEmails.leads;
+  const msg=n>0
+    ?`${n} vaga${n===1?'':'s'} processada${n===1?'':'s'} e adicionada${n===1?'':'s'} em <b>Processos</b>.`
+    :'Nenhuma vaga nova processada nesta sessão.';
+  lista.innerHTML=`<div style="font-size:13px;color:var(--text3);line-height:1.6;">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
 }
 
 // ── Retornos (respostas a processos em andamento) ──
@@ -5894,26 +5880,42 @@ function toggleRetornos(){
 function renderRetornos(){
   const lista=document.getElementById('retornos-inline-lista');
   if(!lista||lista.style.display==='none') return;
+  const CAT_LABEL={positivo:'Retorno positivo',pipeline:'Em processo',negativo:'Retorno negativo',hunter:'Headhunter',vaga:'Nova vaga',mercado:'Mercado',irrelevante:'Não relevante'};
   const retornos=_emailsProcesso.filter(e=>e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='negativo'||e.categoria==='hunter');
   if(!retornos.length){
     const n=_emailsNovosHoje;
-    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje.`:'Nenhum retorno novo.'} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
+    lista.innerHTML=`<div style="font-size:13px;color:var(--text3);">${n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje.`:'Nenhum retorno novo.'} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
     return;
   }
-  lista.innerHTML=retornos.slice(0,6).map((e,idx)=>{
+  const aviso=`<div style="font-size:11.5px;color:var(--amber);background:#FFF8EC;border:1px solid #C9A84C44;border-radius:6px;padding:7px 10px;margin-bottom:10px;">⚠ Emails carregados aparecem como <b>lidos</b> no Outlook.</div>`;
+  const cards=retornos.slice(0,6).map((e,idx)=>{
+    const idxReal=_emailsProcesso.indexOf(e);
     const remetente=(e.from_name||e.from||'(remetente)').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const preview=(e.resumo||e.preview||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,80);
     const dataTxt=e.date?_tempoRelativo(e.date):'';
-    const idxReal=_emailsProcesso.indexOf(e);
+    const cat=e.categoria||'pipeline';
+    const opts=Object.entries(CAT_LABEL).map(([v,l])=>`<option value="${v}"${v===cat?' selected':''}>${l}</option>`).join('');
     return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
         <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</span>
         <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
       </div>
       ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:6px;">${preview}</div>`:''}
-      <button onclick="abrirModalResponder_fluxo('processo',${idxReal>=0?idxReal:idx})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">↩ Responder</button>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button onclick="abrirModalResponder_fluxo('processo',${idxReal>=0?idxReal:idx})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">↩ Responder</button>
+        <select onchange="_corrigirCategoriaEmail(${idxReal>=0?idxReal:idx},this.value)" style="font-size:11.5px;border:1px solid var(--border);border-radius:5px;padding:3px 6px;background:var(--bg2);color:var(--text3);cursor:pointer;font-family:var(--font);">${opts}</select>
+      </div>
     </div>`;
   }).join('');
+  lista.innerHTML=aviso+cards;
+}
+
+// ── Corrigir categoria de email ──
+function _corrigirCategoriaEmail(idx, novaCat){
+  const e=_emailsProcesso[idx]; if(!e) return;
+  e.categoria=novaCat;
+  atualizarSinais();
+  renderRetornos();
 }
 
 // ── Ações das novidades de mercado ──
