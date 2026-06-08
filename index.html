@@ -326,6 +326,12 @@ select option { background: var(--bg2); }
 @media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
 
+/* ── HOME 2-COL: Para Hoje | O que há de novo ── */
+.sh-home-2col { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; margin-bottom:14px; }
+@media (max-width:720px) { .sh-home-2col { grid-template-columns:1fr; } }
+.sh-bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; margin-bottom:14px; }
+@media (max-width:720px) { .sh-bottom-row { grid-template-columns:1fr; } }
+
 /* ═══════════════════════════════════════════════════════════════════
    SENOVA HOME v3.25 — Design System aprovado 03/jun/2026
    Regras: sem border-top colorida · sem icon box · cor = sinal
@@ -335,7 +341,7 @@ select option { background: var(--bg2); }
 
 /* coluna única left-aligned */
 #page-home .content { display:flex; flex-direction:column; align-items:flex-start; padding-top:59px; }
-#home-wrap { width:560px; margin-left:calc(50vw - 518px); position:relative; border-radius:8px; box-shadow:0 0 0 1.5px transparent; transition:box-shadow 0.15s; }
+#home-wrap { width:720px; margin-left:calc(50vw - 598px); position:relative; border-radius:8px; box-shadow:0 0 0 1.5px transparent; transition:box-shadow 0.15s; }
 #home-wrap.hw-hover { box-shadow:0 0 0 1.5px rgba(26,58,92,0.28); }
 #home-wrap.hw-drag  { box-shadow:0 0 0 1.5px rgba(26,58,92,0.6); }
 .hw-grip { position:absolute; right:-1px; top:50%; transform:translateY(-50%); opacity:0; transition:opacity 0.15s; pointer-events:none; }
@@ -354,9 +360,7 @@ select option { background: var(--bg2); }
 /* topbar home: só saudação */
 #page-home .topbar-right { display:none; }
 #page-home #home-saudacao { font-family:'Cormorant Garamond',Georgia,serif; font-size:19px; font-weight:700; letter-spacing:-0.2px; }
-/* ocultar "Sua Situação" e "Seu Painel" — números ficam em Seu Painel */
-.sh-right > .sh-card:first-child { display:none; }
-.sh-right > .sh-card:nth-child(2) { display:none; }
+/* Sua Situação e Seu Painel visíveis na linha inferior */
 
 /* itens Para Hoje — sem borda esquerda, sem fundo colorido */
 .home-acao-item { border-left:none !important; background:transparent !important; padding:13px 24px; align-items:flex-start; }
@@ -508,59 +512,56 @@ select option { background: var(--bg2); }
       </svg>
     </div>
 
-    <!-- Para Hoje -->
-    <div class="sh-card sh-card-accent" style="margin-bottom:16px;">
-      <div class="sh-head">
-        <span class="sh-head-title">Para Hoje</span>
-        <span class="sh-head-meta" id="home-acoes-badge"></span>
-        <div style="margin-left:auto;display:flex;gap:6px;">
-          <select class="filter-select" id="hf-prioridade" onchange="renderHomeAcoes()" style="font-size:11.5px;padding:3px 6px;height:26px;">
-            <option value="all">Prioridade</option>
-            <option value="alta">Alta</option>
-            <option value="media">Média</option>
-            <option value="baixa">Baixa</option>
-          </select>
-          <select class="filter-select" id="hf-canal" onchange="renderHomeAcoes()" style="font-size:11.5px;padding:3px 6px;height:26px;">
-            <option value="all">Canal</option>
-            <option value="LinkedIn">LinkedIn</option>
-            <option value="email">E-mail</option>
-            <option value="headhunter">Headhunter</option>
-            <option value="indicacao">Indicação</option>
-            <option value="direto">Direto</option>
-          </select>
+    <!-- 2 colunas principais: Para Hoje | O que há de novo -->
+    <div class="sh-home-2col">
+
+      <!-- ESQUERDA: Para Hoje -->
+      <div class="sh-card sh-card-accent">
+        <div class="sh-head">
+          <span class="sh-head-title">Para Hoje</span>
+          <span class="sh-head-meta" id="home-acoes-badge"></span>
         </div>
+        <div id="home-acoes-list" style="max-height:360px;overflow:hidden;transition:max-height 0.3s ease;"></div>
+        <button class="sh-ver-mais" id="home-ver-mais" style="display:none;" onclick="_homeVerMais(this)"></button>
       </div>
-      <div id="home-acoes-list" style="max-height:198px;overflow:hidden;transition:max-height 0.3s ease;"></div>
-      <button class="sh-ver-mais" id="home-ver-mais" style="display:none;" onclick="_homeVerMais(this)"></button>
-    </div>
 
-    <!-- Grid 2 colunas -->
-    <div class="sh-grid">
-
-      <!-- O que chegou -->
+      <!-- DIREITA: O que há de novo -->
       <div class="sh-card">
         <div class="sh-head">
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <div id="sinal-emails" class="sh-item" onclick="toggleEmailsAvulsos()">
+        <!-- Novas vagas -->
+        <div id="sinal-novas-vagas" class="sh-item" onclick="toggleNovasVagas()">
           <div class="sh-dot" style="background:var(--action);"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-emails-txt">E-mails</div>
+            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas</div>
           </div>
-          <svg class="sh-item-chev" id="sinal-emails-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" id="sinal-novas-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
-        <div id="emails-avulsos-lista" style="display:none;flex-direction:column;gap:8px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
+        <div id="novas-vagas-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
-        <div id="sinal-alertas" class="sh-item" onclick="toggleAlertasInline()">
+        <!-- Retornos -->
+        <div id="sinal-retornos" class="sh-item" onclick="toggleRetornos()">
           <div class="sh-dot" style="background:var(--navy);"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-alertas-txt">O que chegou</div>
+            <div class="sh-item-label" id="sinal-retornos-txt">Retornos</div>
+          </div>
+          <svg class="sh-item-chev" id="sinal-retornos-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+        </div>
+        <div id="retornos-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
+
+        <!-- Novidades no mercado -->
+        <div id="sinal-alertas" class="sh-item" onclick="toggleAlertasInline()">
+          <div class="sh-dot" style="background:var(--amber);"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label" id="sinal-alertas-txt">Novidades no mercado</div>
           </div>
           <svg class="sh-item-chev" id="sinal-alertas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
         <div id="alertas-inline-lista" style="display:none;flex-direction:column;gap:8px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
+        <!-- Oportunidades para revisar -->
         <div id="sinal-vagas" class="sh-item" style="display:none;" onclick="toggleRevisaoLista()">
           <div class="sh-dot" style="background:var(--amber);"></div>
           <div class="sh-item-body">
@@ -570,70 +571,58 @@ select option { background: var(--bg2); }
         </div>
         <div id="home-revisao-lista" style="padding:0 4px;"></div>
 
-        <div id="sinal-inativos" class="sh-item" style="display:none!important;" onclick="irParaInativos()">
-          <div class="sh-dot" style="background:var(--red);"></div>
+      </div>
+    </div><!-- /sh-home-2col -->
+
+    <!-- Linha inferior: Situação + Painel -->
+    <div class="sh-bottom-row">
+      <div class="sh-card">
+        <div class="sh-head">
+          <span class="sh-head-title">Sua Situação</span>
+          <button class="sh-head-action" onclick="showPage('crm')">ver tudo →</button>
+        </div>
+        <div class="sh-kpi-grid">
+          <div class="sh-kpi" onclick="showPage('crm')">
+            <div class="sh-kpi-num" id="stat-lead">—</div>
+            <div class="sh-kpi-lbl">em vista</div>
+          </div>
+          <div class="sh-kpi" onclick="showPage('crm')">
+            <div class="sh-kpi-num" id="stat-candidatados">—</div>
+            <div class="sh-kpi-lbl">aguardando retorno</div>
+          </div>
+          <div class="sh-kpi" onclick="showPage('crm')">
+            <div class="sh-kpi-num" id="stat-pipeline">—</div>
+            <div class="sh-kpi-lbl">em conversa</div>
+          </div>
+          <div class="sh-kpi" onclick="showPage('crm')">
+            <div class="sh-kpi-num" id="stat-proposta">—</div>
+            <div class="sh-kpi-lbl">com proposta</div>
+          </div>
+        </div>
+      </div>
+      <div class="sh-card" style="cursor:pointer;" onclick="showPage('relatorios')">
+        <div class="sh-item" style="border-bottom:none;">
+          <div class="sh-dot" style="background:var(--navy);"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-inativos-txt" style="color:var(--red);">Processos precisam de atenção</div>
+            <div class="sh-item-label">Seu Painel</div>
+            <div class="sh-item-sub">funil · taxa de retorno · histórico</div>
           </div>
           <svg class="sh-item-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
       </div>
+    </div><!-- /sh-bottom-row -->
 
-      <!-- Coluna direita -->
-      <div class="sh-right">
-
-        <!-- Sua Situação -->
-        <div class="sh-card">
-          <div class="sh-head">
-            <span class="sh-head-title">Sua Situação</span>
-            <button class="sh-head-action" onclick="showPage('crm')">ver tudo →</button>
-          </div>
-          <div class="sh-kpi-grid">
-            <div class="sh-kpi" onclick="showPage('crm')">
-              <div class="sh-kpi-num" id="stat-lead">—</div>
-              <div class="sh-kpi-lbl">em vista</div>
-            </div>
-            <div class="sh-kpi" onclick="showPage('crm')">
-              <div class="sh-kpi-num" id="stat-candidatados">—</div>
-              <div class="sh-kpi-lbl">aguardando retorno</div>
-            </div>
-            <div class="sh-kpi" onclick="showPage('crm')">
-              <div class="sh-kpi-num" id="stat-pipeline">—</div>
-              <div class="sh-kpi-lbl">em conversa</div>
-            </div>
-            <div class="sh-kpi" onclick="showPage('crm')">
-              <div class="sh-kpi-num" id="stat-proposta">—</div>
-              <div class="sh-kpi-lbl">com proposta</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Seu Painel -->
-        <div class="sh-card" style="cursor:pointer;" onclick="showPage('relatorios')">
-          <div class="sh-item" style="border-bottom:none;">
-            <div class="sh-dot" style="background:var(--navy);"></div>
-            <div class="sh-item-body">
-              <div class="sh-item-label">Seu Painel</div>
-              <div class="sh-item-sub">funil · taxa de retorno · histórico</div>
-            </div>
-            <svg class="sh-item-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-          </div>
-        </div>
-
-        <!-- Oportunidades acumuladas (condicional) -->
-        <div class="sh-card" id="home-limpeza-card" style="display:none;border-left:3px solid var(--amber);">
-          <div class="sh-head">
-            <div class="sh-dot" style="background:var(--amber);flex-shrink:0;"></div>
-            <span class="sh-head-title" style="color:var(--amber);">Oportunidades acumuladas</span>
-            <span class="sh-head-meta" id="home-limpeza-count" style="color:var(--amber);margin-left:4px;"></span>
-          </div>
-          <div style="padding:8px 22px 6px;font-size:13px;color:var(--text3);line-height:1.5;" id="home-limpeza-desc"></div>
-          <div style="padding:4px 22px 16px;display:flex;flex-direction:column;gap:6px;">
-            <button onclick="limpezaExpressa()" style="width:100%;padding:9px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Guardar no histórico →</button>
-            <button onclick="showPage('crm');setTimeout(abrirLimpezaLote,200);" style="width:100%;padding:7px 14px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font);">Selecionar manualmente</button>
-          </div>
-        </div>
-
+    <!-- Oportunidades acumuladas (condicional) -->
+    <div class="sh-card" id="home-limpeza-card" style="display:none;border-left:3px solid var(--amber);margin-bottom:14px;">
+      <div class="sh-head">
+        <div class="sh-dot" style="background:var(--amber);flex-shrink:0;"></div>
+        <span class="sh-head-title" style="color:var(--amber);">Oportunidades acumuladas</span>
+        <span class="sh-head-meta" id="home-limpeza-count" style="color:var(--amber);margin-left:4px;"></span>
+      </div>
+      <div style="padding:8px 22px 6px;font-size:13px;color:var(--text3);line-height:1.5;" id="home-limpeza-desc"></div>
+      <div style="padding:4px 22px 16px;display:flex;flex-direction:column;gap:6px;">
+        <button onclick="limpezaExpressa()" style="width:100%;padding:9px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Guardar no histórico →</button>
+        <button onclick="showPage('crm');setTimeout(abrirLimpezaLote,200);" style="width:100%;padding:7px 14px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font);">Selecionar manualmente</button>
       </div>
     </div>
   </div><!-- /home-wrap -->
@@ -2363,7 +2352,7 @@ select option { background: var(--bg2); }
 <script>
 // ─── Resize #home-wrap ───────────────────────────
 (function() {
-  const MIN_W = 400, MAX_W = 960, EDGE = 8, LS_KEY = 'sn_home_wrap_w';
+  const MIN_W = 400, MAX_W = 960, EDGE = 8, LS_KEY = 'sn_home_wrap_w3';
   document.addEventListener('DOMContentLoaded', () => {
     const hw = document.getElementById('home-wrap');
     if (!hw) return;
@@ -5338,53 +5327,54 @@ async function checkOutlookStatus(){
 }
 
 function atualizarSinais(){
-  // Sinal 1 — Emails
-  const s1=document.getElementById('sinal-emails');
-  const s1txt=document.getElementById('sinal-emails-txt');
-  if(s1){
-    s1.style.display='flex';
+  // Sinal 1 — Novas vagas (geradas automaticamente nesta sessão)
+  const s1=document.getElementById('sinal-novas-vagas');
+  const s1txt=document.getElementById('sinal-novas-vagas-txt');
+  if(s1&&s1txt){
+    const n=_sinaisEmails.leads;
+    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} adicionada${n===1?'':'s'}`:'Novas vagas — nenhuma nova';
+    s1.style.opacity=n>0?'1':'0.6';
+  }
+  // Sinal 2 — Retornos (respostas de processos em andamento)
+  const s2=document.getElementById('sinal-retornos');
+  const s2txt=document.getElementById('sinal-retornos-txt');
+  if(s2&&s2txt){
     if(_outlookStatus==='desconectado'){
-      s1txt.textContent='E-mails — Conectar Outlook para receber';
-      s1.onclick=conectarOutlook;
-      s1.style.opacity='0.6';
+      s2txt.textContent='Retornos — conectar Outlook';
+      s2.onclick=conectarOutlook;
+      s2.style.opacity='0.5';
     } else {
-      const partes=[];
-      if(_emailsProcesso.length) partes.push(`${_emailsProcesso.length} sobre processo${_emailsProcesso.length>1?'s':''}`);
-      if(_emailsMercado.length) partes.push(`${_emailsMercado.length} mercado`);
-      if(_emailsIrrelevantes.length) partes.push(`${_emailsIrrelevantes.length} a limpar`);
-      s1txt.textContent=partes.length?`E-mails — ${partes.join(' · ')}`:'E-mails — nenhum novo';
-      s1.onclick=toggleEmailsAvulsos;
-      s1.style.opacity='1';
+      const retornos=_emailsProcesso.filter(e=>e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='negativo'||e.categoria==='hunter');
+      const n=retornos.length;
+      s2txt.textContent=n>0?`${n} retorno${n===1?'':'s'} de processo${n===1?'':'s'}`:'Retornos — nenhum novo';
+      s2.onclick=toggleRetornos;
+      s2.style.opacity=n>0?'1':'0.6';
     }
   }
-  // Sinal 2 — Alertas
-  const s2=document.getElementById('sinal-alertas');
-  const s2txt=document.getElementById('sinal-alertas-txt');
-  if(s2){
-    s2.style.display='flex';
-    s2.style.opacity='1';
-    s2.onclick=toggleAlertasInline;
-    const totalSinais=_sinaisAlertas.length+_sinaisMercado.length;
-    if(totalSinais>0){
-      const partes=[];
-      if(_sinaisAlertas.length) partes.push(`${_sinaisAlertas.length} alerta${_sinaisAlertas.length===1?'':'s'}`);
-      if(_sinaisMercado.length) partes.push(`${_sinaisMercado.length} notícia${_sinaisMercado.length===1?'':'s'}`);
-      s2txt.textContent=`Inteligência de Mercado — ${partes.join(' · ')}`;
+  // Sinal 3 — Novidades no mercado (alertas + notícias, fonte oculta)
+  const s3=document.getElementById('sinal-alertas');
+  const s3txt=document.getElementById('sinal-alertas-txt');
+  if(s3&&s3txt){
+    const total=_sinaisAlertas.length+_sinaisMercado.length;
+    if(total>0){
+      s3txt.textContent=`${total} novidade${total===1?'':'s'} no mercado`;
+      s3.style.opacity='1';
     } else if(_alertasHoje>0){
-      s2txt.textContent=`Inteligência de Mercado — ${_alertasHoje} sinal${_alertasHoje===1?'':'s'} hoje`;
+      s3txt.textContent=`Mercado — ${_alertasHoje} sinal${_alertasHoje===1?'':'s'} hoje`;
+      s3.style.opacity='0.7';
     } else {
-      s2txt.textContent='Inteligência de Mercado — sem novidades';
+      s3txt.textContent='Mercado — sem novidades';
+      s3.style.opacity='0.6';
     }
+    s3.onclick=toggleAlertasInline;
   }
-  // Sinal 3 — Inativos
-  const s3=document.getElementById('sinal-inativos');
-  const s3txt=document.getElementById('sinal-inativos-txt');
-  if(s3){
-    const ni=vagas.filter(isInativo).length;
-    s3.style.display='none'; // movido para Para Hoje via renderHomeAcoes
-  }
+  // Sinal 4 — Oportunidades para revisar (vagas abaixo do limiar — via renderWidgetRevisao)
   const _la=document.getElementById('alertas-inline-lista');
   if(_la&&_la.style.display==='flex') renderAlertasInline();
+  const _nv=document.getElementById('novas-vagas-inline-lista');
+  if(_nv&&_nv.style.display==='flex') renderNovasVagas();
+  const _rt=document.getElementById('retornos-inline-lista');
+  if(_rt&&_rt.style.display==='flex') renderRetornos();
 }
 // ── Emails Avulsos — resposta via Outlook ──
 function toggleEmailsAvulsos(){
@@ -5826,58 +5816,50 @@ function limparFiltroInativo(){
 }
 function _buildAlertasHtml(){
   let html='';
-  if(_sinaisMercado.length){
-    html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Notícias do mercado</div>`;
-    html+=_sinaisMercado.map(s=>{
-      const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const sugestao=(s.sugestao_msg||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const tipoLabel={movimento_exec:'👤 Movimento exec.',expansao:'📈 Expansão',fusao:'🔀 Fusão/M&A',outro:'📰 Notícia'}[s.tipo]||'📰 Notícia';
-      const rel=s.relevancia||3;
-      const relColor=rel>=5?'#CC0000':rel>=4?'#B8670A':'#0066CC';
-      const url=s.url||s.link||'';
-      return `<div class="alerta-item" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--borda);">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-          <span style="font-size:11px;background:var(--fundo2);padding:2px 6px;border-radius:10px;color:var(--text2);">${tipoLabel}</span>
-          <span style="font-size:11px;color:${relColor};font-weight:600;">Relevância ${rel}/5</span>
-        </div>
-        <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:3px;">${s.empresa||''}</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:5px;">${resumo||titulo}</div>
-        ${sugestao?`<div style="font-size:12px;color:var(--navy);background:#EEF4FA;border-left:3px solid var(--action);padding:5px 8px;border-radius:0 4px 4px 0;margin-bottom:5px;">${sugestao}</div>`:''}
-        ${(()=>{const ed=s.email_decisor;if(!ed)return '';const em=(ed.email||'').replace(/'/g,"\\'");const label=[ed.nome,ed.cargo?`(${ed.cargo})`:null].filter(Boolean).join(' ');return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#F6FBF6;border:1px solid #C3E6CB;border-radius:4px;padding:5px 8px;margin-bottom:5px;"><span style="font-size:12px;">📧</span><span style="font-size:12px;font-weight:600;color:#1A5C2A;">${ed.email}</span>${label?`<span style="font-size:11px;color:var(--text3);">— ${label}</span>`:''}<button onclick="navigator.clipboard.writeText('${em}').then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='Copiar email',1500)})" style="font-size:11px;padding:2px 7px;border:1px solid #C3E6CB;background:#fff;border-radius:4px;cursor:pointer;color:#1A5C2A;margin-left:auto;">Copiar email</button></div>`})()}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${sugestao?`<button onclick="navigator.clipboard.writeText('${sugestao.replace(/'/g,"\\'")}').then(()=>{this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='📋 Copiar mensagem',1500)})" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;cursor:pointer;color:var(--action);">📋 Copiar mensagem</button>`:''}
-          ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:11px;padding:3px 8px;border:1px solid var(--borda);background:#fff;border-radius:4px;color:var(--text2);text-decoration:none;">🔗 Ver notícia</a>`:''}
-        </div>
-      </div>`;
-    }).join('');
-  }
-  if(_sinaisAlertas.length){
-    if(_sinaisMercado.length) html+=`<div style="margin-top:6px;"></div>`;
-    html+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Alertas recebidos</div>`;
-    html+=_sinaisAlertas.map((e,i)=>{
-      const assunto=(e.subject||e.assunto||'Alerta').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const dataTxt=e.date?new Date(e.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-      const preview=(e.body||e.preview||e.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,100);
-      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px;">
-        <div style="display:flex;align-items:flex-start;gap:8px;">
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span style="font-size:11px;font-weight:700;color:var(--action);text-transform:uppercase;letter-spacing:0.06em;">Alerta</span>
-              <span style="font-size:11px;color:var(--text3);">${dataTxt}</span>
-            </div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:${preview?'4px':'0'}">${assunto}</div>
-            ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.45;">${preview}…</div>`:''}
+  // Notícias de mercado — 3 ações inline, fonte oculta
+  html+=_sinaisMercado.map((s,i)=>{
+    const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const tipoLabel={movimento_exec:'Movimento executivo',expansao:'Expansão',fusao:'Fusão/M&A',outro:'Notícia'}[s.tipo]||'Notícia';
+    const rel=s.relevancia||3;
+    const relColor=rel>=5?'var(--red)':rel>=4?'var(--amber)':'var(--text3)';
+    const empresaEsc=(s.empresa||'').replace(/'/g,"\\'");
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:11px;color:var(--text3);">${tipoLabel}</span>
+        <span style="font-size:11px;font-weight:600;color:${relColor};">● ${rel}/5</span>
+      </div>
+      ${s.empresa?`<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${s.empresa}</div>`:''}
+      <div style="font-size:12px;color:var(--text3);line-height:1.45;margin-bottom:8px;">${resumo||titulo}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="event.stopPropagation();_abrirProcessoDeNoticia('${empresaEsc}')" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">+ Abrir processo</button>
+        <button onclick="event.stopPropagation();_buscarContatoPorEmpresa('${empresaEsc}')" style="font-size:12px;color:var(--action);background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Buscar contato</button>
+        <button onclick="event.stopPropagation();_dispensarNoticia(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
+      </div>
+    </div>`;
+  }).join('');
+  // Alertas — ações inline, sem link externo
+  html+=_sinaisAlertas.map((e,i)=>{
+    const assunto=(e.subject||e.assunto||'Alerta').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const dataTxt=e.date?_tempoRelativo(e.date):'';
+    const preview=(e.body||e.preview||e.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,90);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</span>
+            <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
           </div>
-          <button onclick="event.stopPropagation();_dispensarAlerta(${i})" title="Marcar como visto" style="font-size:16px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">×</button>
+          ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:8px;">${preview}…</div>`:''}
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button onclick="event.stopPropagation();abrirModalAlerta(${i})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:var(--font);">Analisar com Sofia →</button>
-          ${(e.webLink||e.link)?`<a href="${e.webLink||e.link}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--text3);border:1px solid var(--border);background:var(--bg2);border-radius:6px;padding:5px 10px;text-decoration:none;">Ver fonte ↗</a>`:''}
-        </div>
-      </div>`;
-    }).join('');
-  }
+        <button onclick="event.stopPropagation();_dispensarAlerta(${i})" title="Dispensar" style="font-size:16px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">×</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="event.stopPropagation();abrirModalAlerta(${i})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Avaliar →</button>
+        <button onclick="event.stopPropagation();_dispensarAlerta(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
+      </div>
+    </div>`;
+  }).join('');
   return html;
 }
 function toggleAlertasInline(){
@@ -5907,6 +5889,92 @@ function renderAlertasInline(){
     return;
   }
   lista.innerHTML=html;
+}
+
+// ── Novas vagas (leads criados automaticamente) ──
+function toggleNovasVagas(){
+  const lista=document.getElementById('novas-vagas-inline-lista');
+  const chev=document.getElementById('sinal-novas-vagas-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display==='flex';
+  lista.style.display=aberto?'none':'flex';
+  if(chev) chev.style.transform=aberto?'':'rotate(90deg)';
+  if(!aberto) renderNovasVagas();
+}
+function renderNovasVagas(){
+  const lista=document.getElementById('novas-vagas-inline-lista');
+  if(!lista||lista.style.display==='none') return;
+  const recentes=vagas.filter(v=>v.status==='lead').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
+  if(!recentes.length){
+    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">Nenhuma vaga nova no momento.</div>`;
+    return;
+  }
+  lista.innerHTML=recentes.map(v=>{
+    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>
+      </div>
+      <button onclick="openVagaModal(${v.id})" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;padding:0;">Ver →</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Retornos (respostas a processos em andamento) ──
+function toggleRetornos(){
+  const lista=document.getElementById('retornos-inline-lista');
+  const chev=document.getElementById('sinal-retornos-chevron');
+  if(!lista) return;
+  const aberto=lista.style.display==='flex';
+  lista.style.display=aberto?'none':'flex';
+  if(chev) chev.style.transform=aberto?'':'rotate(90deg)';
+  if(!aberto) renderRetornos();
+}
+function renderRetornos(){
+  const lista=document.getElementById('retornos-inline-lista');
+  if(!lista||lista.style.display==='none') return;
+  const retornos=_emailsProcesso.filter(e=>e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='negativo'||e.categoria==='hunter');
+  if(!retornos.length){
+    const n=_emailsNovosHoje;
+    lista.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--text3);">${n>0?`${n} email${n===1?'':'s'} processado${n===1?'':'s'} hoje.`:'Nenhum retorno novo.'} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
+    return;
+  }
+  lista.innerHTML=retornos.slice(0,6).map((e,idx)=>{
+    const remetente=(e.from_name||e.from||'(remetente)').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const preview=(e.resumo||e.preview||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,80);
+    const dataTxt=e.date?_tempoRelativo(e.date):'';
+    const idxReal=_emailsProcesso.indexOf(e);
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+        <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</span>
+        <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
+      </div>
+      ${preview?`<div style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:6px;">${preview}</div>`:''}
+      <button onclick="abrirModalResponder_fluxo('processo',${idxReal>=0?idxReal:idx})" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">↩ Responder</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Ações das novidades de mercado ──
+function _dispensarNoticia(idx){
+  _sinaisMercado.splice(idx,1);
+  atualizarSinais();
+  renderAlertasInline();
+}
+function _abrirProcessoDeNoticia(empresa){
+  showPage('crm');
+  setTimeout(()=>{
+    openVagaModal('new');
+    if(empresa){ setTimeout(()=>{ const el=document.getElementById('vaga-empresa'); if(el) el.value=empresa; },150); }
+  },200);
+}
+function _buscarContatoPorEmpresa(empresa){
+  showPage('crm');
+  setTimeout(()=>{
+    const tab=document.querySelector('[onclick*="abrirAbaContatos"]')||document.getElementById('tab-contatos');
+    if(tab) tab.click();
+    if(empresa){ const s=document.getElementById('crm-search'); if(s){ s.value=empresa; s.dispatchEvent(new Event('input')); } }
+  },200);
 }
 
 function conectarOutlook(){
@@ -6024,6 +6092,8 @@ async function carregarEmails(forcar){
     _emailsCarregados=true;
     atualizarSinais();
     renderEmailsAvulsos();
+    renderRetornos();
+    renderNovasVagas();
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 
