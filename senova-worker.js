@@ -494,49 +494,68 @@ export default {
         return json({ erro: 'Outlook não conectado.', reauth: true, url_auth: base + '/api/auth/outlook' }, 401);
       }
       const limite = parseInt(url.searchParams.get('limite') || '50');
-      const apenasNovos = url.searchParams.get('apenas_novos') !== 'false';
+      const apenasNovos = !url.searchParams.get('limite');
 
       const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
-      // Pedir HTML body — preserva href com URLs reais
+      // Fetch principal: texto (leve, para classificação)
       const msRes = await fetch(
         `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body,webLink`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
       );
       if (!msRes.ok) {
         const err = await msRes.json();
         return json({ erro: 'Erro ao buscar emails', detalhes: err }, 502);
       }
       const msData = await msRes.json();
-      const emails = (msData.value || []).map(e => {
-        const htmlCorpo = e.body?.content || '';
-        const links = extrairLinksEmail(htmlCorpo);
-        const corpoTexto = htmlCorpo ? stripHtml(htmlCorpo) : (e.bodyPreview || '');
+      const emailsBase = (msData.value || []).map(e => {
+        const corpo = e.body?.content || e.bodyPreview || '';
         return {
           id: e.id, subject: e.subject || '(sem assunto)',
           from: e.from?.emailAddress?.address || '',
           from_name: e.from?.emailAddress?.name || '',
           date: e.receivedDateTime,
           preview: (e.bodyPreview || '').slice(0, 300),
-          body: corpoTexto.slice(0, 5000),
-          htmlBody: htmlCorpo.slice(0, 8000), // preservado para extração de artigos
-          links, is_read: e.isRead, webLink: e.webLink || '',
+          body: corpo.slice(0, 5000),
+          links: [], link_vaga: '',
+          is_read: e.isRead, webLink: e.webLink || '',
         };
       });
 
       const isAlertaFn = e => {
         const f = (e.from || '').toLowerCase();
-        // LinkedIn job alert emails devem ir para classificação IA, não para Alertas
         if (f.includes('linkedin')) return false;
         return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
                f.includes('adzuna') || f.includes('alertas@') ||
                (f.includes('jobalerts') && !f.includes('linkedin')) ||
                (f.includes('job-alert') && !f.includes('linkedin'));
       };
-      // Alertas: extrair artigos reais do HTML do Google Alert
-      const todosAlertas = emails.filter(isAlertaFn).map(e => ({
-        ...e,
-        artigos: extrairArtigosGoogleAlert(e.htmlBody || ''),
+
+      // Fetch HTML individual só para emails com aparência de vaga — extrai hrefs reais
+      const JOB_FROM_PATTERN = /linkedin|gupy|greenhouse|lever|workday|indeed|michaelpage|roberthalf|catho|vagas\.com|empregos\.com|infojobs|jobscore/i;
+      const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
+      await Promise.allSettled(emailsBase.map(async e => {
+        const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
+        const isAlerta = isAlertaFn(e);
+        if (!mightBeVaga && !isAlerta) return;
+        try {
+          const r = await fetch(
+            `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}?$select=body`,
+            { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="html"' },
+              signal: AbortSignal.timeout(4000) }
+          );
+          if (!r.ok) return;
+          const d = await r.json();
+          const html = d.body?.content || '';
+          e.links = extrairLinksEmail(html);
+          e.link_vaga = detectarLinkVaga(e.links);
+          if (isAlerta) e.artigos = extrairArtigosGoogleAlert(html);
+        } catch {}
       }));
+
+      const emails = emailsBase;
+
+      // Alertas: artigos já extraídos no fetch HTML individual acima
+      const todosAlertas = emails.filter(isAlertaFn);
 
       const vistos = await getVistos(env);
       const novos = apenasNovos ? emails.filter(e => !vistos.has(e.id)) : emails;
@@ -544,10 +563,12 @@ export default {
       if (!novos.length) {
         return json({ emails: [], alertas: todosAlertas, total_lidos: emails.length, total_novos: 0, whitelist: await getWhitelist(env) });
       }
-      const novosComConteudo = novos.map(e => {
-        const link_vaga = detectarLinkVaga(e.links);
-        return { ...e, conteudo_vaga: e.body || e.preview, link_vaga };
-      });
+      // link_vaga já foi extraído do HTML individual acima; usar o que existe
+      const novosComConteudo = novos.map(e => ({
+        ...e,
+        conteudo_vaga: e.body || e.preview,
+        link_vaga: e.link_vaga || detectarLinkVaga(e.links),
+      }));
 
       // Separar Google Alerts antes da classificação IA (conta só os novos para stats)
       const alertasNovos = novosComConteudo.filter(isAlertaFn);
