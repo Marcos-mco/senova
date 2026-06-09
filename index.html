@@ -1781,7 +1781,10 @@ select option { background: var(--bg2); }
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
   <div class="modal">
-    <div class="modal-title" id="modal-vaga-title">Novo Processo</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:28px 28px 0;">
+      <div class="modal-title" id="modal-vaga-title" style="padding:0;margin:0;flex:1;">Novo Processo</div>
+      <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer" style="display:none;font-size:13px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;" onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
+    </div>
     <div class="modal-body">
       <div id="mv-draft-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#FFF8EC;border:1.5px solid #C9A84C44;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:13px;color:var(--text2);">
         <span>📝 Rascunho restaurado — continue de onde parou.</span>
@@ -4380,7 +4383,10 @@ function openVagaModal(id){
     const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailDestVal);
     document.getElementById('mv-email-dest').value=isNoReply?'':emailDestVal;
     const origemUrlVal=v.origemUrl||'';
-    document.getElementById('mv-origem-url').value=(origemUrlVal.includes('@')||!origemUrlVal.startsWith('http'))?'':origemUrlVal;
+    const origemUrlLimpa=(origemUrlVal.includes('@')||!origemUrlVal.startsWith('http'))?'':origemUrlVal;
+    document.getElementById('mv-origem-url').value=origemUrlLimpa;
+    const mvLink=document.getElementById('mv-link-vaga');
+    if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
@@ -4423,6 +4429,8 @@ function openVagaModal(id){
     document.getElementById('mv-modelo').value='';
     document.getElementById('mv-regime').value='';
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
+    const mvLinkN=document.getElementById('mv-link-vaga');
+    if(mvLinkN){ mvLinkN.style.display='none'; mvLinkN.dataset.url=''; }
     document.getElementById('mv-canal').value='LinkedIn';
     document.getElementById('mv-status').value='lead';
     document.getElementById('mv-prioridade').value='media';
@@ -5994,6 +6002,27 @@ function renderRetornos(){
 }
 
 // ── Corrigir categoria de email ──
+// ── Enriquecimento retroativo de URLs nos cards existentes ──
+function _enriquecerURLsExistentes(emails){
+  if(!emails||!emails.length) return;
+  let atualizados=0;
+  emails.forEach(e=>{
+    const linkVaga=e.link_vaga||'';
+    if(!linkVaga||!linkVaga.startsWith('http')) return;
+    const assunto=e.subject||e.assunto||'';
+    if(!assunto) return;
+    const card=vagas.find(v=>
+      v.emailAssunto&&v.emailAssunto===assunto&&
+      (!v.origemUrl||v.origemUrl.includes('@')||!v.origemUrl.startsWith('http'))
+    );
+    if(card){ card.origemUrl=linkVaga; atualizados++; }
+  });
+  if(atualizados>0){
+    saveVagas();
+    showToast(`🔗 ${atualizados} URL${atualizados>1?'s':''} de vaga atualizada${atualizados>1?'s':''}`);
+  }
+}
+
 function _corrigirCategoriaEmail(idx, novaCat){
   const e=_emailsProcesso[idx]; if(!e) return;
   e.categoria=novaCat;
@@ -6148,6 +6177,7 @@ async function carregarEmails(forcar){
     renderEmailsAvulsos();
     renderRetornos();
     renderNovasVagas();
+    _enriquecerURLsExistentes(data.emails||data.novos||[]);
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }
 
