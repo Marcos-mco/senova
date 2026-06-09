@@ -8,6 +8,89 @@
 //  · Health check inclui status Outlook
 // ══════════════════════════════════════════════════════════════════
 
+// ── Helpers de email ────────────────────────────────────────────────
+
+function stripHtml(html) {
+  return (html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ').trim();
+}
+
+function extrairLinksEmail(html) {
+  const links = new Set();
+  // 1. Prioridade: href de <a> — o mais confiável
+  for (const m of (html || '').matchAll(/href="(https?:\/\/[^"]{10,})"/gi)) links.add(m[1]);
+  // 2. Fallback: URLs no texto plano
+  for (const m of (html || '').matchAll(/https?:\/\/[^\s"'<>)\]]{10,}/g)) links.add(m[0]);
+  return [...links].filter(l =>
+    !l.includes('unsubscribe') && !l.includes('optout') &&
+    !l.includes('list-manage') && !l.includes('mailchimp') &&
+    !l.match(/\.(png|jpg|gif|jpeg|svg|ico|woff)(\?|$)/i)
+  );
+}
+
+const JOB_URL_PATTERNS = [
+  /linkedin\.com\/(jobs|comm\/jobs)\/view\/\d+/,
+  /linkedin\.com\/jobs-guest\/jobs/,
+  /gupy\.io\/(job|jobs|vagas)\//,
+  /boards\.greenhouse\.io/,
+  /jobs\.lever\.co\//,
+  /\.wd\d*\.myworkdayjobs\.com/,
+  /indeed\.com\/(viewjob|rc\/clk)/,
+  /michaelpage\.[a-z.]+\/(emprego|jobs|job)\//,
+  /roberthalf\.[a-z.]+\/(jobs|emprego)/,
+  /infojobs\.net\/emprego/,
+  /catho\.com\.br\/emprego/,
+  /vagas\.com\.br\//,
+  /empregos\.com\.br\//,
+  /glassdoor\.com\.br\/Vagas/,
+  /careers\.[a-z-]+\.(com|io|co)\//,
+  /\/jobs\/\d{5,}/,
+  /\/job\/[a-z0-9-]{6,}\/?$/,
+];
+
+function detectarLinkVaga(links) {
+  // 1. URL direta de vaga conhecida
+  for (const l of links) {
+    if (JOB_URL_PATTERNS.some(p => p.test(l))) return l;
+  }
+  // 2. Google redirect wrapper (common em alertas de emprego)
+  for (const l of links) {
+    if (/google\.com\/url/i.test(l)) {
+      try {
+        const u = new URL(l);
+        const dest = u.searchParams.get('url') || u.searchParams.get('q') || '';
+        if (dest && JOB_URL_PATTERNS.some(p => p.test(dest))) return decodeURIComponent(dest);
+      } catch {}
+    }
+  }
+  // 3. Fallback: primeiro link que não seja tracking/pixel/imagem
+  return links.find(l =>
+    !l.includes('/track') && !l.includes('pixel') &&
+    !l.includes('click.') && !l.includes('/open?') &&
+    l.startsWith('http')
+  ) || '';
+}
+
+function extrairArtigosGoogleAlert(html) {
+  const artigos = [];
+  // Google Alerts: links embrulhados em google.com/url?...url=ARTIGO
+  for (const m of (html || '').matchAll(/href="https:\/\/www\.google\.com\/url\?[^"]*?url=(https?[^&"]+)/gi)) {
+    try { artigos.push(decodeURIComponent(m[1])); } catch {}
+  }
+  // Fallback: links diretos no HTML (exceto google.com e accounts)
+  if (!artigos.length) {
+    for (const m of (html || '').matchAll(/href="(https?:\/\/(?!(?:www\.google|accounts\.google|policies\.google))[^"]+)"/gi)) {
+      artigos.push(m[1]);
+    }
+  }
+  return [...new Set(artigos)].slice(0, 8);
+}
+
 const ADZUNA_PAISES = { br:'br', es:'es', de:'de', pt:'pt', us:'us' };
 
 const JOBICY_REGIOES = {
@@ -414,9 +497,10 @@ export default {
       const apenasNovos = url.searchParams.get('apenas_novos') !== 'false';
 
       const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
+      // Pedir HTML body — preserva href com URLs reais
       const msRes = await fetch(
         `https://graph.microsoft.com/v1.0/me/messages?$top=${limite}&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,isRead,body,webLink`,
-        { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!msRes.ok) {
         const err = await msRes.json();
@@ -424,18 +508,18 @@ export default {
       }
       const msData = await msRes.json();
       const emails = (msData.value || []).map(e => {
-        const corpo = e.body?.content || e.bodyPreview || '';
-        const links = [...corpo.matchAll(/https?:\/\/[^\s"'<>)]+/g)]
-          .map(m => m[0])
-          .filter(l => !l.includes('unsubscribe') && !l.includes('optout') && !l.includes('tracking'))
-          .slice(0, 5);
+        const htmlCorpo = e.body?.content || '';
+        const links = extrairLinksEmail(htmlCorpo);
+        const corpoTexto = htmlCorpo ? stripHtml(htmlCorpo) : (e.bodyPreview || '');
         return {
           id: e.id, subject: e.subject || '(sem assunto)',
           from: e.from?.emailAddress?.address || '',
           from_name: e.from?.emailAddress?.name || '',
           date: e.receivedDateTime,
           preview: (e.bodyPreview || '').slice(0, 300),
-          body: corpo.slice(0, 5000), links, is_read: e.isRead, webLink: e.webLink || '',
+          body: corpoTexto.slice(0, 5000),
+          htmlBody: htmlCorpo.slice(0, 8000), // preservado para extração de artigos
+          links, is_read: e.isRead, webLink: e.webLink || '',
         };
       });
 
@@ -448,8 +532,11 @@ export default {
                (f.includes('jobalerts') && !f.includes('linkedin')) ||
                (f.includes('job-alert') && !f.includes('linkedin'));
       };
-      // Alertas extraídos de TODOS os emails da janela 7 dias (ignora filtro vistos)
-      const todosAlertas = emails.filter(isAlertaFn);
+      // Alertas: extrair artigos reais do HTML do Google Alert
+      const todosAlertas = emails.filter(isAlertaFn).map(e => ({
+        ...e,
+        artigos: extrairArtigosGoogleAlert(e.htmlBody || ''),
+      }));
 
       const vistos = await getVistos(env);
       const novos = apenasNovos ? emails.filter(e => !vistos.has(e.id)) : emails;
@@ -457,27 +544,10 @@ export default {
       if (!novos.length) {
         return json({ emails: [], alertas: todosAlertas, total_lidos: emails.length, total_novos: 0, whitelist: await getWhitelist(env) });
       }
-      const novosComConteudo = await Promise.all(novos.map(async (e) => {
-        const isVagaEmail = /linkedin\.com\/jobs|gupy|greenhouse|lever|workday|jobscore|indeed|vagas|emprego|job|career|oportunidade/i.test(e.from + e.subject + e.body);
-        if (isVagaEmail && e.links.length > 0) {
-          const linkVaga = e.links.find(l => /gupy\.io|greenhouse\.io|lever\.co|workday|jobscore|jobs\./i.test(l));
-          if (linkVaga) {
-            try {
-              const r = await fetch(linkVaga, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)' },
-                redirect: 'follow', signal: AbortSignal.timeout(5000),
-              });
-              if (r.ok) {
-                const html = await r.text();
-                const texto = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0, 3000);
-                return { ...e, conteudo_vaga: texto, link_vaga: linkVaga };
-              }
-            } catch {}
-          }
-          return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
-        }
-        return { ...e, conteudo_vaga: e.body || e.preview, link_vaga: e.links[0] || '' };
-      }));
+      const novosComConteudo = novos.map(e => {
+        const link_vaga = detectarLinkVaga(e.links);
+        return { ...e, conteudo_vaga: e.body || e.preview, link_vaga };
+      });
 
       // Separar Google Alerts antes da classificação IA (conta só os novos para stats)
       const alertasNovos = novosComConteudo.filter(isAlertaFn);
