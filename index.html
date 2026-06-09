@@ -6010,23 +6010,28 @@ function _enriquecerURLsExistentes(emails){
   if(!emails||!emails.length) return;
   let atualizados=0;
 
-  // 1. Atualizar cards dos últimos 7 dias que têm email correspondente
+  // 1. Atualizar cards com email correspondente nos últimos 7 dias
   emails.forEach(e=>{
     const linkVaga=e.link_vaga||'';
     if(!linkVaga||!linkVaga.startsWith('http')) return;
-    const assunto=e.subject||e.assunto||'';
+    const assunto=(e.subject||e.assunto||'').trim();
     if(!assunto) return;
-    const card=vagas.find(v=>v.emailAssunto&&v.emailAssunto===assunto&&_urlInvalida(v.origemUrl));
+    // Match exato OU normalizado (espaços/case)
+    const card=vagas.find(v=>{
+      if(!v.emailAssunto||!_urlInvalida(v.origemUrl)) return false;
+      return v.emailAssunto.trim()===assunto||
+             v.emailAssunto.trim().toLowerCase()===assunto.toLowerCase();
+    });
     if(card){ card.origemUrl=linkVaga; atualizados++; }
   });
 
-  // 2. Excluir cards email auto-criados (tag 'Revisar') que ainda não têm URL válida
-  // e continuam como 'lead' sem ter sido trabalhados
+  // 2. Excluir cards auto-criados de email que continuam sem URL válida
+  // Critério: status lead + canal Email + emailAssunto existe (prova criação automática)
   const paraExcluir=vagas.filter(v=>
     v.status==='lead'&&
     /^email$/i.test(v.canal||'')&&
-    _urlInvalida(v.origemUrl)&&
-    Array.isArray(v.tags)&&v.tags.includes('Revisar')
+    v.emailAssunto&&
+    _urlInvalida(v.origemUrl)
   );
   let excluidos=0;
   if(paraExcluir.length){
