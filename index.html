@@ -715,11 +715,12 @@ select option { background: var(--bg2); }
       <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
     </div>
   </div>
-  <div id="ats-decisao-bar" style="display:none;background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 24px;align-items:center;gap:10px;">
+  <div id="ats-decisao-bar" style="display:none;background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 24px;align-items:center;gap:10px;flex-wrap:wrap;">
     <div style="flex:1;min-width:0;">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Decisão sobre esta vaga</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Análise de vaga</div>
       <div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="ats-decisao-label">—</div>
     </div>
+    <button id="ats-btn-abrir-vaga" class="btn btn-ghost" style="min-height:44px;flex-shrink:0;display:none;" onclick="_abrirVagaOriginal()">↗ Abrir vaga</button>
     <button class="btn" style="background:#1A7A4A;color:#fff;min-height:44px;flex-shrink:0;" onclick="candidatarVagaATS()">✓ Candidatar</button>
     <button class="btn btn-danger" style="min-height:44px;flex-shrink:0;" onclick="declinarVagaATS()">✕ Declinar</button>
   </div>
@@ -4378,7 +4379,8 @@ function openVagaModal(id){
     const emailDestVal=v.emailDest||'';
     const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailDestVal);
     document.getElementById('mv-email-dest').value=isNoReply?'':emailDestVal;
-    document.getElementById('mv-origem-url').value=v.origemUrl||'';
+    const origemUrlVal=v.origemUrl||'';
+    document.getElementById('mv-origem-url').value=(origemUrlVal.includes('@')||!origemUrlVal.startsWith('http'))?'':origemUrlVal;
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
@@ -6424,20 +6426,37 @@ function abrirAntiATSModal(){
     const lbl=document.getElementById('ats-decisao-label');
     if(lbl) lbl.textContent=(empresa||'Vaga')+(cargo&&cargo!=='A definir'?' — '+cargo:'');
     bar.querySelectorAll('button').forEach(b=>{b.disabled=false;b.style.opacity='';});
+    // Mostrar botão "Abrir vaga ↗" se houver URL válida
+    const btnAbrir=document.getElementById('ats-btn-abrir-vaga');
+    if(btnAbrir){
+      const vagaUrl=origemUrl&&origemUrl.startsWith('http')?origemUrl:'';
+      btnAbrir.style.display=vagaUrl?'':'none';
+      btnAbrir.dataset.url=vagaUrl;
+    }
   }
   setTimeout(()=>{
     const campo=document.getElementById('vaga-input');
     if(!campo) return;
-    if(jobDesc.length>50){
+    if(jobDesc.length>0){
+      // Descrição disponível no modal — usar diretamente, nunca fetchear
       campo.value=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
-    } else if(notas.length>100){
+    } else if(notas.length>30){
+      // Fallback: usar notas (conteúdo do email / contexto)
       campo.value=`Cargo: ${cargo}\nEmpresa: ${empresa}\n`+(metaVaga?metaVaga+'\n':'')+`\n${notas}`;
-    } else if(origemUrl&&origemUrl.startsWith('http')){
-      buscarDescricaoAuto(origemUrl); return;
     } else if(empresa||cargo){
-      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(metaVaga?metaVaga+'\n':'')+(notas?'Contexto: '+notas:'');
+      // Mínimo: montar contexto com o que temos
+      campo.value=(cargo?'Cargo: '+cargo+'\n':'')+(empresa?'Empresa: '+empresa+'\n':'')+(metaVaga?metaVaga+'\n':'');
     }
+    // Nota: buscarDescricaoAuto via URL foi removido pois sites como Adzuna/LinkedIn
+    // bloqueiam o Worker — usar botão "Abrir vaga ↗" para copiar descrição manualmente
   },200);
+}
+
+function _abrirVagaOriginal(){
+  const btn=document.getElementById('ats-btn-abrir-vaga');
+  const url=btn?.dataset.url||vagas.find(v=>String(v.id)===String(atsOrigemVagaId))?.origemUrl||'';
+  if(url&&url.startsWith('http')) window.open(url,'_blank','noopener');
+  else showToast('URL da vaga não disponível neste processo');
 }
 
 function enviarCVModal(){
