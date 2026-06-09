@@ -531,26 +531,16 @@ select option { background: var(--bg2); }
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <!-- Oportunidades automáticas -->
-        <div id="sinal-varredura" class="sh-item" onclick="toggleVarreduraHome()">
+        <!-- Oportunidades (busca automática + email) -->
+        <div id="sinal-oportunidades" class="sh-item" onclick="toggleOportunidades()">
           <div class="sh-dot" style="background:#059669;"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-varredura-txt">Oportunidades automáticas</div>
-            <div class="sh-item-sub" id="sinal-varredura-sub"></div>
+            <div class="sh-item-label" id="sinal-oportunidades-txt">Oportunidades</div>
+            <div class="sh-item-sub" id="sinal-oportunidades-sub"></div>
           </div>
-          <svg class="sh-item-chev" id="sinal-varredura-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          <svg class="sh-item-chev" id="sinal-oportunidades-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
         </div>
-        <div id="varredura-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
-
-      <!-- Novas vagas -->
-        <div id="sinal-novas-vagas" class="sh-item" onclick="toggleNovasVagas()">
-          <div class="sh-dot" style="background:var(--action);"></div>
-          <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-novas-vagas-txt">Novas vagas</div>
-          </div>
-          <svg class="sh-item-chev" id="sinal-novas-vagas-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
-        </div>
-        <div id="novas-vagas-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:12px 22px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
+        <div id="oportunidades-inline-lista" style="display:none;flex-direction:column;gap:0;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
         <!-- Retornos -->
         <div id="sinal-retornos" class="sh-item" onclick="toggleRetornos()">
@@ -5387,65 +5377,105 @@ async function verificarVagasVarredura(){
     atualizarSinalVarredura();
   }catch{ atualizarSinalVarredura(); }
 }
-function atualizarSinalVarredura(){
-  const txt=document.getElementById('sinal-varredura-txt');
-  const sub=document.getElementById('sinal-varredura-sub');
-  const s=document.getElementById('sinal-varredura');
+function atualizarSinalOportunidades(){
+  const txt=document.getElementById('sinal-oportunidades-txt');
+  const sub=document.getElementById('sinal-oportunidades-sub');
+  const s=document.getElementById('sinal-oportunidades');
   if(!txt) return;
-  const n=_vagasLeadPendentes.length;
-  if(n>0){
-    txt.textContent=`${n} oportunidade${n===1?'':'s'} encontrada${n===1?'':'s'}`;
+  const nBusca=_vagasLeadPendentes.length;
+  const nEmail=_sinaisEmails.leads;
+  const total=nBusca+nEmail;
+  if(total>0){
+    txt.textContent=`${total} oportunidade${total===1?'':'s'} nova${total===1?'':'s'}`;
+    const partes=[];
+    if(nEmail>0) partes.push(`${nEmail} de email`);
+    if(nBusca>0) partes.push(`${nBusca} da busca automática`);
+    if(sub) sub.textContent=partes.join(' · ');
     s&&(s.style.opacity='1');
   } else {
-    txt.textContent='Varredura automática — nenhuma pendente';
+    txt.textContent='Oportunidades — nenhuma nova';
+    if(sub) sub.textContent='';
     s&&(s.style.opacity='0.6');
   }
-  if(sub&&_varreduraStatus&&_varreduraStatus.ultima_execucao){
-    const dt=new Date(_varreduraStatus.ultima_execucao);
-    sub.textContent=`Última: ${dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} às ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${_varreduraStatus.pais_varrido||''}`;
-  }
-  const lista=document.getElementById('varredura-inline-lista');
-  if(lista&&lista.style.display==='flex') renderVarreduraHome();
+  const lista=document.getElementById('oportunidades-inline-lista');
+  if(lista&&lista.style.display==='flex') renderOportunidades();
 }
-function toggleVarreduraHome(){
-  const lista=document.getElementById('varredura-inline-lista');
-  const chev=document.getElementById('sinal-varredura-chevron');
+function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
+function toggleOportunidades(){
+  const lista=document.getElementById('oportunidades-inline-lista');
+  const chev=document.getElementById('sinal-oportunidades-chevron');
   if(!lista) return;
   const aberto=lista.style.display==='flex';
   lista.style.display=aberto?'none':'flex';
   if(chev) chev.style.transform=aberto?'':'rotate(90deg)';
-  if(!aberto) renderVarreduraHome();
+  if(!aberto) renderOportunidades();
 }
-function renderVarreduraHome(){
-  const lista=document.getElementById('varredura-inline-lista');
+function toggleVarreduraHome(){ toggleOportunidades(); }
+function renderOportunidades(){
+  const lista=document.getElementById('oportunidades-inline-lista');
   if(!lista||lista.style.display==='none') return;
-  if(!_vagasLeadPendentes.length){
-    lista.innerHTML=`<div style="font-size:13px;color:var(--text3);">Nenhuma vaga pendente. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
-    return;
-  }
-  const preview=_vagasLeadPendentes.slice(0,5).map(v=>{
-    const score=typeof v.score==='number'?v.score:null;
-    const scoreCor=score>=75?'#1A7A4A':score>=55?'#B8670A':'#CC0000';
-    const scoreBg=score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.empresa||'—').replace(/&/g,'&amp;')}</div>
-        <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.titulo||'').replace(/&/g,'&amp;')}</div>
-      </div>
-      ${score!==null?`<span style="font-size:11px;font-weight:700;color:${scoreCor};background:${scoreBg};padding:2px 7px;border-radius:10px;flex-shrink:0;">${score}</span>`:''}
+  const nEmail=_sinaisEmails.leads;
+  const nBusca=_vagasLeadPendentes.length;
+  let html='';
+  // Sub A: vagas de email (já nos Processos)
+  if(nEmail>0){
+    html+=`<div style="padding:10px 22px 10px;border-bottom:1px solid var(--border);">
+      <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Já nos processos</div>
+      <div style="font-size:13px;color:var(--text2);">${nEmail} vaga${nEmail===1?'':'s'} adicionada${nEmail===1?'':'s'} dos emails desta sessão.</div>
+      <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>
     </div>`;
-  }).join('');
-  const mais=_vagasLeadPendentes.length>5?`<div style="font-size:12px;color:var(--text3);padding:6px 0;">+${_vagasLeadPendentes.length-5} mais no Processos</div>`:'';
-  lista.innerHTML=preview+mais+`<button onclick="importarVagasLead()" style="width:100%;margin-top:8px;padding:8px 14px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar para Processos →</button>`;
+  }
+  // Sub B: busca automática (para importar individualmente)
+  html+=`<div style="padding:10px 22px 12px;">
+    <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Busca automática${nBusca>0?' — '+nBusca:''}</div>`;
+  if(!nBusca){
+    html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma pendente. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
+  } else {
+    html+=_vagasLeadPendentes.slice(0,5).map((v,i)=>{
+      const sc=typeof v.score==='number'?v.score:null;
+      const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#CC0000';
+      const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';
+      const url=v.url||v.link||'';
+      return `<div style="display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.empresa||'—').replace(/&/g,'&amp;')}</div>
+          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.titulo||'').replace(/&/g,'&amp;')}</div>
+        </div>
+        ${sc!==null?`<span style="font-size:11px;font-weight:700;color:${cor};background:${bg};padding:2px 7px;border-radius:10px;flex-shrink:0;">${sc}</span>`:''}
+        ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:var(--action);text-decoration:none;flex-shrink:0;" title="Ver vaga">↗</a>`:''}
+        <button onclick="_ignorarVagaLead(${i})" style="font-size:11px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:var(--font);flex-shrink:0;">Ignorar</button>
+        <button onclick="_adicionarVagaLead(${i})" style="font-size:11px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:5px;padding:3px 9px;cursor:pointer;font-family:var(--font);flex-shrink:0;">+ Adicionar</button>
+      </div>`;
+    }).join('');
+    if(nBusca>5) html+=`<div style="font-size:12px;color:var(--text3);padding:6px 0;">+${nBusca-5} mais — use "Importar todas"</div>`;
+    html+=`<button onclick="importarVagasLead()" style="width:100%;margin-top:10px;padding:8px 14px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar todas →</button>`;
+  }
+  html+='</div>';
+  lista.innerHTML=html;
+}
+function _adicionarVagaLead(idx){
+  const v=_vagasLeadPendentes[idx];
+  if(!v) return;
+  const agora=Date.now();
+  vagas.push(_montarCardVarredura(v, agora));
+  _vagasLeadPendentes.splice(idx,1);
+  saveVagas();
+  atualizarSinalOportunidades();
+  showToast('✅ Adicionada aos Processos');
+}
+function _ignorarVagaLead(idx){
+  const v=_vagasLeadPendentes[idx];
+  if(!v) return;
+  const del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+  del.add(String(v.id));
+  try{localStorage.setItem('senova_deleted_ids',JSON.stringify([...del]));}catch{}
+  _vagasLeadPendentes.splice(idx,1);
+  atualizarSinalOportunidades();
 }
 
 function atualizarSinais(){
-  // Sinal 1 — Novas vagas
-  const s1txt=document.getElementById('sinal-novas-vagas-txt');
-  if(s1txt){
-    const n=_sinaisEmails.leads;
-    s1txt.textContent=n>0?`${n} nova${n===1?'':'s'} vaga${n===1?'':'s'} processada${n===1?'':'s'}`:'Novas vagas — nenhuma nova sessão';
-  }
+  // Sinal 1 — Oportunidades (email + busca automática)
+  atualizarSinalOportunidades();
   // Sinal 2 — Retornos (respostas de processos em andamento)
   const s2=document.getElementById('sinal-retornos');
   const s2txt=document.getElementById('sinal-retornos-txt');
@@ -5485,8 +5515,8 @@ function atualizarSinais(){
   // Sinal 4 — Oportunidades para revisar (vagas abaixo do limiar — via renderWidgetRevisao)
   const _la=document.getElementById('alertas-inline-lista');
   if(_la&&_la.style.display==='flex') renderAlertasInline();
-  const _nv=document.getElementById('novas-vagas-inline-lista');
-  if(_nv&&_nv.style.display==='flex') renderNovasVagas();
+  const _op=document.getElementById('oportunidades-inline-lista');
+  if(_op&&_op.style.display==='flex') renderOportunidades();
   const _rt=document.getElementById('retornos-inline-lista');
   if(_rt&&_rt.style.display==='flex') renderRetornos();
 }
@@ -6003,25 +6033,7 @@ function renderAlertasInline(){
   lista.innerHTML=html;
 }
 
-// ── Novas vagas (contador + Recarregar — já estão em Processos) ──
-function toggleNovasVagas(){
-  const lista=document.getElementById('novas-vagas-inline-lista');
-  const chev=document.getElementById('sinal-novas-vagas-chevron');
-  if(!lista) return;
-  const aberto=lista.style.display==='flex';
-  lista.style.display=aberto?'none':'flex';
-  if(chev) chev.style.transform=aberto?'':'rotate(90deg)';
-  if(!aberto) renderNovasVagas();
-}
-function renderNovasVagas(){
-  const lista=document.getElementById('novas-vagas-inline-lista');
-  if(!lista||lista.style.display==='none') return;
-  const n=_sinaisEmails.leads;
-  const msg=n>0
-    ?`${n} vaga${n===1?'':'s'} processada${n===1?'':'s'} e adicionada${n===1?'':'s'} em <b>Processos</b>.`
-    :'Nenhuma vaga nova processada nesta sessão.';
-  lista.innerHTML=`<div style="font-size:13px;color:var(--text3);line-height:1.6;">${msg} <button onclick="carregarEmails(true)" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">↺ Recarregar</button></div>`;
-}
+// toggleNovasVagas removido — consolidado em toggleOportunidades
 
 // ── Retornos (respostas a processos em andamento) ──
 function toggleRetornos(){
@@ -6272,7 +6284,7 @@ async function carregarEmails(forcar){
     renderHomeAcoes(); // atualiza "Para Hoje" com retornos recebidos
     renderEmailsAvulsos();
     renderRetornos();
-    renderNovasVagas();
+    renderOportunidades();
     _enriquecerURLsExistentes(data.emails||data.novos||[]);
   } catch(err){ console.error('Erro ao carregar emails:',err); }
 }

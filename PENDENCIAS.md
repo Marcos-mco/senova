@@ -161,6 +161,7 @@ Nenhum bug crítico aberto. ✅
 | F11 | Sofia com avatar (Anam.ai) | 3 |
 | F12 | Versão mobile | 4 |
 | F13 | WhatsApp integration | 4 |
+| F14 | **Extensão Chrome no WhatsApp Web** — capturar convite de entrevista, ajudar a responder, preparar para a entrevista; requer nova host_permission no manifest + parsing DOM WhatsApp Web | 4 |
 
 ---
 
