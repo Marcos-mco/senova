@@ -1,10 +1,37 @@
 # PENDENCIAS.md
 # Senova Suite — Backlog consolidado
-# Atualizado: 29/mai/2026
+# Atualizado: 09/jun/2026
 
 ---
 
-## ✅ CONCLUÍDO (esta semana)
+## ✅ CONCLUÍDO (sessão 09/jun/2026)
+
+| Item | Quando |
+|------|--------|
+| Home redesign v3.27 — 2 colunas (Para Hoje + O que há de novo) | 09/jun |
+| Vocabulário: "varredura" → "Oportunidades automáticas" em toda UI | 09/jun |
+| Para Hoje: seção "Retornos recebidos" com emails positivo/pipeline/hunter | 09/jun |
+| Oportunidades automáticas visíveis na Home (73 vagas Adzuna/Jobicy) | 09/jun |
+| URL de vaga LinkedIn extraída do parâmetro `trk` (jobid_NUMBER) | 09/jun |
+| Worker: fetch HTML individual para emails de vaga — hrefs reais | 09/jun |
+| Botão ↗ Ver vaga no cabeçalho do modal de processo | 09/jun |
+| ATS: descrição nunca some + botão Abrir vaga na barra de decisão | 09/jun |
+| Enriquecimento retroativo de URLs (últimos 7 dias) | 09/jun |
+| Limpeza automática de cards email sem URL após enriquecimento | 09/jun |
+| Notas de email: strip HTML/URLs ao criar e ao abrir modal | 09/jun |
+| Canal correto por URL: LinkedIn/Indeed/Gupy detectados automaticamente | 09/jun |
+| Email recrutador: filtra no-reply automaticamente | 09/jun |
+| Modal processo: campo Plano removido, descrição 9 linhas | 09/jun |
+| extrairDadosDescricao: detecta Modelo e Regime (novo) | 09/jun |
+| fix(worker): apenasNovos bug + isAlertaFn antes de Promise.allSettled | 09/jun |
+| Centralização home-wrap: margin:0 auto (fix monitor grande) | 09/jun |
+| Contraste "ver mais": cor action + bold (WCAG AA) | 09/jun |
+| Aviso emails lidos no Outlook + corrigir categoria por email | 09/jun |
+| Novidades no mercado: títulos como hiperlinks ↗ | 09/jun |
+
+---
+
+## ✅ CONCLUÍDO (sessões anteriores)
 
 | Item | Quando |
 |------|--------|
@@ -71,7 +98,7 @@ Nenhum bug crítico aberto. ✅
 | ~~U1~~ | ~~Popup: veredicto coaching 3 estados + motivos~~ ✅ |
 | ~~U2~~ | ~~Aba Analisar no app: renomear "CV Otimizado" → "Preparar Candidatura"~~ ✅ |
 | ~~U3~~ | ~~Aba Analisar: adicionar botão "Declinar" ao lado de "Análise"~~ ✅ |
-| U4 | Popup pequeno — mais informações e conselho visíveis sem scroll |
+| ~~U4~~ | ~~Popup pequeno — mais informações e conselho visíveis sem scroll~~ ✅ |
 
 ### Pipeline / CRM
 | # | Melhoria |
@@ -92,7 +119,7 @@ Nenhum bug crítico aberto. ✅
 ### Emails / Central de Sinais
 | # | Melhoria |
 |---|----------|
-| U13 | 3 fluxos de email: Processo / Inteligência de Mercado / Irrelevante (bloqueado) |
+| ~~U13~~ | ~~3 fluxos de email: Processo / Inteligência de Mercado / Irrelevante (bloqueado)~~ ✅ |
 | U14 | Google Alert: abrir no formato clássico (não web) — opção por usuário |
 | U15 | Responder email avulso na Home (sem vaga associada) |
 
