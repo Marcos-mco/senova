@@ -1,6 +1,20 @@
 # PENDENCIAS.md
 # Senova Suite — Backlog consolidado
-# Atualizado: 09/jun/2026
+# Atualizado: 09/jun/2026 (sessão 2)
+
+---
+
+## ✅ CONCLUÍDO (sessão 09/jun/2026 — sessão 2)
+
+| Item | Quando |
+|------|--------|
+| Modal Entrevista: canal convite (WhatsApp/Email/Ligação/LinkedIn) + data/hora + Outlook Calendar + dica Sofia | 09/jun s2 |
+| Fathom (gravação de reunião): pré-classificação no Worker + exibição "📹 Gravação" na Home + vínculo ao card | 09/jun s2 |
+| F14 registrado: extensão Chrome no WhatsApp Web (fase 4) | 09/jun s2 |
+| Prob. B (Opus): consolidar sinais de vagas em "Oportunidades" único com sub-seções email + busca automática | 09/jun s2 |
+| Ações por card na busca automática: Ignorar individual + Adicionar individual sem importar todas | 09/jun s2 |
+| Prob. C (Opus): Google Alert HTML → artigos individuais com título e link real (worker + app) | 09/jun s2 |
+| fix(sinais-mercado): Bing News RSS como primário, Google fallback, cache 4h, não serve cache de erro | 09/jun s2 |
 
 ---
 
