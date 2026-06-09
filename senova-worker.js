@@ -249,9 +249,35 @@ async function classificarEmails(emails, whitelist, env) {
     irrelevante: { label: 'Irrelevante',              emoji: '—',  prioridade: 9 },
   };
 
-  const resultados = [];
-  for (let i = 0; i < emails.length; i += 10) {
-    const lote = emails.slice(i, i + 10);
+  // Pré-classificação por remetente conhecido — não consome tokens de IA
+  const SENDERS_RULES = [
+    {
+      test: e => {
+        const f = (e.from || '').toLowerCase();
+        const s = (e.subject || '').toLowerCase();
+        return f.includes('fathom.video') || f.includes('@fathom') ||
+               (s.includes('fathom') && (s.includes('recording') || s.includes('gravação') || s.includes('transcript')));
+      },
+      categoria: 'positivo', resumo: 'Gravação de reunião disponível', is_fathom: true,
+    },
+  ];
+
+  const preClassificados = [];
+  const paraIA = [];
+  for (const e of emails) {
+    const rule = SENDERS_RULES.find(r => r.test(e));
+    if (rule) {
+      const cat = CATEGORIAS[rule.categoria];
+      preClassificados.push({ ...e, categoria: rule.categoria, label: cat.label, emoji: cat.emoji,
+                              prioridade: cat.prioridade, resumo: rule.resumo, is_fathom: !!rule.is_fathom });
+    } else {
+      paraIA.push(e);
+    }
+  }
+
+  const resultados = [...preClassificados];
+  for (let i = 0; i < paraIA.length; i += 10) {
+    const lote = paraIA.slice(i, i + 10);
     const listaEmails = lote.map((e, idx) =>
       `[${idx}] De: ${e.from_name||e.from} | Assunto: ${e.subject} | Conteúdo: ${(e.conteudo_vaga||e.preview||'').slice(0, 400)}`
     ).join('\n');

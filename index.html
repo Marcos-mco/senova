@@ -2294,14 +2294,40 @@ select option { background: var(--bg2); }
 
 <!-- ══ MINI-MODAL: PRÓXIMA AÇÃO APÓS DRAG ══ -->
 <div class="modal-overlay" id="modal-proxima" style="display:none;" onclick="if(event.target===this)proximaSkip()">
-  <div class="modal" style="width:min(400px,92vw);">
+  <div class="modal" style="width:min(440px,92vw);">
     <div class="modal-title" style="font-size:16px;padding:22px 22px 0;">
-      Próxima ação
+      <span id="modal-proxima-titulo">Próxima ação</span>
       <div style="font-size:13px;font-weight:400;color:var(--text3);margin-top:4px;font-family:var(--font);">Movido para <strong id="modal-proxima-status" style="color:var(--navy);"></strong></div>
     </div>
     <div class="modal-body" style="padding:16px 22px 16px;">
+      <!-- Seção exclusiva para Entrevista -->
+      <div id="modal-proxima-entrevista" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:10px;">Detalhes da entrevista</div>
+        <div class="form-row">
+          <label class="field-label">Como chegou o convite?</label>
+          <select id="modal-proxima-canal" style="height:38px;">
+            <option value="">— selecionar —</option>
+            <option value="WhatsApp">📱 WhatsApp</option>
+            <option value="Email">✉ Email</option>
+            <option value="Ligação">📞 Ligação</option>
+            <option value="LinkedIn">💼 LinkedIn</option>
+            <option value="Outro">💬 Outro</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" class="form-row">
+          <div><label class="field-label">Data da entrevista</label><input type="date" id="modal-proxima-ent-data"></div>
+          <div><label class="field-label">Horário</label><input type="time" id="modal-proxima-ent-hora" value="10:00"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:12px;">
+          <input type="checkbox" id="modal-proxima-criar-cal" checked style="accent-color:var(--navy);width:15px;height:15px;">
+          Criar evento no Outlook Calendar
+        </label>
+        <div style="background:var(--amber-bg);border:1px solid rgba(156,88,0,0.18);border-radius:var(--radius);padding:10px 12px;font-size:12.5px;color:var(--amber);line-height:1.65;">
+          <strong>Sofia:</strong> Pesquise cultura e resultados recentes da empresa. Prepare 3 exemplos com números. Anote 2 perguntas para fazer ao entrevistador. Vista-se para a cultura, não para o cargo.
+        </div>
+      </div>
       <div class="form-row">
-        <label class="field-label">Próxima ação</label>
+        <label class="field-label" id="modal-proxima-acao-label">Próxima ação</label>
         <textarea id="modal-proxima-acao" rows="3" style="font-size:15px;resize:vertical;" placeholder="O que fazer agora?"></textarea>
       </div>
       <div class="form-row" style="margin-bottom:0;">
@@ -3938,9 +3964,19 @@ function dropVaga(newStatus, event) {
     saveVagas();
     renderCRM();
     _proximaIdx=idx;
+    const isEntrevista=newStatus==='entrevista';
+    document.getElementById('modal-proxima-titulo').textContent=isEntrevista?'🎤 Entrevista agendada':'Próxima ação';
     document.getElementById('modal-proxima-status').textContent=COL_STATUS[newStatus]||newStatus;
     document.getElementById('modal-proxima-acao').value=PROXIMA_SUGESTAO[newStatus]||'';
     document.getElementById('modal-proxima-data').value='';
+    const entSec=document.getElementById('modal-proxima-entrevista');
+    if(entSec) entSec.style.display=isEntrevista?'block':'none';
+    if(isEntrevista){
+      const sel=document.getElementById('modal-proxima-canal'); if(sel) sel.value='';
+      const ed=document.getElementById('modal-proxima-ent-data'); if(ed) ed.value='';
+      const eh=document.getElementById('modal-proxima-ent-hora'); if(eh) eh.value='10:00';
+      const cc=document.getElementById('modal-proxima-criar-cal'); if(cc) cc.checked=true;
+    }
     document.getElementById('modal-proxima').style.display='flex';
     setTimeout(()=>document.getElementById('modal-proxima-acao').select(),60);
   }
@@ -3955,6 +3991,30 @@ function proximaSalvar(){
     if(dateVal){
       const [y,m,d]=dateVal.split('-');
       vagas[_proximaIdx].data=`${d}/${m}/${y}`;
+    }
+    // Campos extras de entrevista
+    const entSec=document.getElementById('modal-proxima-entrevista');
+    if(entSec&&entSec.style.display!=='none'){
+      const canal=document.getElementById('modal-proxima-canal')?.value||'';
+      const entData=document.getElementById('modal-proxima-ent-data')?.value||'';
+      const entHora=document.getElementById('modal-proxima-ent-hora')?.value||'10:00';
+      const criarCal=document.getElementById('modal-proxima-criar-cal')?.checked;
+      if(!vagas[_proximaIdx].timeline) vagas[_proximaIdx].timeline=[];
+      let tlTxt='Entrevista agendada';
+      if(canal) tlTxt+=` — convite via ${canal}`;
+      if(entData){
+        const [ey,em,ed]=entData.split('-');
+        tlTxt+=` — ${ed}/${em} às ${entHora}`;
+      }
+      vagas[_proximaIdx].timeline.push({ts:Date.now(),texto:tlTxt});
+      if(criarCal&&entData){
+        const empresa=vagas[_proximaIdx].empresa||'Empresa';
+        const cargo=vagas[_proximaIdx].cargo||'';
+        const titulo=`Entrevista — ${empresa}${cargo?' · '+cargo:''}`;
+        const dataHora=`${entData}T${entHora}:00`;
+        fetch(WORKER_URL+'/api/calendar/evento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,data:dataHora,descricao:`Processo Senova\n${acao||''}`})}).catch(()=>{});
+        showToast('📅 Evento criado no Outlook Calendar');
+      }
     }
     vagas[_proximaIdx].updatedAt=Date.now();
     saveVagas();
@@ -6445,16 +6505,26 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     sepRet.textContent='Retornos recebidos';
     list.appendChild(sepRet);
     retornosHoje.slice(0,3).forEach((e,idx)=>{
+      const isFathom=e.is_fathom||((e.from||'').toLowerCase().includes('fathom'));
       const remetente=(e.from_name||e.from||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
       const assunto=(e.subject||e.assunto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,50);
-      const catCor={positivo:'#1A7A4A',pipeline:'#B8670A',hunter:'#1A3A5C'}[e.categoria]||'#1A3A5C';
-      const catLbl={positivo:'Retorno positivo',pipeline:'Em processo',hunter:'Headhunter'}[e.categoria]||'Retorno';
       const idxReal=(_emailsProcesso||[]).indexOf(e);
       const el=document.createElement('div');
       el.className='home-acao-item';
       el.style.cursor='pointer';
-      el.onclick=()=>{ if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
-      el.innerHTML=`<div class="home-acao-dot" style="background:${catCor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:${catCor};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">${catLbl}</div><div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">↩ Responder</span>`;
+      if(isFathom){
+        // Tenta vincular ao card pela empresa mencionada no assunto
+        const subLow=(e.subject||'').toLowerCase();
+        const cardMatch=(vagas||[]).find(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado'&&v.empresa&&subLow.includes(v.empresa.toLowerCase()));
+        const cardInfo=cardMatch?` — ${cardMatch.empresa.replace(/&/g,'&amp;').replace(/</g,'&lt;')}`:'';
+        el.onclick=()=>{ if(cardMatch) openVagaModal(cardMatch.id); else if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
+        el.innerHTML=`<div class="home-acao-dot" style="background:var(--green);margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">📹 Gravação disponível${cardInfo}</div><div style="font-size:13px;color:var(--text2);">Sofia: Qual foi o resultado? Agende o próximo passo agora.</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">${cardMatch?'↗ Ver processo':'↩ Responder'}</span>`;
+      } else {
+        const catCor={positivo:'#1A7A4A',pipeline:'#B8670A',hunter:'#1A3A5C'}[e.categoria]||'#1A3A5C';
+        const catLbl={positivo:'Retorno positivo',pipeline:'Em processo',hunter:'Headhunter'}[e.categoria]||'Retorno';
+        el.onclick=()=>{ if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
+        el.innerHTML=`<div class="home-acao-dot" style="background:${catCor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:${catCor};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">${catLbl}</div><div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">↩ Responder</span>`;
+      }
       list.appendChild(el);
     });
   }
