@@ -20,67 +20,61 @@ function stripHtml(html) {
     .replace(/\s+/g, ' ').trim();
 }
 
-function extrairLinksEmail(html) {
+function extrairLinksEmail(conteudo) {
   const links = new Set();
-  // 1. Prioridade: href de <a> — o mais confiável
-  for (const m of (html || '').matchAll(/href="(https?:\/\/[^"]{10,})"/gi)) links.add(m[1]);
-  // 2. Fallback: URLs no texto plano
-  for (const m of (html || '').matchAll(/https?:\/\/[^\s"'<>)\]]{10,}/g)) links.add(m[0]);
-  return [...links].filter(l =>
-    !l.includes('unsubscribe') && !l.includes('optout') &&
-    !l.includes('list-manage') && !l.includes('mailchimp') &&
-    !l.match(/\.(png|jpg|gif|jpeg|svg|ico|woff)(\?|$)/i)
-  );
+  const txt = conteudo || '';
+  // href de tags <a> (HTML) — mais confiável
+  for (const m of txt.matchAll(/href\s*=\s*["'](https?:\/\/[^"'\s]{10,})["']/gi)) links.add(m[1]);
+  // URLs no texto plano (fallback)
+  for (const m of txt.matchAll(/https?:\/\/[^\s"'<>)\]}]{10,}/g)) links.add(m[0]);
+  return [...links]
+    .map(l => l.replace(/&amp;/g, '&').replace(/[.,;]+$/, ''))
+    .filter(l => !/unsubscribe|optout|opt-out|\/comm\/feed\/|\/mynetwork\/|email\/preferences/i.test(l));
 }
 
 const JOB_URL_PATTERNS = [
-  /linkedin\.com\/(jobs|comm\/jobs)\/view\/\d+/,
-  /linkedin\.com\/jobs-guest\/jobs/,
-  /gupy\.io\/(job|jobs|vagas)\//,
-  /boards\.greenhouse\.io/,
-  /jobs\.lever\.co\//,
-  /\.wd\d*\.myworkdayjobs\.com/,
-  /indeed\.com\/(viewjob|rc\/clk)/,
-  /michaelpage\.[a-z.]+\/(emprego|jobs|job)\//,
-  /roberthalf\.[a-z.]+\/(jobs|emprego)/,
-  /infojobs\.net\/emprego/,
-  /catho\.com\.br\/emprego/,
-  /vagas\.com\.br\//,
-  /empregos\.com\.br\//,
-  /glassdoor\.com\.br\/Vagas/,
-  /careers\.[a-z-]+\.(com|io|co)\//,
-  /\/jobs\/\d{5,}/,
-  /\/job\/[a-z0-9-]{6,}\/?$/,
+  /linkedin\.com\/(?:comm\/)?jobs\/view\/\d+/i,
+  /gupy\.io\/(?:job|jobs|vagas)\//i,
+  /boards\.greenhouse\.io\/[^/]+\/jobs\/\d+/i,
+  /(?:jobs\.)?lever\.co\/[^/]+\//i,
+  /indeed\.com\/[^?]*(?:viewjob|\/job\/)/i,
+  /michaelpage\.[a-z.]+\/[^?]*job/i,
+  /workday(?:jobs)?\.com\/[^?]*\/job\//i,
+  /\.wd\d*\.myworkdayjobs\.com/i,
+  /catho\.com\.br\/emprego/i,
+  /vagas\.com\.br\//i,
+  /empregos\.com\.br\//i,
+  /infojobs\.net\/emprego/i,
+  /roberthalf\.[a-z.]+\/(jobs|emprego)/i,
+  /glassdoor\.com\.br\/Vagas/i,
 ];
 
-// Domínios que NÃO são portais de vaga — evitar retornar URLs erradas
-const NON_JOB_DOMAINS = /^https?:\/\/(www\.)?(linkedin\.com\/(?!.*(\/jobs\/|\/job\/))|microsoft\.com|outlook\.|office\.com|google\.com\/(?!url)|accounts\.google|lnkd\.in)/i;
-
 function detectarLinkVaga(links) {
-  // 1. URL direta de vaga conhecida
+  if (!links || !links.length) return '';
+  // 1. LinkedIn: jobid_NUMBER no parâmetro trk de QUALQUER URL linkedin
+  //    Funciona mesmo na URL do feed — só links de vaga têm jobid_
   for (const l of links) {
-    if (JOB_URL_PATTERNS.some(p => p.test(l))) return l;
+    const m = l.match(/jobid_(\d+)/i);
+    if (m) return `https://www.linkedin.com/jobs/view/${m[1]}/`;
   }
-  // 2. Google redirect wrapper — desembrulha para URL real
+  // 2. Padrão direto de vaga conhecida
   for (const l of links) {
-    if (/google\.com\/url/i.test(l)) {
-      try {
-        const u = new URL(l);
-        const dest = decodeURIComponent(u.searchParams.get('url') || u.searchParams.get('q') || '');
-        if (dest && JOB_URL_PATTERNS.some(p => p.test(dest))) return dest;
-      } catch {}
+    if (JOB_URL_PATTERNS.some(p => p.test(l))) {
+      const lk = l.match(/linkedin\.com\/(?:comm\/)?jobs\/view\/(\d+)/i);
+      return lk ? `https://www.linkedin.com/jobs/view/${lk[1]}/` : l;
     }
   }
-  // 3. Fallback conservador: só retorna se não for domínio ambíguo
-  // (melhor retornar vazio do que URL errada de feed/logo do email)
-  return links.find(l =>
-    l.startsWith('http') &&
-    !NON_JOB_DOMAINS.test(l) &&
-    !l.includes('unsubscribe') && !l.includes('optout') &&
-    !l.includes('/track') && !l.includes('pixel') &&
-    !l.includes('click.') && !l.includes('/open?') &&
-    !l.match(/\.(png|jpg|gif|jpeg|svg|ico|woff)(\?|$)/i)
-  ) || '';
+  // 3. Google redirect (?q= ou ?url= apontando para vaga)
+  for (const l of links) {
+    const r = l.match(/[?&](?:q|url)=(https?[^&]+)/i);
+    if (r) {
+      const alvo = decodeURIComponent(r[1]);
+      const jid = alvo.match(/jobid_(\d+)/i) || alvo.match(/jobs\/view\/(\d+)/i);
+      if (jid) return `https://www.linkedin.com/jobs/view/${jid[1]}/`;
+      if (JOB_URL_PATTERNS.some(p => p.test(alvo))) return alvo;
+    }
+  }
+  return '';
 }
 
 function extrairArtigosGoogleAlert(html) {
@@ -516,6 +510,9 @@ export default {
       const msData = await msRes.json();
       const emailsBase = (msData.value || []).map(e => {
         const corpo = e.body?.content || e.bodyPreview || '';
+        // Extrai links do texto já disponível (baseline antes do HTML fetch)
+        const links = extrairLinksEmail(corpo);
+        const link_vaga = detectarLinkVaga(links);
         return {
           id: e.id, subject: e.subject || '(sem assunto)',
           from: e.from?.emailAddress?.address || '',
@@ -523,7 +520,7 @@ export default {
           date: e.receivedDateTime,
           preview: (e.bodyPreview || '').slice(0, 300),
           body: corpo.slice(0, 5000),
-          links: [], link_vaga: '',
+          links, link_vaga,
           is_read: e.isRead, webLink: e.webLink || '',
         };
       });
@@ -540,10 +537,13 @@ export default {
       // Fetch HTML individual só para emails com aparência de vaga — extrai hrefs reais
       const JOB_FROM_PATTERN = /linkedin|gupy|greenhouse|lever|workday|indeed|michaelpage|roberthalf|catho|vagas\.com|empregos\.com|infojobs|jobscore/i;
       const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
+      // HTML fetch individual: só para emails de vaga sem URL encontrada no texto,
+      // ou para alertas (extrai artigos). Não bloqueia o fluxo se falhar.
       await Promise.allSettled(emailsBase.map(async e => {
         const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
         const isAlerta = isAlertaFn(e);
-        if (!mightBeVaga && !isAlerta) return;
+        const precisaHtml = (mightBeVaga && !e.link_vaga) || isAlerta;
+        if (!precisaHtml) return;
         try {
           const r = await fetch(
             `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}?$select=body`,
@@ -553,8 +553,9 @@ export default {
           if (!r.ok) return;
           const d = await r.json();
           const html = d.body?.content || '';
-          e.links = extrairLinksEmail(html);
-          e.link_vaga = detectarLinkVaga(e.links);
+          const linksHtml = extrairLinksEmail(html);
+          const linkHtml = detectarLinkVaga(linksHtml);
+          if (linkHtml) { e.links = linksHtml; e.link_vaga = linkHtml; }
           if (isAlerta) e.artigos = extrairArtigosGoogleAlert(html);
         } catch {}
       }));
