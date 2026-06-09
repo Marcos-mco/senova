@@ -53,26 +53,33 @@ const JOB_URL_PATTERNS = [
   /\/job\/[a-z0-9-]{6,}\/?$/,
 ];
 
+// Domínios que NÃO são portais de vaga — evitar retornar URLs erradas
+const NON_JOB_DOMAINS = /^https?:\/\/(www\.)?(linkedin\.com\/(?!.*(\/jobs\/|\/job\/))|microsoft\.com|outlook\.|office\.com|google\.com\/(?!url)|accounts\.google|lnkd\.in)/i;
+
 function detectarLinkVaga(links) {
   // 1. URL direta de vaga conhecida
   for (const l of links) {
     if (JOB_URL_PATTERNS.some(p => p.test(l))) return l;
   }
-  // 2. Google redirect wrapper (common em alertas de emprego)
+  // 2. Google redirect wrapper — desembrulha para URL real
   for (const l of links) {
     if (/google\.com\/url/i.test(l)) {
       try {
         const u = new URL(l);
-        const dest = u.searchParams.get('url') || u.searchParams.get('q') || '';
-        if (dest && JOB_URL_PATTERNS.some(p => p.test(dest))) return decodeURIComponent(dest);
+        const dest = decodeURIComponent(u.searchParams.get('url') || u.searchParams.get('q') || '');
+        if (dest && JOB_URL_PATTERNS.some(p => p.test(dest))) return dest;
       } catch {}
     }
   }
-  // 3. Fallback: primeiro link que não seja tracking/pixel/imagem
+  // 3. Fallback conservador: só retorna se não for domínio ambíguo
+  // (melhor retornar vazio do que URL errada de feed/logo do email)
   return links.find(l =>
+    l.startsWith('http') &&
+    !NON_JOB_DOMAINS.test(l) &&
+    !l.includes('unsubscribe') && !l.includes('optout') &&
     !l.includes('/track') && !l.includes('pixel') &&
     !l.includes('click.') && !l.includes('/open?') &&
-    l.startsWith('http')
+    !l.match(/\.(png|jpg|gif|jpeg|svg|ico|woff)(\?|$)/i)
   ) || '';
 }
 
