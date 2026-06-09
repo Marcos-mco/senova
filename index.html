@@ -6504,9 +6504,6 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     el.innerHTML=`<div class="home-acao-dot" style="background:${dotColor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">${dateTxt?`<span style="font-size:11.5px;font-weight:500;color:${dateColor};white-space:nowrap;">${dateTxt}</span>`:''}<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
     return el;
   }
-  // Entrevistas sem data agendada — urgência máxima, topo da lista
-  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData);
-  const entSemDataIds=new Set(entSemData.map(v=>v.id));
   list.innerHTML='';
   // Badge com contagem de prioridades
   const badge=document.getElementById('home-acoes-badge');
