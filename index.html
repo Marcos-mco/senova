@@ -5873,6 +5873,8 @@ async function enviarRespostaEmailAvulso(btn){
     const json=await res.json().catch(()=>({}));
     if(res.ok){
       btn.textContent='✓ Enviado!';btn.style.color='var(--green)';
+      _removeEmailAtualFluxos();
+      renderHomeAcoes(); atualizarSinais();
       setTimeout(()=>fecharModalEmailResponder(),1200);
     }else if(res.status===401&&json.reauth){
       btn.textContent='🔑 Conectar Outlook';btn.disabled=false;
@@ -6156,11 +6158,18 @@ function _dispensarNoticia(idx){
   atualizarSinais();
   renderAlertasInline();
 }
-function _abrirProcessoDeNoticia(empresa){
+function _abrirProcessoDeNoticia(url){
   showPage('crm');
   setTimeout(()=>{
     openVagaModal('new');
-    if(empresa){ setTimeout(()=>{ const el=document.getElementById('vaga-empresa'); if(el) el.value=empresa; },150); }
+    setTimeout(()=>{
+      if(url){
+        const urlEl=document.getElementById('mv-origem-url'); if(urlEl) urlEl.value=url;
+        const lnk=document.getElementById('mv-link-vaga'); if(lnk){lnk.dataset.url=url;lnk.style.display='';}
+      }
+      const empresaEl=document.getElementById('mv-empresa'); if(empresaEl){empresaEl.value='';empresaEl.focus();}
+      showToast('Novo processo criado — preencha a empresa e o cargo');
+    },150);
   },200);
 }
 function _buscarContatoPorEmpresa(empresa){
@@ -6535,7 +6544,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     const ms=new Date(c.nextData).setHours(0,0,0,0);
     const diff=Math.round((ms-todayCRM.getTime())/86400000);
     return {...c,_diff:diff};
-  }).filter(c=>c._diff<=3).sort((a,b)=>a._diff-b._diff);
+  }).filter(c=>c._diff>=-7&&c._diff<=3).sort((a,b)=>a._diff-b._diff).slice(0,5);
   if(contatosAcao.length){
     const sep=document.createElement('div');
     sep.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
@@ -6571,39 +6580,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     list.appendChild(elAt);
   }
 
-  // ── Retornos recebidos hoje (emails positivo/pipeline/hunter) ──
-  const retornosHoje=(_emailsProcesso||[]).filter(e=>
-    e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='hunter'
-  );
-  if(retornosHoje.length){
-    const sepRet=document.createElement('div');
-    sepRet.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
-    sepRet.textContent='Retornos recebidos';
-    list.appendChild(sepRet);
-    retornosHoje.slice(0,3).forEach((e,idx)=>{
-      const isFathom=e.is_fathom||((e.from||'').toLowerCase().includes('fathom'));
-      const remetente=(e.from_name||e.from||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const assunto=(e.subject||e.assunto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,50);
-      const idxReal=(_emailsProcesso||[]).indexOf(e);
-      const el=document.createElement('div');
-      el.className='home-acao-item';
-      el.style.cursor='pointer';
-      if(isFathom){
-        // Tenta vincular ao card pela empresa mencionada no assunto
-        const subLow=(e.subject||'').toLowerCase();
-        const cardMatch=(vagas||[]).find(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado'&&v.empresa&&subLow.includes(v.empresa.toLowerCase()));
-        const cardInfo=cardMatch?` — ${cardMatch.empresa.replace(/&/g,'&amp;').replace(/</g,'&lt;')}`:'';
-        el.onclick=()=>{ if(cardMatch) openVagaModal(cardMatch.id); else if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
-        el.innerHTML=`<div class="home-acao-dot" style="background:var(--green);margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">📹 Gravação disponível${cardInfo}</div><div style="font-size:13px;color:var(--text2);">Sofia: Qual foi o resultado? Agende o próximo passo agora.</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">${cardMatch?'↗ Ver processo':'↩ Responder'}</span>`;
-      } else {
-        const catCor={positivo:'#1A7A4A',pipeline:'#B8670A',hunter:'#1A3A5C'}[e.categoria]||'#1A3A5C';
-        const catLbl={positivo:'Retorno positivo',pipeline:'Em processo',hunter:'Headhunter'}[e.categoria]||'Retorno';
-        el.onclick=()=>{ if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
-        el.innerHTML=`<div class="home-acao-dot" style="background:${catCor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:${catCor};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">${catLbl}</div><div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">↩ Responder</span>`;
-      }
-      list.appendChild(el);
-    });
-  }
+  // Retornos de email → mostrados em "O que há de novo" (coluna direita), não duplicar aqui
 
   // Ver mais — acionar após renderizar todos os itens
   const verMaisBtn=document.getElementById('home-ver-mais');
