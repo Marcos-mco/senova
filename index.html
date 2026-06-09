@@ -6005,24 +6005,43 @@ function renderRetornos(){
 // ── Corrigir categoria de email ──
 // ── Enriquecimento retroativo de URLs nos cards existentes ──
 const _JOB_URL_RE=/linkedin\.com\/(comm\/)?(jobs)\/view\/\d+|gupy\.io\/(job|jobs|vagas)\/|boards\.greenhouse\.io|jobs\.lever\.co\/|\.wd\d*\.myworkdayjobs\.com|indeed\.com\/(viewjob|rc\/clk)|michaelpage\.|roberthalf\.|infojobs\.net|catho\.com\.br\/emprego|vagas\.com\.br\/|empregos\.com\.br\/|glassdoor\.com\.br\/Vagas|careers\.[a-z-]+\.(com|io|co)\//i;
+function _urlInvalida(u){ return !u||!u.startsWith('http')||u.includes('@')||/comm\/feed|\/feed\?|linkedin\.com\/(mynetwork|notifications|messaging|premium)/i.test(u); }
 function _enriquecerURLsExistentes(emails){
   if(!emails||!emails.length) return;
   let atualizados=0;
+
+  // 1. Atualizar cards dos últimos 7 dias que têm email correspondente
   emails.forEach(e=>{
     const linkVaga=e.link_vaga||'';
-    // Só aceitar URL se for reconhecidamente uma página de vaga
-    if(!linkVaga||!linkVaga.startsWith('http')||!_JOB_URL_RE.test(linkVaga)) return;
+    if(!linkVaga||!linkVaga.startsWith('http')) return;
     const assunto=e.subject||e.assunto||'';
     if(!assunto) return;
-    const card=vagas.find(v=>
-      v.emailAssunto&&v.emailAssunto===assunto&&
-      (!v.origemUrl||v.origemUrl.includes('@')||!v.origemUrl.startsWith('http')||/comm\/feed|\/feed\?/i.test(v.origemUrl))
-    );
+    const card=vagas.find(v=>v.emailAssunto&&v.emailAssunto===assunto&&_urlInvalida(v.origemUrl));
     if(card){ card.origemUrl=linkVaga; atualizados++; }
   });
-  if(atualizados>0){
+
+  // 2. Excluir cards email auto-criados (tag 'Revisar') que ainda não têm URL válida
+  // e continuam como 'lead' sem ter sido trabalhados
+  const paraExcluir=vagas.filter(v=>
+    v.status==='lead'&&
+    /^email$/i.test(v.canal||'')&&
+    _urlInvalida(v.origemUrl)&&
+    Array.isArray(v.tags)&&v.tags.includes('Revisar')
+  );
+  let excluidos=0;
+  if(paraExcluir.length){
+    const ids=new Set(paraExcluir.map(v=>String(v.id)));
+    vagas=vagas.filter(v=>!ids.has(String(v.id)));
+    excluidos=paraExcluir.length;
+  }
+
+  if(atualizados||excluidos){
     saveVagas();
-    showToast(`🔗 ${atualizados} URL${atualizados>1?'s':''} de vaga atualizada${atualizados>1?'s':''}`);
+    aplicarFiltros();
+    const partes=[];
+    if(atualizados) partes.push(`🔗 ${atualizados} URL${atualizados>1?'s':''} atualizada${atualizados>1?'s':''}`);
+    if(excluidos) partes.push(`🗑 ${excluidos} sem URL removido${excluidos>1?'s':''}`);
+    showToast(partes.join(' · '));
   }
 }
 
