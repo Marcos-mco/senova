@@ -4378,7 +4378,11 @@ function openVagaModal(id){
     document.getElementById('mv-localizacao').value=v.localizacao||'';
     document.getElementById('mv-modelo').value=({hibrido:'Híbrido',presencial:'Presencial',remoto:'Remoto'})[v.modelo?.toLowerCase()]||v.modelo||'';
     document.getElementById('mv-regime').value=({clt:'CLT',pj:'PJ',ambos:'Ambos'})[v.regime?.toLowerCase()]||v.regime||'';
-    document.getElementById('mv-notas').value=v.notas||'';
+    const notasBruta=v.notas||'';
+    const notasLimpas=notasBruta.includes('http')||notasBruta.includes('%3A')||notasBruta.includes('[My')
+      ?notasBruta.replace(/<[^>]+>/g,' ').replace(/https?:\/\/\S+/g,'').replace(/\[[^\]]+\]/g,'').replace(/&[a-z]+;/gi,' ').replace(/%[0-9A-F]{2}/gi,' ').replace(/\s+/g,' ').trim()
+      :notasBruta;
+    document.getElementById('mv-notas').value=notasLimpas;
     const emailDestVal=v.emailDest||'';
     const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailDestVal);
     document.getElementById('mv-email-dest').value=isNoReply?'':emailDestVal;
@@ -6025,13 +6029,14 @@ function _enriquecerURLsExistentes(emails){
     if(card){ card.origemUrl=linkVaga; atualizados++; }
   });
 
-  // 2. Excluir cards auto-criados de email que continuam sem URL válida
-  // Critério: status lead + canal Email + emailAssunto existe (prova criação automática)
+  // 2. Excluir cards auto-criados de email sem URL válida
+  // Critério: status lead + canal Email + (emailAssunto OU emailDest no-reply)
+  const _noReplyRe=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|jobs-noreply|jobalerts|mailer@/i;
   const paraExcluir=vagas.filter(v=>
     v.status==='lead'&&
     /^email$/i.test(v.canal||'')&&
-    v.emailAssunto&&
-    _urlInvalida(v.origemUrl)
+    _urlInvalida(v.origemUrl)&&
+    (v.emailAssunto||_noReplyRe.test(v.emailDest||''))
   );
   let excluidos=0;
   if(paraExcluir.length){
@@ -6143,6 +6148,7 @@ ${JSON.stringify(lista)}`;
 async function carregarEmails(forcar){
   const connected=await checkOutlookStatus();
   if(!connected){ atualizarSinais(); return; }
+  if(forcar) showToast('🔄 Verificando emails…', 2000);
   try{
     const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
     const res=await fetch(url);
@@ -6176,7 +6182,9 @@ async function carregarEmails(forcar){
         const emailAddr=e.from||e.de_email||'';
         const assunto=e.subject||e.assunto||'';
         const preview=e.resumo||e.preview||e.bodyPreview||'';
-        const conteudoVaga=e.conteudo_vaga||preview;
+        const conteudoVagas=e.conteudo_vaga||preview;
+        // Limpar HTML/URLs/encoding do conteúdo antes de salvar em notas
+        const conteudoVaga=conteudoVagas.replace(/<[^>]+>/g,' ').replace(/https?:\/\/\S+/g,'').replace(/\[[^\]]+\]/g,'').replace(/&[a-z]+;/gi,' ').replace(/%[0-9A-F]{2}/gi,' ').replace(/\s+/g,' ').trim().slice(0,400);
         // URL limpa: só usar se não for endereço de email
         const rawLink=e.link_vaga||e.origemUrl||'';
         const linkVaga=rawLink&&!rawLink.includes('@')?rawLink:'';
