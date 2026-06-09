@@ -1343,6 +1343,7 @@ select option { background: var(--bg2); }
         <span id="crm-inativo-banner-txt">⚠ Mostrando apenas cards inativos (7+ dias sem atualização)</span>
         <button onclick="limparFiltroInativo()" style="margin-left:auto;background:none;border:1px solid #C09000;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;color:#5A4000;">✕ Limpar filtro</button>
       </div>
+      <div id="crm-kpi-strip" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>
       <div class="kanban" id="kanban-vagas"></div>
       <div id="kanban-arquivados-wrap" style="display:none;">
         <div style="margin-top:14px;padding:8px 4px 6px;border-top:1.5px dashed var(--border);display:flex;align-items:center;gap:6px;">
@@ -3997,6 +3998,7 @@ function proximaSalvar(){
         tlTxt+=` — ${ed}/${em} às ${entHora}`;
       }
       vagas[_proximaIdx].timeline.push({ts:Date.now(),texto:tlTxt});
+      if(entData) vagas[_proximaIdx].entrevistaData=`${entData}T${entHora}:00`;
       if(criarCal&&entData){
         const empresa=vagas[_proximaIdx].empresa||'Empresa';
         const cargo=vagas[_proximaIdx].cargo||'';
@@ -4250,6 +4252,7 @@ function renderCRM(){
     <div class="stat"><div class="stat-val" style="color:var(--action)">${cvEnviado}</div><div class="stat-label">CV Enviado</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--navy)">${processo}</div><div class="stat-label">Em Contato / Entrevista</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>`;
+  renderCRMKpiStrip();
 
   const listaBase = _crmFiltroInativo ? vagas.filter(isInativo) : (vagasFiltradas || vagas);
   const bannerInativo = document.getElementById('crm-inativo-banner');
@@ -6344,6 +6347,27 @@ function _syncRelatoriosStats(){
   } catch{}
 }
 
+function renderCRMKpiStrip(){
+  const el=document.getElementById('crm-kpi-strip');
+  if(!el) return;
+  const ARCH=['aceito','negado','descartado'];
+  const ativas=vagas.filter(v=>!ARCH.includes(v.status));
+  const total=ativas.length;
+  const comRetorno=ativas.filter(v=>['contato','entrevista','proposta'].includes(v.status)).length;
+  const taxaRet=total>=2?Math.round(comRetorno/total*100):null;
+  const nEnt=ativas.filter(v=>v.status==='entrevista').length;
+  const nProp=ativas.filter(v=>v.status==='proposta').length;
+  const taxaStr=taxaRet!==null?`${taxaRet}%`:'—';
+  const taxaCor=taxaRet!==null&&taxaRet>=30?'var(--green)':taxaRet!==null&&taxaRet>=15?'var(--amber)':'var(--text3)';
+  const kpi=(num,label,color='var(--navy)')=>`<div class="home-kpi-strip" style="flex:1;min-width:110px;cursor:default;"><div><div class="home-kpi-lbl">${label}</div><div class="home-kpi-num" style="color:${color};">${num}</div></div></div>`;
+  el.innerHTML=[
+    kpi(total||'—','Ativos'),
+    kpi(taxaStr,'Taxa retorno',taxaCor),
+    kpi(nEnt||'—','Entrevistas',nEnt>0?'#7C3AED':'var(--text3)'),
+    kpi(nProp||'—','Propostas',nProp>0?'var(--green)':'var(--text3)'),
+  ].join('');
+}
+
 function renderDashboardPipeline(){
   try{
     const STAGES=['lead','aplicado','contato','entrevista','proposta'];
@@ -6447,11 +6471,14 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
   const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
-  // nível 3 sem data → surfacem no topo independentemente de data agendada
-  const nivel3SemData=base.filter(v=>nivelInativo(v)===3&&_getNextActionDate(v)===null);
+  // entrevistas sem data agendada — urgência máxima
+  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData);
+  const entSemDataIds=new Set(entSemData.map(v=>v.id));
+  // nível 3 sem data → surfacem no topo (excluindo já exibidos acima)
+  const nivel3SemData=base.filter(v=>!entSemDataIds.has(v.id)&&nivelInativo(v)===3&&_getNextActionDate(v)===null);
   // cards com data específica definida no modal de drag
   const nivel3Ids=new Set(nivel3SemData.map(v=>v.id));
-  const comData=base.filter(v=>!nivel3Ids.has(v.id)).map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
+  const comData=base.filter(v=>!entSemDataIds.has(v.id)&&!nivel3Ids.has(v.id)).map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
   // nível 3 com data sobe para antes dos outros; dentro do nível 3 ordena por data
   comData.sort((a,b)=>{
     const n3a=nivelInativo(a.v)===3, n3b=nivelInativo(b.v)===3;
@@ -6477,16 +6504,28 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     el.innerHTML=`<div class="home-acao-dot" style="background:${dotColor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">${dateTxt?`<span style="font-size:11.5px;font-weight:500;color:${dateColor};white-space:nowrap;">${dateTxt}</span>`:''}<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
     return el;
   }
+  // Entrevistas sem data agendada — urgência máxima, topo da lista
+  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData);
+  const entSemDataIds=new Set(entSemData.map(v=>v.id));
   list.innerHTML='';
   // Badge com contagem de prioridades
   const badge=document.getElementById('home-acoes-badge');
-  const total=nivel3SemData.length+comData.length;
+  const total=entSemData.length+nivel3SemData.length+comData.length;
   if(badge) badge.textContent=total>0?`${total} ação${total===1?'':'ões'} agendada${total===1?'':'s'}`:'';
-  // Renderizar nível 3 sem data no topo
+  // Entrevistas sem data — topo absoluto, indicador roxo
+  entSemData.forEach(v=>{
+    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+    const el=document.createElement('div');
+    el.className='home-acao-item';
+    el.onclick=()=>openVagaModal(v.id);
+    el.innerHTML=`<div class="home-acao-dot" style="background:#7C3AED;margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:13px;color:#7C3AED;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Entrevista — agendar data e horário</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
+    list.appendChild(el);
+  });
+  // Renderizar nível 3 sem data
   nivel3SemData.forEach(v=>{
     list.appendChild(_buildCardVaga(v,null,null));
   });
-  if(!comData.length&&!nivel3SemData.length){
+  if(!comData.length&&!nivel3SemData.length&&!entSemData.length){
     const el=document.createElement('div');
     el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
     el.textContent='Nenhuma nova ação agendada para hoje.';
