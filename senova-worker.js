@@ -757,12 +757,21 @@ export default {
     }
 
     if (path === '/api/sinais-mercado' && request.method === 'GET') {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const cacheKey = `sinais_mercado_${hoje}`;
-      const cached = await env.SENOVA_KV.get(cacheKey);
-      if (cached) return json(JSON.parse(cached));
+      const forcar = url.searchParams.get('force') === '1';
+      const slot = Math.floor(Date.now() / (4 * 60 * 60 * 1000)); // slot de 4h
+      const cacheKey = `sinais_mercado_${slot}`;
+      if (!forcar) {
+        const cached = await env.SENOVA_KV.get(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          // Não serve cache se resultado foi erro — força retry na próxima chamada
+          if (parsed.status !== 'rss_indisponivel') return json(parsed);
+        }
+      }
       const resultado = await buscarSinaisMercado(env);
-      await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 86400 });
+      if (resultado.status === 'ok') {
+        await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 4 * 60 * 60 });
+      }
       return json(resultado);
     }
 
@@ -1083,26 +1092,49 @@ const KEYWORDS_SINAL = [
   'adquiriu','assume','assumiu','diretora','diretor','vice-presidente','vp de',
 ];
 
+async function buscarBingNewsRSS(query) {
+  const url = `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&mkt=pt-BR&setLang=pt-BR`;
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'Accept': 'application/rss+xml,text/xml,*/*' },
+      signal: AbortSignal.timeout(7000),
+      redirect: 'follow',
+    });
+    if (!resp.ok) return [];
+    const text = await resp.text();
+    if (!text.includes('<item') && !text.includes('<rss')) return [];
+    return parsearRSS(text, 'Bing News', { label: 'Brasil' });
+  } catch { return []; }
+}
+
 async function buscarGoogleNewsRSS(query) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt`;
   try {
     const resp = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SenovaBot/1.0)', 'Accept': 'application/rss+xml,text/xml' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)', 'Accept': 'application/rss+xml,text/xml' },
       signal: AbortSignal.timeout(6000),
       redirect: 'follow',
     });
     if (!resp.ok) return [];
-    return parsearRSS(await resp.text(), 'GoogleNews', { label: 'Brasil' });
+    const text = await resp.text();
+    if (!text.includes('<item') && !text.includes('<rss')) return [];
+    return parsearRSS(text, 'Google News', { label: 'Brasil' });
   } catch { return []; }
 }
 
 async function buscarSinaisMercado(env) {
-  const resultados = await Promise.allSettled(QUERIES_SINAIS.map(q => buscarGoogleNewsRSS(q)));
-  const itens = []; let rssOk = false;
+  // Tenta Bing primeiro (mais acessível de IPs cloud), depois Google como fallback
+  const buscar = async q => {
+    const bing = await buscarBingNewsRSS(q);
+    if (bing.length) return bing;
+    return buscarGoogleNewsRSS(q);
+  };
+  const resultados = await Promise.allSettled(QUERIES_SINAIS.map(q => buscar(q)));
+  const itens = []; let algumOk = false;
   for (const r of resultados) {
-    if (r.status === 'fulfilled' && r.value.length > 0) { rssOk = true; itens.push(...r.value); }
+    if (r.status === 'fulfilled' && r.value.length > 0) { algumOk = true; itens.push(...r.value); }
   }
-  // dedup by title
+  // Dedup by title
   const vistos = new Set();
   const unicos = itens.filter(i => {
     const k = (i.titulo || '').toLowerCase().slice(0, 60);
@@ -1110,13 +1142,16 @@ async function buscarSinaisMercado(env) {
     vistos.add(k);
     return true;
   });
-  // keyword filter
-  const relevantes = unicos.filter(i => {
-    const txt = (i.titulo + ' ' + (i.descricao || '')).toLowerCase();
-    return KEYWORDS_SINAL.some(kw => txt.includes(kw));
-  }).slice(0, 5);
+  // Keyword filter — apenas se retornou muitos itens; se retornou poucos, aceitar todos
+  const relevantes = (unicos.length > 10
+    ? unicos.filter(i => {
+        const txt = (i.titulo + ' ' + (i.descricao || '')).toLowerCase();
+        return KEYWORDS_SINAL.some(kw => txt.includes(kw));
+      })
+    : unicos
+  ).slice(0, 5);
 
-  if (!relevantes.length) return { sinais: [], status: rssOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'google_news' };
+  if (!relevantes.length) return { sinais: [], status: algumOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'bing_news' };
   const sinaisAnalisados = await analisarSinaisMercado(relevantes, env);
 
   // Enriquecer com Hunter.io — só sinais de alta relevância com domínio conhecido

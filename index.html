@@ -6184,9 +6184,13 @@ async function toggleOutlook(){
   else conectarOutlook();
 }
 
+let _sinaisMercadoCarregado=false;
 async function carregarSinaisMercado(){
   try{
-    const resp=await fetch(WORKER_URL+'/api/sinais-mercado');
+    // Primeira carga da sessão: force=1 para não servir cache de falha anterior
+    const param=_sinaisMercadoCarregado?'':'?force=1';
+    _sinaisMercadoCarregado=true;
+    const resp=await fetch(WORKER_URL+'/api/sinais-mercado'+param);
     if(!resp.ok) return;
     const data=await resp.json();
     _sinaisMercado=(data.sinais||[]);
