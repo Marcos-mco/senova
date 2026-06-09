@@ -79,17 +79,29 @@ function detectarLinkVaga(links) {
 
 function extrairArtigosGoogleAlert(html) {
   const artigos = [];
-  // Google Alerts: links embrulhados em google.com/url?...url=ARTIGO
-  for (const m of (html || '').matchAll(/href="https:\/\/www\.google\.com\/url\?[^"]*?url=(https?[^&"]+)/gi)) {
-    try { artigos.push(decodeURIComponent(m[1])); } catch {}
+  const htmlStr = html || '';
+  // Google Alerts: <a href="https://www.google.com/url?...url=ENCODED_URL...">Título</a>
+  const reGoogle = /<a\s[^>]*href="https:\/\/www\.google\.com\/url\?[^"]*?url=(https?[^&"]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+  for (const m of htmlStr.matchAll(reGoogle)) {
+    try {
+      const url = decodeURIComponent(m[1]);
+      const titulo = m[2]
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+        .replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+        .replace(/\s+/g,' ').trim().slice(0, 120);
+      if (url && titulo.length > 4) artigos.push({ titulo, url });
+    } catch {}
   }
-  // Fallback: links diretos no HTML (exceto google.com e accounts)
+  // Fallback: links diretos sem o redirect do Google
   if (!artigos.length) {
-    for (const m of (html || '').matchAll(/href="(https?:\/\/(?!(?:www\.google|accounts\.google|policies\.google))[^"]+)"/gi)) {
-      artigos.push(m[1]);
+    const reDireto = /<a\s[^>]*href="(https?:\/\/(?!(?:www\.google|accounts\.google|policies\.google|mail\.google))[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    for (const m of htmlStr.matchAll(reDireto)) {
+      const titulo = m[2].replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim().slice(0, 120);
+      if (titulo.length > 4) artigos.push({ titulo, url: m[1] });
     }
   }
-  return [...new Set(artigos)].slice(0, 8);
+  return [...new Map(artigos.map(a => [a.url, a])).values()].slice(0, 8);
 }
 
 const ADZUNA_PAISES = { br:'br', es:'es', de:'de', pt:'pt', us:'us' };
