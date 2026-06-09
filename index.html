@@ -447,7 +447,7 @@ select option { background: var(--bg2); }
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M2 4h12M2 8h8M2 12h5"/><rect x="11" y="7" width="3" height="5" rx="1"/>
       </svg>
-      Sua Busca
+      Processos
       <span class="nav-badge" id="crm-badge">—</span>
     </div>
     <div class="nav-item" onclick="showPage('mercado')" id="nav-mercado">
@@ -637,8 +637,8 @@ select option { background: var(--bg2); }
 <div id="page-relatorios" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
     <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Relatórios</span>
-      <span class="page-sub">Análise de performance do pipeline</span>
+      <span class="page-title">Seu Painel</span>
+      <span class="page-sub">Análise de performance dos seus Processos</span>
     </div>
     <div class="topbar-right">
       <span id="dash-totals" style="font-size:12px;color:var(--text3);"></span>
@@ -649,7 +649,7 @@ select option { background: var(--bg2); }
 
       <!-- Funil do Pipeline -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow);">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Funil do Pipeline</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Funil dos Processos</div>
         <div id="dash-funil" style="display:flex;flex-direction:column;gap:9px;"></div>
       </div>
 
@@ -698,8 +698,8 @@ select option { background: var(--bg2); }
 <div id="page-ats" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
   <div class="topbar">
     <div style="display:flex;align-items:baseline;gap:6px;">
-      <span class="page-title">Análise de Vaga</span>
-      <span class="page-sub">Análise de aderência e otimização de perfil</span>
+      <span class="page-title">Avaliar Posição</span>
+      <span class="page-sub">Score de aderência e preparação da candidatura</span>
     </div>
     <div class="topbar-right">
       <div class="status-pill"><div class="status-dot"></div>IA conectada</div>
@@ -936,23 +936,23 @@ select option { background: var(--bg2); }
         <textarea id="perfil-empresas-alvo" rows="5" placeholder="Amazon&#10;Uber&#10;Nubank&#10;iFood&#10;Ambev" style="font-size:14px;resize:vertical;"></textarea>
       </div>
 
-      <!-- Frequência de varredura -->
+      <!-- Frequência da busca automática -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
-        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Frequência de varredura</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Frequência da busca automática</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Com que regularidade o Senova busca novas vagas para você</div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:var(--bg3);border-radius:var(--radius);border:1.5px solid var(--border);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.querySelector('input').checked?this.style.borderColor='var(--navy)':this.style.borderColor='var(--border)'">
             <input type="radio" name="perfil-freq-varredura" id="perfil-freq-diaria" value="diaria" style="accent-color:var(--navy);width:16px;height:16px;margin-top:2px;flex-shrink:0;">
             <div>
-              <div style="font-size:14px;font-weight:600;color:var(--navy);">Varredura diária automática</div>
-              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Todo dia às 07:00 BRT o Senova varre os portais e traz as novidades para os seus Processos</div>
+              <div style="font-size:14px;font-weight:600;color:var(--navy);">Busca automática diária</div>
+              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Todo dia às 07:00 BRT o Senova busca nos portais e traz as novidades para os seus Processos</div>
             </div>
           </label>
           <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:var(--bg3);border-radius:var(--radius);border:1.5px solid var(--border);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.querySelector('input').checked?this.style.borderColor='var(--navy)':this.style.borderColor='var(--border)'">
             <input type="radio" name="perfil-freq-varredura" id="perfil-freq-manual" value="manual" style="accent-color:var(--navy);width:16px;height:16px;margin-top:2px;flex-shrink:0;">
             <div>
               <div style="font-size:14px;font-weight:600;color:var(--navy);">Somente quando eu acionar</div>
-              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Use o botão "Varrer agora" em Preferências quando quiser buscar novas vagas</div>
+              <div style="font-size:12.5px;color:var(--text3);margin-top:2px;">Use o botão "Buscar agora" em Preferências quando quiser buscar novas vagas</div>
             </div>
           </label>
         </div>
@@ -1159,15 +1159,15 @@ select option { background: var(--bg2); }
         <div id="whitelist-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;">✓ Domínios salvos</div>
       </div>
 
-      <!-- Varredura automática -->
+      <!-- Busca automática -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-          <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">⚡ Varredura automática</div>
+          <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">⚡ Busca automática</div>
           <div id="varredura-status-pill" style="font-size:12px;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:20px;">Carregando…</div>
         </div>
         <div style="font-size:12.5px;color:var(--text3);margin-bottom:10px;">Adzuna · Jobicy — cron diário 07:00 BRT</div>
         <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:12px;">—</div>
-        <button class="btn btn-ghost" onclick="dispararVarreduraManual()" id="btn-varredura-manual" style="font-size:13px;padding:8px 16px;">▶ Varrer agora</button>
+        <button class="btn btn-ghost" onclick="dispararVarreduraManual()" id="btn-varredura-manual" style="font-size:13px;padding:8px 16px;">▶ Buscar agora</button>
         <div id="varredura-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;"></div>
       </div>
 
@@ -1293,12 +1293,6 @@ select option { background: var(--bg2); }
         <option value="Headhunter">Headhunter</option>
         <option value="Indicacao">Indicacao</option>
         <option value="Email">Email</option>
-      </select>
-      <select class="filter-select" id="filter-plano" onchange="aplicarFiltros()">
-        <option value="">Todos os planos</option>
-        <option value="A">Plano A — CLT</option>
-        <option value="B">Plano B — Consultoria</option>
-        <option value="C">Plano C — Senova</option>
       </select>
       <select class="filter-select" id="filter-ordem" onchange="aplicarFiltros()">
         <option value="recente">Mais recente</option>
@@ -1477,9 +1471,9 @@ select option { background: var(--bg2); }
           <div style="flex:1;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
               <span style="font-size:20px;">📋</span>
-              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">3. Pipeline</span>
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">3. Processos</span>
             </div>
-            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Kanban de candidaturas com 5 colunas. Arraste cards entre estágios, defina próximas ações e acompanhe contatos do CRM.</div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Acompanhe seus processos em 5 estágios. Mova entre etapas, defina próximas ações e gerencie seus contatos.</div>
           </div>
           <button class="btn btn-ghost" onclick="showPage('crm')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
         </div>
@@ -1490,7 +1484,7 @@ select option { background: var(--bg2); }
               <span style="font-size:20px;">👤</span>
               <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">4. Perfil</span>
             </div>
-            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Configure cargo alvo, idiomas, plataformas onde está cadastrado e score mínimo por região — esses dados alimentam a varredura automática.</div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Configure cargo alvo, idiomas, plataformas onde está cadastrado e score mínimo por região — esses dados alimentam a busca automática.</div>
           </div>
           <button class="btn btn-ghost" onclick="showPage('linkedin')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
         </div>
@@ -1501,7 +1495,7 @@ select option { background: var(--bg2); }
               <span style="font-size:20px;">🔍</span>
               <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">5. Busca de Vagas</span>
             </div>
-            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Varredura automática diária às 07h BRT via Adzuna + Jobicy (BR · ES · DE · PT · Remoto). Importe as oportunidades para os Processos com um clique.</div>
+            <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">Busca automática diária às 07h BRT via Adzuna + Jobicy (BR · ES · DE · PT · Remoto). Adicione as oportunidades para os Processos com um clique.</div>
           </div>
           <button class="btn btn-ghost" onclick="showPage('crm')" style="flex-shrink:0;padding:7px 16px;font-size:13px;align-self:center;">→ Abrir</button>
         </div>
@@ -1511,7 +1505,7 @@ select option { background: var(--bg2); }
             <span style="font-size:20px;">🔄</span>
             <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);">6. Fluxo Completo</span>
           </div>
-          <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">O caminho ideal: <strong style="color:var(--text2);">Perfil</strong> → <strong style="color:var(--text2);">Varredura</strong> → <strong style="color:var(--text2);">Análise de Vaga</strong> → <strong style="color:var(--text2);">Pipeline</strong> → <strong style="color:var(--text2);">Candidatura via Outlook</strong> → <strong style="color:var(--text2);">Follow-up automático em 7 dias</strong>. Cada etapa registra uma entrada no histórico da vaga.</div>
+          <div style="font-size:13.5px;color:var(--text3);line-height:1.7;">O caminho ideal: <strong style="color:var(--text2);">Perfil</strong> → <strong style="color:var(--text2);">Busca automática</strong> → <strong style="color:var(--text2);">Avaliar Posição</strong> → <strong style="color:var(--text2);">Processos</strong> → <strong style="color:var(--text2);">Candidatura via Outlook</strong> → <strong style="color:var(--text2);">Follow-up automático em 7 dias</strong>. Cada etapa registra uma entrada no histórico da vaga.</div>
         </div>
 
       </div>
@@ -1719,14 +1713,12 @@ select option { background: var(--bg2); }
       <div class="card" style="border-top:3px solid var(--navy);">
         <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;">Firmas de Executive Search</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          ${[
-            ['Korn Ferry','Posições C-Level e VP — foco em transformação digital','https://www.kornferry.com/careers'],
-            ['Spencer Stuart','Board, CEO e diretoria — forte em consumer e saúde','https://www.spencerstuart.com/'],
-            ['Egon Zehnder','Liderança sênior e desenvolvimento executivo','https://www.egonzehnder.com/'],
-            ['Russell Reynolds','C-Suite e posições globais','https://www.russellreynolds.com/'],
-            ['Heidrick & Struggles','Liderança executiva e digital','https://www.heidrick.com/'],
-            ['Michael Page','Diretores e gerentes seniores','https://www.michaelpage.com.br/'],
-          ].map(([n,d,u])=>`<a href="${u}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">${n}</span><span style="font-size:11.5px;color:var(--text3);flex:2;">${d}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>`).join('')}
+          <a href="https://www.kornferry.com/careers" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Korn Ferry</span><span style="font-size:11.5px;color:var(--text3);flex:2;">Posições C-Level e VP — foco em transformação digital</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
+          <a href="https://www.spencerstuart.com/" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Spencer Stuart</span><span style="font-size:11.5px;color:var(--text3);flex:2;">Board, CEO e diretoria — forte em consumer e saúde</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
+          <a href="https://www.egonzehnder.com/" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Egon Zehnder</span><span style="font-size:11.5px;color:var(--text3);flex:2;">Liderança sênior e desenvolvimento executivo</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
+          <a href="https://www.russellreynolds.com/" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Russell Reynolds</span><span style="font-size:11.5px;color:var(--text3);flex:2;">C-Suite e posições globais</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
+          <a href="https://www.heidrick.com/" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Heidrick &amp; Struggles</span><span style="font-size:11.5px;color:var(--text3);flex:2;">Liderança executiva e digital</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
+          <a href="https://www.michaelpage.com.br/" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);text-decoration:none;font-size:13px;" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'"><span style="flex:1;font-weight:600;color:var(--navy);">Michael Page</span><span style="font-size:11.5px;color:var(--text3);flex:2;">Diretores e gerentes seniores</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="1.8"><path d="M6 3h7v7M13 3L3 13"/></svg></a>
         </div>
       </div>
 
@@ -1922,6 +1914,11 @@ select option { background: var(--bg2); }
           </div>
         </div>
         <div id="mv-timeline-lista" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+      <div id="mv-preparar-entrevista" style="display:none;margin-top:14px;padding:14px 16px;background:#FAF5FF;border-radius:8px;border:1.5px solid #DDD6FE;">
+        <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Entrevista marcada</div>
+        <div style="font-size:13px;color:#4C1D95;margin-bottom:12px;line-height:1.5;">Use o Simulador de Entrevista da Sofia para se preparar com perguntas reais desta empresa e cargo.</div>
+        <button class="btn btn-ghost" id="mv-btn-preparar" onclick="" style="font-size:13px;padding:8px 16px;border-color:#7C3AED;color:#7C3AED;width:100%;justify-content:center;">🎤 Preparar para esta entrevista</button>
       </div>
       <div id="mv-docs-section" style="display:none;margin-top:16px;border-top:1.5px solid var(--border);padding-top:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
@@ -2158,14 +2155,6 @@ select option { background: var(--bg2); }
               <option value="hot">🔥 Quente</option>
               <option value="warm">🌤 Morno</option>
               <option value="cold">❄️ Frio</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label">Plano</label>
-            <select id="mc-plano">
-              <option value="A">Plano A — Emprego</option>
-              <option value="B">Plano B — Consultoria</option>
-              <option value="C">Plano C — Senova</option>
             </select>
           </div>
           <div>
@@ -2752,7 +2741,7 @@ function renderATSResult(analise,cv,crm) {
       </div>
     </div>
     <div id="tab-cv" style="margin-top:20px;border-top:1.5px solid var(--border);padding-top:16px;">
-      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">📄 CV Otimizado para esta vaga</div>
+      <div style="font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:10px;">📄 Preparar Candidatura — CV adaptado</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px;flex-wrap:wrap;">
         <button class="copy-btn" onclick="copyEl('cv-txt',this)">📋 Copiar CV</button>
         <button class="copy-btn" onclick="downloadDoc()">📁 Baixar Word</button>
@@ -4040,13 +4029,11 @@ function aplicarFiltros() {
   filtroAtivo = true;
   const pri = document.getElementById('filter-prioridade')?.value||'';
   const canal = document.getElementById('filter-canal')?.value||'';
-  const plano = document.getElementById('filter-plano')?.value||'';
   const ordem = document.getElementById('filter-ordem')?.value||'recente';
   const q = (document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
   let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
-  if(plano) lista = lista.filter(v=>v.plano===plano);
   if(q && q.length>=2) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
   if(ordem==='antigo') lista.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   else if(ordem==='prioridade') lista.sort((a,b)=>{const p={'alta':0,'media':1,'baixa':2}; return (p[a.prioridade]||9)-(p[b.prioridade]||9);})
@@ -4059,7 +4046,7 @@ function aplicarFiltros() {
 function limparFiltros() {
   filtroAtivo = false;
   vagasFiltradas = null;
-  ['filter-prioridade','filter-canal','filter-plano'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['filter-prioridade','filter-canal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const fo = document.getElementById('filter-ordem'); if(fo) fo.value='recente';
   const inp = document.getElementById('crm-busca'); if(inp) inp.value='';
   const clr = document.getElementById('crm-busca-clear'); if(clr) clr.style.display='none';
@@ -4476,6 +4463,15 @@ function openVagaModal(id){
     document.getElementById('mv-timeline-section').style.display='';
     document.getElementById('mv-timeline-form').style.display='none';
     renderTimelineLista(v.timeline||[]);
+    const prepDiv=document.getElementById('mv-preparar-entrevista');
+    const prepBtn=document.getElementById('mv-btn-preparar');
+    if(prepDiv&&prepBtn){
+      if(v.status==='entrevista'){
+        const alvo=`${v.empresa||''}${v.cargo&&v.cargo!=='A definir'?' · '+v.cargo:''}`.trim();
+        prepBtn.onclick=()=>{ closeVagaModal(); showPage('sofia'); sofiaTab(4); const el=document.getElementById('int-cargo'); if(el){el.value=alvo; el.focus();} };
+        prepDiv.style.display='block';
+      } else { prepDiv.style.display='none'; }
+    }
     const di=document.getElementById('mv-datas-info');
     if(di){
       di.style.display='block';
