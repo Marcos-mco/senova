@@ -531,11 +531,11 @@ select option { background: var(--bg2); }
           <span class="sh-head-title">O que há de novo</span>
         </div>
 
-        <!-- Varredura automática -->
+        <!-- Oportunidades automáticas -->
         <div id="sinal-varredura" class="sh-item" onclick="toggleVarreduraHome()">
           <div class="sh-dot" style="background:#059669;"></div>
           <div class="sh-item-body">
-            <div class="sh-item-label" id="sinal-varredura-txt">Varredura automática</div>
+            <div class="sh-item-label" id="sinal-varredura-txt">Oportunidades automáticas</div>
             <div class="sh-item-sub" id="sinal-varredura-sub"></div>
           </div>
           <svg class="sh-item-chev" id="sinal-varredura-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
@@ -1823,7 +1823,7 @@ select option { background: var(--bg2); }
             <option>Gupy</option>
             <option>Indeed</option>
             <option>Email</option>
-            <option>Varredura IA</option>
+            <option>Busca automática</option>
             <option>Extensão Chrome</option>
           </select>
         </div>
@@ -3785,7 +3785,7 @@ function _scoreMinParaVaga(v, config){
 function _montarCardVarredura(v, agora){
   return {
     id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
-    canal:v.fonte==='extensao_chrome'?'Extensão Chrome':'Varredura IA', prioridade:'media', status:'lead', salario:'',
+    canal:v.fonte==='extensao_chrome'?'Extensão Chrome':'Busca automática', prioridade:'media', status:'lead', salario:'',
     proxima:'Avaliar candidatura', notas:'',
     data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
     createdAt:agora, updatedAt:agora,
@@ -5334,7 +5334,7 @@ function atualizarSinalVarredura(){
   if(!txt) return;
   const n=_vagasLeadPendentes.length;
   if(n>0){
-    txt.textContent=`${n} vaga${n===1?'':'s'} encontrada${n===1?'':'s'} pela varredura`;
+    txt.textContent=`${n} oportunidade${n===1?'':'s'} encontrada${n===1?'':'s'}`;
     s&&(s.style.opacity='1');
   } else {
     txt.textContent='Varredura automática — nenhuma pendente';
@@ -6209,6 +6209,7 @@ async function carregarEmails(forcar){
     if(emailsVaga.length||_emailsMercado.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje=Math.max(_emailsNovosHoje,emailsVaga.length+_emailsMercado.length); }
     _emailsCarregados=true;
     atualizarSinais();
+    renderHomeAcoes(); // atualiza "Para Hoje" com retornos recebidos
     renderEmailsAvulsos();
     renderRetornos();
     renderNovasVagas();
@@ -6432,6 +6433,30 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     elAt.onclick=irParaInativos;
     elAt.innerHTML=`<div class="home-acao-dot" style="background:var(--red);margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--red);">${niTotal} processo${niTotal===1?'':'s'} sem atualização</div><div style="font-size:13px;color:var(--text3);">há ${_diasInativo}+ dias — clique para revisar</div></div><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
     list.appendChild(elAt);
+  }
+
+  // ── Retornos recebidos hoje (emails positivo/pipeline/hunter) ──
+  const retornosHoje=(_emailsProcesso||[]).filter(e=>
+    e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='hunter'
+  );
+  if(retornosHoje.length){
+    const sepRet=document.createElement('div');
+    sepRet.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
+    sepRet.textContent='Retornos recebidos';
+    list.appendChild(sepRet);
+    retornosHoje.slice(0,3).forEach((e,idx)=>{
+      const remetente=(e.from_name||e.from||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const assunto=(e.subject||e.assunto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,50);
+      const catCor={positivo:'#1A7A4A',pipeline:'#B8670A',hunter:'#1A3A5C'}[e.categoria]||'#1A3A5C';
+      const catLbl={positivo:'Retorno positivo',pipeline:'Em processo',hunter:'Headhunter'}[e.categoria]||'Retorno';
+      const idxReal=(_emailsProcesso||[]).indexOf(e);
+      const el=document.createElement('div');
+      el.className='home-acao-item';
+      el.style.cursor='pointer';
+      el.onclick=()=>{ if(typeof abrirModalResponder_fluxo==='function') abrirModalResponder_fluxo('processo',idxReal>=0?idxReal:idx); };
+      el.innerHTML=`<div class="home-acao-dot" style="background:${catCor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:${catCor};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:1px;">${catLbl}</div><div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${remetente}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${assunto}</div></div><span style="font-size:12px;color:var(--action);flex-shrink:0;">↩ Responder</span>`;
+      list.appendChild(el);
+    });
   }
 
   // Ver mais — acionar após renderizar todos os itens
