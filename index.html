@@ -2323,6 +2323,40 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
+<!-- ══ MINI-MODAL: ARQUIVAR PROCESSO (negado/aceito/descartado) ══ -->
+<div class="modal-overlay" id="modal-arquivar" style="display:none;" onclick="if(event.target===this)arquivarSkip()">
+  <div class="modal" style="width:min(420px,92vw);">
+    <div style="padding:22px 22px 0;">
+      <div id="modal-arquivar-emoji" style="font-size:28px;margin-bottom:8px;">📋</div>
+      <div class="modal-title" id="modal-arquivar-titulo" style="padding:0;margin:0 0 4px;">Encerrar processo</div>
+      <div id="modal-arquivar-empresa" style="font-size:14px;color:var(--text3);margin-bottom:18px;"></div>
+    </div>
+    <div class="modal-body" style="padding:0 22px 16px;">
+      <div id="modal-arquivar-aceito-msg" style="display:none;padding:14px;background:#ECFDF5;border-radius:8px;border:1px solid #A7F3D0;font-size:14px;color:#065F46;line-height:1.6;margin-bottom:16px;">
+        Registre as condições da oferta para seu histórico. Este dado alimentará seu IEE futuramente.
+      </div>
+      <div class="form-row" id="modal-arquivar-motivo-row">
+        <label class="field-label" id="modal-arquivar-motivo-label">Por que o processo encerrou?</label>
+        <select id="modal-arquivar-motivo" style="width:100%;padding:9px 10px;font-size:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:var(--font);">
+        </select>
+      </div>
+      <div class="form-row" id="modal-arquivar-salario-row" style="display:none;">
+        <label class="field-label">Condições da oferta (opcional)</label>
+        <input type="text" id="modal-arquivar-salario" placeholder="Ex: R$ 28k CLT + bônus 30%" style="font-size:14px;">
+      </div>
+      <div class="form-row">
+        <label class="field-label">Observação (opcional)</label>
+        <input type="text" id="modal-arquivar-obs" placeholder="Algum detalhe relevante…" style="font-size:14px;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="arquivarSkip()">Pular</button>
+      <button class="btn btn-primary" id="modal-arquivar-btn" onclick="arquivarSalvar()">Registrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── Resize #home-wrap ───────────────────────────
 (function() {
@@ -3943,6 +3977,13 @@ function dropVaga(newStatus, event) {
     vagas[idx].updatedAt=Date.now();
     saveVagas();
     renderCRM();
+    // Status de arquivo → captura de aprendizado
+    if(['negado','aceito','descartado'].includes(newStatus)){
+      dragVagaId=null;
+      abrirModalArquivar(idx,newStatus);
+      return;
+    }
+    // Status ativo → próxima ação
     _proximaIdx=idx;
     const isEntrevista=newStatus==='entrevista';
     document.getElementById('modal-proxima-titulo').textContent=isEntrevista?'🎤 Entrevista agendada':'Próxima ação';
@@ -4008,6 +4049,96 @@ function proximaSalvar(){
 function proximaSkip(){
   document.getElementById('modal-proxima').style.display='none';
   _proximaIdx=-1;
+}
+
+// ── CAPTURA DE APRENDIZADO ──────────────────────────────────────────────────
+let _arquivarIdx=-1;
+let _arquivarStatus='';
+
+const _MOTIVOS_NEGADO=[
+  'Perfil não avançou na triagem','Outro candidato selecionado',
+  'Vaga cancelada ou congelada','Salário não alinhado',
+  'Processo muito longo — desisti','Fit cultural não identificado',
+  'Falta de experiência específica','Outro'
+];
+const _MOTIVOS_DESCARTADO=[
+  'Salário abaixo do esperado','Empresa não alinhada aos meus valores',
+  'Localização ou modelo de trabalho inviável','Cargo não corresponde ao descrito',
+  'Preferi focar em outra oportunidade','Outro'
+];
+
+function abrirModalArquivar(idx,status){
+  _arquivarIdx=idx;
+  _arquivarStatus=status;
+  const v=vagas[idx];
+  const empresa=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+  document.getElementById('modal-arquivar-empresa').textContent=empresa;
+
+  const aceitoMsg=document.getElementById('modal-arquivar-aceito-msg');
+  const motivoRow=document.getElementById('modal-arquivar-motivo-row');
+  const salarioRow=document.getElementById('modal-arquivar-salario-row');
+  const titulo=document.getElementById('modal-arquivar-titulo');
+  const emoji=document.getElementById('modal-arquivar-emoji');
+  const btn=document.getElementById('modal-arquivar-btn');
+  const sel=document.getElementById('modal-arquivar-motivo');
+
+  document.getElementById('modal-arquivar-obs').value='';
+  document.getElementById('modal-arquivar-salario').value='';
+
+  if(status==='aceito'){
+    emoji.textContent='🎉';
+    titulo.textContent='Parabéns — oferta aceita!';
+    aceitoMsg.style.display='block';
+    motivoRow.style.display='none';
+    salarioRow.style.display='block';
+    btn.textContent='Registrar';
+  } else {
+    emoji.textContent= status==='negado'?'📋':'🚫';
+    titulo.textContent= status==='negado'?'Registrar aprendizado':'Descartar processo';
+    aceitoMsg.style.display='none';
+    motivoRow.style.display='block';
+    salarioRow.style.display='none';
+    btn.textContent='Registrar';
+    const motivos= status==='negado'?_MOTIVOS_NEGADO:_MOTIVOS_DESCARTADO;
+    sel.innerHTML=motivos.map(m=>`<option value="${m}">${m}</option>`).join('');
+  }
+  document.getElementById('modal-arquivar').style.display='flex';
+}
+
+function arquivarSalvar(){
+  if(_arquivarIdx<0) return;
+  const v=vagas[_arquivarIdx];
+  const status=_arquivarStatus;
+  const obs=document.getElementById('modal-arquivar-obs').value.trim();
+
+  let motivo='';
+  let tlTxt='';
+  if(status==='aceito'){
+    motivo='aceito';
+    const salario=document.getElementById('modal-arquivar-salario').value.trim();
+    if(salario) v.salarioAceito=salario;
+    tlTxt='Proposta aceita'+(salario?' — '+salario:'')+(obs?' — '+obs:'');
+  } else {
+    motivo=document.getElementById('modal-arquivar-motivo').value;
+    tlTxt=(status==='negado'?'Processo encerrado':'Processo descartado')+' — '+motivo+(obs?' — '+obs:'');
+  }
+
+  v.motivoArquivamento=motivo;
+  if(obs) v.obsArquivamento=obs;
+  if(!v.timeline) v.timeline=[];
+  v.timeline.push({ts:Date.now(),texto:tlTxt});
+  v.updatedAt=Date.now();
+  saveVagas();
+  renderCRM();
+  renderHomeAcoes();
+  document.getElementById('modal-arquivar').style.display='none';
+  _arquivarIdx=-1; _arquivarStatus='';
+  showToast(status==='aceito'?'Oferta registrada! 🎉':'Aprendizado registrado.');
+}
+
+function arquivarSkip(){
+  document.getElementById('modal-arquivar').style.display='none';
+  _arquivarIdx=-1; _arquivarStatus='';
 }
 
 function buscarCRM() {
