@@ -4,6 +4,24 @@
 
 ---
 
+## ✅ CONCLUÍDO (sessão 09/jun/2026 — sessão 4)
+
+| Item | Quando |
+|------|--------|
+| Captura de Aprendizado: modal-arquivar ao arrastar para Negado/Aceito/Descartado — motivo, obs, condições da oferta | 09/jun s4 |
+
+---
+
+## ✅ CONCLUÍDO (sessão 09/jun/2026 — sessão 3)
+
+| Item | Quando |
+|------|--------|
+| KPI strip nos Processos: Ativos, Taxa retorno, Entrevistas, Propostas | 09/jun s3 |
+| Para Hoje: Entrevista sem data → topo da lista com urgência roxa "Entrevista — agendar data e horário" | 09/jun s3 |
+| proximaSalvar: salva v.entrevistaData para rastrear se data foi agendada | 09/jun s3 |
+
+---
+
 ## ✅ CONCLUÍDO (sessão 09/jun/2026 — sessão 2)
 
 | Item | Quando |
@@ -126,7 +144,7 @@ Nenhum bug crítico aberto. ✅
 ### Home
 | # | Melhoria |
 |---|----------|
-| ~~U10~~ | ~~Home: KPIs compactos em strip 4 colunas com dados reais do CRM~~ ✅ |
+| ~~U10~~ | ~~Processos: KPI strip 4 colunas (Ativos, Taxa retorno, Entrevistas, Propostas)~~ ✅ |
 | ~~U11~~ | ~~Botão "Novo Processo" na home~~ ✅ |
 | U12 | Dashboard Pipeline: taxa de retorno, tempo médio no estágio, métricas reais |
 

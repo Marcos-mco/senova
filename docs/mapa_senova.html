@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mapa Senova Suite</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F4F8; color: #2C2C2A; padding: 32px 24px; }
+h1 { color: #1A3A5C; font-size: 24px; margin-bottom: 4px; }
+.sub { color: #6B7280; font-size: 14px; margin-bottom: 32px; }
+.card { background: white; border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+.card h2 { color: #1A3A5C; font-size: 16px; font-weight: 700; padding-bottom: 12px; border-bottom: 2px solid #E5E7EB; margin-bottom: 20px; }
+
+/* ── FUNIL ── */
+.funil { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; }
+.etapa { flex: 1; min-width: 140px; border-radius: 8px; padding: 14px 12px; margin: 4px; position: relative; }
+.etapa h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+.etapa ul { list-style: none; padding: 0; }
+.etapa ul li { font-size: 13px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.etapa ul li:last-child { border-bottom: none; }
+.etapa ul li::before { content: "→ "; color: inherit; opacity: 0.5; }
+.e-desc { background: #EFF6FF; color: #1e40af; }
+.e-qual { background: #FFF7ED; color: #92400e; }
+.e-proc { background: #F0FDF4; color: #065f46; }
+.e-prep { background: #FAF5FF; color: #4c1d95; }
+.e-res  { background: #F9FAFB; color: #374151; border: 1px solid #E5E7EB; }
+.seta { display: flex; align-items: center; font-size: 20px; color: #9CA3AF; padding: 0 2px; }
+
+/* ── KANBAN ── */
+.kanban { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+.col { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px; min-width: 130px; flex: 1; }
+.col-head { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid; }
+.col-card { background: white; border-radius: 6px; padding: 8px 10px; font-size: 12px; color: #4B5563; margin-bottom: 6px; border: 1px solid #E5E7EB; }
+.c1 .col-head { color: #6B7280; border-color: #9CA3AF; }
+.c2 .col-head { color: #D97706; border-color: #D97706; }
+.c3 .col-head { color: #2563EB; border-color: #2563EB; }
+.c4 .col-head { color: #7C3AED; border-color: #7C3AED; }
+.c5 .col-head { color: #059669; border-color: #059669; }
+
+/* ── SINAIS ── */
+.sinais { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sinal { border-radius: 8px; padding: 14px; }
+.sinal h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.sinal ul { list-style: none; font-size: 13px; }
+.sinal ul li { padding: 3px 0; opacity: 0.85; }
+.sinal ul li::before { content: "• "; }
+.s-op { background: #ECFDF5; color: #065f46; border: 1px solid #A7F3D0; }
+.s-ret { background: #EFF6FF; color: #1e3a8a; border: 1px solid #BFDBFE; }
+.s-mer { background: #FFFBEB; color: #78350f; border: 1px solid #FDE68A; }
+.s-rev { background: #FEF2F2; color: #7f1d1d; border: 1px solid #FECACA; }
+
+/* ── EMAIL ── */
+.email-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.ef-box { background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 6px; padding: 8px 12px; text-align: center; min-width: 110px; }
+.ef-arrow { color: #6B7280; font-size: 18px; }
+.ef-pos { background: #ECFDF5; border-color: #6EE7B7; }
+.ef-vag { background: #EFF6FF; border-color: #93C5FD; }
+.ef-alr { background: #FFFBEB; border-color: #FCD34D; }
+.ef-irr { background: #F9FAFB; border-color: #D1D5DB; color: #9CA3AF; }
+
+/* ── TABELAS ── */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #1A3A5C; color: white; padding: 10px 14px; text-align: left; }
+td { padding: 10px 14px; border-bottom: 1px solid #E5E7EB; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.ok { color: #059669; font-weight: 700; }
+.warn { color: #D97706; font-weight: 700; }
+.miss { color: #DC2626; font-weight: 700; }
+.errado { color: #DC2626; text-decoration: line-through; }
+.certo { color: #059669; font-weight: 700; }
+
+/* ── MAPA DE ABAS ── */
+.abas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.aba { border-radius: 8px; padding: 14px 16px; border: 1px solid #E5E7EB; }
+.aba-nome { font-size: 13px; font-weight: 700; color: #1A3A5C; margin-bottom: 8px; }
+.aba-itens { list-style: none; font-size: 12px; color: #4B5563; }
+.aba-itens li { padding: 3px 0; }
+.aba-itens li::before { content: "· "; color: #9CA3AF; }
+.aba-status { font-size: 11px; font-weight: 700; display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 10px; }
+.st-ok { background: #D1FAE5; color: #065f46; }
+.st-warn { background: #FEF3C7; color: #78350f; }
+.st-miss { background: #FEE2E2; color: #7f1d1d; }
+
+@media (max-width: 600px) {
+  .funil, .kanban, .sinais, .abas, .email-flow { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<h1>🗺 Mapa Senova Suite</h1>
+<p class="sub">Estrutura completa · Atualizado 09/jun/2026</p>
+
+
+<!-- 1. ABAS DO APP -->
+<div class="card">
+  <h2>1. As 6 seções do app — o que existe em cada uma</h2>
+  <div class="abas">
+    <div class="aba">
+      <div class="aba-nome">🏠 Início</div>
+      <ul class="aba-itens">
+        <li>Para Hoje (ações urgentes)</li>
+        <li>O que há de novo (4 sinais)</li>
+        <li>KPIs resumidos</li>
+      </ul>
+      <span class="aba-status st-ok">✓ Funcional</span>
+    </div>
+    <div class="aba">
+      <div class="aba-nome">👤 Perfil</div>
+      <ul class="aba-itens">
+        <li>Dados pessoais e cargo-alvo</li>
+        <li>Configurar busca automática</li>
+        <li>Documentos (CV, carta)</li>
+        <li>Integrações (Outlook)</li>
+        <li>Sofia onboarding</li>
+      </ul>
+      <span class="aba-status st-ok">✓ Funcional</span>
+    </div>
+    <div class="aba">
+      <div class="aba-nome">📊 Avaliar Posição</div>
+      <ul class="aba-itens">
+        <li>Score ATS 0–100</li>
+        <li>Veredicto coaching 3 estados</li>
+        <li>Preparar Candidatura</li>
+        <li>Carta de apresentação</li>
+        <li>Declinar vaga</li>
+      </ul>
+      <span class="aba-status st-ok">✓ Funcional</span>
+    </div>
+    <div class="aba">
+      <div class="aba-nome">📋 Processos</div>
+      <ul class="aba-itens">
+        <li>Kanban 5 colunas</li>
+        <li>Timeline por card</li>
+        <li>KPI strip</li>
+        <li>Filtros e arquivados</li>
+        <li>Contatos</li>
+      </ul>
+      <span class="aba-status st-ok">✓ Funcional</span>
+    </div>
+    <div class="aba">
+      <div class="aba-nome">🌐 Mercado</div>
+      <ul class="aba-itens">
+        <li>Comunidades executivas</li>
+        <li>Newsletters recomendadas</li>
+        <li>Firmas Executive Search</li>
+        <li>Sinais RSS</li>
+      </ul>
+      <span class="aba-status st-warn">⚠ Bug nas Firmas</span>
+    </div>
+    <div class="aba">
+      <div class="aba-nome">📈 Seu Painel</div>
+      <ul class="aba-itens">
+        <li>Funil por estágio</li>
+        <li>Taxa de retorno por canal</li>
+        <li>Tempo médio por estágio</li>
+      </ul>
+      <span class="aba-status st-warn">⚠ Vocabulário errado</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- 2. FUNIL -->
+<div class="card">
+  <h2>2. Jornada do Executivo — do primeiro sinal à oferta</h2>
+  <div class="funil">
+    <div class="etapa e-desc">
+      <h3>🔍 Descoberta</h3>
+      <ul>
+        <li>Alerta Google</li>
+        <li>Email de recrutador</li>
+        <li>Busca automática</li>
+        <li>LinkedIn (extensão)</li>
+        <li>Indicação de contato</li>
+      </ul>
+    </div>
+    <div class="seta">→</div>
+    <div class="etapa e-qual">
+      <h3>📊 Qualificação</h3>
+      <ul>
+        <li>Score ATS 0–100</li>
+        <li>✨ Ótima fit (70+)</li>
+        <li>🔍 Pode valer (40–69)</li>
+        <li>⚡ Fora do perfil (&lt;40)</li>
+      </ul>
+    </div>
+    <div class="seta">→</div>
+    <div class="etapa e-proc">
+      <h3>📋 Processo</h3>
+      <ul>
+        <li>Oportunidade</li>
+        <li>CV Enviado</li>
+        <li>Em Contato</li>
+        <li>Entrevista</li>
+        <li>Proposta</li>
+      </ul>
+    </div>
+    <div class="seta">→</div>
+    <div class="etapa e-prep">
+      <h3>🎤 Preparação</h3>
+      <ul>
+        <li>Pesquisar empresa</li>
+        <li>Simulador entrevista</li>
+        <li>Ajustar CV/carta</li>
+        <li>Coaching Sofia</li>
+      </ul>
+    </div>
+    <div class="seta">→</div>
+    <div class="etapa e-res">
+      <h3>✅ Resultado</h3>
+      <ul>
+        <li>🎉 Aceito</li>
+        <li>Não avançou</li>
+        <li>Descartado</li>
+        <li>Aprendizado ⚠</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9CA3AF;margin-top:12px;">⚠ "Aprendizado" ainda não implementado — capturar motivo da perda para melhorar o próximo processo.</p>
+</div>
+
+
+<!-- 3. KANBAN -->
+<div class="card">
+  <h2>3. As 5 colunas dos Processos (Kanban)</h2>
+  <div class="kanban">
+    <div class="col c1">
+      <div class="col-head">Oportunidade</div>
+      <div class="col-card">Vaga identificada, ainda não candidatou</div>
+      <div class="col-card">Pode vir da busca automática ou manualmente</div>
+    </div>
+    <div class="col c2">
+      <div class="col-head">CV Enviado</div>
+      <div class="col-card">Candidatura feita</div>
+      <div class="col-card">Aguardando resposta</div>
+    </div>
+    <div class="col c3">
+      <div class="col-head">Em Contato</div>
+      <div class="col-card">Recrutador respondeu</div>
+      <div class="col-card">Processo em andamento</div>
+    </div>
+    <div class="col c4">
+      <div class="col-head">Entrevista</div>
+      <div class="col-card">Data + canal registrados</div>
+      <div class="col-card">Evento criado no Outlook</div>
+      <div class="col-card">Dica Sofia inline</div>
+    </div>
+    <div class="col c5">
+      <div class="col-head">Proposta</div>
+      <div class="col-card">Oferta recebida</div>
+      <div class="col-card">Fase de negociação</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 4. SINAIS DA HOME -->
+<div class="card">
+  <h2>4. Os 4 sinais de "O que há de novo" na Home</h2>
+  <div class="sinais">
+    <div class="sinal s-op">
+      <h3>🟢 Oportunidades</h3>
+      <ul>
+        <li>Vagas de email (recrutadores)</li>
+        <li>Busca automática Adzuna/Jobicy</li>
+        <li>Ação: Ignorar ou + Adicionar</li>
+      </ul>
+    </div>
+    <div class="sinal s-ret">
+      <h3>🔵 Retornos</h3>
+      <ul>
+        <li>Emails positivos de recrutadores</li>
+        <li>Respostas de headhunters</li>
+        <li>Gravações de reunião (Fathom 📹)</li>
+      </ul>
+    </div>
+    <div class="sinal s-mer">
+      <h3>🟡 Novidades no mercado</h3>
+      <ul>
+        <li>Alertas Google (artigo por artigo)</li>
+        <li>Bing News RSS</li>
+        <li>Notícias do seu setor</li>
+      </ul>
+    </div>
+    <div class="sinal s-rev">
+      <h3>🔴 Para revisar</h3>
+      <ul>
+        <li>Vagas abaixo do score mínimo</li>
+        <li>Pode ser relevante mesmo assim</li>
+        <li>Ação: × descartar por card</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 5. FLUXO DE EMAIL -->
+<div class="card">
+  <h2>5. Como um email vira uma ação na Home</h2>
+  <div class="email-flow" style="align-items:flex-start;">
+    <div class="ef-box">📧 Email chega<br>no Outlook</div>
+    <div class="ef-arrow">→</div>
+    <div class="ef-box">⚙ Worker<br>Cloudflare</div>
+    <div class="ef-arrow">→</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="ef-box ef-pos">📹 Gravação Fathom<br>→ Retornos</div>
+      <div class="ef-box ef-pos">👍 Retorno positivo<br>→ Retornos</div>
+      <div class="ef-box ef-vag">💼 Vaga por email<br>→ Oportunidades</div>
+      <div class="ef-box ef-alr">📰 Alerta Google<br>→ Novidades mercado</div>
+      <div class="ef-box ef-irr">🗑 Irrelevante<br>→ Descartado</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 6. GAPS -->
+<div class="card">
+  <h2>6. Visão × Realidade — O que falta</h2>
+  <table>
+    <thead><tr><th>O que falta</th><th>Situação</th><th>Por que importa</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>IEE — Índice de Empregabilidade</strong></td>
+        <td><span class="miss">❌ Não existe</span></td>
+        <td>É o diferencial central. Sem ele o Senova é "mais um tracker de vagas".</td>
+      </tr>
+      <tr>
+        <td><strong>Modo Radar</strong> (executivo empregado)</td>
+        <td><span class="miss">❌ Não existe</span></td>
+        <td>Abre o produto para quem ainda está empregado — 9x mais pessoas.</td>
+      </tr>
+      <tr>
+        <td><strong>Aprendizado</strong> pós-resultado</td>
+        <td><span class="miss">❌ Não existe</span></td>
+        <td>Capturar por que perdeu um processo melhora os próximos.</td>
+      </tr>
+      <tr>
+        <td><strong>Simulador</strong> ligado ao card</td>
+        <td><span class="warn">⚠ Existe mas desconectado</span></td>
+        <td>Falta botão "Preparar para esta entrevista" com contexto da empresa.</td>
+      </tr>
+      <tr>
+        <td><strong>Qualificação</strong> antes de adicionar da busca automática</td>
+        <td><span class="miss">❌ Não existe</span></td>
+        <td>Hoje vaga da busca vai direto ao Kanban sem avaliar o score.</td>
+      </tr>
+      <tr>
+        <td><strong>Vocabulário</strong> 100% correto</td>
+        <td><span class="warn">⚠ Parcial (6 pontos)</span></td>
+        <td>"Pipeline", "Varredura", "CRM" ainda visíveis no Perfil, Relatórios e ajuda.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 7. VOCABULÁRIO -->
+<div class="card">
+  <h2>7. Vocabulário — regra inviolável</h2>
+  <table>
+    <thead><tr><th>❌ Nunca usar</th><th>✅ Sempre usar</th></tr></thead>
+    <tbody>
+      <tr><td><span class="errado">Pipeline</span></td><td><span class="certo">Processos</span></td></tr>
+      <tr><td><span class="errado">CRM</span></td><td><span class="certo">Processos / Contatos</span></td></tr>
+      <tr><td><span class="errado">Kanban</span></td><td><span class="certo">Processos (com colunas)</span></td></tr>
+      <tr><td><span class="errado">Cards</span></td><td><span class="certo">Processos</span></td></tr>
+      <tr><td><span class="errado">Varredura / Varrer</span></td><td><span class="certo">Busca automática / Buscar</span></td></tr>
+      <tr><td><span class="errado">CV Otimizado</span></td><td><span class="certo">Preparar Candidatura</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
