@@ -874,7 +874,7 @@ async function executarVarreduraPais(paisId, env, config) {
     const vagasLead = rawLead ? JSON.parse(rawLead) : [];
 
     const idioma = idiomaDoLocal(paisId);
-    const queries = (config.queries?.[idioma] || CONFIG_PADRAO.queries[idioma] || []).slice(0, 3);
+    const queries = (CONFIG_PADRAO.queries[idioma] || []).slice(0, 3); // sempre do código — KV só guarda score/locais
 
     for (const query of queries) {
       if (paisId !== 'remoto' && ADZUNA_PAISES[paisId]) {

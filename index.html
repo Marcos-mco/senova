@@ -3995,6 +3995,7 @@ let _sinaisEmails={classificados:0,leads:0};
 let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _vagasLeadPendentes=[];
+let _vagasLeadAutoAdicionadas=0;
 let _varreduraStatus=null;
 let _emailsAvulsos=[];
 let _emailsProcesso=[];
@@ -5541,9 +5542,15 @@ async function verificarVagasVarredura(){
     const dataLead=await resLead.json();
     _varreduraStatus=resSt.ok?await resSt.json():null;
     const deletados=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
-    _vagasLeadPendentes=(dataLead.vagas||[])
-      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id)))
-      .sort((a,b)=>(b.score||0)-(a.score||0));
+    const pendentes=(dataLead.vagas||[])
+      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id)));
+    _vagasLeadPendentes=[];
+    if(pendentes.length>0){
+      const agora=Date.now();
+      pendentes.forEach(v=>vagas.push(_montarCardVarredura(v,agora)));
+      saveVagas();
+      _vagasLeadAutoAdicionadas=pendentes.length;
+    }
     atualizarSinalVarredura();
   }catch{ atualizarSinalVarredura(); }
 }
@@ -5552,7 +5559,7 @@ function atualizarSinalOportunidades(){
   const sub=document.getElementById('sinal-oportunidades-sub');
   const s=document.getElementById('sinal-oportunidades');
   if(!txt) return;
-  const nBusca=_vagasLeadPendentes.length;
+  const nBusca=_vagasLeadAutoAdicionadas;
   const nEmail=_sinaisEmails.leads;
   const total=nBusca+nEmail;
   if(total>0){
@@ -5601,34 +5608,14 @@ function renderOportunidades(){
       <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>
     </div>`;
   }
-  // Sub B: busca automática (para importar individualmente)
+  // Sub B: busca automática — informacional (vagas já adicionadas automaticamente aos Processos)
   html+=`<div style="padding:10px 22px 12px;">
-    <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Busca automática${nBusca>0?' — '+nBusca:''}</div>`;
-  if(!nBusca){
-    html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma pendente. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
+    <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Busca automática${_vagasLeadAutoAdicionadas>0?' — '+_vagasLeadAutoAdicionadas:''}</div>`;
+  if(_vagasLeadAutoAdicionadas>0){
+    html+=`<div style="font-size:13px;color:var(--text2);">${_vagasLeadAutoAdicionadas} vaga${_vagasLeadAutoAdicionadas===1?'':'s'} adicionada${_vagasLeadAutoAdicionadas===1?'':'s'} automaticamente esta sessão.</div>
+    <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>`;
   } else {
-    html+=`<div style="max-height:280px;overflow-y:auto;">`;
-    html+=_vagasLeadPendentes.map((v,i)=>{
-      const sc=typeof v.score==='number'?v.score:null;
-      const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#CC0000';
-      const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';
-      const url=v.url||v.link||'';
-      return `<div style="display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid var(--border);">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.empresa||'—').replace(/&/g,'&amp;')}</div>
-          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(v.titulo||'').replace(/&/g,'&amp;')}</div>
-        </div>
-        ${sc!==null?`<span style="font-size:11px;font-weight:700;color:${cor};background:${bg};padding:2px 7px;border-radius:10px;flex-shrink:0;">${sc}</span>`:''}
-        ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:13px;color:var(--action);text-decoration:none;flex-shrink:0;" title="Ver vaga">↗</a>`:''}
-        <button onclick="_ignorarVagaLead(${i})" style="font-size:11px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:var(--font);flex-shrink:0;">Ignorar</button>
-        <button onclick="_adicionarVagaLead(${i})" style="font-size:11px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:5px;padding:3px 9px;cursor:pointer;font-family:var(--font);flex-shrink:0;">+ Adicionar</button>
-      </div>`;
-    }).join('');
-    html+=`</div>`;
-    html+=`<div style="display:flex;gap:8px;margin-top:10px;">
-      <button onclick="_ignorarTodasVagasLead()" style="flex:1;padding:7px 0;background:none;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;font-family:var(--font);">Ignorar todas</button>
-      <button onclick="importarVagasLead()" style="flex:2;padding:8px 0;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar todas →</button>
-    </div>`;
+    html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma nova. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
   }
   html+='</div>';
   lista.innerHTML=html;
