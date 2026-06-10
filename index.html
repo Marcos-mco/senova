@@ -5520,7 +5520,7 @@ function atualizarSinalOportunidades(){
     const partes=[];
     if(nEmail>0) partes.push(`${nEmail} de email`);
     if(nBusca>0) partes.push(`${nBusca} da busca automática`);
-    if(sub) sub.textContent=partes.join(' · ');
+    if(sub) sub.textContent=partes.length>1?partes.join(' · '):'';
     s&&(s.style.opacity='1');
   } else {
     txt.textContent='Oportunidades — nenhuma nova';
@@ -6666,29 +6666,31 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   const badge=document.getElementById('home-acoes-badge');
   const total=entSemData.length+nivel3SemData.length+comData.length;
   if(badge) badge.textContent=total>0?`${total} ação${total===1?'':'ões'} agendada${total===1?'':'s'}`:'';
-  // Entrevistas sem data — topo absoluto, indicador roxo
-  entSemData.forEach(v=>{
-    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
-    const el=document.createElement('div');
-    el.className='home-acao-item';
-    el.onclick=()=>_abrirAgendaEntrevista(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:#7C3AED;margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:13px;color:#7C3AED;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Entrevista — agendar data e horário</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
-    list.appendChild(el);
-  });
-  // Renderizar nível 3 sem data
-  nivel3SemData.forEach(v=>{
-    list.appendChild(_buildCardVaga(v,null,null));
-  });
-  if(!comData.length&&!nivel3SemData.length&&!entSemData.length){
-    const el=document.createElement('div');
-    el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
-    el.textContent='Nenhuma nova ação agendada para hoje.';
-    list.appendChild(el);
-  } else {
+  const _temProcessos=entSemData.length>0||nivel3SemData.length>0||comData.length>0;
+  if(_temProcessos){
+    const sepP=document.createElement('div');
+    sepP.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
+    sepP.textContent='Processos';
+    list.appendChild(sepP);
+    // Entrevistas sem data — urgência máxima, indicador roxo
+    entSemData.forEach(v=>{
+      const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
+      const el=document.createElement('div');
+      el.className='home-acao-item';
+      el.onclick=()=>_abrirAgendaEntrevista(v.id);
+      el.innerHTML=`<div class="home-acao-dot" style="background:#7C3AED;margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:13px;color:#7C3AED;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Entrevista — agendar data e horário</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
+      list.appendChild(el);
+    });
+    nivel3SemData.forEach(v=>{ list.appendChild(_buildCardVaga(v,null,null)); });
     comData.forEach(({v,dt})=>{
       const diff=Math.round((dt-todayMs)/86400000);
       list.appendChild(_buildCardVaga(v,diff,null));
     });
+  } else {
+    const el=document.createElement('div');
+    el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
+    el.textContent='Nenhuma ação agendada nos processos.';
+    list.appendChild(el);
   }
   // ── CRM Contatos ──
   const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
