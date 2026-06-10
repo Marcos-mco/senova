@@ -1813,7 +1813,7 @@ select option { background: var(--bg2); }
         </div>
         <div class="form-row" style="margin-bottom:8px;">
           <label class="field-label">Descrição da vaga</label>
-          <textarea id="mv-job-desc" rows="5" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13px;line-height:1.6;font-family:var(--font);" oninput="extrairDadosDescricao(this.value)"></textarea>
+          <textarea id="mv-job-desc" rows="5" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13px;line-height:1.6;font-family:var(--font);" oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise()"></textarea>
         </div>
         <div class="form-row" style="margin-bottom:10px;">
           <label class="field-label">Contexto desta rodada <span style="font-weight:400;color:var(--text3);font-size:12px;">— o que está sendo pedido agora?</span></label>
@@ -1823,6 +1823,7 @@ select option { background: var(--bg2); }
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
           Analisar vaga + gerar CV
         </button>
+        <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:6px;text-align:center;">Cole a descrição da vaga acima para habilitar a análise</div>
         <div id="mv-analise-result" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.5;"></div>
       </div>
 
@@ -4719,6 +4720,7 @@ function openVagaModal(id){
   }
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoesModal();
+  mvAtualizarBtnAnalise();
 }
 function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function mvToggleDoc(which,btn){
@@ -5013,6 +5015,13 @@ function mvDocTab(which,btn){
   else{const b=document.querySelector(`.mv-doc-tab-btn[data-tab="${which}"]`);if(b)b.classList.add('active');}
 }
 
+function mvAtualizarBtnAnalise(){
+  const temDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
+  const btn=document.getElementById('mv-analyze-btn');
+  const hint=document.getElementById('mv-analyze-hint');
+  if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
+  if(hint) hint.style.display=temDesc?'none':'';
+}
 function mvMostrarCtxRegen(tipo){
   const row=document.getElementById('mv-ctx-'+tipo+'-row');
   if(row) row.style.display=row.style.display==='none'?'':'none';
@@ -5070,7 +5079,7 @@ async function analisarInline(){
   const localizacao=document.getElementById('mv-localizacao')?.value||'';
   const modelo=document.getElementById('mv-modelo')?.value||'';
   const regime=document.getElementById('mv-regime')?.value||'';
-  if(!jobDesc.trim()&&!empresa.trim()&&!cargo.trim()){showToast('⚠️ Adicione a descrição da vaga ou empresa/cargo');return;}
+  if(!jobDesc.trim()){showToast('⚠️ Cole a descrição da vaga antes de analisar');document.getElementById('mv-job-desc')?.focus();return;}
   saveVagaSilent();
   const btn=document.getElementById('mv-analyze-btn');
   if(btn){btn.disabled=true;btn.innerHTML='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...';}
@@ -5112,6 +5121,12 @@ async function analisarInline(){
     if(docsSec) docsSec.style.display='';
     mvDocTab('ats');
     atualizarBotoesModal();
+    // Rolar para mostrar os documentos gerados
+    setTimeout(()=>{
+      const body=document.querySelector('#modal-vaga .modal-body');
+      if(docsSec&&body) body.scrollTop=docsSec.offsetTop-16;
+    },120);
+    if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">↓ CV gerado — copie ou baixe em PDF Premium abaixo</div>`;
   }catch(e){
     if(resultEl) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
   }
