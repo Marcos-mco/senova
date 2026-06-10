@@ -411,7 +411,7 @@ export default {
         empresa: (empresa || '').trim(),
         local: 'Brasil',
         url: url || '',
-        descricao: (descricao || '').slice(0, 500),
+        descricao: (descricao || '').slice(0, 5000),
         canal: canal || 'Extensão',
         fonte: fonte || 'extensao_chrome',
         data: new Date().toLocaleDateString('pt-BR'),
@@ -998,7 +998,7 @@ function parsearRSS(xml, fonte, local) {
     const titulo    = extrairTag(item, 'title') || '';
     const url       = extrairTag(item, 'link') || extrairTag(item, 'guid') || '';
     const empresa   = extrairTag(item, 'source') || extrairTag(item, 'author') || local.label;
-    const descricao = limparHtml(extrairTag(item, 'description') || '').slice(0, 600);
+    const descricao = limparHtml(extrairTag(item, 'description') || '').slice(0, 4000);
     const pubDate   = extrairTag(item, 'pubDate') || '';
     if (pubDate && !vagaRecente(pubDate)) continue;
     if (titulo && url) vagas.push({ titulo, empresa, url, descricao, pubDate });
@@ -1029,7 +1029,7 @@ async function analisarVaga(titulo, empresa, descricao, env) {
 
 CANDIDATO: ${PERFIL_MARCOS}
 
-VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,1500)}
+VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,4000)}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
@@ -1055,7 +1055,7 @@ function montarCard(vaga, local, fonte) {
   return {
     id: gerarId(vaga), titulo: vaga.titulo, empresa: vaga.empresa,
     local: vaga.local || local.label, url: vaga.url, fonte,
-    descricao: (vaga.descricao||'').slice(0,500),
+    descricao: (vaga.descricao||'').slice(0,4000),
     score: null, classificacao: null, resumo: null,
     pontos_fortes: [], salario_compativel: null,
     badge: 'Nova hoje', criadoEm: new Date().toISOString(), status: 'lead',

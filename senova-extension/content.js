@@ -362,15 +362,63 @@
     };
   }
 
+  // ── GREENHOUSE ───────────────────────────────────────────────────
+  // URL: boards.greenhouse.io/COMPANY/jobs/ID
+
+  function extractGreenhouse() {
+    const cargo = txt(
+      'h1.app-title', 'h1[class*="job-title"]', '.posting-headline h2',
+      '[data-qa="job-title"]', 'h1'
+    );
+    const empresaUrl = (url.match(/greenhouse\.io\/([^/?#]+)/)?.[1] || '')
+      .replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const empresa = txt('.company-name', '.posting-headline .company', '[class*="company"]') || empresaUrl;
+    const desc = txtArea('#content', '.section-wrapper .content', '[class*="posting-description"]', 'main');
+    const forma = emailNaDesc(desc) || 'Greenhouse — Candidatura no site';
+    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+  }
+
+  // ── LEVER ────────────────────────────────────────────────────────
+  // URL: jobs.lever.co/COMPANY/UUID
+
+  function extractLever() {
+    const cargo = txt(
+      'h2[data-qa="posting-name"]', '.posting-headline h2',
+      '[class*="posting-name"]', 'h2', 'h1'
+    );
+    const empresaUrl = (url.match(/lever\.co\/([^/?#]+)/)?.[1] || '')
+      .replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const empresa = txt('.main-header-logo img[alt]', '[class*="company-name"]', 'header h1') || empresaUrl;
+    const desc = txtArea(
+      '.section-wrapper .content', '[data-qa="job-description"]',
+      '.posting-requirements', '.content[class*="section"]', 'main'
+    );
+    const forma = emailNaDesc(desc) || 'Lever — Candidatura no site';
+    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+  }
+
+  // ── WORKABLE ─────────────────────────────────────────────────────
+
+  function extractWorkable() {
+    const cargo   = txt('[data-ui="job-title"]', 'h1[class*="title"]', 'h1');
+    const empresa = txt('[data-ui="company-name"]', '[class*="company-name"]', 'header h2');
+    const desc    = txtArea('[data-ui="job-description"]', '[class*="job-description"]', 'main');
+    const forma   = emailNaDesc(desc) || 'Workable — Candidatura no site';
+    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+  }
+
   // ── ROTEADOR ────────────────────────────────────────────────────
 
   function extract() {
-    if (host.includes('linkedin.com'))                        return extractLinkedIn();
-    if (host.includes('gupy.io') || host.includes('gupy.com')) return extractGupy();
-    if (host.includes('inhire.app'))                          return extractInhire();
-    if (host.includes('indeed.com'))                          return extractIndeed();
-    if (host.includes('catho.com.br'))                        return extractCatho();
+    if (host.includes('linkedin.com'))                              return extractLinkedIn();
+    if (host.includes('gupy.io') || host.includes('gupy.com'))    return extractGupy();
+    if (host.includes('inhire.app'))                               return extractInhire();
+    if (host.includes('indeed.com'))                               return extractIndeed();
+    if (host.includes('catho.com.br'))                             return extractCatho();
     if (host.includes('vagas.com.br') || host.includes('vagas.com')) return extractVagas();
+    if (host.includes('greenhouse.io'))                            return extractGreenhouse();
+    if (host.includes('lever.co'))                                 return extractLever();
+    if (host.includes('workable.com'))                             return extractWorkable();
     return extractGenerico();
   }
 
@@ -404,5 +452,96 @@
       sendResponse({ ok: false, erro: e.message });
     }
   });
+
+  // ── BOTÃO FLUTUANTE ──────────────────────────────────────────────
+  // Aparece automaticamente em páginas de vaga reconhecidas (exceto LinkedIn — usa popup)
+  // Permite salvar no Senova sem precisar abrir o popup da extensão
+
+  function injectarBotaoFlutuante(dados) {
+    if (document.getElementById('snv-fab')) return;
+
+    const cargo   = (dados.cargo || 'Vaga detectada').slice(0, 42) + (dados.cargo?.length > 42 ? '…' : '');
+    const empresa = (dados.empresa || '').slice(0, 38);
+
+    const fab = document.createElement('div');
+    fab.id = 'snv-fab';
+    fab.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.18));opacity:0;transition:opacity 0.25s;';
+
+    fab.innerHTML = `
+      <div style="background:#fff;border-radius:10px;overflow:hidden;width:216px;border:1px solid #D0D9E4;">
+        <div style="background:#1A3A5C;padding:7px 10px;display:flex;align-items:center;gap:8px;">
+          <div style="background:#C9A84C;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#1A3A5C;flex-shrink:0;font-family:Georgia,serif;">S</div>
+          <span style="color:#fff;font-size:12.5px;font-weight:700;flex:1;letter-spacing:0.03em;">Senova</span>
+          <button id="snv-fab-fechar" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:18px;padding:0;line-height:1;" title="Fechar">×</button>
+        </div>
+        <div style="padding:10px 12px;">
+          <div style="font-size:12.5px;font-weight:700;color:#1A3A5C;line-height:1.3;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${dados.cargo || ''}">${cargo}</div>
+          <div style="font-size:11px;color:#5A6A7A;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${empresa}</div>
+          <button id="snv-fab-salvar" style="width:100%;background:#1A3A5C;color:#fff;border:none;border-radius:6px;padding:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;">Salvar no Senova</button>
+          <div id="snv-fab-ok" style="display:none;text-align:center;padding:7px 0 2px;font-size:12px;color:#1A6840;font-weight:600;">✓ Salvo — abra o app para analisar</div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(fab);
+    requestAnimationFrame(() => { fab.style.opacity = '1'; });
+
+    document.getElementById('snv-fab-fechar').addEventListener('click', () => fab.remove());
+
+    document.getElementById('snv-fab-salvar').addEventListener('click', async () => {
+      const btn = document.getElementById('snv-fab-salvar');
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+      btn.style.opacity = '0.6';
+
+      try {
+        const res = await chrome.runtime.sendMessage({
+          type: 'SALVAR_VAGA',
+          payload: {
+            empresa:           dados.empresa,
+            cargo:             dados.cargo,
+            canal:             dados.canal,
+            origemUrl:         dados.url,
+            descricao:         dados.descricao,
+            forma_candidatura: dados.forma_candidatura,
+          },
+        });
+
+        if (res?.erro) {
+          btn.textContent = 'Erro — tente pelo ícone';
+          btn.style.background = '#C0281E';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        } else {
+          btn.style.display = 'none';
+          document.getElementById('snv-fab-ok').style.display = 'block';
+          setTimeout(() => fab.remove(), 5000);
+        }
+      } catch (_) {
+        btn.textContent = 'Erro ao salvar';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    });
+  }
+
+  function _tentarInjetar(restantes) {
+    try {
+      const dados = extract();
+      if (dados.tipo === 'vaga' && (dados.cargo || dados.empresa) && (dados.descricao || '').length > 80) {
+        injectarBotaoFlutuante(dados);
+      } else if (restantes > 0) {
+        setTimeout(() => _tentarInjetar(restantes - 1), 800);
+      }
+    } catch (_) {}
+  }
+
+  // LinkedIn usa popup (SPA com painel lateral); demais plataformas recebem o botão flutuante
+  if (!host.includes('linkedin.com')) {
+    if (document.readyState === 'complete') {
+      setTimeout(() => _tentarInjetar(6), 1200);
+    } else {
+      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(6), 1200));
+    }
+  }
 
 })();

@@ -1,12 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Senova",
-  "version": "2.4",
+  "version": "2.14",
   "description": "Radar de mercado para executivos sêniors. Score IA, captura de vagas e sinais com 1 clique.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": [
     "https://senova-proxy.marcos-mco.workers.dev/*",
-    "https://marcos-mco.github.io/*"
+    "https://marcos-mco.github.io/*",
+    "https://www.linkedin.com/*",
+    "https://boards.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://apply.workable.com/*",
+    "https://*.gupy.io/*",
+    "https://www.indeed.com/*",
+    "https://br.indeed.com/*",
+    "https://www.catho.com.br/*",
+    "https://www.vagas.com.br/*",
+    "https://www.inhire.app/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -15,7 +25,16 @@
     {
       "matches": [
         "https://www.linkedin.com/jobs/*",
-        "https://www.linkedin.com/feed/*"
+        "https://www.linkedin.com/feed/*",
+        "https://boards.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://apply.workable.com/*",
+        "https://*.gupy.io/*",
+        "https://www.indeed.com/*",
+        "https://br.indeed.com/*",
+        "https://www.catho.com.br/*",
+        "https://www.vagas.com.br/*",
+        "https://www.inhire.app/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

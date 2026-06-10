@@ -128,7 +128,7 @@ async function salvarVaga(payload) {
       titulo:            payload.cargo,
       empresa:           payload.empresa,
       url:               payload.origemUrl,
-      descricao:         (payload.descricao || '').slice(0, 500),
+      descricao:         (payload.descricao || '').slice(0, 5000),
       canal:             payload.canal || 'Extensão',
       score:             payload.score,
       resumo:            payload.resumo,
