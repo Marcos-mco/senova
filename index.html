@@ -4930,7 +4930,7 @@ function openContatoModal(id){
     document.getElementById('mc-telefone').value=c.telefone||'';
     document.getElementById('mc-linkedin').value=c.linkedin||'';
     document.getElementById('mc-temp').value=c.temp||'';
-    document.getElementById('mc-plano').value=c.plano||'A';
+    const _mpEl=document.getElementById('mc-plano'); if(_mpEl) _mpEl.value=c.plano||'A';
     document.getElementById('mc-tipo').value=c.tipo||'Executivo';
     document.getElementById('mc-next').value=c.next||'';
     document.getElementById('mc-next-data').value=c.nextData||'';
@@ -4941,7 +4941,7 @@ function openContatoModal(id){
   } else {
     ['mc-nome','mc-cargo','mc-empresa','mc-email','mc-telefone','mc-linkedin','mc-next','mc-next-data','mc-notas'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
     document.getElementById('mc-temp').value='';
-    document.getElementById('mc-plano').value='A';
+    const _mpElN=document.getElementById('mc-plano'); if(_mpElN) _mpElN.value='A';
     document.getElementById('mc-tipo').value='Executivo';
     if(vagaSel) vagaSel.value='';
     if(tlLista) tlLista.innerHTML='';
@@ -5033,7 +5033,7 @@ function saveContato(silent=false){
     telefone:document.getElementById('mc-telefone').value.trim(),
     linkedin:document.getElementById('mc-linkedin').value.trim(),
     temp:document.getElementById('mc-temp').value,
-    plano:document.getElementById('mc-plano').value,
+    plano:document.getElementById('mc-plano')?.value||existing?.plano||'A',
     tipo:document.getElementById('mc-tipo').value,
     next,
     nextData:document.getElementById('mc-next-data')?.value||'',
@@ -6348,12 +6348,13 @@ async function extrairEmpresasCargosBatch(emails){
   const prompt=`Analise os emails de recrutamento abaixo e extraia a empresa contratante e o cargo para cada um.
 
 Retorne APENAS um array JSON sem markdown, com um objeto por email:
-{"idx":N,"empresa":"Nome da empresa","cargo":"Título do cargo limpo","revisar":false}
+{"idx":N,"empresa":"Nome da empresa","cargo":"Título do cargo limpo","revisar":false,"multi_vagas":false}
 
 Regras:
 - empresa: nome da empresa contratante (não o nome do recrutador)
 - cargo: título da vaga limpo (sem prefixos como "Oportunidade:", sem nome da empresa, sem " | XYZ")
 - revisar: true se não conseguiu extrair empresa ou cargo com confiança suficiente
+- multi_vagas: true se o email contém MÚLTIPLAS vagas distintas (newsletter, lista de oportunidades, "Últimas Vagas", múltiplos cargos listados). Neste caso, empresa e cargo podem ficar como o remetente/assunto geral.
 
 Emails:
 ${JSON.stringify(lista)}`;
@@ -6438,8 +6439,10 @@ async function carregarEmails(forcar){
         const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailAddr);
         const emailDestFinal=isNoReply?'':emailAddr;
         const jaExiste=vagas.find(v=>v.emailAssunto&&v.emailAssunto===assunto&&v.empresa);
-        if(!jaExiste){
-          const ext=extraidos?.[i];
+        const ext=extraidos?.[i];
+        if(ext?.multi_vagas){
+          showToast(`📋 Email com múltiplas vagas detectado — revisar na aba Emails`,3500);
+        } else if(!jaExiste){
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
@@ -6586,6 +6589,24 @@ function renderDashboardPipeline(){
   } catch(e){}
 }
 
+function _abrirAgendaEntrevista(vagaId){
+  const idx=vagas.findIndex(v=>v.id===vagaId);
+  if(idx<0) return;
+  _proximaIdx=idx;
+  const v=vagas[idx];
+  document.getElementById('modal-proxima-titulo').textContent='🎤 Entrevista — agendar data e horário';
+  document.getElementById('modal-proxima-status').textContent='Entrevista';
+  document.getElementById('modal-proxima-acao').value=v.proxima||'Preparar para a entrevista';
+  document.getElementById('modal-proxima-data').value='';
+  const entSec=document.getElementById('modal-proxima-entrevista');
+  if(entSec) entSec.style.display='block';
+  const sel=document.getElementById('modal-proxima-canal'); if(sel) sel.value='';
+  const ed=document.getElementById('modal-proxima-ent-data'); if(ed) ed.value='';
+  const eh=document.getElementById('modal-proxima-ent-hora'); if(eh) eh.value='10:00';
+  const cc=document.getElementById('modal-proxima-criar-cal'); if(cc) cc.checked=true;
+  document.getElementById('modal-proxima').style.display='flex';
+}
+
 function renderHomeAcoes(){
   const list=document.getElementById('home-acoes-list');
   if(!list) return;
@@ -6650,7 +6671,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
     const el=document.createElement('div');
     el.className='home-acao-item';
-    el.onclick=()=>openVagaModal(v.id);
+    el.onclick=()=>_abrirAgendaEntrevista(v.id);
     el.innerHTML=`<div class="home-acao-dot" style="background:#7C3AED;margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:13px;color:#7C3AED;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Entrevista — agendar data e horário</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
     list.appendChild(el);
   });
