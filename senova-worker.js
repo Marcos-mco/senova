@@ -131,10 +131,10 @@ IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equ
 const CONFIG_PADRAO = {
   ativa: true,
   queries: {
-    pt: ['diretor marketing','CMO','head marketing','diretor comercial','VP marketing'],
-    en: ['marketing director','chief marketing officer','VP marketing','head of marketing','country manager'],
-    es: ['director de marketing','director comercial','CMO','director general'],
-    de: ['Marketingleiter','Vertriebsdirektor','Geschäftsführer Marketing'],
+    pt: ['diretor comercial','diretor de vendas','head comercial','gerente geral','CMO'],
+    en: ['sales director','commercial director','country manager','VP sales','head of business development'],
+    es: ['director comercial','director de ventas','director general','jefe comercial','CMO'],
+    de: ['sales director','Vertriebsdirektor','international sales manager','commercial director','Latin America manager'],
   },
   locais: [
     { id:'br',     label:'Brasil',   ativo:true  },
@@ -940,7 +940,8 @@ function tituloRelevante(titulo) {
   const relevantes = [
     'diretor','director','diretora','head','chief','cmo','ceo','cso','vp ',
     'gerente','manager','marketing','comercial','negócios','negocios',
-    'expansão','expansao','regional','country','general'
+    'expansão','expansao','regional','country','general',
+    'vendas','sales','ventas','venda','business development','account'
   ];
   return relevantes.some(r => t.includes(r));
 }
