@@ -4717,6 +4717,9 @@ function atualizarBotoesModal(statusOverride){
     html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
     html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Analisar Candidatura</button>`;
     html+=`<button class="btn" style="background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;min-height:44px;padding:0 18px;font-size:15px;font-weight:600;" onclick="candidatarDoModal()">✉ Candidatar</button>`;
+  } else if(!isClosed){
+    html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Gerar CV</button>`;
+    html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
   } else {
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
   }
