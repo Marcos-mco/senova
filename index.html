@@ -5589,9 +5589,15 @@ function renderOportunidades(){
   let html='';
   // Sub A: vagas de email (já nos Processos)
   if(nEmail>0){
+    const vN=_sinaisEmails.vagasN||0;
+    const hN=_sinaisEmails.huntersN||0;
+    const partes=[];
+    if(vN>0) partes.push(`${vN} vaga${vN===1?'':'s'} direta${vN===1?'':'s'}`);
+    if(hN>0) partes.push(`${hN} de headhunter`);
+    const detalhe=partes.length>0?partes.join(' · '):`${nEmail} vaga${nEmail===1?'':'s'}`;
     html+=`<div style="padding:10px 22px 10px;border-bottom:1px solid var(--border);">
       <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Já nos processos</div>
-      <div style="font-size:13px;color:var(--text2);">${nEmail} vaga${nEmail===1?'':'s'} adicionada${nEmail===1?'':'s'} dos emails desta sessão.</div>
+      <div style="font-size:13px;color:var(--text2);">${detalhe} adicionada${nEmail===1?'':'s'} esta sessão.</div>
       <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>
     </div>`;
   }
@@ -6482,7 +6488,7 @@ async function carregarEmails(forcar){
     _emailsProcesso=emailsVaga;
     _emailsMercado=emails.filter(e=>e.categoria==='mercado');
     _emailsIrrelevantes=data.irrelevantes||[];
-    _sinaisEmails={classificados:emailsVaga.length+_emailsMercado.length,leads:0};
+    _sinaisEmails={classificados:emailsVaga.length+_emailsMercado.length,leads:0,vagasN:0,huntersN:0};
     // Criar cards no Pipeline apenas para vagas novas e contatos de headhunter
     // (pipeline/positivo/negativo são respostas a processos já existentes — não geram card novo)
     const emailsParaCard=emails.filter(e=>e.categoria==='vaga'||e.categoria==='hunter');
@@ -6517,6 +6523,7 @@ async function carregarEmails(forcar){
           const tags=(!ext||ext.revisar)?['Revisar']:[];
           {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'Analisar no Análise CV',notas:conteudoVaga,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
+          if(e.categoria==='hunter') _sinaisEmails.huntersN++; else _sinaisEmails.vagasN++;
         }
       });
       if(_sinaisEmails.leads>0) saveVagas();
