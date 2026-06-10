@@ -5601,7 +5601,8 @@ function renderOportunidades(){
   if(!nBusca){
     html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma pendente. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
   } else {
-    html+=_vagasLeadPendentes.slice(0,5).map((v,i)=>{
+    html+=`<div style="max-height:280px;overflow-y:auto;">`;
+    html+=_vagasLeadPendentes.map((v,i)=>{
       const sc=typeof v.score==='number'?v.score:null;
       const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#CC0000';
       const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';
@@ -5617,8 +5618,11 @@ function renderOportunidades(){
         <button onclick="_adicionarVagaLead(${i})" style="font-size:11px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:5px;padding:3px 9px;cursor:pointer;font-family:var(--font);flex-shrink:0;">+ Adicionar</button>
       </div>`;
     }).join('');
-    if(nBusca>5) html+=`<div style="font-size:12px;color:var(--text3);padding:6px 0;">+${nBusca-5} mais — use "Importar todas"</div>`;
-    html+=`<button onclick="importarVagasLead()" style="width:100%;margin-top:10px;padding:8px 14px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar todas →</button>`;
+    html+=`</div>`;
+    html+=`<div style="display:flex;gap:8px;margin-top:10px;">
+      <button onclick="_ignorarTodasVagasLead()" style="flex:1;padding:7px 0;background:none;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;font-family:var(--font);">Ignorar todas</button>
+      <button onclick="importarVagasLead()" style="flex:2;padding:8px 0;background:var(--navy);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">Importar todas →</button>
+    </div>`;
   }
   html+='</div>';
   lista.innerHTML=html;
@@ -5641,6 +5645,16 @@ function _ignorarVagaLead(idx){
   try{localStorage.setItem('senova_deleted_ids',JSON.stringify([...del]));}catch{}
   _vagasLeadPendentes.splice(idx,1);
   atualizarSinalOportunidades();
+}
+function _ignorarTodasVagasLead(){
+  const n=_vagasLeadPendentes.length;
+  if(!n) return;
+  const del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+  _vagasLeadPendentes.forEach(v=>del.add(String(v.id)));
+  try{localStorage.setItem('senova_deleted_ids',JSON.stringify([...del]));}catch{}
+  _vagasLeadPendentes.length=0;
+  atualizarSinalOportunidades();
+  showToast(`${n} vaga${n===1?'':'s'} ignorada${n===1?'':'s'}`);
 }
 
 function atualizarSinais(){
