@@ -138,7 +138,14 @@ select option { background: var(--bg2); }
 .modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
-#modal-vaga > .modal { width: min(720px,95vw); }
+#modal-vaga > .modal { width: min(900px,96vw); }
+.mv-sec { border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 14px; }
+.mv-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.mv-sec-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mv-doc-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.mv-doc-tab-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text2); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+.mv-doc-tab-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.mv-doc-tab-btn:hover:not(.active) { background: var(--bg3); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-row { margin-bottom: 15px; }
 
@@ -1764,117 +1771,185 @@ select option { background: var(--bg2); }
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
   <div class="modal">
-    <div style="display:flex;align-items:center;gap:10px;padding:28px 28px 0;">
-      <div class="modal-title" id="modal-vaga-title" style="padding:0;margin:0;flex:1;">Novo Processo</div>
-      <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer" style="display:none;font-size:13px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;" onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
+    <!-- HEADER -->
+    <div style="padding:20px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div class="modal-title" id="modal-vaga-title" style="padding:0;margin:0;flex:1;font-size:17px;">Novo Processo</div>
+        <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer" style="display:none;font-size:13px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;" onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
+        <button onclick="closeVagaModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;padding:0 2px;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;">
+        <input type="text" id="mv-empresa" placeholder="Empresa *" oninput="validarVagaForm()" style="font-size:14px;font-weight:600;">
+        <input type="text" id="mv-cargo" placeholder="Cargo *" oninput="validarVagaForm()" style="font-size:14px;">
+        <select id="mv-status" onchange="atualizarBotoes()" style="font-size:13px;min-width:140px;">
+          <option value="lead">Oportunidade</option>
+          <option value="aplicado">CV Enviado</option>
+          <option value="contato">Em Contato</option>
+          <option value="entrevista">Entrevista</option>
+          <option value="proposta">Proposta</option>
+          <option value="aceito">Aceito</option>
+          <option value="negado">Negado</option>
+        </select>
+      </div>
+      <div id="mv-status-progress" style="display:flex;gap:3px;"></div>
     </div>
-    <div class="modal-body">
-      <div id="mv-draft-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#FFF8EC;border:1.5px solid #C9A84C44;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:13px;color:var(--text2);">
+
+    <div class="modal-body" style="padding:0 24px 16px;">
+      <div id="mv-draft-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#FFF8EC;border:1.5px solid #C9A84C44;border-radius:8px;padding:8px 12px;margin-top:12px;margin-bottom:4px;font-size:13px;color:var(--text2);">
         <span>📝 Rascunho restaurado — continue de onde parou.</span>
         <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Empresa <span style="color:#CC0000;font-size:13px;">*</span></label>
-          <input type="text" id="mv-empresa" placeholder="Ex: Nubank" oninput="validarVagaForm()">
+
+      <!-- ── ANÁLISE IA ── -->
+      <div class="mv-sec" style="border-top:none;margin-top:12px;padding-top:4px;">
+        <div class="mv-sec-head">
+          <span class="mv-sec-title">Análise IA</span>
+          <span id="mv-ats-score-badge" style="display:none;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;margin-left:4px;"></span>
+          <div class="lang-toggle" style="margin-left:auto;gap:4px;">
+            <button class="lang-btn active" onclick="setLang('PT',this)" style="padding:3px 8px;font-size:12px;">🇧🇷 PT</button>
+            <button class="lang-btn" onclick="setLang('EN',this)" style="padding:3px 8px;font-size:12px;">🇺🇸 EN</button>
+            <button class="lang-btn" onclick="setLang('ES',this)" style="padding:3px 8px;font-size:12px;">🇪🇸 ES</button>
+          </div>
         </div>
-        <div>
-          <label class="field-label">Cargo <span style="color:#CC0000;font-size:13px;">*</span></label>
-          <input type="text" id="mv-cargo" placeholder="Ex: CMO" oninput="validarVagaForm()">
+        <div class="form-row" style="margin-bottom:8px;">
+          <label class="field-label">Descrição da vaga</label>
+          <textarea id="mv-job-desc" rows="5" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13px;line-height:1.6;font-family:var(--font);" oninput="extrairDadosDescricao(this.value)"></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:10px;">
+          <label class="field-label">Contexto desta rodada <span style="font-weight:400;color:var(--text3);font-size:12px;">— o que está sendo pedido agora?</span></label>
+          <textarea id="mv-ctx-analise" rows="2" placeholder="Ex: recrutador pediu CV por email · precisa destacar liderança de times · nova rodada com o diretor…" style="font-size:13px;line-height:1.55;font-family:var(--font);resize:vertical;"></textarea>
+        </div>
+        <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" style="width:100%;justify-content:center;padding:10px;font-size:14px;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+          Analisar vaga + gerar CV
+        </button>
+        <div id="mv-analise-result" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.5;"></div>
+      </div>
+
+      <!-- ── DOCUMENTOS ── -->
+      <div class="mv-sec" id="mv-docs-section" style="display:none;">
+        <div class="mv-sec-head"><span class="mv-sec-title">Documentos</span></div>
+        <div class="mv-doc-tabs">
+          <button class="mv-doc-tab-btn active" data-tab="ats" onclick="mvDocTab('ats',this)">📋 CV Plataforma</button>
+          <button class="mv-doc-tab-btn" data-tab="carta" onclick="mvDocTab('carta',this)">✉ Carta</button>
+          <button class="mv-doc-tab-btn" data-tab="resposta" onclick="mvDocTab('resposta',this)">💬 Resposta</button>
+        </div>
+        <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5;"></div>
+
+        <!-- CV Plataforma -->
+        <div id="mv-doctab-ats">
+          <textarea id="mv-ats-cv-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)">📋 Copiar</button>
+            <button class="copy-btn" onclick="downloadDocFromModal()">📁 Word</button>
+            <button class="copy-btn" onclick="downloadPDFFromModal()">📄 PDF</button>
+            <button class="copy-btn" onclick="downloadPDFExecFromModal()" style="background:var(--navy);color:#fff;border-color:var(--navy);">🏆 PDF Premium</button>
+            <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">↺ Regenerar</button>
+          </div>
+          <div id="mv-ctx-ats-row" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);">
+            <label class="field-label" style="margin-bottom:6px;">Informação importante para esta regeneração</label>
+            <textarea id="mv-ctx-ats" rows="2" placeholder="Ex: destacar gestão de times · remover experiência de docência · tom mais direto…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.5;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;margin-bottom:8px;"></textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="mvOcultarCtxRegen('ats')">Cancelar</button>
+              <button class="btn btn-primary" id="mv-gerar-ats-btn" style="padding:5px 14px;font-size:12px;" onclick="gerarDocModal('ats')">Gerar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carta -->
+        <div id="mv-doctab-carta" style="display:none;">
+          <div class="form-row" style="margin-bottom:8px;">
+            <label class="field-label">Informação importante para esta carta</label>
+            <textarea id="mv-ctx-carta" rows="2" placeholder="Ex: carta formal para o diretor · mencionar indicação de contato · tom consultivo e direto…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
+          </div>
+          <button class="btn btn-primary" id="mv-gerar-carta-btn" onclick="gerarDocModal('carta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Gerar carta de apresentação</button>
+          <textarea id="mv-ats-carta-modal-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
+          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">📋 Copiar carta</button></div>
+        </div>
+
+        <!-- Resposta -->
+        <div id="mv-doctab-resposta" style="display:none;">
+          <div class="form-row" style="margin-bottom:8px;">
+            <label class="field-label">Email ou mensagem recebida</label>
+            <textarea id="mv-email-recebido" rows="4" placeholder="Cole aqui o email, WhatsApp ou mensagem do recrutador…" style="font-size:13px;font-family:var(--font);resize:vertical;line-height:1.6;"></textarea>
+          </div>
+          <div class="form-row" style="margin-bottom:8px;">
+            <label class="field-label">Informação importante para esta resposta</label>
+            <textarea id="mv-ctx-resposta" rows="2" placeholder="Ex: aceitar entrevista · pedir mais detalhes sobre o salário · tom formal…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
+          </div>
+          <button class="btn btn-primary" id="mv-gerar-resposta-btn" onclick="gerarDocModal('resposta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Sugerir resposta</button>
+          <textarea id="mv-resposta-txt" rows="7" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
+          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-resposta-txt',this)">📋 Copiar resposta</button></div>
         </div>
       </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Status</label>
-          <select id="mv-status" onchange="atualizarBotoes()">
-            <option value="lead">Oportunidade</option>
-            <option value="aplicado">CV Enviado</option>
-            <option value="contato">Em Contato</option>
-            <option value="entrevista">Entrevista</option>
-            <option value="proposta">Proposta</option>
-            <option value="aceito">Aceito</option>
-            <option value="negado">Negado</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label">Canal</label>
-          <select id="mv-canal">
-            <option>LinkedIn</option>
-            <option>Indicação</option>
-            <option>Headhunter</option>
-            <option>Site da empresa</option>
-            <option>Gupy</option>
-            <option>Indeed</option>
-            <option>Email</option>
-            <option>Busca automática</option>
-            <option>Extensão Chrome</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row" style="margin-bottom:14px;">
-        <label class="field-label">Prioridade</label>
-        <select id="mv-prioridade-vis" onchange="document.getElementById('mv-prioridade').value=this.value">
-          <option value="alta">🔴 Alta</option>
-          <option value="media" selected>🔵 Média</option>
-          <option value="baixa">🟢 Baixa</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Localização</label>
-        <input type="text" id="mv-localizacao" placeholder="Ex: São Paulo, SP — Remoto Brasil">
-      </div>
-      <div class="form-grid" style="margin-bottom:14px;">
-        <div>
-          <label class="field-label">Modelo</label>
-          <select id="mv-modelo">
-            <option value="">—</option>
+
+      <!-- ── GESTÃO ── -->
+      <div class="mv-sec">
+        <div class="mv-sec-head"><span class="mv-sec-title">Gestão</span></div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;">
+          <select id="mv-modelo" style="font-size:13px;">
+            <option value="">Modelo</option>
             <option value="Presencial">Presencial</option>
             <option value="Híbrido">Híbrido</option>
             <option value="Remoto">Remoto</option>
           </select>
-        </div>
-        <div>
-          <label class="field-label">Regime</label>
-          <select id="mv-regime">
-            <option value="">—</option>
+          <select id="mv-regime" style="font-size:13px;">
+            <option value="">Regime</option>
             <option value="CLT">CLT</option>
             <option value="PJ">PJ</option>
             <option value="CLT ou PJ">CLT ou PJ</option>
           </select>
+          <select id="mv-canal" style="font-size:13px;">
+            <option>LinkedIn</option><option>Indicação</option><option>Headhunter</option>
+            <option>Site da empresa</option><option>Gupy</option><option>Indeed</option>
+            <option>Email</option><option>Busca automática</option><option>Extensão Chrome</option>
+          </select>
         </div>
-      </div>
-      <div class="form-row">
-        <label class="field-label">URL da vaga</label>
-        <div style="display:flex;gap:8px;align-items:stretch;">
-          <input type="text" id="mv-origem-url" placeholder="https://linkedin.com/jobs/..." style="flex:1;" oninput="const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();">
-          <button id="mv-ver-origem-btn" class="btn btn-ghost" style="flex-shrink:0;padding:0 16px;font-size:13px;" onclick="const u=document.getElementById('mv-origem-url').value.trim();if(u)window.open(u,'_blank');" disabled>Abrir</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Descrição da vaga <span style="font-weight:400;color:var(--text3);font-size:12px;">(pré-preenche a Análise de Vaga)</span></label>
-        <textarea id="mv-job-desc" rows="9" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13.5px;line-height:1.7;font-family:var(--font);" oninput="extrairDadosDescricao(this.value)"></textarea>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Email do recrutador <span style="font-weight:400;color:var(--text3);font-size:12px;">(só se for contato real)</span></label>
-        <input type="email" id="mv-email-dest" placeholder="recrutador@empresa.com">
-      </div>
-      <div class="form-row" style="margin-bottom:8px;">
-        <label class="field-label">Notas</label>
-        <textarea id="mv-notas" rows="3" placeholder="Contexto relevante, contatos, observações..."></textarea>
-      </div>
-      <div id="mv-proxima-section">
-        <hr style="border:none;border-top:1.5px solid var(--border);margin:14px 0 12px;">
-        <div class="form-grid" style="margin-bottom:8px;grid-template-columns:2fr 1fr;">
-          <div>
-            <label class="field-label">Próxima ação</label>
-            <input type="text" id="mv-proxima" placeholder="Ex: Aguardar retorno do headhunter">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="mv-origem-url" placeholder="URL da vaga" style="flex:1;font-size:13px;" oninput="(()=>{const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();const l=document.getElementById('mv-link-vaga');if(l){l.dataset.url=this.value.trim();l.style.display=this.value.trim()?'':'none';}})()">
+            <button id="mv-ver-origem-btn" class="btn btn-ghost" style="flex-shrink:0;padding:0 12px;font-size:12px;" onclick="const u=document.getElementById('mv-origem-url').value.trim();if(u)window.open(u,'_blank');" disabled>Abrir</button>
           </div>
-          <div>
-            <label class="field-label">Data</label>
-            <input type="date" id="mv-proxima-data">
+          <input type="email" id="mv-email-dest" placeholder="Email do recrutador" style="font-size:13px;">
+        </div>
+        <div id="mv-proxima-section" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
+          <input type="text" id="mv-proxima" placeholder="Próxima ação" style="font-size:13px;">
+          <input type="date" id="mv-proxima-data" style="font-size:13px;">
+        </div>
+        <textarea id="mv-notas" rows="2" placeholder="Notas e observações…" style="font-size:13px;line-height:1.55;font-family:var(--font);resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+      </div>
+
+      <!-- ── HISTÓRICO ── -->
+      <div class="mv-sec" id="mv-timeline-section" style="display:none;">
+        <div class="mv-sec-head">
+          <span class="mv-sec-title">Histórico</span>
+          <button class="copy-btn" style="margin-left:auto;font-size:12px;" onclick="abrirFormTimeline()">+ Registrar</button>
+        </div>
+        <div id="mv-datas-info" style="display:none;margin-bottom:8px;font-size:12px;color:var(--text3);">
+          <span>📅 Criado: <strong id="mv-criado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
+          <span style="margin-left:16px;">↻ Atualizado: <strong id="mv-atualizado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
+        </div>
+        <div id="mv-preparar-entrevista" style="display:none;margin-bottom:10px;padding:12px 14px;background:#FAF5FF;border-radius:8px;border:1.5px solid #DDD6FE;">
+          <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Entrevista marcada</div>
+          <div style="font-size:13px;color:#4C1D95;margin-bottom:10px;line-height:1.4;">Prepare-se com o Simulador de Entrevista da Sofia.</div>
+          <button class="btn btn-ghost" id="mv-btn-preparar" style="font-size:13px;padding:7px 14px;border-color:#7C3AED;color:#7C3AED;width:100%;justify-content:center;">🎤 Preparar para esta entrevista</button>
+        </div>
+        <div id="mv-timeline-form" class="tl-form" style="display:none;">
+          <textarea id="mv-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Liguei para recrutador, entrevista agendada para sexta..."></textarea>
+          <div id="mv-tl-lembrar-row" style="margin-top:8px;">
+            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
+            <input type="date" id="mv-tl-lembrar-data" style="font-size:14px;">
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="fecharFormTimeline()">Cancelar</button>
+            <button class="btn btn-primary" style="padding:5px 12px;font-size:12px;" onclick="salvarEntradaTimeline()">Salvar</button>
           </div>
         </div>
+        <div id="mv-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
       </div>
+
+      <!-- Declinar panel -->
       <div id="mv-declinar-panel" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:var(--radius);border:1.5px solid #C0281E33;">
         <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">Motivo para declinar:</div>
         <select id="mv-declinar-motivo" style="width:100%;padding:8px 10px;font-size:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:var(--font);">
@@ -1889,58 +1964,15 @@ select option { background: var(--bg2); }
           <button class="btn" style="padding:6px 14px;font-size:13px;background:#C0281E;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;" onclick="confirmarDeclinar()">Confirmar declínio</button>
         </div>
       </div>
+
+      <!-- Hidden inputs preservados -->
       <input type="hidden" id="mv-prioridade" value="media">
+      <input type="hidden" id="mv-prioridade-vis">
       <input type="hidden" id="mv-salario">
-      <div id="mv-datas-info" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
-        <div style="display:flex;gap:20px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:var(--text3);">📅 Criado em: <strong id="mv-criado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
-          <span style="font-size:12px;color:var(--text3);">↻ Atualizado em: <strong id="mv-atualizado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
-        </div>
-      </div>
-      <div class="form-row" id="mv-timeline-section" style="margin-bottom:0;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <label class="field-label" style="margin:0;">Histórico</label>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:13px;" onclick="abrirFormTimeline()">+ Registrar atualização</button>
-        </div>
-        <div id="mv-timeline-form" class="tl-form" style="display:none;">
-          <textarea id="mv-timeline-texto" rows="2" placeholder="O que aconteceu? Ex: Liguei para recrutador, entrevista agendada para sexta..."></textarea>
-          <div id="mv-tl-lembrar-row" style="margin-top:10px;">
-            <label class="tl-lembrar-label">Lembrar em <span style="font-weight:400;color:var(--text3)">(opcional — cria evento no Outlook)</span></label>
-            <input type="date" id="mv-tl-lembrar-data" style="font-size:14px;">
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="fecharFormTimeline()">Cancelar</button>
-            <button class="btn btn-primary" style="padding:6px 14px;font-size:13px;" onclick="salvarEntradaTimeline()">Salvar</button>
-          </div>
-        </div>
-        <div id="mv-timeline-lista" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-      <div id="mv-preparar-entrevista" style="display:none;margin-top:14px;padding:14px 16px;background:#FAF5FF;border-radius:8px;border:1.5px solid #DDD6FE;">
-        <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Entrevista marcada</div>
-        <div style="font-size:13px;color:#4C1D95;margin-bottom:12px;line-height:1.5;">Use o Simulador de Entrevista da Sofia para se preparar com perguntas reais desta empresa e cargo.</div>
-        <button class="btn btn-ghost" id="mv-btn-preparar" onclick="" style="font-size:13px;padding:8px 16px;border-color:#7C3AED;color:#7C3AED;width:100%;justify-content:center;">🎤 Preparar para esta entrevista</button>
-      </div>
-      <div id="mv-docs-section" style="display:none;margin-top:16px;border-top:1.5px solid var(--border);padding-top:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-          <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Análise de Vaga gerada</span>
-          <span id="mv-ats-score-badge" style="display:none;font-size:13px;font-weight:700;padding:2px 12px;border-radius:20px;"></span>
-        </div>
-        <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="copy-btn" id="mv-docs-cv-btn" onclick="mvToggleDoc('cv',this)" style="font-size:12px;">Ver CV otimizado</button>
-          <button class="copy-btn" id="mv-docs-carta-btn" onclick="mvToggleDoc('carta',this)" style="font-size:12px;display:none;">Ver carta de apresentação</button>
-        </div>
-        <div id="mv-ats-cv-expand" style="display:none;margin-top:10px;">
-          <textarea id="mv-ats-cv-txt" rows="8" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)" style="font-size:12px;">📋 Copiar CV</button></div>
-        </div>
-        <div id="mv-ats-carta-expand" style="display:none;margin-top:10px;">
-          <textarea id="mv-ats-carta-modal-txt" rows="6" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);"></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)" style="font-size:12px;">📋 Copiar carta</button></div>
-        </div>
-      </div>
       <input type="hidden" id="mv-motivo">
+      <input type="hidden" id="mv-plano">
     </div>
+
     <div class="modal-footer">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="confirmarRemoverVaga()" style="display:none;">Remover</button>
       <div id="mv-delete-confirm" style="display:none;gap:6px;align-items:center;">
@@ -4609,29 +4641,29 @@ function openVagaModal(id){
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.disabled=!v.origemUrl;
-    // Docs section
+    // Docs section — nova lógica
     const docsSec=document.getElementById('mv-docs-section');
     const scoreEl=document.getElementById('mv-ats-score-badge');
-    const keyEl=document.getElementById('mv-ats-keywords');
+    const kwEl=document.getElementById('mv-ats-keywords');
     const cvTxt=document.getElementById('mv-ats-cv-txt');
     const cartaTxt=document.getElementById('mv-ats-carta-modal-txt');
-    const cartaBtn=document.getElementById('mv-docs-carta-btn');
-    const cvExp=document.getElementById('mv-ats-cv-expand');
-    const cartaExp=document.getElementById('mv-ats-carta-expand');
-    const cvBtn=document.getElementById('mv-docs-cv-btn');
+    const resultEl=document.getElementById('mv-analise-result');
     if(docsSec){
-      if(v.atsScore||v.atsCV){
+      if(v.atsCV){
         docsSec.style.display='';
-        if(scoreEl){const s=parseInt(v.atsScore||0);const c=s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';const bg=s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';scoreEl.style.cssText+=`;color:${c};background:${bg};border:1px solid ${c}33;`;scoreEl.textContent=v.atsScore?'Score ATS: '+v.atsScore+'/100':'';scoreEl.style.display=v.atsScore?'':'none';}
-        if(keyEl) keyEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
         if(cvTxt) cvTxt.value=v.atsCV||'';
         if(cartaTxt) cartaTxt.value=v.atsCarta||'';
-        if(cartaBtn) cartaBtn.style.display=v.atsCarta?'':'none';
-        if(cvExp) cvExp.style.display='none';
-        if(cartaExp) cartaExp.style.display='none';
-        if(cvBtn) cvBtn.textContent='Ver CV otimizado';
-        if(cartaBtn) cartaBtn.textContent='Ver carta de apresentação';
-      } else { docsSec.style.display='none'; }
+        if(v.atsScore&&scoreEl){const s=parseInt(v.atsScore||0);const sc=s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';const sb=s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';scoreEl.style.cssText+=`;color:${sc};background:${sb};border:1px solid ${sc}33;`;scoreEl.textContent='Score: '+s+'/100';scoreEl.style.display='';}
+        if(kwEl) kwEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
+        if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsScore||0);const c2=sc2>=75?'#1A7A4A':sc2>=55?'#B8670A':'#C0281E';resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
+        // Restaurar lastCV para permitir downloads sem reanálise
+        lastCV=v.atsCV;
+        lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
+        mvDocTab('ats');
+      } else {
+        docsSec.style.display='none';
+        if(resultEl) resultEl.style.display='none';
+      }
     }
     document.getElementById('mv-timeline-section').style.display='';
     document.getElementById('mv-timeline-form').style.display='none';
@@ -4651,6 +4683,7 @@ function openVagaModal(id){
       document.getElementById('mv-criado-em').textContent=formatTs(v.createdAt)||'—';
       document.getElementById('mv-atualizado-em').textContent=formatTs(v.updatedAt)||'—';
     }
+    mvRenderPipeline(v.status);
   } else {
     ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-modelo').value='';
@@ -4679,6 +4712,10 @@ function openVagaModal(id){
     } else {
       if(_draftBanner) _draftBanner.style.display='none';
     }
+    mvRenderPipeline('lead');
+    const docsSec2b=document.getElementById('mv-docs-section');if(docsSec2b)docsSec2b.style.display='none';
+    const resEl2=document.getElementById('mv-analise-result');if(resEl2)resEl2.style.display='none';
+    const badge2=document.getElementById('mv-ats-score-badge');if(badge2)badge2.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoesModal();
@@ -4699,6 +4736,7 @@ function avancarEstagio(){
 function atualizarBotoes(){ atualizarBotoesModal(); }
 function atualizarBotoesModal(statusOverride){
   const status=statusOverride||document.getElementById('mv-status')?.value||'lead';
+  mvRenderPipeline(status);
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const temAtsCV=!!(v&&(v.atsCV||(typeof v.score==='number'&&v.score>0)));
   const proxSec=document.getElementById('mv-proxima-section');
@@ -4707,20 +4745,12 @@ function atualizarBotoesModal(statusOverride){
   if(decPanel) decPanel.style.display='none';
   const acoes=document.getElementById('mv-footer-acoes');
   if(!acoes) return;
-  const isLead=status==='lead';
   const isClosed=status==='negado'||status==='aceito';
   let html='';
   if(!isClosed) html+=`<button class="btn btn-ghost" style="color:#9B2226;border:1px solid #9B222622;" onclick="declinarVaga()">Declinar</button>`;
-  if(isLead&&!temAtsCV){
+  if(status==='lead'&&temAtsCV){
     html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
-    html+=`<button class="btn btn-primary" onclick="abrirAntiATSModal()">Analisar Candidatura →</button>`;
-  } else if(isLead&&temAtsCV){
-    html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
-    html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Analisar Candidatura</button>`;
     html+=`<button class="btn" style="background:#1A7A4A;color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);cursor:pointer;min-height:44px;padding:0 18px;font-size:15px;font-weight:600;" onclick="candidatarDoModal()">✉ Candidatar</button>`;
-  } else if(!isClosed){
-    html+=`<button class="btn btn-ghost" onclick="abrirAntiATSModal()">Gerar CV</button>`;
-    html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
   } else {
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
   }
@@ -4728,8 +4758,10 @@ function atualizarBotoesModal(statusOverride){
   validarVagaForm();
 }
 function validarVagaForm(){
-  const ok=document.getElementById('mv-empresa')?.value.trim()&&document.getElementById('mv-cargo')?.value.trim();
-  document.getElementById('mv-footer-acoes')?.querySelectorAll('button[onclick*="saveVaga"],button[onclick*="abrirAntiATSModal"]').forEach(b=>{b.disabled=!ok;b.style.opacity=ok?'':'0.45';b.style.cursor=ok?'':'not-allowed';});
+  const ok=!!(document.getElementById('mv-empresa')?.value.trim()&&document.getElementById('mv-cargo')?.value.trim());
+  const analyzeBtn=document.getElementById('mv-analyze-btn');
+  if(analyzeBtn){analyzeBtn.disabled=!ok;analyzeBtn.style.opacity=ok?'':'0.45';analyzeBtn.style.cursor=ok?'':'not-allowed';}
+  document.getElementById('mv-footer-acoes')?.querySelectorAll('button[onclick*="saveVaga"],button[onclick*="candidatarDoModal"]').forEach(b=>{b.disabled=!ok;b.style.opacity=ok?'':'0.45';b.style.cursor=ok?'':'not-allowed';});
 }
 let _extrairTimer=null;
 function extrairDadosDescricao(texto){
@@ -4952,6 +4984,211 @@ function renderTimelineLista(timeline){
     const ts=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     return `<div class="tl-entry"><span class="tl-ts">${ts}</span><span class="tl-txt">${e.texto.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span></div>`;
   }).join('');
+}
+
+// ── Modal Processo: pipeline, tabs, análise inline, geração de docs ──
+
+function mvRenderPipeline(status){
+  const bar=document.getElementById('mv-status-progress');
+  if(!bar) return;
+  const stages=['lead','aplicado','contato','entrevista','proposta','aceito'];
+  const labels=['Oportunidade','CV Enviado','Em Contato','Entrevista','Proposta','Aceito'];
+  if(status==='negado'){bar.innerHTML='<span style="font-size:11px;color:#C0281E;font-weight:600;padding:2px 0;">✕ Processo encerrado</span>';return;}
+  const idx=stages.indexOf(status);
+  bar.innerHTML=stages.map((s,i)=>{
+    const col=i<idx?'var(--navy)':i===idx?'#C9A84C':'var(--border)';
+    const tcol=i===idx?'var(--navy)':'var(--text3)';
+    const tw=i===idx?'700':'400';
+    return `<div style="flex:1;text-align:center;padding:0 1px;"><div style="height:3px;border-radius:2px;background:${col};margin-bottom:3px;"></div><span style="font-size:9px;color:${tcol};font-weight:${tw};white-space:nowrap;">${labels[i]}</span></div>`;
+  }).join('');
+}
+
+function mvDocTab(which,btn){
+  ['ats','carta','resposta'].forEach(t=>{
+    const el=document.getElementById('mv-doctab-'+t);
+    if(el) el.style.display=t===which?'':'none';
+  });
+  document.querySelectorAll('.mv-doc-tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else{const b=document.querySelector(`.mv-doc-tab-btn[data-tab="${which}"]`);if(b)b.classList.add('active');}
+}
+
+function mvMostrarCtxRegen(tipo){
+  const row=document.getElementById('mv-ctx-'+tipo+'-row');
+  if(row) row.style.display=row.style.display==='none'?'':'none';
+}
+function mvOcultarCtxRegen(tipo){
+  const row=document.getElementById('mv-ctx-'+tipo+'-row');
+  if(row) row.style.display='none';
+}
+
+function saveVagaSilent(){
+  const empresa=document.getElementById('mv-empresa')?.value.trim(); if(!empresa) return;
+  const isNew=editingVagaId==='new';
+  const existing=isNew?null:vagas.find(v=>String(v.id)===String(editingVagaId));
+  const now=Date.now();
+  const createdAt=existing?.createdAt||now;
+  const obj={
+    id:isNew?now:editingVagaId,empresa,
+    cargo:document.getElementById('mv-cargo')?.value||'',
+    canal:document.getElementById('mv-canal')?.value||'LinkedIn',
+    prioridade:document.getElementById('mv-prioridade')?.value||'media',
+    status:document.getElementById('mv-status')?.value||'lead',
+    salario:document.getElementById('mv-salario')?.value||'',
+    proxima:document.getElementById('mv-proxima')?.value||'',
+    proximaData:document.getElementById('mv-proxima-data')?.value||'',
+    plano:document.getElementById('mv-plano')?.value||'',
+    localizacao:document.getElementById('mv-localizacao')?.value||'',
+    modelo:document.getElementById('mv-modelo')?.value||'',
+    regime:document.getElementById('mv-regime')?.value||'',
+    data:existing?.data||'',
+    notas:document.getElementById('mv-notas')?.value||'',
+    emailDest:document.getElementById('mv-email-dest')?.value||'',
+    origemUrl:document.getElementById('mv-origem-url')?.value||'',
+    motivo:document.getElementById('mv-motivo')?.value||'',
+    jobDescription:document.getElementById('mv-job-desc')?.value||'',
+    atsScore:existing?.atsScore||'',atsKeywords:existing?.atsKeywords||'',
+    atsAnalise:existing?.atsAnalise||'',atsCV:existing?.atsCV||'',
+    atsCarta:existing?.atsCarta||'',tags:existing?.tags||[],
+    score:existing?.score,classificacao:existing?.classificacao,
+    resumo:existing?.resumo,fonte:existing?.fonte,
+    pontos_fortes:existing?.pontos_fortes||[],
+    timeline:existing?.timeline||[{ts:now,texto:'Card criado'}],
+    createdAt,updatedAt:now
+  };
+  if(isNew){vagas.push(obj);editingVagaId=obj.id;}
+  else vagas=vagas.map(v=>String(v.id)===String(editingVagaId)?obj:v);
+  saveVagas();
+  if(filtroAtivo) aplicarFiltros(); else renderCRM();
+}
+
+async function analisarInline(){
+  const empresa=document.getElementById('mv-empresa')?.value||'';
+  const cargo=document.getElementById('mv-cargo')?.value||'';
+  const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  const ctx=document.getElementById('mv-ctx-analise')?.value||'';
+  const localizacao=document.getElementById('mv-localizacao')?.value||'';
+  const modelo=document.getElementById('mv-modelo')?.value||'';
+  const regime=document.getElementById('mv-regime')?.value||'';
+  if(!jobDesc.trim()&&!empresa.trim()&&!cargo.trim()){showToast('⚠️ Adicione a descrição da vaga ou empresa/cargo');return;}
+  saveVagaSilent();
+  const btn=document.getElementById('mv-analyze-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...';}
+  const resultEl=document.getElementById('mv-analise-result');
+  if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
+  const metaVaga=[localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
+  const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
+  const contextoFull=ctx?'\n\n---\nContexto desta rodada: '+ctx:'';
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:4000,system:ATS_SYSTEM(cvLang),
+        messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull}]})});
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const parts=text.split('---CV---');
+    const analise=parts[0].replace('---ANALISE---','').trim();
+    const rest=parts[1]||'';
+    const cv=rest.split('---CRM---')[0].trim();
+    const score=parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
+    const veredicto=analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
+    const keywords=analise.match(/\*\*Presentes no CV:\*\*\s*([^\n]+)/)?.[1]?.trim()||analise.match(/Presentes no CV:\s*([^\n]+)/)?.[1]?.trim()||'';
+    lastCV=cv;
+    lastCVFilename=`CV_MF_${(empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
+    atsEmpresa=empresa;atsCargo=cargo;
+    if(editingVagaId&&editingVagaId!=='new'){
+      const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+      if(idx>=0){vagas[idx].atsCV=cv;vagas[idx].atsScore=score?String(score):'';vagas[idx].atsKeywords=keywords;vagas[idx].atsAnalise=analise;vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].updatedAt=Date.now();saveVagas();}
+    }
+    const scoreCol=score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
+    const scoreBg=score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
+    const badge=document.getElementById('mv-ats-score-badge');
+    if(badge&&score){badge.style.cssText+=`;color:${scoreCol};background:${scoreBg};border:1px solid ${scoreCol}33;`;badge.textContent='Score: '+score+'/100';badge.style.display='';}
+    const kwEl=document.getElementById('mv-ats-keywords');
+    if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
+    if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}`;
+    const cvTxt=document.getElementById('mv-ats-cv-txt');
+    if(cvTxt) cvTxt.value=cv;
+    const docsSec=document.getElementById('mv-docs-section');
+    if(docsSec) docsSec.style.display='';
+    mvDocTab('ats');
+    atualizarBotoesModal();
+  }catch(e){
+    if(resultEl) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
+  }
+  if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV';}
+}
+
+async function gerarDocModal(tipo){
+  const empresa=document.getElementById('mv-empresa')?.value||'';
+  const cargo=document.getElementById('mv-cargo')?.value||'';
+  const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  const localizacao=document.getElementById('mv-localizacao')?.value||'';
+  const modelo=document.getElementById('mv-modelo')?.value||'';
+  const regime=document.getElementById('mv-regime')?.value||'';
+  const ctxMap={ats:'mv-ctx-ats',carta:'mv-ctx-carta',resposta:'mv-ctx-resposta'};
+  const ctx=document.getElementById(ctxMap[tipo])?.value||'';
+  const emailRecebido=tipo==='resposta'?document.getElementById('mv-email-recebido')?.value||'':'';
+  const outMap={ats:'mv-ats-cv-txt',carta:'mv-ats-carta-modal-txt',resposta:'mv-resposta-txt'};
+  const btnMap={ats:'mv-gerar-ats-btn',carta:'mv-gerar-carta-btn',resposta:'mv-gerar-resposta-btn'};
+  const labels={ats:'Gerar',carta:'Gerar carta de apresentação',resposta:'Sugerir resposta'};
+  const outEl=document.getElementById(outMap[tipo]);
+  const btnEl=document.getElementById(btnMap[tipo]);
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='Gerando…';}
+  if(outEl) outEl.value='';
+  const metaVaga=[cargo&&`Cargo: ${cargo}`,empresa&&`Empresa: ${empresa}`,localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
+  const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
+  const ctxStr=ctx?'\n\n---\nInformação importante: '+ctx:'';
+  let system,prompt;
+  if(tipo==='ats'){
+    system=ATS_SYSTEM(cvLang);
+    prompt='Gere apenas o CV otimizado (o texto que viria na seção ---CV--- do seu formato padrão) para esta vaga:\n\n'+vagaTexto+ctxStr;
+  } else if(tipo==='carta'){
+    system=ATS_SYSTEM(cvLang);
+    prompt='Gere apenas uma carta de apresentação executiva e concisa para esta vaga. Sem score, sem CV, sem análise, sem separadores.\n\n'+vagaTexto+ctxStr;
+  } else {
+    system=`Você é assistente executivo de Marcos Franco, executivo sênior de Marketing, Vendas e Crescimento em Curitiba. Escreva respostas profissionais, objetivas e na voz de Marcos. Use português correto com acentos.`;
+    prompt=`Sugira uma resposta profissional para o contato abaixo.\n\nContexto da vaga: ${metaVaga}\n\nContato recebido:\n${emailRecebido}${ctxStr}`;
+  }
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    let text=data.content?.find(b=>b.type==='text')?.text||'';
+    if(tipo==='ats'){const cvPart=text.split('---CV---')[1];if(cvPart) text=cvPart.split('---CRM---')[0].trim();else text=text.trim();lastCV=text;}
+    if(outEl) outEl.value=text;
+    if(editingVagaId&&editingVagaId!=='new'){
+      const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+      if(idx>=0){
+        if(tipo==='ats') vagas[idx].atsCV=text;
+        else if(tipo==='carta') vagas[idx].atsCarta=text;
+        vagas[idx].updatedAt=Date.now();saveVagas();
+      }
+    }
+    if(tipo==='ats') mvOcultarCtxRegen('ats');
+  }catch(e){if(outEl) outEl.value='Erro ao gerar. Tente novamente.';}
+  if(btnEl){btnEl.disabled=false;btnEl.textContent=labels[tipo];}
+}
+
+function downloadDocFromModal(){
+  const cv=document.getElementById('mv-ats-cv-txt')?.value;
+  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
+  const _prev=lastCV; lastCV=cv; downloadDoc(); lastCV=_prev;
+}
+function downloadPDFFromModal(){
+  const cv=document.getElementById('mv-ats-cv-txt')?.value;
+  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
+  const _prev=lastCV; lastCV=cv; downloadPDF(); lastCV=_prev;
+}
+function downloadPDFExecFromModal(){
+  const cv=document.getElementById('mv-ats-cv-txt')?.value;
+  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
+  const empresa=document.getElementById('mv-empresa')?.value||'';
+  const cargo=document.getElementById('mv-cargo')?.value||'';
+  const _prev=lastCV; const _prevFn=lastCVFilename;
+  lastCV=cv;
+  lastCVFilename=`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
+  downloadPDFExecutivo();
+  lastCV=_prev; lastCVFilename=_prevFn;
 }
 
 // Contato Modal
