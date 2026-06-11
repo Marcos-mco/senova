@@ -11,215 +11,261 @@ Nenhum software no mundo responde isso. Esse é o fosso competitivo.
 
 ---
 
+## Fundamento filosófico e espiritual
+
+O Senova nasce de uma convicção do Labor Dei e da espiritualidade do Opus Dei:
+
+> **Não existe separação entre vida pessoal e profissional.**
+> O homem é um — e sua vocação abraça tudo: o trabalho, a família,
+> os amigos, o descanso, o desenvolvimento, a fé.
+
+*"Santificar o trabalho, santificar-se no trabalho, santificar os outros pelo trabalho."*
+— São Josemaria Escrivá
+
+O Senova não ajuda o executivo a "maximizar a carreira". Ajuda-o a **viver sua vocação com inteireza** — avançando nos caminhos que importam, sem perder quem ele é.
+
+---
+
 ## Visão do Produto
 
 **Versão inicial (limitada):**
 > Ferramenta de recolocação para executivo em transição de carreira.
 
 **Versão intermediária:**
-> Plataforma de inteligência de carreira para executivos sêniores —
-> empregados OU em transição — que querem saber e controlar
-> sua empregabilidade a qualquer momento.
+> Plataforma de inteligência de carreira para executivos sêniores.
 
-**Versão correta (10/jun/2026):**
-> Plataforma de múltiplos projetos de vida para o profissional maduro 35+,
-> com Sofia como guia permanente — que une inteligência de mercado,
-> desenvolvimento pessoal e harmonia de vida em um único lugar.
+**Visão correta (10/jun/2026):**
+> Companheiro de vocação para o profissional maduro 35+ —
+> que une inteligência de mercado, caminhos de vida e harmonia pessoal
+> em torno de um único projeto: viver bem.
 
-**Insight fundador de Marcos:**
+**Insight fundador:**
 > "Não quero CVs melhores. Quero uma vida melhor."
 
 ---
 
-## O conceito central: Projetos de Vida
+## O conceito central: Um projeto, muitos caminhos
 
-O executivo 35+ raramente tem um único projeto. Tem vários, em paralelo, com horizontes diferentes — todos com a mesma finalidade: **viver melhor**.
+**O projeto de vida é um.** É a vocação — quem você é, o que você foi chamado a ser,
+o norte que não muda. Não se gerencia. Se vive.
 
-Senova gerencia múltiplos projetos simultaneamente, com Sofia monitorando sinais específicos para cada um:
+**Os caminhos são muitos** — as frentes ativas através das quais o projeto se realiza
+agora. Alguns caminhos se completam. Outros surgem. Mas o projeto permanece.
 
-| Projeto de vida | Horizonte | Sofia monitora |
+```
+PROJETO DE VIDA (vocação — imutável)
+        │
+        ├── Caminho: recolocação executiva agora
+        ├── Caminho: estar perto das filhas na Europa
+        ├── Caminho: marcenaria como expressão criativa
+        └── Caminho: estabilidade que sustenta tudo
+```
+
+Sofia não gerencia "múltiplos projetos". Ela acompanha **um projeto de vida
+através de seus caminhos ativos** — como Rafael acompanhou Tobias:
+conhecendo o destino, guardando o caminhante, antecipando o que vem.
+
+---
+
+## As virtudes como critério de cada decisão de produto
+
+As virtudes não são "valores da empresa". São o **critério operacional** de cada
+funcionalidade, cada texto, cada decisão de design do Senova.
+
+### Prudência — a virtude da decisão certa
+
+> *Saber o que fazer, quando fazer, e como fazer.*
+
+**No produto:**
+- Sofia nunca sobrecarrega — dá a informação certa no momento certo
+- O feed mostra o que importa agora, não tudo que existe
+- Alertas aparecem quando há ação possível, não para gerar ansiedade
+- A análise de vaga não diz "você deveria se candidatar" — diz o que é verdadeiro e deixa o usuário decidir
+
+### Justiça — a virtude da verdade honesta
+
+> *Dar a cada um o que lhe é devido — inclusive a verdade.*
+
+**No produto:**
+- Scores são honestos: uma vaga incompatível com o projeto de vida diz isso claramente
+- Nunca inflar compatibilidade para parecer mais útil
+- Sofia não elogia o que não merece elogio
+- Os dados do mercado são apresentados como são, não como o usuário quer ver
+
+### Fortaleza — a virtude da perseverança
+
+> *Manter o curso quando o caminho é difícil.*
+
+**No produto:**
+- Linguagem que sustenta em momentos difíceis — processo negado, silêncio do mercado
+- "O mercado está difícil para seu perfil agora — aqui está o que você pode fazer"
+- Nunca linguagem de urgência artificial ou medo
+- Sofia celebra pequenos avanços — cada passo conta
+
+### Temperança — a virtude do equilíbrio
+
+> *Nem demais, nem de menos. Nada que desvie do essencial.*
+
+**No produto:**
+- Sem notificações excessivas — o produto respeita o tempo do usuário
+- Interface limpa, sem elementos decorativos sem propósito
+- Não criar dependência: o objetivo é o usuário viver bem, não usar o app mais
+- O Índice de Harmonia não cria obsessão — é um espelho, não uma competição
+
+### Esperança — a virtude do horizonte
+
+> *A certeza de que há um caminho, mesmo quando não é visível.*
+
+**No produto:**
+- Foco em possibilidades, nunca em carências
+- "Para este caminho, você precisaria de B1 em alemão — é possível em 8 meses"
+- Sempre uma próxima ação possível, por menor que seja
+- O IHL nunca diz "você está atrasado" — diz "onde você pode avançar"
+
+### Caridade — a virtude do cuidado genuíno
+
+> *Amar o outro como ele é — com suas limitações e sua dignidade.*
+
+**No produto:**
+- Sofia trata o usuário como pessoa inteira, não como perfil de LinkedIn
+- Linguagem sempre digna — o usuário tem história, não é um número
+- Nunca explorar inseguranças para vender features
+- Quando o processo não avança, Sofia pergunta como o usuário está — não só o que fazer a seguir
+
+### Ordem — a virtude da vida organizada
+
+> *Cada coisa no seu lugar e tempo — para que nada importante seja perdido.*
+
+**No produto:**
+- Home como painel que organiza o que importa hoje
+- Cada caminho tem seus sinais, ações e estado — claramente separados
+- Timeline de cada processo — nada se perde
+- Sofia sabe o que já foi feito e o que está pendente
+
+---
+
+## Sofia — a Sabedoria que guia
+
+O nome não é acidental. **Sophia** — Sabedoria — é um atributo divino nas Escrituras.
+O Livro da Sabedoria a personifica como guia que acompanha o caminhante.
+
+Sofia no Senova encarna as virtudes acima. Ela não é um assistente que executa comandos.
+É uma presença que:
+- Conhece o projeto de vida do usuário
+- Acompanha cada caminho com inteligência e cuidado
+- Antecipa o que é necessário antes que se torne urgente
+- Fala com verdade, sem manipulação
+- Celebra o avanço, sustenta na dificuldade
+
+**Sofia pode dizer:**
+- "Para o caminho Europa, seu alemão está parado há 6 meses — quer retomar?"
+- "Este processo está há 3 semanas sem atualização — vale um follow-up?"
+- "Esta vaga em São Paulo tem score 91 — mas exige viagem constante. Faz sentido para você agora?"
+- "Você está avançando no que importa para você?"
+
+---
+
+## O Feed como exercício de prudência
+
+O usuário não vai buscar informação. A informação chega — filtrada, organizada,
+relevante para o projeto de vida e para os caminhos ativos.
+
+| Sinal | Projeto/Caminho | Virtude envolvida |
 |---|---|---|
-| Recolocação executiva | 3–6 meses | Vagas, recrutadores, processos ativos |
-| Mudar para Europa / EUA | 2–5 anos | Idioma, empresas ponte, vistos, rede internacional |
-| Carreira acadêmica paralela | 2–3 anos | MBAs executivos, publicações, docência |
-| Aposentar com 50 | 5–15 anos | Consultoria, renda passiva, sustentabilidade |
-| Consultoria independente | Contínuo | Oportunidades de projeto, rede de contatos |
-| Desenvolver nova área | Contínuo | Cursos, comunidades, certificações |
-
-Cada projeto tem seu conjunto de sinais, ações e métricas.
-O que é ruído para um projeto é sinal para outro.
-
----
-
-## Mudança de Posicionamento
-
-| Antes | Depois |
-|---|---|
-| "Ferramenta de recolocação" | "Plataforma de projetos de vida" |
-| Usuário: em transição (3–6 meses) | Usuário: profissional maduro 35+ (para sempre) |
-| Churn após recolocação | Retenção permanente — novos projetos sempre surgem |
-| Um modo: busca ativa | Múltiplos modos: projetos simultâneos |
-| Concorre com LinkedIn Jobs, Indeed | Não tem concorrente direto no mundo |
-
----
-
-## Os modos do produto derivam dos projetos
-
-Os "modos" anteriores (Transição Ativa / Radar de Carreira) continuam válidos
-mas são apenas **instâncias** de um projeto de vida, não modos fixos do produto.
-
-### Modo Transição Ativa (projeto: recolocação)
-- Gestão de pipeline de processos seletivos
-- Follow-up de contatos e headhunters
-- Análise de vaga vs. perfil (Anti-ATS)
-- Carta de candidatura e resposta a recrutadores
-- Simulador de entrevista
-
-### Modo Radar de Carreira (projeto: estabilidade / crescimento)
-- Monitoramento passivo de mercado
-- Valor de mercado estimado (faixa salarial para o perfil)
-- Saúde da rede (headhunters, contatos-chave)
-- Alerta: "Sua área está em demanda — bom momento para renegociar"
-
-### Modo Projeto Europa/EUA (exemplo de projeto de vida)
-- Monitoramento de idioma (progresso, cursos, recursos)
-- Empresas brasileiras com operação no destino (ponte natural)
-- Rede de contatos no país-alvo
-- Sofia: "Você precisa de B1 em alemão para este projeto — aqui está o plano"
-
----
-
-## O papel da Sofia
-
-Sofia não é um chatbot. É um **guia permanente** — como um advisor que conhece
-profundamente quem você é, o que você quer, e acompanha sua jornada sem julgamento.
-
-Sofia é proativa:
-- Não espera você perguntar
-- Sabe quando um sinal é relevante para qual projeto
-- Sugere desenvolvimento antes que vire urgência
-- Pode dizer: "Para morar na Alemanha em 3 anos, você precisa de A2→B1 agora. Quer que eu monitore recursos e crie um plano?"
-- Pode dizer: "Você não fala com sua rede de headhunters há 90 dias — mesmo sem busca ativa, vale manter o contato"
-
-Sofia trata o usuário como pessoa inteira — não como perfil de LinkedIn.
-
----
-
-## Feed Unificado de Inteligência
-
-O usuário não vê a FONTE. Vê o SINAL — organizado por projeto de vida.
-
-| Tipo | Exemplo | Projeto relacionado |
-|---|---|---|
-| 🎯 Vaga relevante | "Dir. Comercial · Ambev · 89pts" | Recolocação |
-| 💬 Retorno de processo | "RH Localfrio respondeu · há 2h" | Recolocação |
-| 🌍 Sinal internacional | "Câmara Brasil-Alemanha abre vaga de representante" | Projeto Europa |
-| 📈 Movimento de mercado | "Bosch expande no PR" | Recolocação + Projeto Europa |
-| 👤 Contato sugerido | "João Silva foi promovido na Ambev — contato há 8 meses" | Rede / todos |
-| 📚 Desenvolvimento | "Curso de alemão gratuito A1→A2 · 6 semanas" | Projeto Europa |
-| 📊 Insight de harmonia | "Você está 3 semanas sem registrar atividade física" | Bem-estar |
+| Vaga relevante detectada | Recolocação | Prudência — só o que vale |
+| Retorno de recrutador | Recolocação | Fortaleza — acompanha o processo |
+| Empresa alemã no Brasil | Caminho Europa | Esperança — o caminho existe |
+| Curso de idioma disponível | Caminho Europa | Ordem — ação no tempo certo |
+| Contato sem interação há 90 dias | Todos | Caridade — cuidar das relações |
+| 3 semanas sem registrar atividade | Bem-estar | Temperança — equilíbrio alerta |
 
 ---
 
 ## Índice de Harmonia de Vida — IHL
-*(anteriormente IEE — Índice de Empregabilidade Executiva)*
 
-O IHL mede não apenas empregabilidade mas **harmonia entre vida pessoal e profissional**.
-Inspirado no Labor Dei: não existe separação entre o homem que trabalha e o homem que vive.
+Não é uma nota de performance. É um espelho — **reflexo honesto de como o projeto
+de vida está sendo vivido através de seus caminhos**.
 
-### As 6 dimensões do IHL
+Inspirado nas dimensões que São Josemaria ensinava como constitutivas da vida inteira:
 
 | Dimensão | O que mede |
 |---|---|
-| **Perfil profissional** | CV, LinkedIn, certificações, idiomas, competências |
-| **Mercado** | Demanda pelo perfil, valor de mercado, aquecimento do setor |
-| **Rede** | Qualidade e saúde das relações profissionais e pessoais |
-| **Projetos de vida** | Progresso em cada projeto ativo — estou avançando? |
-| **Desenvolvimento** | Idiomas, formação, habilidades em evolução |
-| **Bem-estar e harmonia** | Equilíbrio, saúde, família, espiritualidade |
+| **Trabalho e competência** | Perfil, mercado, valor, skills |
+| **Desenvolvimento** | Idiomas, formação, crescimento contínuo |
+| **Relações** | Rede profissional, contatos, cuidado com as pessoas |
+| **Caminhos ativos** | Avanço em cada caminho do projeto de vida |
+| **Equilíbrio e bem-estar** | Saúde, presença, harmonia família-trabalho |
+| **Alinhamento de valores** | O que faço está de acordo com quem quero ser? |
 
-### Exemplo de display
+### Display
 
 ```
-Índice de Harmonia de Vida                   82 / 100
+Harmonia de Vida                             82 / 100
 ──────────────────────────────────────────────────────
-Perfil profissional     ████████░░   82   ↑ +3 este mês
-Mercado                 █████████░   88   Setor aquecido
-Rede                    ███████░░░   72   ⚠ 90 dias sem headhunter
-Projetos de vida        ████████░░   80   2 projetos em andamento
-Desenvolvimento         ██████░░░░   64   ⚠ Alemão parado há 6 meses
-Bem-estar               ████████░░   80   ✓ Em dia
+Trabalho e competência  ████████░░   82   ↑ +3 este mês
+Desenvolvimento         ██████░░░░   64   ⚠ Alemão parado
+Relações                ███████░░░   72   ⚠ 90 dias sem headhunter
+Caminhos ativos         ████████░░   80   Recolocação · Europa em andamento
+Equilíbrio              ████████░░   80   ✓ Em dia
+Alinhamento de valores  █████████░   88   ✓ Consistente
 ```
 
-### Alertas de harmonia
-
-- "Você avançou no processo da Rede Integração — mas há 2 semanas sem registro"
-- "Para o projeto Europa, alemão parado há 6 meses cria risco — quer retomar?"
-- "Sua rede no setor de mídia está fria — considere reconectar antes de precisar"
-- "Você está há 3 semanas sem atividade física — como está o equilíbrio?"
+> *"Você está avançando no que importa para você?"*
 
 ---
 
-## Posicionamento competitivo revisado
+## Posicionamento competitivo
 
 | Concorrente | Pergunta que responde |
 |---|---|
 | LinkedIn Premium | Quem está me vendo? |
 | Teal / Huntr | Como mando mais CVs? |
 | Consultor de carreira | O que devo fazer agora? |
-| Coach de vida | Estou vivendo de acordo com meus valores? |
+| Coach de vida | Estou vivendo meus valores? |
 | **Senova** | **Minha vida pessoal e profissional estão indo na direção certa e em harmonia?** |
 
 O Senova ocupa o único espaço onde nenhuma ferramenta existe:
-**inteligência de vida integrada para o profissional maduro.**
+**companheiro de vocação para o profissional maduro** — que integra mercado,
+desenvolvimento pessoal e harmonia de vida em torno de um único projeto.
 
 ---
 
 ## Implicações para o Business Plan
 
-### Mercado Total Endereçável (TAM)
+### Mercado
 - Executivos 35+ com nível de diretoria/C-Level no Brasil: ~850.000 pessoas
-- Destes, ativamente em transição: ~85.000 (Modo Transição)
-- Empregados com projetos de vida ativos: 765.000 (Modo Radar/Projetos)
-- **Mercado de projetos de vida é 9× maior que mercado de busca de emprego**
+- Ativamente em transição: ~85.000 (caminho recolocação ativo)
+- Com caminhos de vida ativos além da recolocação: 765.000 — mercado 9× maior
 
-### Modelo de receita revisado
+### Modelo de receita
 | Plano | Preço | Para quem |
 |---|---|---|
-| **Radar** | R$ 47/mês | 1 projeto — monitoramento passivo |
-| **Ativo** | R$ 97/mês | Até 3 projetos — gestão completa + Sofia proativa |
-| **Premium** | R$ 197/mês | Projetos ilimitados + Sofia avatar + relatórios preditivos |
+| **Radar** | R$ 47/mês | 1 caminho ativo — monitoramento e sinais |
+| **Ativo** | R$ 97/mês | Até 3 caminhos — gestão completa + Sofia proativa |
+| **Premium** | R$ 197/mês | Caminhos ilimitados + Sofia avatar + IHL preditivo |
 
-### Proposta de valor por plano
-- Radar: "Saiba se sua vida profissional está no caminho certo."
-- Ativo: "Sofia te acompanha em todos os seus projetos de vida."
-- Premium: "Seu advisor de vida — pessoal, profissional, permanente."
-
----
-
-## Valores invioláveis do produto (Opus Dei / Labor Dei)
-
-O Senova não é uma ferramenta de "desempregado ansioso".
-É um instrumento de prudência e stewardship da vocação — pessoal e profissional.
-
-- **Prudência** — informação certa, na hora certa, sem ruído
-- **Ordem** — hierarquia visual clara, um foco por vez
-- **Fortaleza** — linguagem que sustenta e fortalece, nunca que intimida
-- **Esperança** — foco em possibilidades, não em carências
-- **Labor Dei** — trabalho como vocação digna, não como desespero
-- **Honestidade** — nunca manipular, nunca prometer o que não entrega
-- **Caridade** — a Sofia trata o usuário com respeito e cuidado genuíno
-
-Não existe separação entre vida pessoal e profissional.
-O Senova cuida do homem inteiro.
+### Proposta de valor
+- Radar: *"Saiba se está avançando no que importa."*
+- Ativo: *"Sofia te acompanha em cada caminho do seu projeto de vida."*
+- Premium: *"Seu companheiro de vocação — pessoal, profissional, permanente."*
 
 ---
 
-## Roadmap revisado
+## Roadmap
 
-| Ciclo | Foco | O que entrega |
+| Ciclo | Período | Foco |
 |---|---|---|
-| **Ciclo 1** (jun–jul/2026) | Fundação | Design system · Home · Extensão inteligente · CV/Carta inline |
-| **Ciclo 2** (ago/2026) | Infraestrutura | Auth · Pagamento · Múltiplos projetos de vida no perfil |
-| **Ciclo 3** (set/2026) | Beta | 5 usuários · IHL v1 · Sofia onboarding por entrevista |
-| **Ciclo 4** (out–nov/2026) | Sofia Intelligence | Avatar · Proatividade plena · Relatórios preditivos por projeto |
+| **Ciclo 1** | jun–jul/2026 | Fundação: design system · Home · Extensão · CV/Carta inline |
+| **Ciclo 2** | ago/2026 | Infraestrutura: auth · pagamento · caminhos no perfil |
+| **Ciclo 3** | set/2026 | Beta: 5 usuários · IHL v1 · Sofia onboarding por entrevista |
+| **Ciclo 4** | out–nov/2026 | Sofia Intelligence: avatar · proatividade plena · IHL preditivo |
+
+---
+
+## O que nunca muda
+
+- **Nunca manipular.** Nunca dark patterns. Nunca urgência artificial.
+- **Linguagem digna.** O usuário tem história, tem vocação, tem dignidade.
+- **O produto serve o homem** — não o contrário. Menos uso pode ser mais harmonia.
+- **Virtudes como critério**, não como slogan. Cada decisão de produto passa por elas.
+- **Cuidado genuíno.** Sofia não é um chatbot. É sabedoria com rosto.
