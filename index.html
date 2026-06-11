@@ -141,7 +141,11 @@ select option { background: var(--bg2); }
 #modal-vaga > .modal { width: min(900px,96vw); }
 .mv-sec { border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 14px; }
 .mv-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-.mv-sec-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mv-sec-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:17px; font-weight:700; color:var(--navy); text-transform:none; letter-spacing:-0.1px; }
+.mv-2col { display:grid; grid-template-columns:1fr 296px; gap:0; align-items:start; }
+.mv-col-left { padding-right:22px; border-right:1px solid var(--border); min-width:0; }
+.mv-col-right { padding-left:22px; min-width:0; }
+@media(max-width:680px){ .mv-2col{grid-template-columns:1fr;} .mv-col-left{padding-right:0;border-right:none;} .mv-col-right{padding-left:0;border-top:1px solid var(--border);margin-top:16px;padding-top:16px;} }
 .mv-doc-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
 .mv-doc-tab-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text2); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
 .mv-doc-tab-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
@@ -1800,8 +1804,10 @@ select option { background: var(--bg2); }
         <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
       </div>
 
+      <div class="mv-2col" style="margin-top:12px;">
+      <div class="mv-col-left">
       <!-- ── ANÁLISE IA ── -->
-      <div class="mv-sec" style="border-top:none;margin-top:12px;padding-top:4px;">
+      <div class="mv-sec" style="border-top:none;margin-top:0;padding-top:4px;">
         <div class="mv-sec-head">
           <span class="mv-sec-title">Análise IA</span>
           <span id="mv-ats-score-badge" style="display:none;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;margin-left:4px;"></span>
@@ -1831,9 +1837,9 @@ select option { background: var(--bg2); }
       <div class="mv-sec" id="mv-docs-section" style="display:none;">
         <div class="mv-sec-head"><span class="mv-sec-title">Documentos</span></div>
         <div class="mv-doc-tabs">
-          <button class="mv-doc-tab-btn active" data-tab="ats" onclick="mvDocTab('ats',this)">📋 CV Plataforma</button>
-          <button class="mv-doc-tab-btn" data-tab="carta" onclick="mvDocTab('carta',this)">✉ Carta</button>
-          <button class="mv-doc-tab-btn" data-tab="resposta" onclick="mvDocTab('resposta',this)">💬 Resposta</button>
+          <button class="mv-doc-tab-btn active" data-tab="ats" onclick="mvDocTab('ats',this)">CV Plataforma</button>
+          <button class="mv-doc-tab-btn" data-tab="carta" onclick="mvDocTab('carta',this)">Carta</button>
+          <button class="mv-doc-tab-btn" data-tab="resposta" onclick="mvDocTab('resposta',this)">Resposta</button>
         </div>
         <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5;"></div>
 
@@ -1884,10 +1890,12 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      </div><!-- /mv-col-left -->
+      <div class="mv-col-right">
       <!-- ── GESTÃO ── -->
-      <div class="mv-sec">
+      <div class="mv-sec" style="border-top:none;margin-top:0;padding-top:4px;">
         <div class="mv-sec-head"><span class="mv-sec-title">Gestão</span></div>
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;">
           <select id="mv-modelo" style="font-size:13px;">
             <option value="">Modelo</option>
@@ -1949,6 +1957,9 @@ select option { background: var(--bg2); }
         </div>
         <div id="mv-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
       </div>
+
+      </div><!-- /mv-col-right -->
+      </div><!-- /mv-2col -->
 
       <!-- Declinar panel -->
       <div id="mv-declinar-panel" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:var(--radius);border:1.5px solid #C0281E33;">
