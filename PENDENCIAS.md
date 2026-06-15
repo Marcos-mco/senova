@@ -4,6 +4,17 @@
 
 ---
 
+## ✅ CONCLUÍDO (sessão 12/jun/2026)
+
+| Item | Quando |
+|------|--------|
+| fix(cv+carta): perfil corrigido — Uberlândia, cargo Comercial, Master em Vendas (PT/EN/ES) | 12/jun |
+| F1 (Sofia onboarding): roteiro 14 perguntas + TTS/STT + preenchimento automático do Perfil ✅ | 12/jun (confirmado implementado) |
+| B4 (email modal): Aceitar/Declinar/Responder/Novo Processo/Atualizar status/Ver depois/Bloquear/Excluir ✅ | 12/jun (confirmado implementado) |
+| F3 (5ª fonte de leads): campo "Quem indicou?" no modal quando Canal=Indicação + botão "+ Indicação" na Home | 12/jun |
+
+---
+
 ## ✅ CONCLUÍDO (sessão 09/jun/2026 — sessão 4)
 
 | Item | Quando |
@@ -180,9 +191,9 @@ Nenhum bug crítico aberto. ✅
 
 | # | Feature | Fase |
 |---|---------|------|
-| F1 | **Sofia** — implementar onboarding em texto; voz (Web Speech API) na sequência | 1 |
+| ~~F1~~ | ~~**Sofia** — implementar onboarding em texto; voz (Web Speech API) na sequência~~ ✅ | 1 |
 | ~~F2~~ | ~~**Aba "Mercado"** — comunidades, newsletters, executive search, sinais recentes~~ ✅ | 1 |
-| F3 | 5ª fonte de leads: entrada manual melhorada (dicas, indicações, contatos diretos) | 1 |
+| ~~F3~~ | ~~5ª fonte de leads: entrada manual melhorada (dicas, indicações, contatos diretos)~~ ✅ | 1 |
 | F4 | Carta candidatura — reescrita de fluxo completo | 1 |
 | F5 | Preenchimento automático de vagas nos portais de emprego | 2 |
 | F6 | varredura: adicionar ciandt.com e empregos.com.br | 2 |

@@ -7,11 +7,13 @@
 
 ## BUGS CONFIRMADOS (comportamento errado que precisa de fix)
 
-### B4 — Email: abre janela ruim, sem funcionalidade real
-**O que acontece:** ao clicar num email da Central de Sinais, abre uma janela que é difícil de ler e não tem as ações necessárias.
-**O que deveria ter:** além de Responder, precisa de ações como Aceitar / Declinar / Neutro / Marcar como vaga / Arquivar. O email de um recrutador não é só para responder — é para classificar e agir.
-**Impacto:** alto — bloqueia o fluxo principal de candidatura via email.
-**Fix:** redesenhar o modal de email com 4–5 ações contextuais + leitura confortável (fonte ≥ 15px, padding, preview completo).
+### ~~B4 — Email: abre janela ruim, sem funcionalidade real~~ ✅ RESOLVIDO (12/jun/2026)
+**Fix:** modal `#modal-email-responder` redesenhado com todas as ações contextuais:
+- Primárias (3 botões em grid): ✅ Aceitar · ❌ Declinar · ↩ Responder
+- Secundárias: + Novo Processo · 📅 Atualizar status · 👁 Ver depois · 🚫 Bloquear · Excluir
+- Leitura confortável: textarea readonly 15px, padding 14px, max-height 90vh com scroll
+- Etapa 2A: Atualizar andamento (Em Contato / Entrevista / Proposta / Negativado + data + notas)
+- Etapa 2B: Responder com geração IA via ATS_SYSTEM
 
 ### B5 — ~~Cards não somem ao excluir~~ ✅ RESOLVIDO (26/mai/2026)
 **Causa raiz:** cards da varredura vivem no KV do Worker. Ao deletar um card, ele sumia do localStorage mas não do KV. Na próxima importação, o card reaparecia porque a deduplicação só checava `vagas[]` (já sem o card). **Fix:** blocklist `senova_deleted_ids` no localStorage — deleteVaga() adiciona o ID, importarVagasLead() também exclui IDs da blocklist.
@@ -135,13 +137,13 @@ Anotado por Marcos para adicionar à lista de fontes da varredura automática:
 
 ## PRÓXIMOS PASSOS (desta análise)
 
-1. **B4** (email sem funcionalidade) — diagnosticar na próxima sessão DevTools: qual o HTML do modal atual, quais ações existem, o que falta
+1. ~~**B4**~~ — ✅ resolvido (modal com Aceitar/Declinar/Responder/Novo Processo/Atualizar/Bloquear)
 2. ~~**B5**~~ — ✅ resolvido (blocklist de IDs excluídos no localStorage)
 3. ~~**B6**~~ — ✅ resolvido (rascunho automático + banner "Continuar de onde parou")
 4. ~~**B7**~~ — ✅ resolvido em 25/mai/2026
 5. ~~**UX1**~~ — ✅ resolvido (botão "+ Nova Oportunidade" acima das Próximas Ações)
 6. ~~**B8**~~ — ✅ resolvido (renomeado para "Buscar novos emails")
 7. **B9** — parcialmente melhorado; diagnóstico completo exige DevTools
-8. **B4** — próxima sessão: redesenhar modal de email com ações Aceitar/Declinar/Neutro/Arquivar
+8. ~~**B4**~~ — ✅ resolvido
 9. **3 fluxos de email** — avaliar posição no roadmap após mobile e Plano A/B/C
 10. **Extensão: "Job Tailored Resume" inline** — direção para redesenho da extensão (Fase 3)

@@ -584,6 +584,16 @@ select option { background: var(--bg2); }
         </div>
         <div id="home-revisao-lista" style="padding:0 4px;"></div>
 
+        <!-- Indicações (5ª fonte de leads) -->
+        <div class="sh-item" onclick="toggleIndicacoesHome()" id="sinal-indicacoes">
+          <div class="sh-dot" style="background:#1A7A4A;"></div>
+          <div class="sh-item-body">
+            <div class="sh-item-label">Indicações <span id="sinal-indicacoes-count" style="display:none;font-size:11px;color:var(--text3);font-weight:400;margin-left:6px;"></span></div>
+          </div>
+          <button onclick="event.stopPropagation();abrirNovaIndicacao();" style="padding:3px 10px;border:1.5px solid #1A7A4A;border-radius:20px;background:#EAF7EF;color:#1A7A4A;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Registrar</button>
+        </div>
+        <div id="indicacoes-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:10px 22px 14px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
+
       </div>
     </div><!-- /sh-home-2col -->
 
@@ -1909,11 +1919,14 @@ select option { background: var(--bg2); }
             <option value="PJ">PJ</option>
             <option value="CLT ou PJ">CLT ou PJ</option>
           </select>
-          <select id="mv-canal" style="font-size:13px;">
+          <select id="mv-canal" style="font-size:13px;" onchange="toggleIndicacaoRow(this.value)">
             <option>LinkedIn</option><option>Indicação</option><option>Headhunter</option>
             <option>Site da empresa</option><option>Gupy</option><option>Indeed</option>
             <option>Email</option><option>Busca automática</option><option>Extensão Chrome</option>
           </select>
+        </div>
+        <div id="mv-indicacao-row" style="display:none;margin-bottom:8px;">
+          <input type="text" id="mv-indicacao" placeholder="Quem indicou? (nome · empresa · LinkedIn)" style="font-size:13px;width:100%;box-sizing:border-box;">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div style="display:flex;gap:6px;">
@@ -2646,7 +2659,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
@@ -3973,6 +3986,45 @@ function toggleRevisaoLista(){
   renderWidgetRevisao();
 }
 
+function renderIndicacoesHome(){
+  const lista=document.getElementById('indicacoes-inline-lista');
+  const countEl=document.getElementById('sinal-indicacoes-count');
+  const leads=vagas.filter(v=>v.canal==='Indicação'&&!['aceito','negado','arquivado','descartado'].includes(v.status));
+  if(countEl){
+    if(leads.length>0){countEl.textContent=leads.length+' ativa'+(leads.length>1?'s':'');countEl.style.display='';}
+    else{countEl.style.display='none';}
+  }
+  if(!lista||lista.style.display==='none') return;
+  if(leads.length===0){lista.innerHTML=`<div style="font-size:13px;color:var(--text3);padding:4px 0;">Nenhuma indicação ativa. Use + Registrar para adicionar.</div>`;return;}
+  lista.innerHTML=leads.slice(0,5).map(v=>`
+    <div onclick="openVagaModal('${v.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--border);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='#fff'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.empresa} · ${v.cargo}</div>
+        ${v.indicacao?`<div style="font-size:11.5px;color:#1A7A4A;margin-top:2px;">👤 ${v.indicacao}</div>`:''}
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${COL_STATUS?.[v.status]||v.status}</div>
+      </div>
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 3l5 5-5 5"/></svg>
+    </div>`).join('');
+  if(leads.length>5) lista.innerHTML+=`<div style="font-size:12px;color:var(--text3);text-align:center;padding-top:6px;">+${leads.length-5} mais · <span style="color:var(--action);cursor:pointer;" onclick="showPage('crm')">ver todas →</span></div>`;
+}
+
+function toggleIndicacoesHome(){
+  const lista=document.getElementById('indicacoes-inline-lista');
+  if(!lista) return;
+  const isOpen=lista.style.display!=='none';
+  lista.style.display=isOpen?'none':'flex';
+  renderIndicacoesHome();
+}
+
+function abrirNovaIndicacao(){
+  openVagaModal('new');
+  setTimeout(()=>{
+    const el=document.getElementById('mv-canal');
+    if(el){el.value='Indicação';toggleIndicacaoRow('Indicação');}
+    document.getElementById('mv-indicacao')?.focus();
+  },180);
+}
+
 function adicionarVagaRejeitada(idx){
   let lista = [];
   try{ lista = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
@@ -4014,7 +4066,7 @@ function showToast(msg, duration=4000){
   t._hide=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; },duration);
 }
 
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); }
+function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
@@ -4524,6 +4576,7 @@ function renderCRM(){
             ${c.tags?.includes('Revisar')?'<span class="badge-revisar">⚠ Revisar</span>':''}
           </div>
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
+          ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-top:5px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">→ ${c.proxima}</div>`:''}
           ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';const cl={'candidatar':'Candidatar','analisar':'Analisar','recusar':'Recusar'}[c.classificacao]||c.classificacao||'';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;"><span style="font-size:12px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">⚡ ${sc}/100</span>${cl?`<span style="font-size:11px;color:${cor};font-weight:600;">${cl}</span>`:''}</div>`;})():''}
         </div>`;
@@ -4626,6 +4679,8 @@ function openVagaModal(id){
     document.getElementById('mv-empresa').value=v.empresa;
     document.getElementById('mv-cargo').value=v.cargo;
     document.getElementById('mv-canal').value=v.canal;
+    const _ind=document.getElementById('mv-indicacao');if(_ind)_ind.value=v.indicacao||'';
+    toggleIndicacaoRow(v.canal);
     document.getElementById('mv-prioridade').value=v.prioridade;
     const _prVis=document.getElementById('mv-prioridade-vis');if(_prVis)_prVis.value=v.prioridade||'media';
     const _planoEl=document.getElementById('mv-plano');if(_planoEl)_planoEl.value=v.plano||'';
@@ -4705,6 +4760,8 @@ function openVagaModal(id){
     const mvLinkN=document.getElementById('mv-link-vaga');
     if(mvLinkN){ mvLinkN.style.display='none'; mvLinkN.dataset.url=''; }
     document.getElementById('mv-canal').value='LinkedIn';
+    const _indN=document.getElementById('mv-indicacao');if(_indN)_indN.value='';
+    toggleIndicacaoRow('LinkedIn');
     document.getElementById('mv-status').value='lead';
     document.getElementById('mv-prioridade').value='media';
     const _prVisN=document.getElementById('mv-prioridade-vis');if(_prVisN)_prVisN.value='media';
@@ -4721,6 +4778,7 @@ function openVagaModal(id){
     if(_draft&&(_draft['mv-empresa']||_draft['mv-cargo'])){
       _DRAFT_FIELDS.forEach(fid=>{const el=document.getElementById(fid);if(el&&_draft[fid]!==undefined)el.value=_draft[fid];});
       if(_draft.prioridade) document.getElementById('mv-prioridade').value=_draft.prioridade;
+      toggleIndicacaoRow(_draft['mv-canal']||'LinkedIn');
       if(_draftBanner) _draftBanner.style.display='flex';
     } else {
       if(_draftBanner) _draftBanner.style.display='none';
@@ -4770,6 +4828,10 @@ function atualizarBotoesModal(statusOverride){
   }
   acoes.innerHTML=html;
   validarVagaForm();
+}
+function toggleIndicacaoRow(canal){
+  const row=document.getElementById('mv-indicacao-row');
+  if(row) row.style.display=(canal==='Indicação')?'':'none';
 }
 function validarVagaForm(){
   const ok=!!(document.getElementById('mv-empresa')?.value.trim()&&document.getElementById('mv-cargo')?.value.trim());
@@ -4862,6 +4924,7 @@ function saveVaga(){
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
+    indicacao:document.getElementById('mv-indicacao')?.value||existing?.indicacao||'',
     jobDescription:document.getElementById('mv-job-desc').value,
     atsScore:existing?.atsScore||'',
     atsKeywords:existing?.atsKeywords||'',
@@ -4928,7 +4991,7 @@ function deleteVaga(){
 
 // Rascunho de formulário (B6)
 const _DRAFT_KEY='senova_vaga_draft';
-const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
+const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-indicacao','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
 let _draftTimer=null;
 function _scheduleDraftVaga(){ if(_draftTimer)clearTimeout(_draftTimer); _draftTimer=setTimeout(_saveDraftVaga,600); }
 function _saveDraftVaga(){
@@ -4946,6 +5009,8 @@ function descartarRascunhoVaga(){
   document.getElementById('mv-modelo').value='';
   document.getElementById('mv-regime').value='';
   document.getElementById('mv-canal').value='LinkedIn';
+  const _indD=document.getElementById('mv-indicacao');if(_indD)_indD.value='';
+  toggleIndicacaoRow('LinkedIn');
   document.getElementById('mv-prioridade').value='media';
 }
 // Timeline

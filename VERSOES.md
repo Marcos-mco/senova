@@ -1,5 +1,5 @@
 # SENOVA — Controle de Versões
-*Mantém apenas versões recentes (v3.12.3+). Histórico completo: VERSOES_HISTORICO.md*
+*Mantém apenas versões recentes (v3.25+). Histórico completo: VERSOES_HISTORICO.md*
 
 ## Como restaurar qualquer versão
 1. github.com/marcos-mco/senova → Commits → encontrar versão → Browse files
@@ -7,7 +7,51 @@
 
 ---
 
-## v3.12.7 — 25/mai/2026 (ATUAL)
+## v3.28 — 12/jun/2026 (ATUAL)
+**Status:** Funcional · Deploy GitHub Pages ✅
+**Commits:** `2da579b` | **Worker:** v7.8 (sem alteração)
+
+- fix(cv+carta): perfil corrigido — cidade Uberlândia, cargo Comercial/Vendas/Negócios, Master em Vendas e Marketing Estratégico, pretensão R$15k
+- CV_BASE PT/EN/ES: títulos, localização, Master e ATS_SYSTEM alinhados ao perfil real
+- gerarCartaATS: usa ATS_SYSTEM(lang) como system prompt + contexto expandido 1500 chars
+- Sidebar, PDF footer/title, email generators: todas as referências a "Marketing" e "Curitiba" corrigidas
+- F3: campo "Quem indicou?" no modal quando Canal=Indicação + botão "+ Indicação" na Home
+
+---
+
+## v3.27 — 09/jun/2026
+**Status:** Superada ✅ | **Worker:** v7.8 (deploy 09/jun)
+
+- Modal Entrevista: canal convite + data/hora + Outlook Calendar + dica Sofia
+- Fathom: pré-classificação Worker + "📹 Gravação" na Home + vínculo ao card
+- Oportunidades: consolidação email + busca automática com sub-seções
+- Ações por card varredura: Ignorar individual + Adicionar individual
+- Google Alert: artigos individuais com título e link real (worker + app)
+- Bing News RSS como primário, Google fallback, cache 4h
+- Captura de Aprendizado ao arrastar para Negado/Aceito/Descartado
+- KPI strip: Ativos, Taxa retorno, Entrevistas, Propostas
+- Para Hoje: Entrevista sem data → urgência roxa "agendar data"
+
+---
+
+## v3.25 — 03/jun/2026
+**Status:** Superada ✅
+
+- Home redesign v3.27 — 2 colunas (Para Hoje | O que há de novo)
+- Vocabulário: "varredura" → "Oportunidades automáticas" em toda UI
+- Para Hoje: seção "Retornos recebidos" (emails positivo/pipeline/hunter)
+- Oportunidades automáticas visíveis na Home (73 vagas Adzuna/Jobicy)
+- URL de vaga LinkedIn extraída do parâmetro trk
+- Worker: fetch HTML individual para emails de vaga — hrefs reais
+- Botão ↗ Ver vaga no cabeçalho do modal de processo
+- Enriquecimento retroativo de URLs (últimos 7 dias)
+- Canal correto por URL: LinkedIn/Indeed/Gupy detectados automaticamente
+- Email recrutador: filtra no-reply automaticamente
+- extrairDadosDescricao: detecta Modelo e Regime
+
+---
+
+## v3.12.7 — 25/mai/2026
 **Status:** Completo e validado ✅
 **Commits:** `64f4a86` · `75b07dd` · `6273896` | **Worker:** `007d2dec` (sem alteração)
 
@@ -58,10 +102,10 @@
 
 ---
 
-## Worker v7.7 — Cloudflare (atual)
+## Worker v7.8 — Cloudflare (atual)
 - URL: senova-proxy.marcos-mco.workers.dev
-- Deploy: `007d2dec` (22/mai/2026)
+- Deploy: 09/jun/2026
 - KV: SENOVA_KV | Cron: `0 10 * * *` (07h BRT)
 - OAuth scopes: Mail.Read + Mail.Send + Calendars.ReadWrite + offline_access
 - Tenant: `consumers` (Hotmail pessoal marcos_mco@hotmail.com)
-- Modelo IA: `claude-sonnet-4-5` ← pendente atualizar para `claude-sonnet-4-6`
+- Modelo IA: `claude-sonnet-4-6` ✅
