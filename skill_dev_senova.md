@@ -14,31 +14,38 @@ Sempre que houver qualquer tarefa de desenvolvimento no Senova:
 
 ---
 
-## 2. REGRA INVIOLÁVEL — LER ANTES DE QUALQUER EDIÇÃO
+## 2. PROTOCOLO BRUNO — LER ANTES DE QUALQUER EDIÇÃO
 
-1. Ler PROJETO.md
-2. Ler VERSOES.md
-3. Ler VIRGILIO.md
-4. Ler index.html (ou seções relevantes)
-5. Ler senova-worker.js (se a tarefa envolve o Worker)
+Bruno = Tech Lead + Arquiteto + Engenheiro + QA do Senova.
 
-NUNCA propor baseado em memória ou arquivos do projeto Claude.
+**Antes de qualquer edição:**
+1. Ler `skill_qa.md` — protocolo completo de qualidade
+2. Ler `skill_fluxo.md` — fluxo e vocabulário do produto
+3. Ler `VIRGILIO.md` — estado atual e regras invioláveis
+4. Ler o código das funções que serão alteradas (nunca assumir)
+5. Se envolve UI: ler `skill_design_senova.md` e `skill_ux_writing.md`
+6. Se envolve Worker: ler `senova-worker.js` seções relevantes
+
+NUNCA propor baseado em memória ou arquivos desatualizados.
 NUNCA assumir o estado do código — sempre ler primeiro.
+NUNCA commitar sem rodar o checklist do skill_qa.md.
 
 ---
 
-## 3. ARQUITETURA ATUAL (v3.10 — mai/2026)
+## 3. ARQUITETURA ATUAL (v3.28 — jun/2026)
 
 ```
 [Browser: index.html — GitHub Pages]
         ↓
-[Cloudflare Worker v7.7 — senova-proxy.marcos-mco.workers.dev]
+[Cloudflare Worker v7.8 — senova-proxy.marcos-mco.workers.dev]
         ↓
-[Anthropic API — claude-sonnet-4-5]
+[Anthropic API — claude-sonnet-4-6]   ← NUNCA claude-sonnet-4-5 (obsoleto)
 [Cloudflare KV — SENOVA_KV]
-[Microsoft Graph API — Outlook + Calendar]
+[Microsoft Graph API — Outlook Mail + Calendar]
 [Adzuna API — vagas BR/ES/DE/PT]
 [Jobicy RSS — vagas remotas globais]
+[Bing News RSS — sinais de mercado (primário)]
+[Google News RSS — sinais de mercado (fallback)]
 ```
 
 - URL produção: https://marcos-mco.github.io/senova
@@ -48,19 +55,26 @@ NUNCA assumir o estado do código — sempre ler primeiro.
 
 ---
 
-## 4. MÓDULOS ATUAIS
+## 4. MÓDULOS ATUAIS (jun/2026)
 
-| Módulo | Status |
-|--------|--------|
-| Anti-ATS (Análise CV) | ✅ Funcional |
-| LinkedIn Optimizer | ✅ Funcional |
-| Pipeline CRM (Kanban) | ✅ Funcional |
-| CRM Contatos | ✅ Funcional |
-| Varredura Automática | ✅ Funcional (cron 07h BRT) |
-| OAuth Outlook (Mail + Calendar) | ✅ Funcional |
-| Sofia (4 tabs) | ✅ Funcional |
-| Central de Sinais | 🔄 Em desenvolvimento |
-| Extensão Chrome | 📋 Roadmap Fase 2 |
+| Módulo | Status | Observação |
+|--------|--------|------------|
+| Análise de Vaga (Anti-ATS) | ✅ Funcional | CARTA_SYSTEM separado do ATS_SYSTEM |
+| Processos (Kanban) | ✅ Funcional | 5 colunas + arquivados |
+| Contatos (CRM) | ✅ Funcional | |
+| Home 2 colunas | ✅ Funcional | Para Hoje + O que há de novo |
+| Busca automática (Adzuna+Jobicy) | ✅ Funcional | cron 07h BRT, vagas direto para Processos |
+| OAuth Outlook (Mail + Calendar) | ✅ Funcional | tenant=consumers (Hotmail) |
+| Sinais de mercado (Bing/Google RSS) | ✅ Funcional | Cache 4h |
+| Google Alerts (artigos individuais) | ✅ Funcional | |
+| Fathom (gravação reunião) | ✅ Funcional | badge 📹 na Home |
+| Modal Entrevista + Outlook Calendar | ✅ Funcional | |
+| Captura de Aprendizado | ✅ Funcional | ao arquivar processo |
+| Sofia onboarding (texto) | ✅ Funcional | 14 perguntas + TTS/STT |
+| Indicações (5ª fonte de leads) | ✅ Funcional | |
+| Extensão Chrome | 🔄 v2.12 | companion LinkedIn + job boards |
+| LinkedIn Optimizer | ✅ Funcional | |
+| KPI strip Processos | ✅ Funcional | 4 KPIs |
 
 ---
 
@@ -164,20 +178,26 @@ Verificar commit hash no retorno
 
 ---
 
-## 11. PENDÊNCIAS TÉCNICAS ATIVAS (mai/2026)
+## 11. BUGS E PENDÊNCIAS ATIVAS (15/jun/2026)
 
-- [ ] Modal Editar Vaga — caber na tela sem scroll
-- [ ] Botão Candidatar — fluxo completo
-- [ ] URL LinkedIn — abrir vaga correta
-- [ ] Idioma DE no Anti-ATS
-- [ ] Filtros Plano A/B/C no Pipeline
-- [ ] Follow-up automático 7/14/21 dias
-- [ ] Central de Sinais via Google News RSS
-- [ ] Hunter.io integration
-- [ ] Gmail OAuth (futuro)
-- [ ] senova.com.br (Fase 4)
+### Bugs confirmados (ver prints de Marcos)
+- [ ] "Entrevista — agendar data e horário" persiste após atualizar card
+- [ ] "+ Abrir processo" aparece em Novidades no mercado (ERRADO pelo fluxo)
+- [ ] "Oportunidades — nenhuma nova" e "Retornos — nenhum novo" violam regra empty state
+- [ ] Editar Processo: descrição da vaga não carrega (campo mv-job-desc vazio)
+- [ ] Editar Processo: DE falta nas línguas; idioma deveria ser detectado automaticamente
+- [ ] Botão "Verificar" em Busca Automática sem feedback visível
+- [ ] Sofia / Preparar entrevista não funcionando
+
+### Pendências de produto (Ciclo 1)
+- [ ] VISÃO COMPLETA no card (Sofia analisa holístico antes de candidatar)
+- [ ] Fluxo Analisar dentro do card (sem sair do contexto)
+- [ ] Retornos: mostrar "N processos aguardando resposta" (não só recebidos)
+- [ ] Idioma DE em todos os lugares que têm PT/EN/ES
+- [ ] LinkedIn no contato: link direto clicável
+- [ ] Responsivo mobile (768px+)
 
 ---
 
-*Atualizado em 21/mai/2026 — v3.10 / Worker v7.7*
-*Substitui versão desatualizada (v3.0)*
+*Atualizado em 15/jun/2026 — v3.28 / Worker v7.8*
+*Bruno = Tech Lead + Arquiteto + Engenheiro + QA*

@@ -23,7 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Produção:** https://marcos-mco.github.io/senova
 - **Worker:** https://senova-proxy.marcos-mco.workers.dev
 - **Repo:** https://github.com/marcos-mco/senova
-- **Modelo IA:** `claude-sonnet-4-5` — único modelo testado e funcional no endpoint atual
+- **Modelo IA no Worker:** `claude-sonnet-4-6` (nunca usar 4-5, está obsoleto)
+- **Modelo Bruno para análise:** `claude-opus-4-8` · **Para código:** `claude-sonnet-4-6`
 
 O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.3) e é gerenciado pelo `wrangler.toml`.
 
@@ -119,14 +120,36 @@ Cron: `0 10 * * *` (07h BRT) — varredura automática Adzuna + Jobicy
 | Candidatura via Outlook | ✅ Funcional |
 | CRM Contatos | ✅ Funcional |
 
-## Antes de qualquer edição
+## Quem é Bruno
 
-1. Ler `VIRGILIO.md` para contexto permanente, regras invioláveis e estado do projeto
-2. Ler `PROJETO.md` para contexto de decisões de arquitetura e roadmap
-3. Ler `VERSOES.md` para entender o estado da versão atual
-4. Ler `SOFIA_ALMA.md` antes de qualquer mudança no comportamento ou prompt da Sofia
-5. Salvar backup com nome `senova_v[N]_[data].html` antes de modificar o `index.html`
-6. Nunca refatorar CSS/layout junto com correção de bug — mudanças devem ser isoladas
+Bruno é o Tech Lead + Arquiteto + Engenheiro + QA do Senova.
+É o nome de trabalho do Claude Code neste projeto.
+Marcos é o PM e QA final (testa antes de aprovar cada deploy).
+
+## Protocolo obrigatório antes de qualquer edição
+
+**FASE 1 — Arquiteto (antes de codar)**
+1. Ler `skill_qa.md` — protocolo completo de qualidade
+2. Ler `skill_fluxo.md` — fluxo do produto e vocabulário
+3. Ler `VIRGILIO.md` — estado atual e regras
+4. Ler o código real das funções que serão alteradas
+5. Se UI: ler `skill_design_senova.md` + `skill_ux_writing.md`
+6. Escrever plano/wireframe antes de implementar
+
+**FASE 2 — Engenheiro (depois de codar)**
+Rodar checklist completo do `skill_qa.md` antes de qualquer commit.
+
+**FASE 3 — Teste**
+Pedir a Marcos que teste com cenário específico (ação + resultado esperado).
+Nunca pedir "veja se está ok" sem descrever o cenário.
+
+## Regras invioláveis de desenvolvimento
+- Nunca chamar `api.anthropic.com` do browser (sempre via Worker)
+- Nunca substituir `index.html` por arquivo externo
+- Nunca refatorar CSS junto com correção de bug
+- Nunca commitar sem rodar o checklist do `skill_qa.md`
+- Um fix de cada vez: commit → Marcos testa → aprova → próximo
+- Salvar backup `senova_v[N]_[data].html` antes de editar `index.html`
 
 ## Regra ética inviolável
 
