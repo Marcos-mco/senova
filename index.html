@@ -2728,6 +2728,25 @@ PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
 OBSERVAÇÕES: [contexto relevante em 1 linha]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
+const CARTA_SYSTEM = (lang) => {
+  const ll={PT:'português (Brasil)',EN:'English',ES:'español'};
+  return `Você redige cartas de apresentação executivas para Marcos Franco.
+
+PERFIL:
+${CV_BASE[lang]}
+
+INSTRUÇÕES:
+- Idioma: ${ll[lang]||'português (Brasil)'}
+- 3 parágrafos curtos (≈150 palavras no total)
+- § 1 — Abertura específica: mostre que você conhece a empresa/vaga; 1 frase de impacto sobre o fit
+- § 2 — Evidências: 2 realizações com números do CV que conectam diretamente ao que a vaga exige
+- § 3 — Fechamento confiante: disponibilidade para conversa, contato, sem clichê
+- Tom: executivo maduro, direto, sem arrogância, sem frases corporativas vazias
+- NÃO comece com "Prezado(a) Recrutador(a)" genérico — use o nome/cargo quando disponível no contexto
+- NÃO invente métricas fora do CV
+- Retorne APENAS o texto da carta, sem cabeçalho, sem título, sem assinatura formatada`;
+};
+
 function _hideAtsExtras(){}
 async function analyzeJob() {
   const vaga = document.getElementById('vaga-input').value.trim();
@@ -2851,6 +2870,7 @@ function renderATSResult(analise,cv,crm) {
           </div>
           <button class="copy-btn" id="ats-carta-btn" onclick="gerarCartaATS(this)">Gerar carta</button>
         </div>
+        <textarea id="ats-ctx-carta" rows="2" placeholder="Contexto opcional: indicação de alguém, tom específico, algo a destacar…" style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:none;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
         <div id="ats-carta-out" style="display:none;">
           <textarea id="ats-carta-txt" rows="10" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.65;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:6px;">
@@ -2938,15 +2958,17 @@ function setCartaLang(lang,btn){
 async function gerarCartaATS(btn){
   const empresa=atsEmpresa||'a empresa';
   const cargo=atsCargo||'a posi\u00e7\u00e3o';
-  const analise=_atsAnalise.slice(0,1500);
+  const analise=_atsAnalise.slice(0,2500);
+  const ctx=(document.getElementById('ats-ctx-carta')?.value||'').trim();
   const langLabel={PT:'portugu\u00eas (Brasil)',EN:'English',ES:'espa\u00f1ol'};
   const lang=_cartaLang||'PT';
   btn.textContent='Gerando\u2026'; btn.disabled=true;
   try{
+    const ctxStr=ctx?`\n\nContexto adicional: ${ctx}`:'';
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:ATS_SYSTEM(lang),
-        messages:[{role:'user',content:`Escreva uma carta de apresenta\u00e7\u00e3o executiva em ${langLabel[lang]||'portugu\u00eas'} para a vaga de ${cargo} na empresa ${empresa}.\n\nContexto da an\u00e1lise de compatibilidade realizada:\n${analise}\n\nInstru\u00e7\u00f5es:\n- M\u00e1ximo 3 par\u00e1grafos concisos\n- Mencione ${empresa} e ${cargo} especificamente\n- Mostre interesse genu\u00edno e destaque o fit\n- Tom formal e executivo\n- Retorne APENAS o texto da carta, sem t\u00edtulos, cabe\u00e7alhos ou separadores`}]
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,
+        system:CARTA_SYSTEM(lang),
+        messages:[{role:'user',content:`Escreva a carta em ${langLabel[lang]||'portugu\u00eas'} para a vaga de ${cargo} na ${empresa}.\n\nAN\u00c1LISE DA VAGA (use para personalizar):\n${analise}${ctxStr}`}]
       })
     });
     const data=await res.json();
@@ -5235,8 +5257,10 @@ async function gerarDocModal(tipo){
     system=ATS_SYSTEM(cvLang);
     prompt='Gere apenas o CV otimizado (o texto que viria na seção ---CV--- do seu formato padrão) para esta vaga:\n\n'+vagaTexto+ctxStr;
   } else if(tipo==='carta'){
-    system=ATS_SYSTEM(cvLang);
-    prompt='Gere apenas uma carta de apresentação executiva e concisa para esta vaga. Sem score, sem CV, sem análise, sem separadores.\n\n'+vagaTexto+ctxStr;
+    system=CARTA_SYSTEM(cvLang);
+    const _anaVaga=editingVagaId&&editingVagaId!=='new'?(vagas.find(v=>String(v.id)===String(editingVagaId))?.atsAnalise||''):'';
+    const _anaStr=_anaVaga?`\n\nANÁLISE ANTERIOR:\n${_anaVaga.slice(0,1500)}`:'';
+    prompt=`Escreva a carta para a vaga abaixo.\n\n${vagaTexto}${_anaStr}${ctxStr}`;
   } else {
     system=`Você é assistente executivo de Marcos Franco, executivo sênior de Negócios, Vendas e Crescimento em Uberlândia, MG. Escreva respostas profissionais, objetivas e na voz de Marcos. Use português correto com acentos.`;
     prompt=`Sugira uma resposta profissional para o contato abaixo.\n\nContexto da vaga: ${metaVaga}\n\nContato recebido:\n${emailRecebido}${ctxStr}`;
@@ -6401,12 +6425,11 @@ function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv}){
   document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
   document.getElementById('mcand-email').value=emailDest||'';
   document.getElementById('mcand-assunto').value='Candidatura — '+cargo+' — Marcos Franco';
-  const cartaDefault='Prezado(a),\n\nMe chamo Marcos Franco, executivo sênior com mais de 30 anos em marketing, mídia e negócios.\n\nTenho interesse na vaga de '+cargo+(empresa&&empresa!=='A definir'?' na '+empresa:'')+' e gostaria de apresentar meu perfil para sua apreciação.\n\nAguardo seu contato.\n\nAtenciosamente,\nMarcos Franco\n(41) 99615-2224\nmarcos_mco@hotmail.com';
-  const cartaFinal=carta||cartaDefault;
   const cvContent=cv||lastCV||'';
-  const preview=cartaFinal+(cvContent?'\n\n━━━━━━━━━━━━━━━━━━━━\nCV OTIMIZADO\n━━━━━━━━━━━━━━━━━━━━\n\n'+cvContent:'');
+  const preview=(carta||'')+(cvContent?(carta?'\n\n━━━ CV OTIMIZADO ━━━\n\n':'')+ cvContent:'');
   document.getElementById('mcand-preview').value=preview;
-  document.getElementById('mcand-cv-status').textContent=cvContent?'✓ CV incluído':'Sem CV — edite o corpo manualmente';
+  const semCarta=!carta;
+  document.getElementById('mcand-cv-status').textContent=cvContent&&semCarta?'✓ CV incluído · Sem carta — gere na aba Análise':cvContent?'✓ CV + carta incluídos':'Sem CV — edite o corpo manualmente';
   const btn=document.getElementById('mcand-enviar-btn');
   if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
   document.getElementById('modal-candidatura').style.display='flex';
