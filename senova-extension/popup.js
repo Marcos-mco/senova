@@ -1,4 +1,4 @@
-// Popup — Senova Extension v2.3
+// Popup — Senova Extension v2.13
 
 const APP_URL = 'https://marcos-mco.github.io/senova';
 
@@ -150,19 +150,24 @@ function renderScore(r) {
     motivos += `<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>${p}</span></div>`;
   });
 
+  const conselho = r.resumo
+    ? `<div style="margin-top:8px;padding:7px 9px;background:#F0F4F8;border-radius:6px;border-left:3px solid ${v.cor};font-size:11.5px;color:#3A4A5A;line-height:1.5;">💡 ${r.resumo}</div>`
+    : '';
+
   sw.innerHTML = `
-    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">
-      <span style="font-size:20px;line-height:1;">${v.icon}</span>
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;">
+      <span style="font-size:18px;line-height:1;">${v.icon}</span>
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:700;color:${v.cor};line-height:1.2;">${v.titulo}</div>
-        <div style="font-size:11.5px;color:#5A6A7A;margin-top:2px;line-height:1.4;">${v.sub}</div>
+        <div style="font-size:13px;font-weight:700;color:${v.cor};line-height:1.2;">${v.titulo}</div>
+        <div style="font-size:11px;color:#5A6A7A;margin-top:1px;line-height:1.4;">${v.sub}</div>
       </div>
-      <span style="font-size:16px;font-weight:800;color:${v.cor};white-space:nowrap;">${score}/100</span>
+      <span style="font-size:15px;font-weight:800;color:${v.cor};white-space:nowrap;">${score}/100</span>
     </div>
-    <div style="height:4px;background:#E5ECF2;border-radius:2px;overflow:hidden;margin-bottom:8px;">
+    <div style="height:4px;background:#E5ECF2;border-radius:2px;overflow:hidden;margin-bottom:7px;">
       <div style="height:4px;width:${score}%;background:${v.cor};border-radius:2px;"></div>
     </div>
     ${motivos}
+    ${conselho}
   `;
 }
 

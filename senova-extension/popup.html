@@ -12,22 +12,23 @@
       font-size: 14px;
       background: #F0F4F8;
       color: #2C2C2A;
+      min-width: 360px;
     }
 
     /* ── HEADER ── */
     header {
       background: #1A3A5C;
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
     .logo {
-      width: 32px; height: 32px;
+      width: 28px; height: 28px;
       background: #C9A84C;
-      border-radius: 7px;
+      border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 18px; color: #1A3A5C;
+      font-weight: 800; font-size: 16px; color: #1A3A5C;
       flex-shrink: 0; letter-spacing: -1px;
     }
     header h1 { font-size: 15px; font-weight: 700; color: #fff; }
@@ -40,7 +41,7 @@
     .btn-app:hover { background: #C9A84C22; }
 
     /* ── BODY ── */
-    .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; max-height: 560px; overflow-y: auto; }
+    .body { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
 
     /* ── ESTADOS ── */
     #estado-loading, #estado-vaga, #estado-sinal, #estado-generico {
@@ -58,21 +59,21 @@
     .loading-txt { font-size: 13px; color: #5A6A7A; }
 
     /* ── VAGA ── */
-    .vaga-header { background: #fff; border-radius: 8px; padding: 12px 14px; border: 1px solid #D0D9E4; }
-    .vaga-cargo  { font-size: 15px; font-weight: 700; color: #1A3A5C; line-height: 1.3; }
-    .vaga-meta   { font-size: 12px; color: #5A6A7A; margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .vaga-header { background: #fff; border-radius: 8px; padding: 10px 12px; border: 1px solid #D0D9E4; }
+    .vaga-cargo  { font-size: 14px; font-weight: 700; color: #1A3A5C; line-height: 1.3; }
+    .vaga-meta   { font-size: 11.5px; color: #5A6A7A; margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
     .vaga-canal  { background: #EEF4FA; color: #2E6DA4; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 11px; }
 
     /* ── SCORE ── */
-    .score-wrap { background: #fff; border-radius: 8px; padding: 12px 14px; border: 1px solid #D0D9E4; }
-    .score-top  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .score-wrap { background: #fff; border-radius: 8px; padding: 10px 12px; border: 1px solid #D0D9E4; }
+    .score-top  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
     .score-label{ font-size: 11px; font-weight: 700; color: #5A6A7A; text-transform: uppercase; letter-spacing: .05em; }
-    .score-num  { font-size: 22px; font-weight: 800; }
-    .score-bar-bg { height: 6px; background: #E5ECF2; border-radius: 3px; overflow: hidden; }
-    .score-bar  { height: 6px; border-radius: 3px; transition: width .6s ease; }
-    .score-resumo { font-size: 12.5px; color: #3A4A5A; margin-top: 8px; line-height: 1.5; }
+    .score-num  { font-size: 20px; font-weight: 800; }
+    .score-bar-bg { height: 5px; background: #E5ECF2; border-radius: 3px; overflow: hidden; }
+    .score-bar  { height: 5px; border-radius: 3px; transition: width .6s ease; }
+    .score-resumo { font-size: 12px; color: #3A4A5A; margin-top: 7px; line-height: 1.5; }
 
-    .pontos { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .pontos { margin-top: 7px; display: flex; flex-direction: column; gap: 3px; }
     .ponto  { font-size: 12px; display: flex; gap: 6px; align-items: flex-start; line-height: 1.4; }
     .ponto-ok  { color: #1A7A4A; }
     .ponto-att { color: #B8670A; }

@@ -75,7 +75,7 @@ Multinacional colombiana — US$ 60 mi/ano no Brasil, 1.000+ funcionários
 - **Prêmio:** Troféu Imprensa 2004 — campanha RSE
 
 ## Formação
-- Master's Barcelona (2014–15)
+- Master em Vendas/Sales · Barcelona (2014–15)
 - MBA em Administração de Empresas · FGV Curitiba (1998–2000) — NUNCA associar a Marketing
 - FAAP Publicidade (1989–93)
 
