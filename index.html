@@ -4202,6 +4202,7 @@ function proximaSalvar(){
     vagas[_proximaIdx].updatedAt=Date.now();
     saveVagas();
     renderCRM();
+    renderHomeAcoes();
   }
   document.getElementById('modal-proxima').style.display='none';
   _proximaIdx=-1;
@@ -5925,11 +5926,10 @@ function atualizarSinalOportunidades(){
     if(nEmail>0) partes.push(`${nEmail} de email`);
     if(nBusca>0) partes.push(`${nBusca} da busca automática`);
     if(sub) sub.textContent=partes.length>1?partes.join(' · '):'';
-    s&&(s.style.opacity='1');
+    s&&(s.style.display='',s.style.opacity='1');
   } else {
-    txt.textContent='Oportunidades — nenhuma nova';
-    if(sub) sub.textContent='';
-    s&&(s.style.opacity='0.6');
+    s&&(s.style.display='none');
+    return;
   }
   const lista=document.getElementById('oportunidades-inline-lista');
   if(lista&&lista.style.display==='flex') renderOportunidades();
@@ -6023,10 +6023,12 @@ function atualizarSinais(){
     } else {
       const retornos=_emailsProcesso.filter(e=>e.categoria==='positivo'||e.categoria==='pipeline'||e.categoria==='negativo'||e.categoria==='hunter');
       const n=retornos.length;
-      s2txt.textContent=n>0?`${n} retorno${n===1?'':'s'} de processo${n===1?'':'s'}`:'Retornos — nenhum novo';
+      if(n===0){ s2.style.display='none'; return; }
+      s2.style.display='';
+      s2txt.textContent=`${n} retorno${n===1?'':'s'} de processo${n===1?'':'s'}`;
       s2.onclick=toggleRetornos;
-      s2.style.opacity=n>0?'1':'0.6';
-      if(s2sub) s2sub.style.display=n>0?'block':'none';
+      s2.style.opacity='1';
+      if(s2sub) s2sub.style.display='block';
     }
   }
   // Sinal 3 — Novidades no mercado (alertas + notícias, fonte oculta)
@@ -6035,14 +6037,16 @@ function atualizarSinais(){
   if(s3&&s3txt){
     const total=_sinaisAlertas.length+_sinaisMercado.length+_emailsMercado.length;
     if(total>0){
+      s3.style.display='';
       s3txt.textContent=`${total} novidade${total===1?'':'s'} no mercado`;
       s3.style.opacity='1';
     } else if(_alertasHoje>0){
+      s3.style.display='';
       s3txt.textContent=`Mercado — ${_alertasHoje} sinal${_alertasHoje===1?'':'s'} hoje`;
       s3.style.opacity='0.7';
     } else {
-      s3txt.textContent='Mercado — sem novidades';
-      s3.style.opacity='0.6';
+      s3.style.display='none';
+      return;
     }
     s3.onclick=toggleAlertasInline;
   }
@@ -6542,7 +6546,6 @@ function _buildAlertasHtml(){
           :`<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">${titulo}</div>`
         }
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${url?`<button onclick="event.stopPropagation();_abrirProcessoDeNoticia('${url.replace(/'/g,"\\'")}')" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">+ Abrir processo</button>`:''}
           <button onclick="event.stopPropagation();_dispensarAlerta(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
         </div>
       </div>`;
@@ -6564,7 +6567,6 @@ function _buildAlertasHtml(){
         <span style="font-size:11px;color:var(--text3);flex-shrink:0;">${dataTxt}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button onclick="event.stopPropagation();_abrirProcessoDeNoticia('')" style="font-size:12px;font-weight:600;color:#fff;background:var(--navy);border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">+ Abrir processo</button>
         <button onclick="event.stopPropagation();_dispensarAlerta(${i})" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;font-family:var(--font);">Sem interesse</button>
       </div>
     </div>`;
