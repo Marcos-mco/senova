@@ -2802,7 +2802,9 @@ function renderATSResult(analise,cv,crm) {
   lastCRM = crm;
   _atsAnalise = analise;
   _cartaLang = cvLang;
-  const campoVaga=document.getElementById('vaga-input');if(campoVaga)campoVaga.value='';
+  const campoVaga=document.getElementById('vaga-input');
+  const _descSalva=campoVaga?.value||'';
+  if(campoVaga)campoVaga.value='';
   if(atsEmpresa||atsCargo){
     const _e=(atsEmpresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga';
     const _c=(atsCargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo';
@@ -2813,7 +2815,7 @@ function renderATSResult(analise,cv,crm) {
   }
 
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
-  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';saveVagas();}}
+  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;saveVagas();}}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
   const col = score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
   const bg = score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
