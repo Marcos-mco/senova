@@ -37,7 +37,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
-::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; } ::-webkit-scrollbar-thumb:hover { background: var(--text3); } * { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; } ::-webkit-scrollbar-thumb:hover { background: var(--text3); } * { scrollbar-width: auto; scrollbar-color: var(--border2) transparent; }
 
 .app { display: flex; height: 100vh; overflow: hidden; }
 
@@ -110,7 +110,7 @@ select option { background: var(--bg2); }
 .tab-btn.active { background: var(--bg2); color: var(--navy); box-shadow: var(--shadow); font-weight: 600; }
 
 /* ── KANBAN ── */
-.kanban { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.kanban { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 4px solid transparent; box-shadow: var(--shadow); }
@@ -138,7 +138,11 @@ select option { background: var(--bg2); }
 .modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
-#modal-vaga > .modal { width: min(720px,94vw); }
+#modal-vaga > .modal { position: absolute; width: min(720px,94vw); }
+[data-drag-handle] { cursor: grab; }
+[data-drag-handle]:active { cursor: grabbing; }
+#mv-resize-grip { position: absolute; bottom: 3px; right: 4px; width: 18px; height: 18px; cursor: se-resize; z-index: 10; opacity: 0.35; color: var(--text3); font-size: 15px; line-height: 18px; text-align: right; user-select: none; pointer-events: auto; }
+#mv-resize-grip:hover { opacity: 0.7; }
 .mv-sec { border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 14px; }
 .mv-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .mv-sec-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:17px; font-weight:700; color:var(--navy); text-transform:none; letter-spacing:-0.1px; }
@@ -1804,7 +1808,7 @@ select option { background: var(--bg2); }
   <div class="modal">
 
     <!-- ZONA 1 — CABEÇALHO (fixo) -->
-    <div style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
+    <div data-drag-handle="1" style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
         <div style="flex:1;min-width:0;">
           <input type="text" id="mv-empresa" placeholder="Empresa *" oninput="validarVagaForm()"
@@ -2088,6 +2092,7 @@ select option { background: var(--bg2); }
       <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
       <div id="mv-footer-acoes" style="display:flex;gap:8px;"></div>
     </div>
+    <div id="mv-resize-grip" title="Redimensionar">⌟</div>
   </div>
 </div>
 
@@ -4963,6 +4968,7 @@ function openVagaModal(id){
     mvFecharSofia();
   }
   document.getElementById('modal-vaga').style.display='flex';
+  _mvCenterModal();
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
 }
@@ -5346,10 +5352,11 @@ function mvDocTab(which,btn){
 
 function mvAtualizarBtnAnalise(){
   const temDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
+  const isLead=document.getElementById('mv-status')?.value==='lead';
   const btn=document.getElementById('mv-analyze-btn');
   const hint=document.getElementById('mv-analyze-hint');
   if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
-  if(hint) hint.style.display=temDesc?'none':'';
+  if(hint) hint.style.display=(temDesc||isLead)?'none':'';
 }
 function mvMostrarCtxRegen(tipo){
   const row=document.getElementById('mv-ctx-'+tipo+'-row');
@@ -7825,6 +7832,58 @@ window.__senovaImportar();
   setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },600);
   setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1400);
 })();
+// ── MODAL DRAGGÁVEL + REDIMENSIONÁVEL ───────────────────────────────────────
+function _mvCenterModal(){
+  const modal=document.querySelector('#modal-vaga > .modal');
+  if(!modal) return;
+  const mw=Math.min(720,Math.round(window.innerWidth*0.94));
+  const mh=Math.round(window.innerHeight*0.88);
+  modal.style.width=mw+'px';
+  modal.style.height='';
+  modal.style.maxHeight=mh+'px';
+  modal.style.left=Math.max(0,Math.round((window.innerWidth-mw)/2))+'px';
+  modal.style.top=Math.max(16,Math.round(window.innerHeight*0.05))+'px';
+}
+(function(){
+  const overlay=document.getElementById('modal-vaga');
+  const modal=overlay?.querySelector('.modal');
+  if(!modal) return;
+  let dragging=false,dragOX=0,dragOY=0;
+  let resizing=false,resX=0,resY=0,resW=0,resH=0;
+  modal.addEventListener('mousedown',e=>{
+    const handle=e.target.closest('[data-drag-handle]');
+    if(!handle||e.target.closest('input,select,button,a,textarea')) return;
+    dragging=true;
+    const r=modal.getBoundingClientRect();
+    dragOX=e.clientX-r.left; dragOY=e.clientY-r.top;
+    e.preventDefault();
+  });
+  const grip=document.getElementById('mv-resize-grip');
+  if(grip){
+    grip.addEventListener('mousedown',e=>{
+      resizing=true;
+      resX=e.clientX; resY=e.clientY;
+      resW=modal.offsetWidth; resH=modal.offsetHeight;
+      e.preventDefault(); e.stopPropagation();
+    });
+  }
+  document.addEventListener('mousemove',e=>{
+    if(dragging){
+      const nl=Math.max(0,Math.min(window.innerWidth-modal.offsetWidth,e.clientX-dragOX));
+      const nt=Math.max(0,Math.min(window.innerHeight-80,e.clientY-dragOY));
+      modal.style.left=nl+'px'; modal.style.top=nt+'px';
+    }
+    if(resizing){
+      const nw=Math.max(480,Math.min(window.innerWidth-parseInt(modal.style.left||0)-8,resW+(e.clientX-resX)));
+      const nh=Math.max(300,Math.min(window.innerHeight-parseInt(modal.style.top||0)-8,resH+(e.clientY-resY)));
+      modal.style.width=nw+'px';
+      modal.style.height=nh+'px';
+      modal.style.maxHeight=nh+'px';
+    }
+  });
+  document.addEventListener('mouseup',()=>{dragging=false;resizing=false;});
+})();
+
 // Listener único para salvar rascunho de Novo Processo (B6)
 (function(){
   const m=document.getElementById('modal-vaga');
