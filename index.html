@@ -3751,7 +3751,7 @@ function dataAtualFormatada(){
   const mi=String(n.getMinutes()).padStart(2,'0');
   return `${d}/${m}/${n.getFullYear()} ${h}:${mi}`;
 }
-const _LOGO_CACHE_KEY='senova_logo_cache_v1';
+const _LOGO_CACHE_KEY='senova_logo_cache_v2';
 function _getLogoCache(){try{return JSON.parse(localStorage.getItem(_LOGO_CACHE_KEY)||'{}');}catch(e){return {};}}
 function _setLogoCache(c){try{localStorage.setItem(_LOGO_CACHE_KEY,JSON.stringify(c));}catch(e){}}
 function _faviconFromUrl(url){
@@ -3781,7 +3781,7 @@ async function _resolveCompanyLogos(){
       const r=await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(empresa)}`);
       const data=await r.json();
       const match=data.find(d=>d.name.toLowerCase()===empresa.toLowerCase())||data[0];
-      cache[empresa]=match?.domain?`https://logo.clearbit.com/${match.domain}`:null;
+      cache[empresa]=match?.domain?`https://www.google.com/s2/favicons?domain=${match.domain}&sz=64`:null;
     }catch(e){cache[empresa]=null;}
     if(cache[empresa]) _applyLogo(empresa,cache[empresa]);
   }
