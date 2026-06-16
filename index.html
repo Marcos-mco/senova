@@ -252,6 +252,9 @@ select option { background: var(--bg2); }
 .kcard-created { font-size:10.5px; color:var(--text3); }
 .kcard-updated { font-size:10px; color:var(--text3); opacity:0.7; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kcard-proxima { position: relative; font-size: 11.5px; color: var(--text2); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.kcard-proxima::after { content: attr(data-full); display: none; position: absolute; bottom: calc(100% + 6px); left: -12px; background: var(--navy); color: #fff; font-size: 11.5px; font-family: var(--font); padding: 8px 12px; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); white-space: pre-wrap; max-width: 260px; width: max-content; z-index: 100; line-height: 1.5; }
+.kcard-proxima:hover::after { display: block; }
 .col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
 /* ── CONTATOS CRM ── */
 .ct-search-wrap { position:relative; display:flex; align-items:center; margin-bottom:12px; }
@@ -4673,16 +4676,14 @@ function renderCRM(){
           </div>
           <div class="kcard-role">${c.cargo}</div>
           <div class="kcard-meta">
-            <span style="background:var(--bg3);color:var(--text3);padding:1px 7px;border-radius:5px;font-size:11px;">${c.canal}</span>
             ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
             ${c.plano?`<span style="font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;${c.plano==='A'?'background:#EAF1FB;color:var(--navy);':c.plano==='B'?'background:#FFF8EC;color:#8B6914;':'background:#F0FDF4;color:#15803D;'}">P${c.plano}</span>`:''}
             ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
-            ${c.tags?.includes('Revisar')?'<span class="badge-revisar">⚠ Revisar</span>':''}
           </div>
           ${(c.localizacao||c.modelo)?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">${[c.localizacao,c.modelo].filter(Boolean).join(' · ')}</div>`:''}
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-top:5px;">👤 ${c.indicacao}</div>`:''}
-          ${c.proxima?`<div style="font-size:11.5px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">↻ ${c.proxima}</div>`:''}
+          ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}">↻ ${c.proxima}</div>`:''}
           ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;"><span style="font-size:11.5px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">Compatibilidade ${sc}%</span></div>`;})():''}
         </div>`;
       }).join('')}
