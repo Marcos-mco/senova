@@ -2025,8 +2025,8 @@ select option { background: var(--bg2); }
           <span style="margin-left:16px;">↻ Atualizado: <strong id="mv-atualizado-em" style="color:var(--text2);font-weight:500;">—</strong></span>
         </div>
         <div id="mv-preparar-entrevista" style="display:none;margin-bottom:10px;padding:12px 14px;background:#FAF5FF;border-radius:8px;border:1.5px solid #DDD6FE;">
-          <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Entrevista marcada</div>
-          <div style="font-size:13px;color:#4C1D95;margin-bottom:10px;line-height:1.4;">Prepare-se com o Simulador de Entrevista da Sofia.</div>
+          <div id="mv-preparar-titulo" style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Entrevista marcada</div>
+          <div id="mv-preparar-texto" style="font-size:13px;color:#4C1D95;margin-bottom:10px;line-height:1.4;">Prepare-se com o Simulador de Entrevista da Sofia.</div>
           <button class="btn btn-ghost" id="mv-btn-preparar" style="font-size:13px;padding:7px 14px;border-color:#7C3AED;color:#7C3AED;width:100%;justify-content:center;">🎤 Preparar para esta entrevista</button>
         </div>
         <div id="mv-timeline-form" class="tl-form" style="display:none;">
@@ -4668,10 +4668,7 @@ function renderCRM(){
         const nv=nivelInativo(c);
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-            <div class="kcard-name">${c.empresa}</div>
-            ${(c.createdAt||c.updatedAt)?`<div class="kcard-dates"><span class="kcard-created">📅 ${formatTs(c.createdAt||c.updatedAt)}</span>${(c.updatedAt&&c.createdAt&&Math.floor(c.updatedAt/86400000)!==Math.floor(c.createdAt/86400000))?`<span class="kcard-updated">· ↻ ${formatTs(c.updatedAt)}</span>`:''}</div>`:''}
-          </div>
+          <div class="kcard-name">${c.empresa}</div>
           <div class="kcard-role">${c.cargo}</div>
           <div class="kcard-meta">
             ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
@@ -4683,6 +4680,7 @@ function renderCRM(){
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-top:5px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">↻ ${c.proxima}</div>`:''}
           ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;"><span style="font-size:11.5px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">Compatibilidade ${sc}%</span></div>`;})():''}
+          ${(c.updatedAt||c.createdAt)?`<div style="font-size:10px;color:var(--text3);margin-top:5px;text-align:right;">↻ ${formatTs(c.updatedAt||c.createdAt)}</div>`:''}
         </div>`;
       }).join('')}
     </div>`;
@@ -4844,7 +4842,22 @@ function openVagaModal(id){
     if(prepDiv&&prepBtn){
       if(v.status==='entrevista'){
         const alvo=`${v.empresa||''}${v.cargo&&v.cargo!=='A definir'?' · '+v.cargo:''}`.trim();
-        prepBtn.onclick=()=>{ closeVagaModal(); showPage('sofia'); sofiaTab(4); const el=document.getElementById('int-cargo'); if(el){el.value=alvo; el.focus();} };
+        const entPassou=v.entrevistaData&&new Date(v.entrevistaData)<new Date();
+        const tituloEl=document.getElementById('mv-preparar-titulo');
+        const textoEl=document.getElementById('mv-preparar-texto');
+        if(entPassou){
+          if(tituloEl) tituloEl.textContent='Aguardando resultado';
+          if(textoEl) textoEl.textContent='A entrevista foi realizada. Registre o resultado quando souber.';
+          prepBtn.textContent='📋 Registrar resultado';
+          prepBtn.style.borderColor='var(--navy)'; prepBtn.style.color='var(--navy)';
+          prepBtn.onclick=()=>{ abrirFormTimeline(); const el=document.getElementById('mv-timeline-texto'); if(el){el.value=''; el.placeholder='Resultado da entrevista: avançou, negado, nova fase...'; el.focus();} };
+        } else {
+          if(tituloEl) tituloEl.textContent='Entrevista marcada';
+          if(textoEl) textoEl.textContent='Prepare-se com o Simulador de Entrevista da Sofia.';
+          prepBtn.textContent='🎤 Preparar para esta entrevista';
+          prepBtn.style.borderColor='#7C3AED'; prepBtn.style.color='#7C3AED';
+          prepBtn.onclick=()=>{ closeVagaModal(); showPage('sofia'); sofiaTab(4); const el=document.getElementById('int-cargo'); if(el){el.value=alvo; el.focus();} };
+        }
         prepDiv.style.display='block';
       } else { prepDiv.style.display='none'; }
     }
@@ -5143,6 +5156,7 @@ async function salvarEntradaTimeline(){
   if(!vagas[idx].timeline) vagas[idx].timeline=[];
   vagas[idx].timeline.unshift({ts:Date.now(),texto});
   vagas[idx].updatedAt=Date.now();
+  vagas[idx].proxima=texto;
   saveVagas(); renderCRM();
   fecharFormTimeline();
   renderTimelineLista(vagas[idx].timeline);
