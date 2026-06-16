@@ -1811,15 +1811,15 @@ select option { background: var(--bg2); }
     <div data-drag-handle="1" style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
         <div style="flex:1;min-width:0;">
-          <input type="text" id="mv-empresa" placeholder="Empresa *" oninput="validarVagaForm()"
-                 style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid transparent;border-radius:0;padding:2px 0;background:transparent;"
-                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='transparent'">
-          <input type="text" id="mv-cargo" placeholder="Cargo *" oninput="validarVagaForm()"
-                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid transparent;border-radius:0;padding:2px 0;background:transparent;margin-top:4px;"
-                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='transparent'">
+          <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm()"
+                 style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 4px;background:transparent;"
+                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='var(--border)'">
+          <input type="text" id="mv-cargo" placeholder="Cargo" oninput="validarVagaForm()"
+                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 3px;background:transparent;margin-top:6px;"
+                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='var(--border)'">
         </div>
         <select id="mv-status" onchange="atualizarBotoes()"
-                style="font-size:12px;min-width:130px;flex-shrink:0;padding:5px 10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
+                style="font-size:11px;width:auto;flex-shrink:0;padding:4px 8px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
           <option value="lead">● Oportunidade</option>
           <option value="aplicado">● CV Enviado</option>
           <option value="entrevista">● Entrevista</option>
@@ -5013,8 +5013,8 @@ function atualizarBotoesModal(statusOverride){
   const isClosed=status==='negado'||status==='aceito';
   let html='';
   if(status==='lead'){
-    // Footer Oportunidade: [Excluir] [flex] [Ir para vaga ↗]
-    if(cancelarBtn) cancelarBtn.style.display='none';
+    // Footer Oportunidade: [Excluir] [flex] [Cancelar] [Ir para vaga ↗]
+    if(cancelarBtn) cancelarBtn.style.display='';
     const deleteBtn=document.getElementById('mv-delete-btn');
     if(deleteBtn){deleteBtn.textContent='Excluir';deleteBtn.style.display=editingVagaId&&editingVagaId!=='new'?'':'none';}
     const url=document.getElementById('mv-origem-url')?.value.trim()||'';
