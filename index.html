@@ -252,9 +252,7 @@ select option { background: var(--bg2); }
 .kcard-created { font-size:10.5px; color:var(--text3); }
 .kcard-updated { font-size:10px; color:var(--text3); opacity:0.7; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kcard-proxima { position: relative; font-size: 11.5px; color: var(--text2); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
-.kcard-proxima::after { content: attr(data-full); display: none; position: absolute; bottom: calc(100% + 6px); left: -12px; background: var(--navy); color: #fff; font-size: 11.5px; font-family: var(--font); padding: 8px 12px; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); white-space: pre-wrap; max-width: 260px; width: max-content; z-index: 100; line-height: 1.5; }
-.kcard-proxima:hover::after { display: block; }
+.kcard-proxima { font-size: 11.5px; color: var(--text2); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
 /* ── CONTATOS CRM ── */
 .ct-search-wrap { position:relative; display:flex; align-items:center; margin-bottom:12px; }
@@ -4683,7 +4681,7 @@ function renderCRM(){
           ${(c.localizacao||c.modelo)?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">${[c.localizacao,c.modelo].filter(Boolean).join(' · ')}</div>`:''}
           ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-top:5px;">👤 ${c.indicacao}</div>`:''}
-          ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}">↻ ${c.proxima}</div>`:''}
+          ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">↻ ${c.proxima}</div>`:''}
           ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;"><span style="font-size:11.5px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">Compatibilidade ${sc}%</span></div>`;})():''}
         </div>`;
       }).join('')}
@@ -7441,6 +7439,17 @@ function verOrigem(){
   try{const u=new URL(url.startsWith('http')?url:'https://'+url);['trackingId','refId','trk','utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid'].forEach(p=>u.searchParams.delete(p));url=u.toString();}catch{}
   window.open(url,'_blank','noopener,noreferrer');
 }
+
+function _showProximaTip(el){
+  const full=el.dataset.full; if(!full) return;
+  let tip=document.getElementById('_kcard_tip');
+  if(!tip){tip=document.createElement('div');tip.id='_kcard_tip';tip.style.cssText='position:fixed;z-index:9999;background:var(--navy);color:#fff;font-size:11.5px;font-family:var(--font);padding:8px 12px;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:260px;line-height:1.6;pointer-events:none;white-space:pre-wrap;display:none;';document.body.appendChild(tip);}
+  tip.textContent=full; tip.style.display='block';
+  const r=el.getBoundingClientRect();
+  tip.style.left=Math.min(r.left,window.innerWidth-tip.offsetWidth-12)+'px';
+  tip.style.top=(r.top-tip.offsetHeight-8<8?r.bottom+8:r.top-tip.offsetHeight-8)+'px';
+}
+function _hideProximaTip(){const tip=document.getElementById('_kcard_tip');if(tip)tip.style.display='none';}
 
 function verOrigemCard(url){
   if(!url) return;
