@@ -138,14 +138,16 @@ select option { background: var(--bg2); }
 .modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
-#modal-vaga > .modal { width: min(900px,96vw); }
+#modal-vaga > .modal { width: min(720px,94vw); }
 .mv-sec { border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 14px; }
 .mv-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .mv-sec-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:17px; font-weight:700; color:var(--navy); text-transform:none; letter-spacing:-0.1px; }
-.mv-2col { display:grid; grid-template-columns:1fr 296px; gap:0; align-items:start; }
-.mv-col-left { padding-right:22px; border-right:1px solid var(--border); min-width:0; }
-.mv-col-right { padding-left:22px; min-width:0; }
-@media(max-width:680px){ .mv-2col{grid-template-columns:1fr;} .mv-col-left{padding-right:0;border-right:none;} .mv-col-right{padding-left:0;border-top:1px solid var(--border);margin-top:16px;padding-top:16px;} }
+.mv-action-bar { display:flex;gap:8px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0; }
+.mv-action-bar .btn { flex:1;justify-content:center;font-size:13px;padding:7px 8px; }
+.mv-score-bar-track { height:6px;background:var(--bg4);border-radius:3px;overflow:hidden; }
+.mv-score-bar-fill { height:100%;border-radius:3px;transition:width 0.5s ease,background 0.3s; }
+.mv-signal { font-size:12px;line-height:1.9; }
+.mv-sofia-wrap { padding:14px 16px;background:linear-gradient(135deg,#F8F5FF,#F0EDE6);border:1.5px solid #DDD6FE;border-radius:var(--radius); }
 .mv-doc-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
 .mv-doc-tab-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text2); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
 .mv-doc-tab-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
@@ -1785,65 +1787,146 @@ select option { background: var(--bg2); }
 ═══════════════════════════════ -->
 <div class="modal-overlay" id="modal-vaga" style="display:none;" onclick="if(event.target===this)closeVagaModal()">
   <div class="modal">
-    <!-- HEADER -->
-    <div style="padding:20px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <div class="modal-title" id="modal-vaga-title" style="padding:0;margin:0;flex:1;font-size:17px;">Novo Processo</div>
-        <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer" style="display:none;font-size:13px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;" onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
+
+    <!-- ZONA 1 — CABEÇALHO (fixo) -->
+    <div style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
+        <div style="flex:1;min-width:0;">
+          <input type="text" id="mv-empresa" placeholder="Empresa *" oninput="validarVagaForm()"
+                 style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid transparent;border-radius:0;padding:2px 0;background:transparent;"
+                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='transparent'">
+          <input type="text" id="mv-cargo" placeholder="Cargo *" oninput="validarVagaForm()"
+                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid transparent;border-radius:0;padding:2px 0;background:transparent;margin-top:4px;"
+                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='transparent'">
+        </div>
+        <select id="mv-status" onchange="atualizarBotoes()"
+                style="font-size:12px;min-width:130px;flex-shrink:0;padding:5px 10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
+          <option value="lead">● Oportunidade</option>
+          <option value="aplicado">● CV Enviado</option>
+          <option value="contato">● Em Contato</option>
+          <option value="entrevista">● Entrevista</option>
+          <option value="proposta">● Proposta</option>
+          <option value="aceito">● Aceito</option>
+          <option value="negado">● Negado</option>
+        </select>
         <button onclick="closeVagaModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;padding:0 2px;flex-shrink:0;">✕</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;">
-        <input type="text" id="mv-empresa" placeholder="Empresa *" oninput="validarVagaForm()" style="font-size:14px;font-weight:600;">
-        <input type="text" id="mv-cargo" placeholder="Cargo *" oninput="validarVagaForm()" style="font-size:14px;">
-        <select id="mv-status" onchange="atualizarBotoes()" style="font-size:13px;min-width:140px;">
-          <option value="lead">Oportunidade</option>
-          <option value="aplicado">CV Enviado</option>
-          <option value="contato">Em Contato</option>
-          <option value="entrevista">Entrevista</option>
-          <option value="proposta">Proposta</option>
-          <option value="aceito">Aceito</option>
-          <option value="negado">Negado</option>
-        </select>
+      <!-- Meta info: localização · modelo · canal · data + link vaga -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <span id="mv-meta-info" style="font-size:12px;color:var(--text3);flex:1;line-height:1.5;"></span>
+        <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer"
+           style="display:none;font-size:12px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;"
+           onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
       </div>
+      <!-- Barra de progresso -->
       <div id="mv-status-progress" style="display:flex;gap:3px;"></div>
     </div>
 
-    <div class="modal-body" style="padding:0 24px 16px;">
+    <!-- ZONA 2 — BARRA DE AÇÕES (fixa) -->
+    <div class="mv-action-bar">
+      <button id="mv-btn-ir-vaga" class="btn btn-ghost" style="display:none;"
+              onclick="const u=document.getElementById('mv-origem-url')?.value||'';if(u)window.open(u,'_blank');">
+        ↗ Ir para vaga
+      </button>
+      <button id="mv-analyze-btn" class="btn btn-ghost" onclick="analisarInline()" disabled>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        Analisar
+      </button>
+      <button id="mv-btn-sofia" class="btn btn-ghost" onclick="mvCallSofia()"
+              style="border-color:var(--gold);color:var(--navy);">✨ Sofia</button>
+    </div>
+
+    <!-- CORPO ROLÁVEL -->
+    <div class="modal-body" style="padding:0 24px 20px;">
+
+      <!-- Rascunho banner -->
       <div id="mv-draft-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#FFF8EC;border:1.5px solid #C9A84C44;border-radius:8px;padding:8px 12px;margin-top:12px;margin-bottom:4px;font-size:13px;color:var(--text2);">
         <span>📝 Rascunho restaurado — continue de onde parou.</span>
         <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
       </div>
 
-      <div class="mv-2col" style="margin-top:12px;">
-      <div class="mv-col-left">
-      <!-- ── ANÁLISE IA ── -->
-      <div class="mv-sec" style="border-top:none;margin-top:0;padding-top:4px;">
+      <!-- ZONA 3 — PONTUAÇÃO AO PROJETO -->
+      <div id="mv-score-section" style="margin-top:14px;padding:14px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Pontuação ao Projeto</span>
+          <span id="mv-score-total-badge" style="display:none;font-size:15px;font-weight:700;font-family:var(--font-display);color:var(--navy);"></span>
+        </div>
+        <!-- Fit Técnico (ATS) -->
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">Fit Técnico</span>
+            <span id="mv-ats-score-badge" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
+          </div>
+          <div class="mv-score-bar-track">
+            <div id="mv-ats-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
+          </div>
+        </div>
+        <!-- Projeto de Vida -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">Projeto de Vida</span>
+            <span id="mv-vida-score-txt" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
+          </div>
+          <div class="mv-score-bar-track">
+            <div id="mv-vida-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
+          </div>
+        </div>
+        <!-- Sinais chave -->
+        <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
+          <span style="font-size:12px;">Analise a vaga para calcular o Fit Técnico</span>
+        </div>
+      </div>
+
+      <!-- ZONA 4 — SOFIA (oculta até ser chamada) -->
+      <div id="mv-sofia-section" style="display:none;margin-top:12px;" class="mv-sofia-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;">Sofia</span>
+          <button onclick="mvFecharSofia()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0;">✕</button>
+        </div>
+        <div id="mv-sofia-content" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
+        <div id="mv-sofia-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- ZONA 5 — DESCRIÇÃO DA VAGA (colapsável) -->
+      <div class="mv-sec" id="mv-desc-section">
         <div class="mv-sec-head">
-          <span class="mv-sec-title">Análise IA</span>
-          <span id="mv-ats-score-badge" style="display:none;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;margin-left:4px;"></span>
+          <span class="mv-sec-title">Descrição da vaga</span>
+          <button id="mv-desc-expand-btn" onclick="mvToggleDesc()"
+                  style="display:none;margin-left:auto;background:none;border:none;cursor:pointer;font-size:12px;color:var(--action);font-family:var(--font);font-weight:600;padding:2px 0;">Ver completo ▾</button>
+          <button id="mv-desc-edit-btn" onclick="mvEditarDesc()"
+                  style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);font-family:var(--font);padding:2px 0;margin-left:4px;">Editar</button>
+        </div>
+        <!-- Preview (primeiros ~300 chars) -->
+        <div id="mv-desc-preview" style="display:none;font-size:13px;color:var(--text2);line-height:1.65;"></div>
+        <!-- Texto completo (toggle) -->
+        <div id="mv-desc-full" style="display:none;font-size:13px;color:var(--text2);line-height:1.65;white-space:pre-wrap;margin-top:6px;"></div>
+        <!-- Textarea (storage + edição, visível quando sem conteúdo ou ao editar) -->
+        <textarea id="mv-job-desc" rows="5"
+                  placeholder="Cole o texto completo da vaga aqui para habilitar análise…"
+                  style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;"
+                  oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise();mvRefreshDescPreview()"></textarea>
+        <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:4px;">Cole a descrição acima para habilitar a análise</div>
+      </div>
+
+      <!-- ZONA 6 — ANÁLISE IA (contexto + resultado) -->
+      <div class="mv-sec" id="mv-analise-section">
+        <div class="mv-sec-head">
+          <span class="mv-sec-title">Análise</span>
           <div class="lang-toggle" style="margin-left:auto;gap:4px;">
             <button class="lang-btn active" onclick="setLang('PT',this)" style="padding:3px 8px;font-size:12px;">🇧🇷 PT</button>
             <button class="lang-btn" onclick="setLang('EN',this)" style="padding:3px 8px;font-size:12px;">🇺🇸 EN</button>
             <button class="lang-btn" onclick="setLang('ES',this)" style="padding:3px 8px;font-size:12px;">🇪🇸 ES</button>
           </div>
         </div>
-        <div class="form-row" style="margin-bottom:8px;">
-          <label class="field-label">Descrição da vaga</label>
-          <textarea id="mv-job-desc" rows="5" placeholder="Cole o texto completo da vaga aqui…" style="font-size:13px;line-height:1.6;font-family:var(--font);" oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise()"></textarea>
-        </div>
-        <div class="form-row" style="margin-bottom:10px;">
+        <div id="mv-analise-result" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.5;"></div>
+        <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5;"></div>
+        <div class="form-row">
           <label class="field-label">Contexto desta rodada <span style="font-weight:400;color:var(--text3);font-size:12px;">— o que está sendo pedido agora?</span></label>
           <textarea id="mv-ctx-analise" rows="2" placeholder="Ex: recrutador pediu CV por email · precisa destacar liderança de times · nova rodada com o diretor…" style="font-size:13px;line-height:1.55;font-family:var(--font);resize:vertical;"></textarea>
         </div>
-        <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" style="width:100%;justify-content:center;padding:10px;font-size:14px;">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-          Analisar vaga + gerar CV
-        </button>
-        <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:6px;text-align:center;">Cole a descrição da vaga acima para habilitar a análise</div>
-        <div id="mv-analise-result" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.5;"></div>
       </div>
 
-      <!-- ── DOCUMENTOS ── -->
+      <!-- ZONA 7 — DOCUMENTOS -->
       <div class="mv-sec" id="mv-docs-section" style="display:none;">
         <div class="mv-sec-head"><span class="mv-sec-title">Documentos</span></div>
         <div class="mv-doc-tabs">
@@ -1851,8 +1934,6 @@ select option { background: var(--bg2); }
           <button class="mv-doc-tab-btn" data-tab="carta" onclick="mvDocTab('carta',this)">Carta</button>
           <button class="mv-doc-tab-btn" data-tab="resposta" onclick="mvDocTab('resposta',this)">Resposta</button>
         </div>
-        <div id="mv-ats-keywords" style="font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5;"></div>
-
         <!-- CV Plataforma -->
         <div id="mv-doctab-ats">
           <textarea id="mv-ats-cv-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
@@ -1872,7 +1953,6 @@ select option { background: var(--bg2); }
             </div>
           </div>
         </div>
-
         <!-- Carta -->
         <div id="mv-doctab-carta" style="display:none;">
           <div class="form-row" style="margin-bottom:8px;">
@@ -1883,7 +1963,6 @@ select option { background: var(--bg2); }
           <textarea id="mv-ats-carta-modal-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
           <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">📋 Copiar carta</button></div>
         </div>
-
         <!-- Resposta -->
         <div id="mv-doctab-resposta" style="display:none;">
           <div class="form-row" style="margin-bottom:8px;">
@@ -1900,14 +1979,12 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
-      </div><!-- /mv-col-left -->
-      <div class="mv-col-right">
-      <!-- ── GESTÃO ── -->
-      <div class="mv-sec" style="border-top:none;margin-top:0;padding-top:4px;">
+      <!-- ZONA 8 — GESTÃO (compacta) -->
+      <div class="mv-sec">
         <div class="mv-sec-head"><span class="mv-sec-title">Gestão</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;">
-          <select id="mv-modelo" style="font-size:13px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;" oninput="mvUpdateScoreDisplay()">
+          <select id="mv-modelo" style="font-size:13px;" onchange="mvUpdateScoreDisplay()">
             <option value="">Modelo</option>
             <option value="Presencial">Presencial</option>
             <option value="Híbrido">Híbrido</option>
@@ -1928,11 +2005,10 @@ select option { background: var(--bg2); }
         <div id="mv-indicacao-row" style="display:none;margin-bottom:8px;">
           <input type="text" id="mv-indicacao" placeholder="Quem indicou? (nome · empresa · LinkedIn)" style="font-size:13px;width:100%;box-sizing:border-box;">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div style="display:flex;gap:6px;">
-            <input type="text" id="mv-origem-url" placeholder="URL da vaga" style="flex:1;font-size:13px;" oninput="(()=>{const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();const l=document.getElementById('mv-link-vaga');if(l){l.dataset.url=this.value.trim();l.style.display=this.value.trim()?'':'none';}})()">
-            <button id="mv-ver-origem-btn" class="btn btn-ghost" style="flex-shrink:0;padding:0 12px;font-size:12px;" onclick="const u=document.getElementById('mv-origem-url').value.trim();if(u)window.open(u,'_blank');" disabled>Abrir</button>
-          </div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-bottom:8px;align-items:start;">
+          <input type="text" id="mv-origem-url" placeholder="URL da vaga" style="font-size:13px;"
+                 oninput="(()=>{const b=document.getElementById('mv-ver-origem-btn');if(b)b.disabled=!this.value.trim();const l=document.getElementById('mv-link-vaga');if(l){l.dataset.url=this.value.trim();l.style.display=this.value.trim()?'':'none';}const b2=document.getElementById('mv-btn-ir-vaga');if(b2)b2.style.display=this.value.trim()?'':'none';})()">
+          <button id="mv-ver-origem-btn" class="btn btn-ghost" style="flex-shrink:0;padding:0 12px;font-size:12px;" onclick="const u=document.getElementById('mv-origem-url').value.trim();if(u)window.open(u,'_blank');" disabled>Abrir</button>
           <input type="email" id="mv-email-dest" placeholder="Email do recrutador" style="font-size:13px;">
         </div>
         <div id="mv-proxima-section" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
@@ -1942,7 +2018,7 @@ select option { background: var(--bg2); }
         <textarea id="mv-notas" rows="2" placeholder="Notas e observações…" style="font-size:13px;line-height:1.55;font-family:var(--font);resize:vertical;width:100%;box-sizing:border-box;"></textarea>
       </div>
 
-      <!-- ── HISTÓRICO ── -->
+      <!-- ZONA 9 — HISTÓRICO -->
       <div class="mv-sec" id="mv-timeline-section" style="display:none;">
         <div class="mv-sec-head">
           <span class="mv-sec-title">Histórico</span>
@@ -1971,10 +2047,7 @@ select option { background: var(--bg2); }
         <div id="mv-timeline-lista" style="max-height:180px;overflow-y:auto;"></div>
       </div>
 
-      </div><!-- /mv-col-right -->
-      </div><!-- /mv-2col -->
-
-      <!-- Declinar panel -->
+      <!-- Painel de declínio -->
       <div id="mv-declinar-panel" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:var(--radius);border:1.5px solid #C0281E33;">
         <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">Motivo para declinar:</div>
         <select id="mv-declinar-motivo" style="width:100%;padding:8px 10px;font-size:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:var(--font);">
@@ -1991,6 +2064,7 @@ select option { background: var(--bg2); }
       </div>
 
       <!-- Hidden inputs preservados -->
+      <input type="hidden" id="modal-vaga-title">
       <input type="hidden" id="mv-prioridade" value="media">
       <input type="hidden" id="mv-prioridade-vis">
       <input type="hidden" id="mv-salario">
@@ -4697,7 +4771,7 @@ function _renderMercadoSinais(){
 function openVagaModal(id){
   editingVagaId=id;
   const isNew=id==='new';
-  document.getElementById('modal-vaga-title').textContent=isNew?'Novo Processo':'Editar Processo';
+  document.getElementById('modal-vaga-title').value=isNew?'Novo Processo':'Editar Processo';
   document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
   if(!isNew){
     const v=vagas.find(x=>String(x.id)===String(id)); if(!v)return;
@@ -4731,6 +4805,7 @@ function openVagaModal(id){
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
+    mvRefreshDescPreview();
     document.getElementById('mv-motivo').value=v.motivo||'';
     const btnOrigem=document.getElementById('mv-ver-origem-btn');
     if(btnOrigem) btnOrigem.disabled=!v.origemUrl;
@@ -4777,6 +4852,13 @@ function openVagaModal(id){
       document.getElementById('mv-atualizado-em').textContent=formatTs(v.updatedAt)||'—';
     }
     mvRenderPipeline(v.status);
+    mvUpdateMetaInfo(v);
+    mvUpdateScoreDisplay(v);
+    // Botão "Ir para vaga" na action bar
+    const _irBtn=document.getElementById('mv-btn-ir-vaga');
+    if(_irBtn) _irBtn.style.display=origemUrlLimpa?'':'none';
+    // Fechar Sofia se estava aberta de sessão anterior
+    mvFecharSofia();
   } else {
     ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-modelo').value='';
@@ -4811,7 +4893,11 @@ function openVagaModal(id){
     mvRenderPipeline('lead');
     const docsSec2b=document.getElementById('mv-docs-section');if(docsSec2b)docsSec2b.style.display='none';
     const resEl2=document.getElementById('mv-analise-result');if(resEl2)resEl2.style.display='none';
-    const badge2=document.getElementById('mv-ats-score-badge');if(badge2)badge2.style.display='none';
+    mvRefreshDescPreview();
+    mvUpdateMetaInfo(null);
+    mvUpdateScoreDisplay(null);
+    mvFecharSofia();
+    const _irBtnN=document.getElementById('mv-btn-ir-vaga');if(_irBtnN)_irBtnN.style.display='none';
   }
   document.getElementById('modal-vaga').style.display='flex';
   atualizarBotoesModal();
@@ -5133,6 +5219,173 @@ function mvOcultarCtxRegen(tipo){
   if(row) row.style.display='none';
 }
 
+// ── DESCRIÇÃO — preview colapsável ──────────────────────────────────────────
+function mvRefreshDescPreview(){
+  const ta=document.getElementById('mv-job-desc');
+  const desc=(ta?.value||'').trim();
+  const preview=document.getElementById('mv-desc-preview');
+  const full=document.getElementById('mv-desc-full');
+  const expandBtn=document.getElementById('mv-desc-expand-btn');
+  const editBtn=document.getElementById('mv-desc-edit-btn');
+  if(desc){
+    if(preview) preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');
+    if(full) full.textContent=desc;
+    if(preview) preview.style.display='';
+    if(full) full.style.display='none';
+    if(ta) ta.style.display='none';
+    if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
+    if(editBtn){ editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
+  } else {
+    if(preview) preview.style.display='none';
+    if(full) full.style.display='none';
+    if(ta) ta.style.display='';
+    if(expandBtn) expandBtn.style.display='none';
+  }
+}
+function mvToggleDesc(){
+  const full=document.getElementById('mv-desc-full');
+  const preview=document.getElementById('mv-desc-preview');
+  const btn=document.getElementById('mv-desc-expand-btn');
+  if(!full) return;
+  const expanded=full.style.display!=='none';
+  full.style.display=expanded?'none':'';
+  if(preview) preview.style.display=expanded?'':'none';
+  if(btn) btn.textContent=expanded?'Ver completo ▾':'Recolher ▴';
+}
+function mvEditarDesc(){
+  const ta=document.getElementById('mv-job-desc');
+  const preview=document.getElementById('mv-desc-preview');
+  const full=document.getElementById('mv-desc-full');
+  const expandBtn=document.getElementById('mv-desc-expand-btn');
+  const editBtn=document.getElementById('mv-desc-edit-btn');
+  if(ta){ ta.style.display=''; ta.rows=7; ta.focus(); }
+  if(preview) preview.style.display='none';
+  if(full) full.style.display='none';
+  if(expandBtn) expandBtn.style.display='none';
+  if(editBtn){ editBtn.textContent='Concluir'; editBtn.onclick=mvConcluirEditarDesc; }
+}
+function mvConcluirEditarDesc(){
+  const ta=document.getElementById('mv-job-desc');
+  if(ta) ta.rows=5;
+  mvRefreshDescPreview();
+  mvAtualizarBtnAnalise();
+}
+
+// ── PONTUAÇÃO AO PROJETO ─────────────────────────────────────────────────────
+function mvUpdateScoreDisplay(vOpt){
+  const v=vOpt||(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
+  // ATS score
+  const ats=parseInt(v?.atsScore||0);
+  const atsBar=document.getElementById('mv-ats-bar');
+  const atsBadge=document.getElementById('mv-ats-score-badge');
+  const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
+  if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
+  if(atsBadge){ atsBadge.style.cssText=''; atsBadge.textContent=ats?ats+'%':'—'; atsBadge.style.color=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)'; atsBadge.style.fontWeight=ats?'700':'400'; atsBadge.style.fontSize='12px'; }
+  // Projeto de Vida (MVP: modelo de trabalho + presença de dados)
+  const modelo=document.getElementById('mv-modelo')?.value||v?.modelo||'';
+  const localizacao=document.getElementById('mv-localizacao')?.value||v?.localizacao||'';
+  const signals=[];
+  let vidaScore=0, vidaN=0;
+  if(modelo){
+    const ms=modelo==='Remoto'?92:modelo==='Híbrido'?78:55;
+    vidaScore+=ms; vidaN++;
+    const ok=ms>=75;
+    signals.push((ok?'<span style="color:#1A7A4A;">✓</span>':'<span style="color:#B8670A;">⚠</span>')+' Modelo: '+modelo+(ok?' — compatível':' — verificar'));
+  }
+  if(ats&&ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Fit técnico: forte');
+  else if(ats&&ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Fit técnico: parcial ('+ats+'%)');
+  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Fit técnico: baixo ('+ats+'%) — revisar CV');
+  const vida=vidaN?Math.round(vidaScore/vidaN):0;
+  const vidaBar=document.getElementById('mv-vida-bar');
+  const vidaTxt=document.getElementById('mv-vida-score-txt');
+  const vidaCol=vida>=75?'#1A7A4A':vida>=55?'#B8670A':vida>0?'#C0281E':'var(--border2)';
+  if(vidaBar){ vidaBar.style.width=(vida||0)+'%'; vidaBar.style.background=vidaCol; }
+  if(vidaTxt){ vidaTxt.textContent=vida?vida+'%':'— configure Perfil'; vidaTxt.style.color=vida?vidaCol:'var(--text3)'; }
+  // Score total
+  const total=ats&&vida?Math.round(ats*0.55+vida*0.45):ats||vida||0;
+  const badge=document.getElementById('mv-score-total-badge');
+  if(badge){
+    if(total){ const col=total>=75?'#1A7A4A':total>=55?'#B8670A':'#C0281E'; badge.textContent=total; badge.style.color=col; badge.style.display=''; }
+    else badge.style.display='none';
+  }
+  // Sinais
+  const signalsEl=document.getElementById('mv-score-signals');
+  if(signalsEl){
+    if(!ats&&!vida) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Analise a vaga para calcular o Fit Técnico</span>';
+    else signalsEl.innerHTML=signals.map(s=>'<div class="mv-signal">'+s+'</div>').join('');
+  }
+}
+
+// ── META INFO (cabeçalho) ────────────────────────────────────────────────────
+function mvUpdateMetaInfo(v){
+  const el=document.getElementById('mv-meta-info');
+  if(!el) return;
+  const parts=[];
+  if(v?.localizacao) parts.push('📍 '+v.localizacao);
+  if(v?.modelo) parts.push(v.modelo);
+  if(v?.canal) parts.push(v.canal);
+  const ts=v?.createdAt||(v?.data?new Date(v.data.split('/').reverse().join('-')).getTime():0);
+  if(ts) parts.push(formatTs(ts));
+  el.textContent=parts.join(' · ');
+}
+
+// ── SOFIA NO CARD ────────────────────────────────────────────────────────────
+async function mvCallSofia(){
+  const sec=document.getElementById('mv-sofia-section');
+  const content=document.getElementById('mv-sofia-content');
+  const actions=document.getElementById('mv-sofia-actions');
+  if(!sec||!content) return;
+  sec.style.display='';
+  content.innerHTML='<span style="color:#7C3AED;font-size:13px;">Sofia está analisando esta oportunidade…</span>';
+  if(actions) actions.innerHTML='';
+  setTimeout(()=>{ sec.scrollIntoView({behavior:'smooth',block:'nearest'}); },80);
+  const empresa=document.getElementById('mv-empresa')?.value||'';
+  const cargo=document.getElementById('mv-cargo')?.value||'';
+  const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  const localizacao=document.getElementById('mv-localizacao')?.value||'';
+  const modelo=document.getElementById('mv-modelo')?.value||'';
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  const ats=v?.atsScore||'';
+  if(!jobDesc.trim()&&!empresa.trim()){
+    content.innerHTML='<span style="color:var(--text2);font-size:13px;">Adicione a descrição da vaga para que eu possa analisar esta oportunidade com mais profundidade.</span>';
+    return;
+  }
+  const prompt=`Você é Sofia, conselheira de carreira do Senova. Analise esta oportunidade de forma direta e honesta.
+
+OPORTUNIDADE:
+Empresa: ${empresa||'não informada'}
+Cargo: ${cargo||'não informado'}
+Localização: ${localizacao||'não informada'}
+Modelo: ${modelo||'não informado'}${ats?'\nFit Técnico: '+ats+'%':''}
+${jobDesc?'Descrição:\n'+jobDesc.slice(0,2000):''}
+
+PERFIL: executivo sênior, 25+ anos em gestão comercial e marketing, busca C-Level/Diretor, salário mínimo R$19k, prefere híbrido ou remoto, base Curitiba/PR.
+
+Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases:
+1. O que está bem alinhado com o perfil
+2. O principal ponto de atenção
+3. Uma recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
+
+Tom: conselheiro de confiança, direto, sem eufemismos.`;
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'claude-sonnet-4-6',max_tokens:320})});
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
+    if(actions) actions.innerHTML=`
+      <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;background:#7C3AED;border-color:#7C3AED;"
+              onclick="candidatarDoModal()">Enviar Candidatura →</button>
+      <button class="btn btn-ghost" style="padding:7px 12px;font-size:13px;" onclick="mvFecharSofia()">Fechar</button>`;
+  }catch(e){
+    content.innerHTML='<span style="color:var(--red,#C0281E);font-size:13px;">Não foi possível conectar. Tente novamente.</span>';
+  }
+}
+function mvFecharSofia(){
+  const s=document.getElementById('mv-sofia-section');
+  if(s) s.style.display='none';
+}
+
 function saveVagaSilent(){
   const empresa=document.getElementById('mv-empresa')?.value.trim(); if(!empresa) return;
   const isNew=editingVagaId==='new';
@@ -5214,6 +5467,7 @@ async function analisarInline(){
     const scoreBg=score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
     const badge=document.getElementById('mv-ats-score-badge');
     if(badge&&score){badge.style.cssText+=`;color:${scoreCol};background:${scoreBg};border:1px solid ${scoreCol}33;`;badge.textContent='Score: '+score+'/100';badge.style.display='';}
+    mvUpdateScoreDisplay();
     const kwEl=document.getElementById('mv-ats-keywords');
     if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
     if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}`;
