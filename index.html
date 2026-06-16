@@ -2021,9 +2021,6 @@ select option { background: var(--bg2); }
                  oninput="(()=>{const l=document.getElementById('mv-link-vaga');if(l){l.dataset.url=this.value.trim();l.style.display=this.value.trim()?'':'none';}})()">
           <input type="email" id="mv-email-dest" placeholder="Email do recrutador" style="font-size:13px;">
         </div>
-        <div style="margin-bottom:8px;">
-          <input type="text" id="mv-site-empresa" placeholder="Site da empresa (para logo — ex: wise.com)" style="font-size:13px;width:100%;box-sizing:border-box;">
-        </div>
         <div id="mv-proxima-section" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="text" id="mv-proxima" placeholder="Próxima ação" style="font-size:13px;">
           <input type="date" id="mv-proxima-data" style="font-size:13px;">
@@ -3754,14 +3751,35 @@ function dataAtualFormatada(){
   const mi=String(n.getMinutes()).padStart(2,'0');
   return `${d}/${m}/${n.getFullYear()} ${h}:${mi}`;
 }
-function _companyLogo(siteEmpresa,origemUrl){
-  if(siteEmpresa){
-    try{const d=new URL(siteEmpresa.startsWith('http')?siteEmpresa:'https://'+siteEmpresa).hostname.replace(/^www\./,'');return {src:`https://logo.clearbit.com/${d}`,size:20};}catch(e){}
-  }
-  if(origemUrl&&!origemUrl.includes('@')){
-    try{const d=new URL(origemUrl).hostname.replace(/^www\./,'');return {src:`https://www.google.com/s2/favicons?domain=${d}&sz=32`,size:16};}catch(e){}
-  }
+const _LOGO_CACHE_KEY='senova_logo_cache_v1';
+function _getLogoCache(){try{return JSON.parse(localStorage.getItem(_LOGO_CACHE_KEY)||'{}');}catch(e){return {};}}
+function _setLogoCache(c){try{localStorage.setItem(_LOGO_CACHE_KEY,JSON.stringify(c));}catch(e){}}
+function _faviconFromUrl(url){
+  if(!url||url.includes('@')) return '';
+  try{return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname.replace(/^www\./,'')}&sz=32`;}catch(e){return '';}
+}
+function _companyLogo(empresa,origemUrl){
+  const cache=_getLogoCache();
+  if(cache[empresa]) return {src:cache[empresa],size:20};
+  const fav=_faviconFromUrl(origemUrl);
+  if(fav) return {src:fav,size:16};
   return null;
+}
+async function _resolveCompanyLogos(){
+  const imgs=[...document.querySelectorAll('img[data-empresa]')];
+  if(!imgs.length) return;
+  const cache=_getLogoCache();
+  const needed=[...new Set(imgs.filter(i=>cache[i.dataset.empresa]===undefined).map(i=>i.dataset.empresa))];
+  for(const empresa of needed){
+    try{
+      const r=await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(empresa)}`);
+      const data=await r.json();
+      const match=data.find(d=>d.name.toLowerCase()===empresa.toLowerCase())||data[0];
+      cache[empresa]=match?.domain?`https://logo.clearbit.com/${match.domain}`:null;
+    }catch(e){cache[empresa]=null;}
+    if(cache[empresa]) imgs.filter(i=>i.dataset.empresa===empresa).forEach(i=>{i.src=cache[empresa];i.width=20;i.height=20;i.style.borderRadius='4px';});
+  }
+  _setLogoCache(cache);
 }
 function formatTs(ts){
   if(!ts) return '';
@@ -4693,11 +4711,11 @@ function renderCRM(){
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '📧 Email' : '↗ Vaga') : '';
         const nv=nivelInativo(c);
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
-        const _logo=_companyLogo(c.siteEmpresa||'',c.origemUrl||'');
+        const _logo=_companyLogo(c.empresa||'',c.origemUrl||'');
         const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number';
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
-            ${_logo?`<img src="${_logo.src}" width="${_logo.size}" height="${_logo.size}" style="border-radius:${_logo.size===20?'4':'3'}px;flex-shrink:0;" onerror="this.style.display='none'" loading="lazy">`:''}
+            <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
             <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;">
@@ -4718,6 +4736,7 @@ function renderCRM(){
   };
   renderKanbanCols(['lead','aplicado','contato','entrevista','proposta'],document.getElementById('kanban-vagas'));
   if(_mostrarArquivados) renderKanbanCols(colsArq,document.getElementById('kanban-arquivados'));
+  _resolveCompanyLogos();
 
   const _ctBusca=(document.getElementById('ct-busca')?.value||'').toLowerCase().trim();
   const TEMP_ORDER_CT={hot:0,warm:1,cold:2};
@@ -4837,7 +4856,6 @@ function openVagaModal(id){
     document.getElementById('mv-origem-url').value=origemUrlLimpa;
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
-    document.getElementById('mv-site-empresa').value=v.siteEmpresa||'';
     document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
     mvRefreshDescPreview();
     document.getElementById('mv-motivo').value=v.motivo||'';
@@ -4904,7 +4922,7 @@ function openVagaModal(id){
     // Fechar Sofia se estava aberta de sessão anterior
     mvFecharSofia();
   } else {
-    ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-site-empresa','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-modelo').value='';
     document.getElementById('mv-regime').value='';
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
@@ -5075,7 +5093,6 @@ function saveVaga(){
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
     origemUrl:document.getElementById('mv-origem-url').value,
-    siteEmpresa:document.getElementById('mv-site-empresa').value,
     motivo:document.getElementById('mv-motivo').value,
     indicacao:document.getElementById('mv-indicacao')?.value||existing?.indicacao||'',
     jobDescription:document.getElementById('mv-job-desc').value,
@@ -5173,7 +5190,7 @@ function deleteVaga(){
 
 // Rascunho de formulário (B6)
 const _DRAFT_KEY='senova_vaga_draft';
-const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-indicacao','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-site-empresa','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
+const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-indicacao','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
 let _draftTimer=null;
 function _scheduleDraftVaga(){ if(_draftTimer)clearTimeout(_draftTimer); _draftTimer=setTimeout(_saveDraftVaga,600); }
 function _saveDraftVaga(){
