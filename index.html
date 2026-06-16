@@ -252,7 +252,7 @@ select option { background: var(--bg2); }
 .kcard-created { font-size:10.5px; color:var(--text3); }
 .kcard-updated { font-size:10px; color:var(--text3); opacity:0.7; }
 .kcard-origem { font-size: 10.5px; color: var(--action); margin-top: 2px; cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kcard-proxima { font-size: 11.5px; color: var(--text2); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.kcard-proxima { font-size: 11.5px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .col-filter-btn { background:none; border:none; cursor:pointer; padding:2px 5px; color:var(--text3); font-size:12px; margin-left:auto; border-radius:4px; line-height:1; }
 /* ── CONTATOS CRM ── */
 .ct-search-wrap { position:relative; display:flex; align-items:center; margin-bottom:12px; }
@@ -4683,17 +4683,15 @@ function renderCRM(){
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div class="kcard-name">${c.empresa}</div>
-          <div class="kcard-role">${c.cargo}</div>
-          <div class="kcard-meta">
-            ${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}
-            ${c.plano?`<span style="font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:5px;${c.plano==='A'?'background:#EAF1FB;color:var(--navy);':c.plano==='B'?'background:#FFF8EC;color:#8B6914;':'background:#F0FDF4;color:#15803D;'}">P${c.plano}</span>`:''}
-            ${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;">
+            <div class="kcard-role" style="margin-bottom:0;">${[c.cargo,c.localizacao,c.modelo].filter(Boolean).join(' · ')}</div>
+            ${origemTxt?`<span class="kcard-origem" style="flex-shrink:0;" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</span>`:''}
           </div>
-          ${(c.localizacao||c.modelo)?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">${[c.localizacao,c.modelo].filter(Boolean).join(' · ')}</div>`:''}
-          ${origemTxt?`<div class="kcard-origem" onclick="event.stopPropagation();verOrigemCard('${c.origemUrl||''}')">${origemTxt}</div>`:''}
-          ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-top:5px;">👤 ${c.indicacao}</div>`:''}
-          ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">↻ ${c.proxima}</div>`:''}
-          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const bg=sc>=75?'#EAF7EF':sc>=55?'#FFF8EC':'#FEF0EF';return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:4px;"><span style="font-size:11.5px;font-weight:700;color:${cor};background:${bg};padding:1px 8px;border-radius:10px;">Compatibilidade ${sc}%</span></div>`;})():''}
+          <div style="border-top:1px solid var(--border);margin:7px 0 6px;"></div>
+          ${(nv>0||c.fonte==='Adzuna'||c.fonte==='Jobicy')?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;">${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}</div>`:''}
+          ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-bottom:4px;">👤 ${c.indicacao}</div>`:''}
+          ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">${c.proxima}</div>`:''}
+          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=fp>=75?'#1A7A4A':fp>=55?'#B8670A':'#C0281E';return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:6px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;})():''}
           ${(c.updatedAt||c.createdAt)?`<div style="font-size:10px;color:var(--text3);margin-top:5px;text-align:right;">${formatTs(c.updatedAt||c.createdAt)}</div>`:''}
         </div>`;
       }).join('')}
