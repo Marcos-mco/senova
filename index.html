@@ -3765,11 +3765,17 @@ function _companyLogo(empresa,origemUrl){
   if(fav) return {src:fav,size:16};
   return null;
 }
+function _applyLogo(empresa,src){
+  document.querySelectorAll('img[data-empresa]').forEach(i=>{
+    if(i.dataset.empresa===empresa){i.src=src;i.width=20;i.height=20;i.style.borderRadius='4px';i.style.display='';}
+  });
+}
 async function _resolveCompanyLogos(){
-  const imgs=[...document.querySelectorAll('img[data-empresa]')];
-  if(!imgs.length) return;
   const cache=_getLogoCache();
-  const needed=[...new Set(imgs.filter(i=>cache[i.dataset.empresa]===undefined).map(i=>i.dataset.empresa))];
+  const all=[...document.querySelectorAll('img[data-empresa]')];
+  if(!all.length) return;
+  all.forEach(i=>{if(cache[i.dataset.empresa]){i.src=cache[i.dataset.empresa];i.width=20;i.height=20;i.style.borderRadius='4px';i.style.display='';}});
+  const needed=[...new Set(all.filter(i=>cache[i.dataset.empresa]===undefined).map(i=>i.dataset.empresa))];
   for(const empresa of needed){
     try{
       const r=await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(empresa)}`);
@@ -3777,7 +3783,7 @@ async function _resolveCompanyLogos(){
       const match=data.find(d=>d.name.toLowerCase()===empresa.toLowerCase())||data[0];
       cache[empresa]=match?.domain?`https://logo.clearbit.com/${match.domain}`:null;
     }catch(e){cache[empresa]=null;}
-    if(cache[empresa]) imgs.filter(i=>i.dataset.empresa===empresa).forEach(i=>{i.src=cache[empresa];i.width=20;i.height=20;i.style.borderRadius='4px';});
+    if(cache[empresa]) _applyLogo(empresa,cache[empresa]);
   }
   _setLogoCache(cache);
 }
