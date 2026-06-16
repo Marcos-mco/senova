@@ -1920,6 +1920,7 @@ select option { background: var(--bg2); }
                   style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:80px;"
                   oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise();mvRefreshDescPreview()"></textarea>
         <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:4px;">Cole a descrição acima para habilitar a análise</div>
+        <div id="mv-desc-guide" style="display:none;margin-top:10px;"></div>
       </div>
 
       <!-- ZONA 6 — ANÁLISE IA (contexto + resultado) -->
@@ -5113,9 +5114,18 @@ function mvAjustarSecoesStatus(status){
   if(isLead&&ta&&!ta.value.trim()){
     ta.style.display='none';
     if(hint) hint.style.display='none';
-    if(editBtn){editBtn.textContent='▾ Colar';editBtn.style.color='var(--action)';editBtn.onclick=_mvAbrirDescLead;}
+    const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
+    if(_origemUrl){
+      if(editBtn){editBtn.style.display='none';}
+      _mvRenderDescGuide('none');
+      if(editingVagaId&&editingVagaId!=='new') _mvAutoFetchDesc();
+    } else {
+      if(editBtn){editBtn.style.display='';editBtn.textContent='▾ Colar';editBtn.style.color='var(--action)';editBtn.disabled=false;editBtn.onclick=_mvAbrirDescLead;}
+      _mvRenderDescGuide(null);
+    }
   } else if(!isLead){
-    if(editBtn){editBtn.textContent='Editar';editBtn.style.color='';editBtn.onclick=mvEditarDesc;}
+    if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='';editBtn.onclick=mvEditarDesc;}
+    _mvRenderDescGuide(null);
   }
 }
 function _mvAbrirDescLead(){
@@ -5125,6 +5135,51 @@ function _mvAbrirDescLead(){
   if(ta){ta.style.display='';ta.focus();}
   if(hint) hint.style.display='';
   if(editBtn){editBtn.textContent='▴ Recolher';editBtn.style.color='var(--text3)';editBtn.onclick=()=>mvAjustarSecoesStatus('lead');}
+}
+
+function _mvRenderDescGuide(tipo){
+  const guide=document.getElementById('mv-desc-guide');
+  if(!guide) return;
+  if(!tipo){guide.style.display='none';guide.innerHTML='';return;}
+  const isNone=tipo==='none';
+  guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+    <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">
+      ${isNone
+        ?'Para conhecer esta vaga em detalhe, abra a página original. Quando você voltar, estaremos aqui.'
+        :'Descrição parcial — veja a vaga completa para uma análise mais precisa.'}
+    </p>
+    <button onclick="irParaVaga()" style="font-size:13px;font-weight:600;color:var(--action);background:none;border:1.5px solid var(--action);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-family:var(--font);">
+      ${isNone?'↗ Abrir vaga':'↗ Ver vaga completa'}
+    </button>
+  </div>`;
+  guide.style.display='';
+}
+
+async function _mvAutoFetchDesc(){
+  const cardId=String(editingVagaId||'');
+  if(!cardId||cardId==='new'||_mvFetchAttempted.has(cardId)) return;
+  const url=document.getElementById('mv-origem-url')?.value.trim()||'';
+  if(!url||!url.startsWith('http')) return;
+  _mvFetchAttempted.add(cardId);
+  const editBtn=document.getElementById('mv-desc-edit-btn');
+  if(editBtn){editBtn.textContent='↻ Buscando…';editBtn.style.color='var(--text3)';editBtn.disabled=true;editBtn.onclick=null;}
+  try{
+    const res=await fetch(WORKER_URL+'/api/fetch-descricao',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url})
+    });
+    const data=await res.json();
+    if(data.error||!data.descricao||data.descricao.length<80) throw new Error('insuficiente');
+    const ta=document.getElementById('mv-job-desc');
+    if(ta) ta.value=data.descricao;
+    mvRefreshDescPreview();
+    mvAtualizarBtnAnalise();
+    _mvRenderDescGuide(null);
+    showToast('✅ Descrição carregada automaticamente');
+  }catch{
+    const btn=document.getElementById('mv-desc-edit-btn');
+    if(btn){btn.textContent='▾ Colar';btn.style.color='var(--action)';btn.disabled=false;btn.onclick=_mvAbrirDescLead;}
+  }
 }
 
 function saveVaga(){
@@ -5247,6 +5302,7 @@ function deleteVaga(){
 }
 
 // Rascunho de formulário (B6)
+const _mvFetchAttempted=new Set();
 const _DRAFT_KEY='senova_vaga_draft';
 const _DRAFT_FIELDS=['mv-empresa','mv-cargo','mv-canal','mv-indicacao','mv-plano','mv-localizacao','mv-modelo','mv-regime','mv-origem-url','mv-job-desc','mv-email-dest','mv-notas','mv-proxima','mv-proxima-data'];
 let _draftTimer=null;
@@ -5382,12 +5438,18 @@ function mvRefreshDescPreview(){
     if(full) full.style.display='none';
     if(ta) ta.style.display='none';
     if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
-    if(editBtn){ editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
+    if(editBtn){ editBtn.style.display=''; editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
+    const _isLeadP=document.getElementById('mv-status')?.value==='lead';
+    const _urlP=document.getElementById('mv-origem-url')?.value.trim()||'';
+    const _vP=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>String(v.id)===String(editingVagaId)):null;
+    const _isPartial=_isLeadP&&_urlP&&_vP&&!(_vP.jobDescription||'').trim();
+    _mvRenderDescGuide(_isPartial?'partial':null);
   } else {
     if(preview) preview.style.display='none';
     if(full) full.style.display='none';
     if(ta) ta.style.display='';
     if(expandBtn) expandBtn.style.display='none';
+    _mvRenderDescGuide(null);
   }
 }
 function mvToggleDesc(){
