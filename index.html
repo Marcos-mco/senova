@@ -3761,10 +3761,21 @@ function loadCRM(){
       const updatedAt = v.updatedAt || Date.now();
       const createdAt = v.createdAt || parseDateBR(v.data) || updatedAt;
       const timeline  = v.timeline?.length ? v.timeline : [{ts:createdAt, texto:'Card criado'}];
-      const proxima   = v.proxima?.replace(/anti-ats/gi,'Análise CV');
+      const _badProxima=['Analisar no Análise CV','Avaliar candidatura'];
+      const proxima   = _badProxima.includes(v.proxima) ? '' : v.proxima?.replace(/anti-ats/gi,'Análise CV');
       const notas     = v.notas?.replace(/anti-ats/gi,'Análise CV');
       return {...v, updatedAt, createdAt, timeline, proxima, notas};
     });
+    if(!localStorage.getItem('senova_migration_dedup_done')){
+      const _vistos=new Map();
+      vagas=vagas.filter(v=>{
+        const _ch=((v.origemUrl||'').trim())||((v.empresa||'').toLowerCase().trim()+'|'+(v.cargo||'').toLowerCase().trim());
+        if(!_ch||_ch==='|') return true;
+        if(_vistos.has(_ch)){const _ext=_vistos.get(_ch);if((v.updatedAt||v.createdAt||0)>(_ext.updatedAt||_ext.createdAt||0)){_vistos.set(_ch,v);}return false;}
+        _vistos.set(_ch,v); return true;
+      });
+      localStorage.setItem('senova_migration_dedup_done','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
