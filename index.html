@@ -3777,7 +3777,7 @@ function loadCRM(){
       const createdAt = v.createdAt || parseDateBR(v.data) || updatedAt;
       const timeline  = v.timeline?.length ? v.timeline : [{ts:createdAt, texto:'Card criado'}];
       const _badProxima=['Analisar no Análise CV','Avaliar candidatura'];
-      const proxima   = _badProxima.includes(v.proxima) ? '' : v.proxima?.replace(/anti-ats/gi,'Análise CV');
+      const proxima   = _badProxima.includes(v.proxima) ? '' : (v.proxima?.replace(/anti-ats/gi,'Análise CV')||'').replace(/^[↻↺⟳⟲]\s*/u,'');
       const notas     = v.notas?.replace(/anti-ats/gi,'Análise CV');
       return {...v, updatedAt, createdAt, timeline, proxima, notas};
     });
