@@ -1903,7 +1903,7 @@ select option { background: var(--bg2); }
         <!-- Textarea (storage + edição, visível quando sem conteúdo ou ao editar) -->
         <textarea id="mv-job-desc" rows="5"
                   placeholder="Cole o texto completo da vaga aqui para habilitar análise…"
-                  style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;"
+                  style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:80px;"
                   oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise();mvRefreshDescPreview()"></textarea>
         <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:4px;">Cole a descrição acima para habilitar a análise</div>
       </div>
@@ -5342,11 +5342,13 @@ async function mvCallSofia(){
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  const notas=document.getElementById('mv-notas')?.value||'';
+  const jobContext=jobDesc.trim()||(notas.trim().length>80?notas.trim():'');
   const localizacao=document.getElementById('mv-localizacao')?.value||'';
   const modelo=document.getElementById('mv-modelo')?.value||'';
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const ats=v?.atsScore||'';
-  if(!jobDesc.trim()&&!empresa.trim()){
+  if(!jobContext&&!empresa.trim()){
     content.innerHTML='<span style="color:var(--text2);font-size:13px;">Adicione a descrição da vaga para que eu possa analisar esta oportunidade com mais profundidade.</span>';
     return;
   }
@@ -5357,19 +5359,19 @@ Empresa: ${empresa||'não informada'}
 Cargo: ${cargo||'não informado'}
 Localização: ${localizacao||'não informada'}
 Modelo: ${modelo||'não informado'}${ats?'\nFit Técnico: '+ats+'%':''}
-${jobDesc?'Descrição:\n'+jobDesc.slice(0,2000):''}
+${jobContext?'Descrição/contexto:\n'+jobContext.slice(0,2000):''}
 
 PERFIL: executivo sênior, 25+ anos em gestão comercial e marketing, busca C-Level/Diretor, salário mínimo R$19k, prefere híbrido ou remoto, base Curitiba/PR.
 
-Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases:
+Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases cada:
 1. O que está bem alinhado com o perfil
 2. O principal ponto de atenção
 3. Uma recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
 
-Tom: conselheiro de confiança, direto, sem eufemismos.`;
+Tom: conselheiro de confiança, direto, sem eufemismos. Complete sempre as 3 partes.`;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'claude-sonnet-4-6',max_tokens:320})});
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'claude-sonnet-4-6',max_tokens:650})});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
