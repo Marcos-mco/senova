@@ -5169,13 +5169,18 @@ async function _mvAutoFetchDesc(){
       body:JSON.stringify({url})
     });
     const data=await res.json();
-    if(data.error||!data.descricao||data.descricao.length<80) throw new Error('insuficiente');
+    const _desc=data.descricao||'';
+    const _isGarbage=_desc.length<200
+      ||_desc.includes('3rd parties use essential')
+      ||_desc.includes('respects your privacy')
+      ||(_desc.includes('cookie')&&_desc.includes('privacy')&&_desc.length<600);
+    if(data.error||!_desc||_isGarbage) throw new Error('insuficiente');
     const ta=document.getElementById('mv-job-desc');
-    if(ta) ta.value=data.descricao;
+    if(ta) ta.value=_desc;
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
     _mvRenderDescGuide(null);
-    showToast('✅ Descrição carregada automaticamente');
+    analisarInline();
   }catch{
     const btn=document.getElementById('mv-desc-edit-btn');
     if(btn){btn.textContent='▾ Colar';btn.style.color='var(--action)';btn.disabled=false;btn.onclick=_mvAbrirDescLead;}
