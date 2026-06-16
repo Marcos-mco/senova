@@ -135,7 +135,7 @@ select option { background: var(--bg2); }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(520px,92vw); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
 .modal-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin-bottom: 20px; color: var(--navy); padding: 28px 28px 0; flex-shrink: 0; }
-.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; min-height: 0; display: flex; flex-direction: column; }
 .modal-footer { flex-shrink: 0; padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); }
 .modal-footer .btn { min-height: 44px; }
 #modal-vaga > .modal { position: absolute; width: min(720px,94vw); }
@@ -1841,7 +1841,7 @@ select option { background: var(--bg2); }
     </div>
 
     <!-- ZONA 2 — BARRA DE AÇÕES (fixa) -->
-    <div class="mv-action-bar">
+    <div class="mv-action-bar" id="mv-action-bar">
       <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled style="flex:1;justify-content:center;opacity:0.45;cursor:not-allowed;">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
         Analisar
@@ -1889,6 +1889,17 @@ select option { background: var(--bg2); }
         <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
           <span style="font-size:12px;">Analise a vaga para calcular o Fit Técnico</span>
         </div>
+        <!-- Sofia inline (lead: aparece após análise) -->
+        <div id="mv-sofia-inline" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65;"></div>
+      </div>
+
+      <!-- LEAD — botão Analisar desta vaga (visível só no estado Oportunidade) -->
+      <div id="mv-lead-analyze-row" style="display:none;padding:4px 0 2px;">
+        <button id="mv-lead-analyze-btn" onclick="analisarInline()"
+                style="width:100%;padding:10px;font-size:14px;font-weight:600;font-family:var(--font);background:var(--action);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+          Analisar esta vaga
+        </button>
       </div>
 
       <!-- ZONA 4 — SOFIA (oculta até ser chamada) -->
@@ -2090,7 +2101,7 @@ select option { background: var(--bg2); }
         <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="cancelarRemoverVaga()">Cancelar</button>
       </div>
       <div style="flex:1"></div>
-      <button class="btn btn-ghost" onclick="closeVagaModal()">Cancelar</button>
+      <button class="btn btn-ghost" id="mv-btn-cancelar" onclick="closeVagaModal()">Cancelar</button>
       <div id="mv-footer-acoes" style="display:flex;gap:8px;"></div>
     </div>
     <div id="mv-resize-grip" title="Redimensionar">⌟</div>
@@ -4998,19 +5009,26 @@ function atualizarBotoesModal(statusOverride){
   if(decPanel) decPanel.style.display='none';
   const acoes=document.getElementById('mv-footer-acoes');
   if(!acoes) return;
+  const cancelarBtn=document.getElementById('mv-btn-cancelar');
   const isClosed=status==='negado'||status==='aceito';
   let html='';
   if(status==='lead'){
+    // Footer Oportunidade: [Excluir] [flex] [Ir para vaga ↗]
+    if(cancelarBtn) cancelarBtn.style.display='none';
+    const deleteBtn=document.getElementById('mv-delete-btn');
+    if(deleteBtn){deleteBtn.textContent='Excluir';deleteBtn.style.display=editingVagaId&&editingVagaId!=='new'?'':'none';}
     const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-    const ativo=!!url;
-    html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
-    html+=`<button class="btn btn-primary" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
+    const temScore=!!(editingVagaId&&editingVagaId!=='new'&&vagas.find(v=>String(v.id)===String(editingVagaId))?.atsScore);
+    const ativo=!!url&&temScore;
+    html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
+    if(cancelarBtn) cancelarBtn.style.display='';
     html+=`<button class="btn btn-ghost" style="color:#9B2226;border:1px solid #9B222622;" onclick="declinarVaga()">Declinar</button>`;
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     mvAjustarSecoesStatus(status);
   } else {
+    if(cancelarBtn) cancelarBtn.style.display='';
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     mvAjustarSecoesStatus(status);
   }
@@ -5095,19 +5113,47 @@ function irParaVaga(){
 
 function mvAjustarSecoesStatus(status){
   const isLead=status==='lead';
-  // Seção Andamento (Zona 8) — ocultar em Oportunidade
+
+  // ── Action bar (Zona 2): no lead, substituída pelo botão inline no body ──
+  const actionBar=document.getElementById('mv-action-bar');
+  if(actionBar) actionBar.style.display=isLead?'none':'';
+
+  // ── Botão Analisar inline (só lead) ──
+  const leadRow=document.getElementById('mv-lead-analyze-row');
+  if(leadRow) leadRow.style.display=isLead?'':'none';
+
+  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) ──
+  const descSec=document.getElementById('mv-desc-section');
+  const scoreSec=document.getElementById('mv-score-section');
+  if(isLead){
+    if(descSec) descSec.style.order='1';
+    if(leadRow) leadRow.style.order='2';
+    if(scoreSec) scoreSec.style.order='3';
+  } else {
+    if(descSec) descSec.style.order='';
+    if(leadRow) leadRow.style.order='';
+    if(scoreSec) scoreSec.style.order='';
+  }
+
+  // ── Seções visíveis/ocultas por estado ──
   const andamentoSec=document.getElementById('mv-localizacao')?.closest('.mv-sec');
   if(andamentoSec) andamentoSec.style.display=isLead?'none':'';
-  // Histórico (Zona 9) — ocultar em Oportunidade
   const timelineSec=document.getElementById('mv-timeline-section');
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
-  // Label do botão Excluir/Remover
+  const analiseSec=document.getElementById('mv-analise-section');
+  if(analiseSec) analiseSec.style.display=isLead?'none':'';
+  const sofiaInline=document.getElementById('mv-sofia-inline');
+  if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
+
+  // ── "↗ Ver vaga" no header: mostra para lead quando há URL ──
+  const linkVaga=document.getElementById('mv-link-vaga');
+  if(linkVaga) linkVaga.style.display=linkVaga.dataset.url?'':'none';
+
+  // ── Label do botão Excluir/Remover ──
   const deleteBtn=document.getElementById('mv-delete-btn');
   if(deleteBtn) deleteBtn.textContent=isLead?'Excluir':'Remover';
-  // "Ver vaga" no header — ocultar em lead (footer já tem "Ir para vaga")
-  const linkVaga=document.getElementById('mv-link-vaga');
-  if(linkVaga) linkVaga.style.display=isLead?'none':(linkVaga.dataset.url?'':'none');
-  // Descrição — fechada por padrão em lead quando sem texto
+
+  // ── Descrição — fechada por padrão em lead quando sem texto ──
   const ta=document.getElementById('mv-job-desc');
   const hint=document.getElementById('mv-analyze-hint');
   const editBtn=document.getElementById('mv-desc-edit-btn');
@@ -5418,6 +5464,9 @@ function mvAtualizarBtnAnalise(){
   const hint=document.getElementById('mv-analyze-hint');
   if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
+  // Botão lead inline
+  const leadBtn=document.getElementById('mv-lead-analyze-btn');
+  if(leadBtn){leadBtn.disabled=!temDesc;leadBtn.style.opacity=temDesc?'':'0.5';leadBtn.style.cursor=temDesc?'':'not-allowed';}
 }
 function mvMostrarCtxRegen(tipo){
   const row=document.getElementById('mv-ctx-'+tipo+'-row');
@@ -5653,10 +5702,14 @@ async function analisarInline(){
   const regime=document.getElementById('mv-regime')?.value||'';
   if(!jobDesc.trim()){showToast('⚠️ Cole a descrição da vaga antes de analisar');document.getElementById('mv-job-desc')?.focus();return;}
   saveVagaSilent();
+  const isLeadAnalise=document.getElementById('mv-status')?.value==='lead';
   const btn=document.getElementById('mv-analyze-btn');
-  if(btn){btn.disabled=true;btn.innerHTML='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...';}
+  const leadBtn=document.getElementById('mv-lead-analyze-btn');
+  const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...';
+  if(btn){btn.disabled=true;btn.innerHTML=loadingHtml;}
+  if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Analisando…';}
   const resultEl=document.getElementById('mv-analise-result');
-  if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
+  if(resultEl&&!isLeadAnalise){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
   const metaVaga=[localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
   const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
   const contextoFull=ctx?'\n\n---\nContexto desta rodada: '+ctx:'';
@@ -5685,25 +5738,37 @@ async function analisarInline(){
     const badge=document.getElementById('mv-ats-score-badge');
     if(badge&&score){badge.style.cssText+=`;color:${scoreCol};background:${scoreBg};border:1px solid ${scoreCol}33;`;badge.textContent='Score: '+score+'/100';badge.style.display='';}
     mvUpdateScoreDisplay();
-    const kwEl=document.getElementById('mv-ats-keywords');
-    if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
-    if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}`;
-    const cvTxt=document.getElementById('mv-ats-cv-txt');
-    if(cvTxt) cvTxt.value=cv;
-    const docsSec=document.getElementById('mv-docs-section');
-    if(docsSec) docsSec.style.display='';
-    mvDocTab('ats');
-    atualizarBotoesModal();
-    // Rolar para mostrar os documentos gerados
-    setTimeout(()=>{
-      const body=document.querySelector('#modal-vaga .modal-body');
-      if(docsSec&&body) body.scrollTop=docsSec.offsetTop-16;
-    },120);
-    if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">↓ CV gerado — copie ou baixe em PDF Premium abaixo</div>`;
+    if(isLeadAnalise){
+      // Lead: resultado no painel de score + habilita "Ir para vaga"
+      const sofiaInline=document.getElementById('mv-sofia-inline');
+      if(sofiaInline&&veredicto){
+        sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${veredicto}</span>`;
+        sofiaInline.style.display='';
+      }
+      atualizarBotoesModal();
+    } else {
+      // Outros estados: fluxo original — mostrar compatibilidade + docs
+      const kwEl=document.getElementById('mv-ats-keywords');
+      if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
+      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}`;
+      const cvTxt=document.getElementById('mv-ats-cv-txt');
+      if(cvTxt) cvTxt.value=cv;
+      const docsSec=document.getElementById('mv-docs-section');
+      if(docsSec) docsSec.style.display='';
+      mvDocTab('ats');
+      atualizarBotoesModal();
+      setTimeout(()=>{
+        const body=document.querySelector('#modal-vaga .modal-body');
+        if(docsSec&&body) body.scrollTop=docsSec.offsetTop-16;
+      },120);
+      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">↓ CV gerado — copie ou baixe em PDF Premium abaixo</div>`;
+    }
   }catch(e){
-    if(resultEl) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
+    if(resultEl&&!isLeadAnalise) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
+    if(isLeadAnalise) showToast('⚠️ Erro na análise. Tente novamente.');
   }
   if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV';}
+  if(leadBtn){leadBtn.disabled=false;leadBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar esta vaga';}
 }
 
 async function gerarDocModal(tipo){
