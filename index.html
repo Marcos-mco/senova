@@ -1159,6 +1159,20 @@ select option { background: var(--bg2); }
     <!-- ── TAB 5: PREFERÊNCIAS ── -->
     <div id="perfil-panel-5" class="perfil-tab-panel">
 
+      <!-- Backup e Restauração -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--action);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Backup e restauração</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Exporte todos os seus dados como arquivo JSON. Guarde o arquivo em segurança e restaure quando precisar.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="exportarDados()" style="font-size:13px;padding:9px 20px;">⬇ Exportar dados</button>
+          <label class="btn btn-ghost" style="font-size:13px;padding:9px 20px;cursor:pointer;display:inline-flex;align-items:center;">
+            ⬆ Importar backup
+            <input type="file" accept=".json" style="display:none;" onchange="importarDados(this)">
+          </label>
+        </div>
+        <div id="backup-info" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
+      </div>
+
       <!-- Alerta de inatividade -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="display:flex;align-items:center;gap:14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;">
@@ -5080,6 +5094,35 @@ function cancelarRemoverVaga(){
   if(btn) btn.style.display='';
   if(conf) conf.style.display='none';
 }
+function exportarDados(){
+  const backup={versao:'1.0',data:new Date().toISOString(),dados:{}};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('senova'))backup.dados[k]=localStorage.getItem(k);}
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  const d=new Date();a.download=`senova_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();URL.revokeObjectURL(url);
+  const info=document.getElementById('backup-info');if(info)info.textContent=`Exportado em ${d.toLocaleString('pt-BR')}`;
+  showToast('✅ Backup exportado');
+}
+function importarDados(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const backup=JSON.parse(e.target.result);
+      if(!backup.dados)throw new Error('inválido');
+      const dataBackup=backup.data?new Date(backup.data).toLocaleDateString('pt-BR'):'desconhecida';
+      if(!confirm(`Restaurar backup de ${dataBackup}?\n\nOs dados atuais serão substituídos. Esta ação não pode ser desfeita.`))return;
+      Object.entries(backup.dados).forEach(([k,v])=>localStorage.setItem(k,v));
+      showToast('✅ Dados restaurados — recarregando...');
+      setTimeout(()=>location.reload(),1500);
+    }catch{showToast('❌ Arquivo inválido. Selecione um backup do Senova.');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
 function limparDuplicatas(){
   const antes=vagas.length;
   const vistos=new Map();
