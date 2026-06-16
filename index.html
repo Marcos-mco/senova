@@ -1818,7 +1818,6 @@ select option { background: var(--bg2); }
                 style="font-size:12px;min-width:130px;flex-shrink:0;padding:5px 10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
           <option value="lead">● Oportunidade</option>
           <option value="aplicado">● CV Enviado</option>
-          <option value="contato">● Em Contato</option>
           <option value="entrevista">● Entrevista</option>
           <option value="proposta">● Proposta</option>
           <option value="aceito">● Aceito</option>
@@ -1839,12 +1838,12 @@ select option { background: var(--bg2); }
 
     <!-- ZONA 2 — BARRA DE AÇÕES (fixa) -->
     <div class="mv-action-bar">
-      <button id="mv-analyze-btn" class="btn btn-ghost" onclick="analisarInline()" disabled>
+      <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled style="flex:1;justify-content:center;opacity:0.45;cursor:not-allowed;">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
         Analisar
       </button>
       <button id="mv-btn-sofia" class="btn btn-ghost" onclick="mvCallSofia()"
-              style="border-color:var(--gold);color:var(--navy);">✨ Sofia</button>
+              style="flex-shrink:0;border-color:var(--gold);color:var(--navy);">✨ Sofia</button>
     </div>
 
     <!-- CORPO ROLÁVEL -->
@@ -3802,7 +3801,7 @@ function isInativo(v){ return nivelInativo(v)>0; }
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
-    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'contato'}:v.status==='processo'?{...v,status:'contato'}:v);
+    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
     vagas=vagas.map(v=>{
       // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
       // (evita que cards antigos apareçam como inativos por erro de migração)
@@ -4737,7 +4736,7 @@ function renderCRM(){
     </div>`;
     }).join('');
   };
-  renderKanbanCols(['lead','aplicado','contato','entrevista','proposta'],document.getElementById('kanban-vagas'));
+  renderKanbanCols(['lead','aplicado','entrevista','proposta'],document.getElementById('kanban-vagas'));
   if(_mostrarArquivados) renderKanbanCols(colsArq,document.getElementById('kanban-arquivados'));
   _resolveCompanyLogos();
 
@@ -4838,7 +4837,7 @@ function openVagaModal(id){
     document.getElementById('mv-prioridade').value=v.prioridade;
     const _prVis=document.getElementById('mv-prioridade-vis');if(_prVis)_prVis.value=v.prioridade||'media';
     const _planoEl=document.getElementById('mv-plano');if(_planoEl)_planoEl.value=v.plano||'';
-    document.getElementById('mv-status').value=v.status;
+    document.getElementById('mv-status').value=v.status==='contato'?'aplicado':v.status;
     document.getElementById('mv-salario').value=v.salario||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
     document.getElementById('mv-proxima-data').value=v.proximaData||'';
@@ -4975,7 +4974,7 @@ function mvToggleDoc(which,btn){
   else{const show=cartaEl.style.display==='none';cartaEl.style.display=show?'':'none';if(btn)btn.textContent=show?'Ocultar carta':'Ver carta de apresentação';}
 }
 function avancarEstagio(){
-  const seq=['lead','aplicado','contato','entrevista','proposta','aceito'];
+  const seq=['lead','aplicado','entrevista','proposta','aceito'];
   const sel=document.getElementById('mv-status');
   const idx=seq.indexOf(sel.value);
   if(idx>=0&&idx<seq.length-1){ sel.value=seq[idx+1]; atualizarBotoes(); }
@@ -5098,6 +5097,28 @@ function mvAjustarSecoesStatus(status){
   // Label do botão Excluir/Remover
   const deleteBtn=document.getElementById('mv-delete-btn');
   if(deleteBtn) deleteBtn.textContent=isLead?'Excluir':'Remover';
+  // "Ver vaga" no header — ocultar em lead (footer já tem "Ir para vaga")
+  const linkVaga=document.getElementById('mv-link-vaga');
+  if(linkVaga) linkVaga.style.display=isLead?'none':(linkVaga.dataset.url?'':'none');
+  // Descrição — fechada por padrão em lead quando sem texto
+  const ta=document.getElementById('mv-job-desc');
+  const hint=document.getElementById('mv-analyze-hint');
+  const editBtn=document.getElementById('mv-desc-edit-btn');
+  if(isLead&&ta&&!ta.value.trim()){
+    ta.style.display='none';
+    if(hint) hint.style.display='none';
+    if(editBtn){editBtn.textContent='▾ Colar';editBtn.style.color='var(--action)';editBtn.onclick=_mvAbrirDescLead;}
+  } else if(!isLead){
+    if(editBtn){editBtn.textContent='Editar';editBtn.style.color='';editBtn.onclick=mvEditarDesc;}
+  }
+}
+function _mvAbrirDescLead(){
+  const ta=document.getElementById('mv-job-desc');
+  const hint=document.getElementById('mv-analyze-hint');
+  const editBtn=document.getElementById('mv-desc-edit-btn');
+  if(ta){ta.style.display='';ta.focus();}
+  if(hint) hint.style.display='';
+  if(editBtn){editBtn.textContent='▴ Recolher';editBtn.style.color='var(--text3)';editBtn.onclick=()=>mvAjustarSecoesStatus('lead');}
 }
 
 function saveVaga(){
@@ -5301,8 +5322,8 @@ function renderTimelineLista(timeline){
 function mvRenderPipeline(status){
   const bar=document.getElementById('mv-status-progress');
   if(!bar) return;
-  const stages=['lead','aplicado','contato','entrevista','proposta','aceito'];
-  const labels=['Oportunidade','CV Enviado','Em Contato','Entrevista','Proposta','Aceito'];
+  const stages=['lead','aplicado','entrevista','proposta','aceito'];
+  const labels=['Oportunidade','CV Enviado','Entrevista','Proposta','Aceito'];
   if(status==='negado'){bar.innerHTML='<span style="font-size:11px;color:#C0281E;font-weight:600;padding:2px 0;">✕ Processo encerrado</span>';return;}
   const idx=stages.indexOf(status);
   bar.innerHTML=stages.map((s,i)=>{
