@@ -1820,11 +1820,9 @@ select option { background: var(--bg2); }
         </div>
         <div style="flex:1;min-width:0;">
           <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm();mvAtualizarLogo(this.value)"
-                 style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 4px;background:transparent;"
-                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='var(--border)'">
+                 style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-radius:0;padding:2px 0 4px;background:transparent;outline:none;">
           <input type="text" id="mv-cargo" placeholder="Cargo" oninput="validarVagaForm()"
-                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 3px;background:transparent;margin-top:6px;"
-                 onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='var(--border)'">
+                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-radius:0;padding:2px 0 3px;background:transparent;margin-top:4px;outline:none;">
         </div>
         <select id="mv-status" onchange="atualizarBotoes()"
                 style="font-size:11px;width:auto;flex-shrink:0;padding:4px 8px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
@@ -1936,7 +1934,7 @@ select option { background: var(--bg2); }
       </div>
 
       <!-- ZONA 5 — DESCRIÇÃO DA VAGA (colapsável) -->
-      <div class="mv-sec" id="mv-desc-section">
+      <div class="mv-sec" id="mv-desc-section" style="border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;">
         <div class="mv-sec-head">
           <span class="mv-sec-title">Descrição da vaga</span>
           <button id="mv-desc-expand-btn" onclick="mvToggleDesc()"
@@ -5737,7 +5735,7 @@ function mvUpdateMetaInfo(v){
   const _pill=(t,col)=>`<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;background:${col}18;color:${col};border:1px solid ${col}33;margin-right:4px;margin-bottom:2px;white-space:nowrap;">${t}</span>`;
   let html='';
   if(v.localizacao){const loc=v.localizacao.split('·')[0].split('•')[0].trim();if(loc)html+=_pill(loc,'#1A3A5C');}
-  if(v.modelo){const c=v.modelo==='Remoto'?'#1A6840':v.modelo==='Híbrido'?'#7C5A00':'#1A3A5C';html+=_pill(v.modelo,c);}
+  if(v.modelo) html+=_pill(v.modelo,'#1A3A5C');
   if(v.jornada) html+=_pill(v.jornada,'#1A3A5C');
   if(v.regime)  html+=_pill(v.regime,'#1A3A5C');
   if(v.salario) html+=_pill(v.salario,'#1A6840');
