@@ -595,8 +595,8 @@
           type: 'AUTO_UPDATE_DESC',
           payload: { url: location.href, descricao: d.descricao, empresa: d.empresa, cargo: d.cargo, local: d.local, salario: d.salario, modalidade: d.modalidade, jornada: d.jornada }
         }).catch(() => {});
-        // Fechar popup automaticamente se foi aberto pelo Senova
-        if (window.opener && window.name === 'snv_auth') {
+        // Fechar popup se foi aberto pelo Senova (window.name persiste mesmo cross-origin)
+        if (window.name === 'snv_auth') {
           setTimeout(() => window.close(), 1200);
         }
       } else if (_autoTries < 15) {
