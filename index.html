@@ -1868,7 +1868,7 @@ select option { background: var(--bg2); }
         <!-- Cabeçalho colapsável (estado Oportunidade) -->
         <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
-          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Fit ATS</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Compatibilidade</span>
           <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
           <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
         </div>
@@ -1882,7 +1882,7 @@ select option { background: var(--bg2); }
         <!-- Fit Técnico (ATS) -->
         <div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span style="font-size:12px;color:var(--text2);font-weight:500;">Fit Técnico</span>
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">Compatibilidade</span>
             <span id="mv-ats-score-badge" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
           </div>
           <div class="mv-score-bar-track">
@@ -5017,7 +5017,7 @@ function openVagaModal(id){
   // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
   if(v&&v.status==='lead'&&editingVagaId&&editingVagaId!=='new'){
     const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
-    const _hasScore=typeof v.score==='number'&&v.score>0;
+    const _hasScore=!!(v.atsScore&&parseInt(v.atsScore)>0);
     if(_hasDesc&&!_hasScore) setTimeout(()=>analisarInline(),500);
   }
 }
@@ -5675,11 +5675,11 @@ function mvUpdateScoreDisplay(vOpt){
   const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
   if(atsBadge){ atsBadge.style.cssText=''; atsBadge.textContent=ats?ats+'%':'—'; atsBadge.style.color=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)'; atsBadge.style.fontWeight=ats?'700':'400'; atsBadge.style.fontSize='12px'; }
-  // Sinais ATS
+  // Sinais compatibilidade
   const signals=[];
-  if(ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Fit ATS forte ('+ats+'%)');
-  else if(ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Fit ATS parcial ('+ats+'%) — revisar CV');
-  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Fit ATS baixo ('+ats+'%) — revisar CV');
+  if(ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Boa compatibilidade com esta vaga ('+ats+'%)');
+  else if(ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Compatibilidade parcial ('+ats+'%) — vale revisar o CV');
+  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Baixa compatibilidade ('+ats+'%) — CV precisa de ajustes');
   // Badge total (só ATS)
   const badge=document.getElementById('mv-score-total-badge');
   if(badge){
@@ -5695,7 +5695,7 @@ function mvUpdateScoreDisplay(vOpt){
   // Sinais
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
-    if(!ats) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Análise ATS rodando…</span>';
+    if(!ats) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';
     else signalsEl.innerHTML=signals.map(s=>'<div class="mv-signal">'+s+'</div>').join('');
   }
 }
