@@ -5771,38 +5771,31 @@ function mvUpdateMetaInfo(v){
   el.innerHTML=html;
 }
 
-async function mvAtualizarLogo(empresa, origemUrl){
+function mvAtualizarLogo(empresa, origemUrl){
   const img=document.getElementById('mv-logo-img');
   const letter=document.getElementById('mv-logo-letter');
   if(!letter) return;
   letter.textContent=(empresa||'').trim()[0]?.toUpperCase()||'?';
-  if(img) img.style.display='none';
-  letter.style.display='flex';
-  if(!empresa||!empresa.trim()) return;
-  // Cache
-  const cache=_getLogoCache();
-  if(cache[empresa]){
-    if(img){img.src=cache[empresa];img.style.display='';letter.style.display='none';}
+  // Tagger o img para que _resolveCompanyLogos o actualize junto com o Kanban
+  if(img) img.dataset.empresa=empresa||'';
+  if(!empresa||!empresa.trim()){
+    if(img) img.style.display='none';
+    letter.style.display='flex';
     return;
   }
-  // Favicon direto da URL de origem (ignora LinkedIn/Indeed)
-  const fav=_faviconFromUrl(origemUrl||'');
-  const isJobBoard=/linkedin\.com|indeed\.com|catho\.com|vagas\.com|gupy\.io|greenhouse\.io|lever\.co|workable\.com|inhire\.app/i;
-  if(fav&&!isJobBoard.test(origemUrl||'')){
-    const c=_getLogoCache();c[empresa]=fav;_setLogoCache(c);
-    if(img){img.src=fav;img.style.display='';letter.style.display='none';}
-    return;
+  // Usar exactamente a mesma lógica que o Kanban
+  const logo=_companyLogo(empresa, origemUrl||'');
+  if(logo&&img){
+    img.src=logo.src;
+    img.style.width=img.style.height='20px';
+    img.style.display='';
+    letter.style.display='none';
+  } else {
+    if(img) img.style.display='none';
+    letter.style.display='flex';
+    // Disparar resolução assíncrona — actualiza Kanban E modal via _applyLogo
+    _resolveCompanyLogos();
   }
-  // Clearbit autocomplete → Google Favicon (mesma lógica do _resolveCompanyLogos)
-  try{
-    const q=empresa.split(/\s*[-–—]\s*/)[0].trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    const r=await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(q)}`);
-    const data=await r.json();
-    const match=data.find(d=>d.name.toLowerCase()===empresa.toLowerCase())||data[0];
-    const src=match?.logo||(match?.domain?`https://www.google.com/s2/favicons?domain=${match.domain}&sz=64`:null);
-    const c=_getLogoCache();c[empresa]=src||null;_setLogoCache(c);
-    if(src&&img){img.src=src;img.style.display='';letter.style.display='none';}
-  }catch(_){}
 }
 
 // ── SOFIA NO CARD ────────────────────────────────────────────────────────────
