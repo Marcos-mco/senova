@@ -1870,6 +1870,7 @@ select option { background: var(--bg2); }
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
           <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Análise</span>
           <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
+          <span id="mv-compat-class-label" style="font-size:12px;font-weight:600;flex-shrink:0;"></span>
           <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
         </div>
         <!-- Cabeçalho padrão (outros estados) -->
@@ -1879,13 +1880,8 @@ select option { background: var(--bg2); }
         </div>
         <!-- Corpo expandível -->
         <div id="mv-compat-body">
-        <!-- Barra ATS (sem badge — score já aparece no cabeçalho) -->
-        <div style="margin-bottom:10px;">
-          <div class="mv-score-bar-track">
-            <div id="mv-ats-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
-          </div>
-        </div>
         <span id="mv-ats-score-badge" style="display:none;"></span>
+        <div id="mv-ats-bar" style="display:none;"></div>
         <!-- Análise: veredicto + pontos fortes/atenção -->
         <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
           <span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>
@@ -5674,16 +5670,18 @@ function mvUpdateScoreDisplay(vOpt){
   const atsBadge=document.getElementById('mv-ats-score-badge');
   const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
-  // Badge oculto — score está no cabeçalho colapsado
   if(atsBadge) atsBadge.style.display='none';
   // Termos e cores idênticos ao popup da extensão Senova
   const _v=ats>=75
-    ?{titulo:'Ótima oportunidade',sub:'Vale uma análise completa — alto alinhamento com seu perfil.',cor:'#1A7A4A',bg:'#EAF7EF'}
+    ?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}
     :ats>=55
-    ?{titulo:'Pode valer a pena',sub:'Alinhamento parcial — analise antes de se candidatar.',cor:'#B8670A',bg:'#FFF8EC'}
+    ?{titulo:'Pode valer a pena',cor:'#B8670A'}
     :ats>0
-    ?{titulo:'Fora do seu perfil',sub:'Provavelmente não vale o tempo — mas você decide.',cor:'#C0281E',bg:'#FEF0EF'}
+    ?{titulo:'Fora do seu perfil',cor:'#C0281E'}
     :null;
+  // Label classificação na linha do header colapsado
+  const classLabelEl=document.getElementById('mv-compat-class-label');
+  if(classLabelEl){classLabelEl.textContent=_v?.titulo||'';classLabelEl.style.color=_v?.cor||'var(--text3)';}
   // Badge total
   const badge=document.getElementById('mv-score-total-badge');
   if(badge){
@@ -5695,16 +5693,14 @@ function mvUpdateScoreDisplay(vOpt){
   const miniScore=document.getElementById('mv-compat-score-mini');
   if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=_v?.cor||'var(--border2)';}
   if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?_v?.cor:'var(--text3)';}
-  // Conteúdo expandido — layout igual ao popup da extensão (sem emojis de título)
+  // Corpo expandido: só bullets (sem subtexto, sem barra, sem bloco veredicto)
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
     if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
-    let html='<div style="font-size:13px;font-weight:700;color:'+_v.cor+';margin-bottom:2px;">'+_v.titulo+'</div>';
-    html+='<div style="font-size:11px;color:#5A6A7A;margin-bottom:7px;line-height:1.4;">'+_v.sub+'</div>';
+    let html='';
     (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+p+'</span></div>';});
     (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+p+'</span></div>';});
-    if(v?.atsAnalise){const verb=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim();if(verb) html+='<div style="margin-top:8px;padding:7px 9px;background:#F0F4F8;border-radius:6px;border-left:3px solid '+_v.cor+';font-size:11.5px;color:#3A4A5A;line-height:1.5;">'+verb+'</div>';}
-    signalsEl.innerHTML=html;
+    signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';
   }
 }
 
