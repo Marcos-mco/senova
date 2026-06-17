@@ -1814,8 +1814,12 @@ select option { background: var(--bg2); }
     </div>
     <div style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
+        <div id="mv-logo-avatar" style="width:44px;height:44px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;margin-top:2px;">
+          <img id="mv-logo-img" src="" alt="" style="width:44px;height:44px;object-fit:contain;display:none;" onerror="this.style.display='none';document.getElementById('mv-logo-letter').style.display='flex';">
+          <span id="mv-logo-letter" style="font-size:20px;font-weight:700;color:#fff;font-family:var(--font-display);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">?</span>
+        </div>
         <div style="flex:1;min-width:0;">
-          <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm()"
+          <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm();mvAtualizarLogo(this.value)"
                  style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 4px;background:transparent;"
                  onfocus="this.style.borderBottomColor='var(--gold)'" onblur="this.style.borderBottomColor='var(--border)'">
           <input type="text" id="mv-cargo" placeholder="Cargo" oninput="validarVagaForm()"
@@ -4973,6 +4977,7 @@ function openVagaModal(id){
     }
     mvRenderPipeline(v.status);
     mvUpdateMetaInfo(v);
+    mvAtualizarLogo(v.empresa||'');
     mvUpdateScoreDisplay(v);
     mvAjustarSecoesStatus(v.status);
     // Fechar Sofia se estava aberta de sessão anterior
@@ -5013,6 +5018,7 @@ function openVagaModal(id){
     const resEl2=document.getElementById('mv-analise-result');if(resEl2)resEl2.style.display='none';
     mvRefreshDescPreview();
     mvUpdateMetaInfo(null);
+    mvAtualizarLogo('');
     mvUpdateScoreDisplay(null);
     mvFecharSofia();
   }
@@ -5169,13 +5175,13 @@ function mvAjustarSecoesStatus(status){
   const statusSel=document.getElementById('mv-status');
   if(statusSel) statusSel.style.display=isLead?'none':'';
 
-  // ── Score section: sempre expandido (sem accordion) ──
+  // ── Score section: accordion colapsado no lead, padrão nos demais ──
   const compatCollapsed=document.getElementById('mv-compat-collapsed-row');
   const scoreHeaderDefault=document.getElementById('mv-score-header-default');
   const compatBody=document.getElementById('mv-compat-body');
-  if(compatCollapsed) compatCollapsed.style.display='none';
-  if(scoreHeaderDefault) scoreHeaderDefault.style.display='flex';
-  if(compatBody) compatBody.style.display='';
+  if(compatCollapsed) compatCollapsed.style.display=isLead?'flex':'none';
+  if(scoreHeaderDefault) scoreHeaderDefault.style.display=isLead?'none':'flex';
+  if(compatBody) compatBody.style.display=isLead?'none':'';
 
   // ── Análise holística (só lead) ──
   const sofiaHolistica=document.getElementById('mv-sofia-holistica');
@@ -5727,13 +5733,32 @@ function mvUpdateScoreDisplay(vOpt){
 function mvUpdateMetaInfo(v){
   const el=document.getElementById('mv-meta-info');
   if(!el) return;
-  const parts=[];
-  if(v?.localizacao) parts.push(v.localizacao.split('·')[0].split('•')[0].trim());
-  if(v?.modelo) parts.push(v.modelo);
-  if(v?.jornada) parts.push(v.jornada);
-  if(v?.regime) parts.push(v.regime);
-  if(v?.salario) parts.push(v.salario);
-  el.textContent=parts.join(' · ');
+  if(!v){el.innerHTML='';return;}
+  const _pill=(t,col)=>`<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;background:${col}18;color:${col};border:1px solid ${col}33;margin-right:4px;margin-bottom:2px;white-space:nowrap;">${t}</span>`;
+  let html='';
+  if(v.localizacao){const loc=v.localizacao.split('·')[0].split('•')[0].trim();if(loc)html+=_pill(loc,'#1A3A5C');}
+  if(v.modelo){const c=v.modelo==='Remoto'?'#1A6840':v.modelo==='Híbrido'?'#7C5A00':'#1A3A5C';html+=_pill(v.modelo,c);}
+  if(v.jornada) html+=_pill(v.jornada,'#1A3A5C');
+  if(v.regime)  html+=_pill(v.regime,'#1A3A5C');
+  if(v.salario) html+=_pill(v.salario,'#1A6840');
+  el.innerHTML=html;
+}
+
+function mvAtualizarLogo(empresa){
+  const img=document.getElementById('mv-logo-img');
+  const letter=document.getElementById('mv-logo-letter');
+  if(!letter) return;
+  const initial=(empresa||'').trim()[0]?.toUpperCase()||'?';
+  letter.textContent=initial;
+  if(img&&empresa&&empresa.trim()){
+    const slug=empresa.toLowerCase().replace(/[^a-z0-9]/g,'');
+    img.src=`https://logo.clearbit.com/${slug}.com`;
+    img.style.display='';
+    letter.style.display='none';
+  } else {
+    if(img) img.style.display='none';
+    letter.style.display='flex';
+  }
 }
 
 // ── SOFIA NO CARD ────────────────────────────────────────────────────────────
