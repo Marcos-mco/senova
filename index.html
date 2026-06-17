@@ -1879,18 +1879,16 @@ select option { background: var(--bg2); }
         </div>
         <!-- Corpo expandível -->
         <div id="mv-compat-body">
-        <!-- Barra ATS -->
+        <!-- Barra ATS (sem badge — score já aparece no cabeçalho) -->
         <div style="margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span id="mv-ats-score-badge" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
-          </div>
           <div class="mv-score-bar-track">
             <div id="mv-ats-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
           </div>
         </div>
-        <!-- Sinais chave -->
+        <span id="mv-ats-score-badge" style="display:none;"></span>
+        <!-- Análise: veredicto + pontos fortes/atenção -->
         <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
-          <span style="font-size:12px;">Analise a vaga para calcular o Fit Técnico</span>
+          <span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>
         </div>
         <!-- Sofia inline (lead: aparece após análise) -->
         <div id="mv-sofia-inline" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65;"></div>
@@ -5675,63 +5673,59 @@ function mvUpdateScoreDisplay(vOpt){
   const atsBadge=document.getElementById('mv-ats-score-badge');
   const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
-  if(atsBadge){ atsBadge.style.cssText=''; atsBadge.textContent=ats?ats+'%':'—'; atsBadge.style.color=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)'; atsBadge.style.fontWeight=ats?'700':'400'; atsBadge.style.fontSize='12px'; }
-  // Sinais compatibilidade
-  const signals=[];
-  if(ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Boa compatibilidade com esta vaga ('+ats+'%)');
-  else if(ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Compatibilidade parcial ('+ats+'%) — vale revisar o CV');
-  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Baixa compatibilidade ('+ats+'%) — CV precisa de ajustes');
-  // Badge total (só ATS)
+  // Badge oculto — score está no cabeçalho colapsado
+  if(atsBadge) atsBadge.style.display='none';
+  // Veredicto principal
+  const col=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)';
+  const icon=ats>=75?'✓':ats>=55?'⚠':ats>0?'✗':'';
+  const label=ats>=75?'Boa compatibilidade ('+ats+'%)':ats>=55?'Compatibilidade parcial ('+ats+'%) — vale revisar o CV':ats>0?'Baixa compatibilidade ('+ats+'%) — CV precisa de ajustes':'';
+  // Badge total
   const badge=document.getElementById('mv-score-total-badge');
   if(badge){
-    if(ats){ const col=ats>=75?'#1A7A4A':ats>=55?'#B8670A':'#C0281E'; badge.textContent=ats; badge.style.color=col; badge.style.display=''; }
+    if(ats){ badge.textContent=ats; badge.style.color=col; badge.style.display=''; }
     else badge.style.display='none';
   }
-  // Mini barra colapsada — só ATS
+  // Mini barra colapsada
   const miniBar=document.getElementById('mv-compat-bar-mini');
   const miniScore=document.getElementById('mv-compat-score-mini');
-  const displayCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
-  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=displayCol;}
-  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?displayCol:'var(--text3)';}
-  // Sinais
+  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=col;}
+  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?col:'var(--text3)';}
+  // Conteúdo expandido: veredicto + bullets pontos fortes/atenção
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
-    if(!ats) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';
-    else signalsEl.innerHTML=signals.map(s=>'<div class="mv-signal">'+s+'</div>').join('');
+    if(!ats){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';return;}
+    let html='';
+    if(label) html+='<div class="mv-signal" style="font-weight:600;color:'+col+';margin-bottom:6px;"><span>'+icon+'</span> '+label+'</div>';
+    (v?.compatFortes||[]).forEach(p=>{ html+='<div class="mv-signal"><span style="color:#1A7A4A;">✓</span> '+p+'</div>'; });
+    (v?.compatAtencao||[]).forEach(p=>{ html+='<div class="mv-signal"><span style="color:#B8670A;">⚠</span> '+p+'</div>'; });
+    if(v?.atsAnalise){const verb=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim();if(verb) html+='<div class="mv-signal" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);color:var(--text2);">💡 '+verb+'</div>';}
+    signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';
   }
 }
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 async function mvAutoCompatCheck(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  console.log('[SNV] autoCheck triggered — desc:',jobDesc.length,'editingId:',editingVagaId);
   if(!jobDesc||!editingVagaId||editingVagaId==='new') return;
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-  if(idx<0){console.log('[SNV] idx not found');return;}
+  if(idx<0) return;
   const v=vagas[idx];
-  console.log('[SNV] status:',v.status,'atsScore:',v.atsScore);
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000)})
     });
-    console.log('[SNV] fetch status:',res.status);
-    if(!res.ok){console.log('[SNV] non-ok response');return;}
+    if(!res.ok) return;
     const data=await res.json();
-    console.log('[SNV] data:',JSON.stringify(data).slice(0,200));
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score){console.log('[SNV] score 0 — skipping');return;}
+    if(!score) return;
     vagas[idx].atsScore=String(score);
-    const veredicto=data.resumo||'';
-    if(veredicto&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+veredicto;
+    vagas[idx].compatFortes=data.pontos_fortes||[];
+    vagas[idx].compatAtencao=data.pontos_atencao||[];
+    if(data.resumo&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     saveVagas();
     mvUpdateScoreDisplay();
-    const sofiaInline=document.getElementById('mv-sofia-inline');
-    if(sofiaInline&&veredicto){
-      sofiaInline.innerHTML='<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Compatibilidade</span><span style="color:var(--text2);">'+veredicto+'</span>';
-      sofiaInline.style.display='';
-    }
-  }catch(e){console.error('[SNV] autoCheck error:',e);}
+  }catch(_){}
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
