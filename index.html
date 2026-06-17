@@ -5250,14 +5250,6 @@ function _mvRenderDescGuide(tipo){
     guide.style.display='';
     return;
   }
-  if(tipo==='linkedin'){
-    guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-      <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">LinkedIn não permite busca automática. Abra a vaga e use a extensão Senova para importar a descrição.</p>
-      <button onclick="irParaVaga()" style="font-size:13px;font-weight:600;color:var(--action);background:none;border:1.5px solid var(--action);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-family:var(--font);">↗ Abrir no LinkedIn</button>
-    </div>`;
-    guide.style.display='';
-    return;
-  }
   const isNone=tipo==='none';
   guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
     <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">
@@ -5302,11 +5294,11 @@ async function _mvAutoFetchDesc(){
     _mvRenderDescGuide(null);
     analisarInline();
   }catch{
-    // LinkedIn e outros que bloqueiam fetch server-side: guia específico
-    const _isLI=url.includes('linkedin.com');
-    _mvRenderDescGuide(_isLI?'linkedin':'none');
+    // Falhou — permitir nova tentativa na próxima abertura do card
+    _mvFetchAttempted.delete(cardId);
+    _mvRenderDescGuide('none');
     const btn=document.getElementById('mv-desc-edit-btn');
-    if(btn){btn.style.display='';btn.textContent='Adicionar manualmente';btn.style.color='var(--text3)';btn.disabled=false;btn.onclick=_mvAbrirDescLead;}
+    if(btn){btn.style.display='';btn.textContent='Tentar novamente';btn.style.color='var(--action)';btn.disabled=false;btn.onclick=()=>{_mvRenderDescGuide('loading');_mvAutoFetchDesc();};}
   }
 }
 
