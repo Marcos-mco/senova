@@ -535,17 +535,35 @@
     } catch (_) {}
   }
 
-  // Botão flutuante em todas as plataformas.
-  // LinkedIn /jobs/view/ = página de detalhe de uma vaga específica — botão ativo.
-  // LinkedIn /jobs/search/ = painel lateral SPA — usa popup (classes obfuscadas mudam a cada job).
-  const isLinkedInView = host.includes('linkedin.com') && /\/jobs\/view\//.test(url);
-  const habilitarFlutuante = !host.includes('linkedin.com') || isLinkedInView;
-  if (habilitarFlutuante) {
-    const delay = isLinkedInView ? 1800 : 1200; // LinkedIn SPA precisa de mais tempo para hidratar
+  // Botão flutuante em todas as plataformas exceto LinkedIn (usa popup).
+  if (!host.includes('linkedin.com')) {
     if (document.readyState === 'complete') {
-      setTimeout(() => _tentarInjetar(8), delay);
+      setTimeout(() => _tentarInjetar(6), 1200);
     } else {
-      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(8), delay));
+      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(6), 1200));
+    }
+  }
+
+  // Auto-atualização Senova: em /jobs/view/ o browser está logado e pode ler a descrição completa.
+  // Assim que encontrar, envia para o Senova (se estiver aberto) sem precisar de clique extra.
+  if (host.includes('linkedin.com') && /\/jobs\/view\//.test(url)) {
+    let _autoTries = 0;
+    function _tryAutoUpdate() {
+      const d = extractLinkedIn();
+      if (d.descricao && d.descricao.length > 100) {
+        chrome.runtime.sendMessage({
+          type: 'AUTO_UPDATE_DESC',
+          payload: { url: location.href, descricao: d.descricao, empresa: d.empresa, cargo: d.cargo }
+        }).catch(() => {});
+      } else if (_autoTries < 15) {
+        _autoTries++;
+        setTimeout(_tryAutoUpdate, 400);
+      }
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(_tryAutoUpdate, 1800);
+    } else {
+      window.addEventListener('load', () => setTimeout(_tryAutoUpdate, 1800));
     }
   }
 

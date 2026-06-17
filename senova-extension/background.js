@@ -30,6 +30,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     sendResponse({ ok: true });
     return false;
   }
+  if (msg.type === 'AUTO_UPDATE_DESC') {
+    autoUpdateDesc(msg.payload).catch(() => {});
+    sendResponse({ ok: true });
+    return false;
+  }
 });
 
 // ── ANÁLISE COMPLETA — injeta dados na aba do Senova ─────────────────
@@ -158,6 +163,24 @@ async function salvarVaga(payload) {
   } catch (_) {}
 
   return result;
+}
+
+async function autoUpdateDesc({ url, descricao, empresa, cargo }) {
+  if (!descricao || descricao.length < 100) return;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (senovaTab) {
+    // Senova está aberto — atualiza direto na aba
+    await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id },
+      world: 'MAIN',
+      func: (u, d) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d); },
+      args: [url, descricao],
+    }).catch(() => {});
+  } else {
+    // Senova fechado — salva no KV para importar na próxima abertura
+    await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', fonte: 'extensao_chrome' }).catch(() => {});
+  }
 }
 
 async function salvarSinal({ titulo, empresa, url, resumo }) {

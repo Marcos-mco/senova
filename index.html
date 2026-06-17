@@ -7995,6 +7995,28 @@ loadCRM();
 })();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
+// Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
+window.__senovaAtualizarDesc=function(url,desc){
+  if(!desc||desc.length<100) return;
+  const _norm=u=>(u||'').split('?')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
+  const vUrl=_norm(url);
+  const idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;
+  if(idx<0) return;
+  if(vagas[idx].jobDescription||vagas[idx].descricao) return; // já tem descrição
+  vagas[idx].jobDescription=desc.slice(0,5000);
+  vagas[idx].updatedAt=Date.now();
+  saveVagas();
+  showToast('✅ Descrição carregada do LinkedIn');
+  // Se o modal estiver aberto com este card, atualiza em tempo real
+  if(String(editingVagaId)===String(vagas[idx].id)){
+    const ta=document.getElementById('mv-job-desc');
+    if(ta){ta.value=desc.slice(0,5000);}
+    mvRefreshDescPreview();
+    mvAtualizarBtnAnalise();
+    _mvRenderDescGuide(null);
+  }
+};
+
 // Exposto como window.__senovaImportar para o background.js disparar imediatamente ao salvar
 window.__senovaImportar=async function(){
   try{
