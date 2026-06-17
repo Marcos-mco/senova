@@ -5211,13 +5211,17 @@ function mvAjustarSecoesStatus(status){
   _mvRenderDescGuide(null);
   if(isLead){
     if(ta&&!ta.value.trim()){
-      // Sem descrição: mostra textarea pronta para colar
-      ta.style.display='';
-      if(hint) hint.style.display='';
+      // Sem descrição: nunca mostrar textarea vazia — buscar automaticamente
+      ta.style.display='none';
+      if(hint) hint.style.display='none';
       if(editBtn) editBtn.style.display='none';
-      // Auto-fetch em background se tiver URL
       const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
-      if(_origemUrl&&editingVagaId&&editingVagaId!=='new') _mvAutoFetchDesc();
+      if(_origemUrl&&editingVagaId&&editingVagaId!=='new'){
+        _mvRenderDescGuide('loading');
+        _mvAutoFetchDesc();
+      } else {
+        _mvRenderDescGuide('none');
+      }
     } else {
       // Com descrição: mostra preview (já tratado por mvRefreshDescPreview)
       if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='var(--text3)';editBtn.onclick=mvEditarDesc;}
@@ -5239,6 +5243,21 @@ function _mvRenderDescGuide(tipo){
   const guide=document.getElementById('mv-desc-guide');
   if(!guide) return;
   if(!tipo){guide.style.display='none';guide.innerHTML='';return;}
+  if(tipo==='loading'){
+    guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;color:var(--text2);">↻ Buscando descrição da vaga…</span>
+    </div>`;
+    guide.style.display='';
+    return;
+  }
+  if(tipo==='linkedin'){
+    guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">LinkedIn não permite busca automática. Abra a vaga e use a extensão Senova para importar a descrição.</p>
+      <button onclick="irParaVaga()" style="font-size:13px;font-weight:600;color:var(--action);background:none;border:1.5px solid var(--action);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-family:var(--font);">↗ Abrir no LinkedIn</button>
+    </div>`;
+    guide.style.display='';
+    return;
+  }
   const isNone=tipo==='none';
   guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
     <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">
@@ -5275,13 +5294,19 @@ async function _mvAutoFetchDesc(){
     if(data.error||!_desc||_isGarbage) throw new Error('insuficiente');
     const ta=document.getElementById('mv-job-desc');
     if(ta) ta.value=_desc;
+    // Salvar no card para não buscar de novo
+    const _vi=vagas.findIndex(v=>String(v.id)===String(cardId));
+    if(_vi>=0){vagas[_vi].jobDescription=_desc;saveVagas();}
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
     _mvRenderDescGuide(null);
     analisarInline();
   }catch{
+    // LinkedIn e outros que bloqueiam fetch server-side: guia específico
+    const _isLI=url.includes('linkedin.com');
+    _mvRenderDescGuide(_isLI?'linkedin':'none');
     const btn=document.getElementById('mv-desc-edit-btn');
-    if(btn){btn.textContent='▾ Colar';btn.style.color='var(--action)';btn.disabled=false;btn.onclick=_mvAbrirDescLead;}
+    if(btn){btn.style.display='';btn.textContent='Adicionar manualmente';btn.style.color='var(--text3)';btn.disabled=false;btn.onclick=_mvAbrirDescLead;}
   }
 }
 
