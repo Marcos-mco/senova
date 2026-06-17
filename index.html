@@ -5697,9 +5697,10 @@ function mvUpdateScoreDisplay(vOpt){
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
     if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
-    // Prioridade 1: texto completo da aba Analisar
+    // Prioridade 1: texto rico da aba Analisar (tem seções como Cargo real, Red flags, etc.)
     const analise=(v?.atsAnalise||'').trim();
-    if(analise){
+    const isRichAnalise=/^(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(analise);
+    if(analise&&isRichAnalise){
       const lines=analise.split('\n').filter(l=>l.trim()&&!/^MATCH SCORE:/i.test(l.trim()));
       let html='';
       lines.forEach(line=>{
