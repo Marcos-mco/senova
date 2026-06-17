@@ -256,7 +256,7 @@
 
     // Limpeza: remove URLs de tracking do LinkedIn (comm/feed, lipi=, etc.) e linhas em branco excessivas
     if (desc) {
-      desc = desc.replace(/https?:\/\/[^\s]{30,}/g, '').replace(/\n{3,}/g, '\n\n').trim();
+      desc = desc.replace(/https?:\/\/[^\s]{30,}/g, '').replace(/\n{3,}/g, '\n\n').replace(/[\s\n]*\.{2,3}\s*mais\s*$/i, '').replace(/[\s\n]*…\s*mais\s*$/i, '').replace(/[\s\n]*ver mais\s*$/i, '').trim();
       if (desc.length < 80) desc = '';
     }
 
@@ -595,10 +595,6 @@
           type: 'AUTO_UPDATE_DESC',
           payload: { url: location.href, descricao: d.descricao, empresa: d.empresa, cargo: d.cargo, local: d.local, salario: d.salario, modalidade: d.modalidade, jornada: d.jornada }
         }).catch(() => {});
-        // Fechar popup se foi aberto pelo Senova (window.name persiste mesmo cross-origin)
-        if (window.name === 'snv_auth') {
-          setTimeout(() => window.close(), 1200);
-        }
       } else if (_autoTries < 15) {
         _autoTries++;
         setTimeout(_tryAutoUpdate, 400);
