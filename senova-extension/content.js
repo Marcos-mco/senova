@@ -535,12 +535,17 @@
     } catch (_) {}
   }
 
-  // LinkedIn usa popup (SPA com painel lateral); demais plataformas recebem o botão flutuante
-  if (!host.includes('linkedin.com')) {
+  // Botão flutuante em todas as plataformas.
+  // LinkedIn /jobs/view/ = página de detalhe de uma vaga específica — botão ativo.
+  // LinkedIn /jobs/search/ = painel lateral SPA — usa popup (classes obfuscadas mudam a cada job).
+  const isLinkedInView = host.includes('linkedin.com') && /\/jobs\/view\//.test(url);
+  const habilitarFlutuante = !host.includes('linkedin.com') || isLinkedInView;
+  if (habilitarFlutuante) {
+    const delay = isLinkedInView ? 1800 : 1200; // LinkedIn SPA precisa de mais tempo para hidratar
     if (document.readyState === 'complete') {
-      setTimeout(() => _tentarInjetar(6), 1200);
+      setTimeout(() => _tentarInjetar(8), delay);
     } else {
-      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(6), 1200));
+      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(8), delay));
     }
   }
 
