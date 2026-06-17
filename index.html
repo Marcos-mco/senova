@@ -5559,12 +5559,20 @@ function mvRefreshDescPreview(){
   const expandBtn=document.getElementById('mv-desc-expand-btn');
   const editBtn=document.getElementById('mv-desc-edit-btn');
   if(desc){
-    if(preview) preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');
-    if(full) full.textContent=desc;
-    if(preview) preview.style.display='';
-    if(full) full.style.display='none';
+    // Detectar "... mais" / "... more" do LinkedIn — renderizar como link clicável
+    const _maisRe=/(\.\.\.\s*)(mais|more)\s*$/i;
+    const _temMais=_maisRe.test(desc);
+    const _esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function _renderComMais(texto,limite){
+      const trunc=limite&&texto.length>limite?texto.slice(0,limite):texto;
+      const base=trunc.replace(_maisRe,'');
+      const link='<a onclick="irParaVaga()" style="color:var(--action);cursor:pointer;font-weight:600;white-space:nowrap;">... mais ↗</a>';
+      return _esc(base)+((_temMais||limite&&desc.length>limite)?link:'');
+    }
+    if(preview){preview.innerHTML=_renderComMais(desc,300);preview.style.display='';}
+    if(full){full.innerHTML=_renderComMais(desc,0);full.style.display='none';}
     if(ta) ta.style.display='none';
-    if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
+    if(expandBtn) expandBtn.style.display=(!_temMais&&desc.length>300)?'':'none';
     if(editBtn){ editBtn.style.display=''; editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
     _mvRenderDescGuide(null);
   } else {
