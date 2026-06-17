@@ -1900,7 +1900,6 @@ select option { background: var(--bg2); }
 
       <!-- ANÁLISE HOLÍSTICA — Perguntar à Sofia (só estado Oportunidade) -->
       <div id="mv-sofia-holistica" class="mv-sec" style="display:none;">
-        <div class="mv-sec-head"><span class="mv-sec-title">Sofia</span></div>
         <button onclick="mvCallSofia()" style="width:100%;padding:9px;font-size:13px;font-weight:600;font-family:var(--font);background:none;border:1.5px solid #7C3AED;color:#7C3AED;border-radius:var(--radius);cursor:pointer;">✨ Perguntar à Sofia</button>
       </div>
 
@@ -5710,7 +5709,7 @@ async function mvAutoCompatCheck(){
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',max_tokens:300,
+        model:'claude-sonnet-4-6',max_tokens:300,
         system:'Você é especialista em recrutamento executivo. Avalie a compatibilidade entre o perfil e a vaga. Responda APENAS com JSON válido, sem texto adicional: {"score":XX,"veredicto":"uma frase direta sobre o fit"}',
         messages:[{role:'user',content:'PERFIL:\n'+perfil+'\n\nVAGA:\n'+jobDesc.slice(0,3000)}]
       })
@@ -8140,6 +8139,11 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
     mvAtualizarBtnAnalise();
     _mvRenderDescGuide(null);
     mvUpdateMetaInfo(vagas[idx]);
+    // Auto-check de compatibilidade se lead sem score ainda
+    const _vAtual=vagas[idx];
+    if(_vAtual.status==='lead'&&!(_vAtual.atsScore&&parseInt(_vAtual.atsScore)>0)){
+      setTimeout(()=>mvAutoCompatCheck(),800);
+    }
   }
 };
 
