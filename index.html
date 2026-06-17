@@ -5776,26 +5776,25 @@ function mvAtualizarLogo(empresa, origemUrl){
   const letter=document.getElementById('mv-logo-letter');
   if(!letter) return;
   letter.textContent=(empresa||'').trim()[0]?.toUpperCase()||'?';
-  // Tagger o img para que _resolveCompanyLogos o actualize junto com o Kanban
   if(img) img.dataset.empresa=empresa||'';
   if(!empresa||!empresa.trim()){
     if(img) img.style.display='none';
     letter.style.display='flex';
     return;
   }
-  // Usar exactamente a mesma lógica que o Kanban
-  const logo=_companyLogo(empresa, origemUrl||'');
-  if(logo&&img){
-    img.src=logo.src;
+  // Display imediato via cache (se disponível)
+  const cache=_getLogoCache();
+  if(cache[empresa]&&img){
+    img.src=cache[empresa];
     img.style.width=img.style.height='20px';
     img.style.display='';
     letter.style.display='none';
   } else {
     if(img) img.style.display='none';
     letter.style.display='flex';
-    // Disparar resolução assíncrona — actualiza Kanban E modal via _applyLogo
-    _resolveCompanyLogos();
   }
+  // Sempre disparar — actualiza modal E Kanban via _applyLogo(data-empresa)
+  _resolveCompanyLogos();
 }
 
 // ── SOFIA NO CARD ────────────────────────────────────────────────────────────
