@@ -5020,6 +5020,12 @@ function openVagaModal(id){
   _mvCenterModal();
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
+  // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
+  if(v&&v.status==='lead'&&editingVagaId&&editingVagaId!=='new'){
+    const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
+    const _hasScore=typeof v.score==='number'&&v.score>0;
+    if(_hasDesc&&!_hasScore) setTimeout(()=>analisarInline(),500);
+  }
 }
 function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function mvToggleDoc(which,btn){
@@ -5163,25 +5169,25 @@ function mvAjustarSecoesStatus(status){
   const statusSel=document.getElementById('mv-status');
   if(statusSel) statusSel.style.display=isLead?'none':'';
 
-  // ── Score section: accordion colapsado no lead, padrão nos demais ──
+  // ── Score section: sempre expandido (sem accordion) ──
   const compatCollapsed=document.getElementById('mv-compat-collapsed-row');
   const scoreHeaderDefault=document.getElementById('mv-score-header-default');
   const compatBody=document.getElementById('mv-compat-body');
-  if(compatCollapsed) compatCollapsed.style.display=isLead?'flex':'none';
-  if(scoreHeaderDefault) scoreHeaderDefault.style.display=isLead?'none':'flex';
-  if(compatBody) compatBody.style.display=isLead?'none':'';
+  if(compatCollapsed) compatCollapsed.style.display='none';
+  if(scoreHeaderDefault) scoreHeaderDefault.style.display='flex';
+  if(compatBody) compatBody.style.display='';
 
   // ── Análise holística (só lead) ──
   const sofiaHolistica=document.getElementById('mv-sofia-holistica');
   if(sofiaHolistica) sofiaHolistica.style.display=isLead?'':'none';
 
-  // ── Action bar (Zona 2): no lead, substituída pelo botão inline no body ──
+  // ── Action bar (Zona 2): no lead, análise é automática ──
   const actionBar=document.getElementById('mv-action-bar');
   if(actionBar) actionBar.style.display=isLead?'none':'';
 
-  // ── Botão Analisar inline (só lead) ──
+  // ── Botão Analisar inline: removido — análise roda automaticamente ──
   const leadRow=document.getElementById('mv-lead-analyze-row');
-  if(leadRow) leadRow.style.display=isLead?'':'none';
+  if(leadRow) leadRow.style.display='none';
 
   // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Sofia (4) ──
   const descSec=document.getElementById('mv-desc-section');
