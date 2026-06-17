@@ -5204,6 +5204,8 @@ function mvAjustarSecoesStatus(status){
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
   if(analiseSec) analiseSec.style.display=isLead?'none':'';
+  const _docsSec=document.getElementById('mv-docs-section');
+  if(_docsSec&&isLead) _docsSec.style.display='none';
   const sofiaInline=document.getElementById('mv-sofia-inline');
   if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
 
@@ -5577,8 +5579,8 @@ function mvRefreshDescPreview(){
       if(expandBtn) expandBtn.style.display='none';
     } else {
       // Descrição completa — preview 300 chars + botão expandir dentro do Senova
-      if(preview){preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');preview.style.whiteSpace='';}
-      if(full){full.textContent=desc;full.style.whiteSpace='';}
+      if(preview){preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');preview.style.whiteSpace='pre-wrap';}
+      if(full){full.textContent=desc;full.style.whiteSpace='pre-wrap';}
       if(preview) preview.style.display='';
       if(full) full.style.display='none';
       if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
