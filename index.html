@@ -5251,15 +5251,12 @@ function _mvRenderDescGuide(tipo){
     return;
   }
   const isNone=tipo==='none';
-  guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-    <p style="font-size:13px;color:var(--text2);line-height:1.65;margin:0 0 10px;">
+  guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin:0;">
       ${isNone
-        ?'Para conhecer esta vaga em detalhe, abra a página original. Quando você voltar, estaremos aqui.'
-        :'Descrição parcial — veja a vaga completa para uma análise mais precisa.'}
+        ?'Não foi possível carregar a descrição automaticamente. Use <b>Ir para vaga ↗</b> abaixo para abrir e ler.'
+        :'Descrição parcial. Para ver o texto completo da vaga, use <b>Ir para vaga ↗</b> abaixo.'}
     </p>
-    <button onclick="irParaVaga()" style="font-size:13px;font-weight:600;color:var(--action);background:none;border:1.5px solid var(--action);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-family:var(--font);">
-      ${isNone?'↗ Abrir vaga':'↗ Ver vaga completa'}
-    </button>
   </div>`;
   guide.style.display='';
 }
@@ -5279,7 +5276,7 @@ async function _mvAutoFetchDesc(){
     });
     const data=await res.json();
     const _desc=data.descricao||'';
-    const _isGarbage=_desc.length<200
+    const _isGarbage=_desc.length<100
       ||_desc.includes('3rd parties use essential')
       ||_desc.includes('respects your privacy')
       ||(_desc.includes('cookie')&&_desc.includes('privacy')&&_desc.length<600);
@@ -5291,14 +5288,13 @@ async function _mvAutoFetchDesc(){
     if(_vi>=0){vagas[_vi].jobDescription=_desc;saveVagas();}
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
-    _mvRenderDescGuide(null);
+    // Se curta (parcial): avisar que é parcial; se completa: sem guide
+    _mvRenderDescGuide(_desc.length<500?'partial':null);
     analisarInline();
   }catch{
     // Falhou — permitir nova tentativa na próxima abertura do card
     _mvFetchAttempted.delete(cardId);
     _mvRenderDescGuide('none');
-    const btn=document.getElementById('mv-desc-edit-btn');
-    if(btn){btn.style.display='';btn.textContent='Tentar novamente';btn.style.color='var(--action)';btn.disabled=false;btn.onclick=()=>{_mvRenderDescGuide('loading');_mvAutoFetchDesc();};}
   }
 }
 
@@ -5533,9 +5529,9 @@ function mvAtualizarBtnAnalise(){
   const hint=document.getElementById('mv-analyze-hint');
   if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
-  // Botão lead inline
+  // Botão lead inline: sempre ativo no estado Oportunidade (busca + analisa juntos)
   const leadBtn=document.getElementById('mv-lead-analyze-btn');
-  if(leadBtn){leadBtn.disabled=!temDesc;leadBtn.style.opacity=temDesc?'':'0.5';leadBtn.style.cursor=temDesc?'':'not-allowed';}
+  if(leadBtn){const ativo=temDesc||isLead;leadBtn.disabled=!ativo;leadBtn.style.opacity=ativo?'':'0.5';leadBtn.style.cursor=ativo?'':'not-allowed';}
 }
 function mvMostrarCtxRegen(tipo){
   const row=document.getElementById('mv-ctx-'+tipo+'-row');
@@ -5562,11 +5558,7 @@ function mvRefreshDescPreview(){
     if(ta) ta.style.display='none';
     if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
     if(editBtn){ editBtn.style.display=''; editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
-    const _isLeadP=document.getElementById('mv-status')?.value==='lead';
-    const _urlP=document.getElementById('mv-origem-url')?.value.trim()||'';
-    const _vP=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>String(v.id)===String(editingVagaId)):null;
-    const _isPartial=_isLeadP&&_urlP&&_vP&&!(_vP.jobDescription||'').trim();
-    _mvRenderDescGuide(_isPartial?'partial':null);
+    _mvRenderDescGuide(null);
   } else {
     if(preview) preview.style.display='none';
     if(full) full.style.display='none';
@@ -5774,7 +5766,19 @@ async function analisarInline(){
   const localizacao=document.getElementById('mv-localizacao')?.value||'';
   const modelo=document.getElementById('mv-modelo')?.value||'';
   const regime=document.getElementById('mv-regime')?.value||'';
-  if(!jobDesc.trim()){showToast('⚠️ Cole a descrição da vaga antes de analisar');document.getElementById('mv-job-desc')?.focus();return;}
+  if(!jobDesc.trim()){
+    const isLead=document.getElementById('mv-status')?.value==='lead';
+    const url=document.getElementById('mv-origem-url')?.value.trim()||'';
+    if(isLead&&url&&editingVagaId&&editingVagaId!=='new'){
+      // Sem descrição mas tem URL: buscar primeiro, depois analisar
+      _mvRenderDescGuide('loading');
+      _mvFetchAttempted.delete(String(editingVagaId));
+      _mvAutoFetchDesc(); // chama analisarInline() no sucesso
+      return;
+    }
+    showToast('⚠️ Adicione a URL da vaga para carregar a descrição automaticamente');
+    return;
+  }
   saveVagaSilent();
   const isLeadAnalise=document.getElementById('mv-status')?.value==='lead';
   const btn=document.getElementById('mv-analyze-btn');
