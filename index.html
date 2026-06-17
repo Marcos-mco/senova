@@ -5274,10 +5274,10 @@ function _mvRenderDescGuide(tipo,portal){
       <p style="font-size:12.5px;color:var(--text2);margin:0 0 14px;line-height:1.5;">
         A extensão Senova importa a descrição automaticamente assim que você abrir a vaga logado.
       </p>
-      <button onclick="window.open('${_vagaUrl}','_blank','noopener')"
-        style="background:${_isLI?'#0A66C2':'var(--navy)'};color:#fff;border:none;border-radius:6px;padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;">
+      <a href="${_vagaUrl}" target="_blank" rel="noopener noreferrer"
+        style="display:block;background:${_isLI?'#0A66C2':'var(--navy)'};color:#fff;border-radius:6px;padding:9px 0;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--font);text-align:center;">
         Entrar no ${_p} →
-      </button>
+      </a>
       <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.4;">
         Após entrar, a extensão captura e retorna a descrição automaticamente.
       </div>
