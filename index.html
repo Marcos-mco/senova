@@ -1812,7 +1812,7 @@ select option { background: var(--bg2); }
     <div data-drag-handle="1" style="height:22px;background:var(--bg3);border-bottom:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;align-items:center;justify-content:center;cursor:grab;flex-shrink:0;" title="Arraste para mover">
       <div style="display:flex;gap:4px;"><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span></div>
     </div>
-    <div style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
+    <div style="padding:16px 24px 12px;flex-shrink:0;">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
         <div id="mv-logo-avatar" style="width:44px;height:44px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;margin-top:2px;">
           <img id="mv-logo-img" src="" alt="" style="width:44px;height:44px;object-fit:contain;display:none;" onerror="this.style.display='none';document.getElementById('mv-logo-letter').style.display='flex';">
@@ -1868,7 +1868,7 @@ select option { background: var(--bg2); }
         <!-- Cabeçalho colapsável (estado Oportunidade) -->
         <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
-          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Compatibilidade</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Fit ATS</span>
           <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
           <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
         </div>
@@ -1889,16 +1889,6 @@ select option { background: var(--bg2); }
             <div id="mv-ats-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
           </div>
         </div>
-        <!-- Projeto de Vida -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span style="font-size:12px;color:var(--text2);font-weight:500;">Projeto de Vida</span>
-            <span id="mv-vida-score-txt" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
-          </div>
-          <div class="mv-score-bar-track">
-            <div id="mv-vida-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div>
-          </div>
-        </div>
         <!-- Sinais chave -->
         <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
           <span style="font-size:12px;">Analise a vaga para calcular o Fit Técnico</span>
@@ -1910,7 +1900,7 @@ select option { background: var(--bg2); }
 
       <!-- ANÁLISE HOLÍSTICA — Perguntar à Sofia (só estado Oportunidade) -->
       <div id="mv-sofia-holistica" class="mv-sec" style="display:none;">
-        <div class="mv-sec-head"><span class="mv-sec-title">Análise holística</span></div>
+        <div class="mv-sec-head"><span class="mv-sec-title">Sofia</span></div>
         <button onclick="mvCallSofia()" style="width:100%;padding:9px;font-size:13px;font-weight:600;font-family:var(--font);background:none;border:1.5px solid #7C3AED;color:#7C3AED;border-radius:var(--radius);cursor:pointer;">✨ Perguntar à Sofia</button>
       </div>
 
@@ -5685,44 +5675,27 @@ function mvUpdateScoreDisplay(vOpt){
   const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
   if(atsBadge){ atsBadge.style.cssText=''; atsBadge.textContent=ats?ats+'%':'—'; atsBadge.style.color=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)'; atsBadge.style.fontWeight=ats?'700':'400'; atsBadge.style.fontSize='12px'; }
-  // Projeto de Vida (MVP: modelo de trabalho + presença de dados)
-  const modelo=document.getElementById('mv-modelo')?.value||v?.modelo||'';
-  const localizacao=document.getElementById('mv-localizacao')?.value||v?.localizacao||'';
+  // Sinais ATS
   const signals=[];
-  let vidaScore=0, vidaN=0;
-  if(modelo){
-    const ms=modelo==='Remoto'?92:modelo==='Híbrido'?78:55;
-    vidaScore+=ms; vidaN++;
-    const ok=ms>=75;
-    signals.push((ok?'<span style="color:#1A7A4A;">✓</span>':'<span style="color:#B8670A;">⚠</span>')+' Modelo: '+modelo+(ok?' — compatível':' — verificar'));
-  }
-  if(ats&&ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Fit técnico: forte');
-  else if(ats&&ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Fit técnico: parcial ('+ats+'%)');
-  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Fit técnico: baixo ('+ats+'%) — revisar CV');
-  const vida=vidaN?Math.round(vidaScore/vidaN):0;
-  const vidaBar=document.getElementById('mv-vida-bar');
-  const vidaTxt=document.getElementById('mv-vida-score-txt');
-  const vidaCol=vida>=75?'#1A7A4A':vida>=55?'#B8670A':vida>0?'#C0281E':'var(--border2)';
-  if(vidaBar){ vidaBar.style.width=(vida||0)+'%'; vidaBar.style.background=vidaCol; }
-  if(vidaTxt){ vidaTxt.textContent=vida?vida+'%':'— configure Perfil'; vidaTxt.style.color=vida?vidaCol:'var(--text3)'; }
-  // Score total
-  const total=ats&&vida?Math.round(ats*0.55+vida*0.45):ats||vida||0;
+  if(ats>=75) signals.push('<span style="color:#1A7A4A;">✓</span> Fit ATS forte ('+ats+'%)');
+  else if(ats>=55) signals.push('<span style="color:#B8670A;">⚠</span> Fit ATS parcial ('+ats+'%) — revisar CV');
+  else if(ats) signals.push('<span style="color:#C0281E;">✗</span> Fit ATS baixo ('+ats+'%) — revisar CV');
+  // Badge total (só ATS)
   const badge=document.getElementById('mv-score-total-badge');
   if(badge){
-    if(total){ const col=total>=75?'#1A7A4A':total>=55?'#B8670A':'#C0281E'; badge.textContent=total; badge.style.color=col; badge.style.display=''; }
+    if(ats){ const col=ats>=75?'#1A7A4A':ats>=55?'#B8670A':'#C0281E'; badge.textContent=ats; badge.style.color=col; badge.style.display=''; }
     else badge.style.display='none';
   }
-  // Mini barra colapsada (estado Oportunidade)
+  // Mini barra colapsada — só ATS
   const miniBar=document.getElementById('mv-compat-bar-mini');
   const miniScore=document.getElementById('mv-compat-score-mini');
-  const displayScore=ats||total||0;
-  const displayCol=displayScore>=75?'#1A7A4A':displayScore>=55?'#B8670A':displayScore>0?'#C0281E':'var(--border2)';
-  if(miniBar){miniBar.style.width=(displayScore||0)+'%';miniBar.style.background=displayCol;}
-  if(miniScore){miniScore.textContent=displayScore?displayScore+'%':'—';miniScore.style.color=displayScore?displayCol:'var(--text3)';}
+  const displayCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
+  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=displayCol;}
+  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?displayCol:'var(--text3)';}
   // Sinais
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
-    if(!ats&&!vida) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Analise a vaga para calcular o Fit Técnico</span>';
+    if(!ats) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Análise ATS rodando…</span>';
     else signalsEl.innerHTML=signals.map(s=>'<div class="mv-signal">'+s+'</div>').join('');
   }
 }
