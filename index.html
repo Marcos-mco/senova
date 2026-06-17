@@ -5018,7 +5018,7 @@ function openVagaModal(id){
   if(v&&v.status==='lead'&&editingVagaId&&editingVagaId!=='new'){
     const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
     const _hasScore=!!(v.atsScore&&parseInt(v.atsScore)>0);
-    if(_hasDesc&&!_hasScore) setTimeout(()=>analisarInline(),500);
+    if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
   }
 }
 function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
@@ -5698,6 +5698,45 @@ function mvUpdateScoreDisplay(vOpt){
     if(!ats) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';
     else signalsEl.innerHTML=signals.map(s=>'<div class="mv-signal">'+s+'</div>').join('');
   }
+}
+
+// ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
+async function mvAutoCompatCheck(){
+  const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
+  if(!jobDesc||!editingVagaId||editingVagaId==='new') return;
+  const _lang=(typeof cvLang!=='undefined'&&cvLang)?cvLang:'PT';
+  const perfil=(CV_BASE[_lang]||CV_BASE['PT']||'').slice(0,1200);
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',max_tokens:300,
+        system:'Você é especialista em recrutamento executivo. Avalie a compatibilidade entre o perfil e a vaga. Responda APENAS com JSON válido, sem texto adicional: {"score":XX,"veredicto":"uma frase direta sobre o fit"}',
+        messages:[{role:'user',content:'PERFIL:\n'+perfil+'\n\nVAGA:\n'+jobDesc.slice(0,3000)}]
+      })
+    });
+    if(!res.ok) return;
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const m=text.match(/\{[\s\S]*?\}/);
+    if(!m) return;
+    let parsed; try{parsed=JSON.parse(m[0]);}catch{return;}
+    const score=Math.max(0,Math.min(100,parseInt(parsed.score)||0));
+    const veredicto=(parsed.veredicto||'').slice(0,200);
+    if(!score) return;
+    const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+    if(idx>=0){
+      vagas[idx].atsScore=String(score);
+      if(veredicto&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+veredicto;
+      saveVagas();
+    }
+    mvUpdateScoreDisplay();
+    const sofiaInline=document.getElementById('mv-sofia-inline');
+    if(sofiaInline&&veredicto){
+      sofiaInline.innerHTML='<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Compatibilidade</span><span style="color:var(--text2);">'+veredicto+'</span>';
+      sofiaInline.style.display='';
+    }
+  }catch(_){}
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
