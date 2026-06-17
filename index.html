@@ -5171,17 +5171,19 @@ function mvAjustarSecoesStatus(status){
   const leadRow=document.getElementById('mv-lead-analyze-row');
   if(leadRow) leadRow.style.display=isLead?'':'none';
 
-  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) ──
+  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Sofia (4) ──
   const descSec=document.getElementById('mv-desc-section');
   const scoreSec=document.getElementById('mv-score-section');
   if(isLead){
     if(descSec) descSec.style.order='1';
     if(leadRow) leadRow.style.order='2';
     if(scoreSec) scoreSec.style.order='3';
+    if(sofiaHolistica) sofiaHolistica.style.order='4';
   } else {
     if(descSec) descSec.style.order='';
     if(leadRow) leadRow.style.order='';
     if(scoreSec) scoreSec.style.order='';
+    if(sofiaHolistica) sofiaHolistica.style.order='';
   }
 
   // ── Seções visíveis/ocultas por estado ──
@@ -5484,9 +5486,9 @@ function renderTimelineLista(timeline){
 function mvRenderPipeline(status){
   const bar=document.getElementById('mv-status-progress');
   if(!bar) return;
-  const stages=['lead','aplicado','entrevista','proposta','aceito'];
-  const labels=['Oportunidade','CV Enviado','Entrevista','Proposta','Aceito'];
-  if(status==='negado'){bar.innerHTML='<span style="font-size:11px;color:#C0281E;font-weight:600;padding:2px 0;">✕ Processo encerrado</span>';return;}
+  const stages=['lead','aplicado','entrevista','proposta'];
+  const labels=['Oportunidade','CV Enviado','Entrevista','Proposta'];
+  if(status==='negado'||status==='aceito'){bar.innerHTML='<span style="font-size:11px;color:var(--text3);font-weight:600;padding:2px 0;">'+(status==='aceito'?'✓ Processo encerrado — Aceito':'✕ Processo encerrado')+'</span>';return;}
   const idx=stages.indexOf(status);
   bar.innerHTML=stages.map((s,i)=>{
     const col=i<idx?'var(--navy)':i===idx?'#C9A84C':'var(--border)';
