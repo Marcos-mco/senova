@@ -4904,10 +4904,11 @@ function openVagaModal(id){
     const _savedDesc=v.jobDescription||v.descricao||'';
     const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade')))||(_savedDesc.length<250&&_savedDesc.toLowerCase().includes('linkedin')));
     if(_descLixo){
-      // Teaser de email salvo por engano — limpar e rebuscar
+      // Descrição lixo salva — limpar e permitir rebusca
       const _vi=vagas.findIndex(x=>String(x.id)===String(v.id));
-      if(_vi>=0){vagas[_vi].jobDescription='';saveVagas();}
+      if(_vi>=0){vagas[_vi].jobDescription='';vagas[_vi].descricao='';saveVagas();}
       document.getElementById('mv-job-desc').value='';
+      _mvFetchAttempted.delete(String(v.id));
     } else {
       document.getElementById('mv-job-desc').value=_savedDesc;
     }

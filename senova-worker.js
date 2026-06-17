@@ -889,7 +889,7 @@ export default {
           .replace(/<[^>]+>/g, ' ')
           .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'')
           .replace(/\s{2,}/g,' ').trim();
-        if (stripped.length < 150) return json({ error: 'Conteúdo insuficiente' }, 422);
+        if (stripped.length < 150 || _isPrivacyGarbage(stripped)) return json({ error: 'Conteúdo insuficiente' }, 422);
         return json({ descricao: stripped.slice(0, 4000) });
       } catch (e) {
         return json({ error: 'Erro ao buscar URL: ' + (e.message||'timeout') }, 502);
