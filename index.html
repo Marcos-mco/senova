@@ -1879,10 +1879,9 @@ select option { background: var(--bg2); }
         </div>
         <!-- Corpo expandível -->
         <div id="mv-compat-body">
-        <!-- Fit Técnico (ATS) -->
+        <!-- Barra ATS -->
         <div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span style="font-size:12px;color:var(--text2);font-weight:500;">Compatibilidade</span>
             <span id="mv-ats-score-badge" style="font-size:12px;font-weight:600;color:var(--text3);">—</span>
           </div>
           <div class="mv-score-bar-track">
@@ -5702,19 +5701,23 @@ function mvUpdateScoreDisplay(vOpt){
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 async function mvAutoCompatCheck(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
+  console.log('[SNV] autoCheck triggered — desc:',jobDesc.length,'editingId:',editingVagaId);
   if(!jobDesc||!editingVagaId||editingVagaId==='new') return;
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-  if(idx<0) return;
+  if(idx<0){console.log('[SNV] idx not found');return;}
   const v=vagas[idx];
+  console.log('[SNV] status:',v.status,'atsScore:',v.atsScore);
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000)})
     });
-    if(!res.ok) return;
+    console.log('[SNV] fetch status:',res.status);
+    if(!res.ok){console.log('[SNV] non-ok response');return;}
     const data=await res.json();
+    console.log('[SNV] data:',JSON.stringify(data).slice(0,200));
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score) return;
+    if(!score){console.log('[SNV] score 0 — skipping');return;}
     vagas[idx].atsScore=String(score);
     const veredicto=data.resumo||'';
     if(veredicto&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+veredicto;
@@ -5725,7 +5728,7 @@ async function mvAutoCompatCheck(){
       sofiaInline.innerHTML='<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Compatibilidade</span><span style="color:var(--text2);">'+veredicto+'</span>';
       sofiaInline.style.display='';
     }
-  }catch(_){}
+  }catch(e){console.error('[SNV] autoCheck error:',e);}
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
