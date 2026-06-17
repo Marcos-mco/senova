@@ -1808,7 +1808,11 @@ select option { background: var(--bg2); }
   <div class="modal">
 
     <!-- ZONA 1 — CABEÇALHO (fixo) -->
-    <div data-drag-handle="1" style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
+    <!-- Barra de título drag (comportamento Windows) -->
+    <div data-drag-handle="1" style="height:22px;background:var(--bg3);border-bottom:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;align-items:center;justify-content:center;cursor:grab;flex-shrink:0;" title="Arraste para mover">
+      <div style="display:flex;gap:4px;"><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span><span style="width:4px;height:4px;border-radius:50%;background:var(--border2);"></span></div>
+    </div>
+    <div style="padding:16px 24px 12px;flex-shrink:0;border-bottom:1.5px solid var(--border);">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
         <div style="flex:1;min-width:0;">
           <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm()"
@@ -1836,8 +1840,6 @@ select option { background: var(--bg2); }
            style="display:none;font-size:12px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;"
            onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
       </div>
-      <!-- Barra de progresso -->
-      <div id="mv-status-progress" style="display:flex;gap:3px;"></div>
     </div>
 
     <!-- ZONA 2 — BARRA DE AÇÕES (fixa) -->
@@ -1859,12 +1861,22 @@ select option { background: var(--bg2); }
         <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
       </div>
 
-      <!-- ZONA 3 — PONTUAÇÃO AO PROJETO -->
+      <!-- ZONA 3 — COMPATIBILIDADE / PONTUAÇÃO AO PROJETO -->
       <div id="mv-score-section" style="margin-top:14px;padding:14px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <!-- Cabeçalho colapsável (estado Oportunidade) -->
+        <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
+          <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Compatibilidade</span>
+          <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
+          <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
+        </div>
+        <!-- Cabeçalho padrão (outros estados) -->
+        <div id="mv-score-header-default" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Pontuação ao Projeto</span>
           <span id="mv-score-total-badge" style="display:none;font-size:15px;font-weight:700;font-family:var(--font-display);color:var(--navy);"></span>
         </div>
+        <!-- Corpo expandível -->
+        <div id="mv-compat-body">
         <!-- Fit Técnico (ATS) -->
         <div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
@@ -1891,6 +1903,13 @@ select option { background: var(--bg2); }
         </div>
         <!-- Sofia inline (lead: aparece após análise) -->
         <div id="mv-sofia-inline" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65;"></div>
+        </div><!-- fim mv-compat-body -->
+      </div>
+
+      <!-- ANÁLISE HOLÍSTICA — Perguntar à Sofia (só estado Oportunidade) -->
+      <div id="mv-sofia-holistica" class="mv-sec" style="display:none;">
+        <div class="mv-sec-head"><span class="mv-sec-title">Análise holística</span></div>
+        <button onclick="mvCallSofia()" style="width:100%;padding:9px;font-size:13px;font-weight:600;font-family:var(--font);background:none;border:1.5px solid #7C3AED;color:#7C3AED;border-radius:var(--radius);cursor:pointer;">✨ Perguntar à Sofia</button>
       </div>
 
       <!-- LEAD — botão Analisar desta vaga (visível só no estado Oportunidade) -->
@@ -2093,7 +2112,11 @@ select option { background: var(--bg2); }
       <input type="hidden" id="mv-plano">
     </div>
 
-    <div class="modal-footer">
+    <div class="modal-footer" style="flex-direction:column;gap:0;padding:0;">
+      <!-- Barra de fases (footer fixo) -->
+      <div id="mv-status-progress" style="display:flex;gap:3px;width:100%;padding:10px 24px 8px;border-top:1px solid var(--border);box-sizing:border-box;"></div>
+      <!-- Botões -->
+      <div style="display:flex;gap:8px;align-items:center;padding:10px 24px 16px;width:100%;box-sizing:border-box;">
       <button class="btn btn-danger" id="mv-delete-btn" onclick="confirmarRemoverVaga()" style="display:none;">Remover</button>
       <div id="mv-delete-confirm" style="display:none;gap:6px;align-items:center;">
         <span style="font-size:13px;color:#9B2226;font-weight:600;">Confirmar exclusão?</span>
@@ -2103,6 +2126,7 @@ select option { background: var(--bg2); }
       <div style="flex:1"></div>
       <button class="btn btn-ghost" id="mv-btn-cancelar" onclick="closeVagaModal()">Cancelar</button>
       <div id="mv-footer-acoes" style="display:flex;gap:8px;"></div>
+      </div>
     </div>
     <div id="mv-resize-grip" title="Redimensionar">⌟</div>
   </div>
@@ -5111,8 +5135,33 @@ function irParaVaga(){
   if(url) window.open(url,'_blank','noopener');
 }
 
+function mvToggleCompat(){
+  const body=document.getElementById('mv-compat-body');
+  const chev=document.getElementById('mv-compat-chevron');
+  if(!body) return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'';
+  if(chev) chev.textContent=open?'▶':'▼';
+}
+
 function mvAjustarSecoesStatus(status){
   const isLead=status==='lead';
+
+  // ── Status dropdown: oculto no header para estado Oportunidade ──
+  const statusSel=document.getElementById('mv-status');
+  if(statusSel) statusSel.style.display=isLead?'none':'';
+
+  // ── Score section: accordion colapsado no lead, padrão nos demais ──
+  const compatCollapsed=document.getElementById('mv-compat-collapsed-row');
+  const scoreHeaderDefault=document.getElementById('mv-score-header-default');
+  const compatBody=document.getElementById('mv-compat-body');
+  if(compatCollapsed) compatCollapsed.style.display=isLead?'flex':'none';
+  if(scoreHeaderDefault) scoreHeaderDefault.style.display=isLead?'none':'flex';
+  if(compatBody) compatBody.style.display=isLead?'none':'';
+
+  // ── Análise holística (só lead) ──
+  const sofiaHolistica=document.getElementById('mv-sofia-holistica');
+  if(sofiaHolistica) sofiaHolistica.style.display=isLead?'':'none';
 
   // ── Action bar (Zona 2): no lead, substituída pelo botão inline no body ──
   const actionBar=document.getElementById('mv-action-bar');
@@ -5572,6 +5621,13 @@ function mvUpdateScoreDisplay(vOpt){
     if(total){ const col=total>=75?'#1A7A4A':total>=55?'#B8670A':'#C0281E'; badge.textContent=total; badge.style.color=col; badge.style.display=''; }
     else badge.style.display='none';
   }
+  // Mini barra colapsada (estado Oportunidade)
+  const miniBar=document.getElementById('mv-compat-bar-mini');
+  const miniScore=document.getElementById('mv-compat-score-mini');
+  const displayScore=ats||total||0;
+  const displayCol=displayScore>=75?'#1A7A4A':displayScore>=55?'#B8670A':displayScore>0?'#C0281E':'var(--border2)';
+  if(miniBar){miniBar.style.width=(displayScore||0)+'%';miniBar.style.background=displayCol;}
+  if(miniScore){miniScore.textContent=displayScore?displayScore+'%':'—';miniScore.style.color=displayScore?displayCol:'var(--text3)';}
   // Sinais
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
@@ -5585,11 +5641,9 @@ function mvUpdateMetaInfo(v){
   const el=document.getElementById('mv-meta-info');
   if(!el) return;
   const parts=[];
-  if(v?.localizacao) parts.push('📍 '+v.localizacao);
+  if(v?.localizacao) parts.push(v.localizacao);
   if(v?.modelo) parts.push(v.modelo);
-  if(v?.canal) parts.push(v.canal);
-  const ts=v?.createdAt||(v?.data?new Date(v.data.split('/').reverse().join('-')).getTime():0);
-  if(ts) parts.push(formatTs(ts));
+  if(v?.regime) parts.push(v.regime);
   el.textContent=parts.join(' · ');
 }
 

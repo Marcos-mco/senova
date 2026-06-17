@@ -66,7 +66,58 @@
 - [x] Wireframe aprovado por Marcos para estado Oportunidade (ver tabela PRÓXIMOS PASSOS)
 - [x] commit b17dc4d — layout Oportunidade: body reordenado, action bar oculta no lead, botão inline, footer [Excluir][Cancelar][Ir para vaga]
 - [x] commit efe1088 — header empresa/cargo sempre visíveis (border-bottom), status compacto, [Cancelar] restaurado
-- [ ] **PRÓXIMO: Marcos testa após reinício do PC → ajustes finais Oportunidade → CV Enviado**
+- [ ] **PRÓXIMO: Marcos testa estado Oportunidade → aprovar → desenhar CV Enviado**
+
+---
+
+## DECISÕES DE PRODUTO — SESSÃO 7 (17/jun/2026)
+
+| Decisão | Detalhe |
+|---------|---------|
+| Ordem do modal | Header fixo → Body (muda por fase) → Barra de fases (footer fixo) → Botões |
+| Barra de fases no footer | Âncora no footer fixo — nunca no header, nunca scrollável |
+| Meta-linha header | Cidade · Modelo · Regime (CLT/PJ) · Ver vaga ↗ — sem canal, sem data, sem emoji |
+| Status dropdown | Oculto no header para estado Oportunidade — mantido como hidden para dados |
+| "Compatibilidade" | Accordion colapsado por padrão; barra + score visíveis mesmo fechado |
+| "Análise holística" | Seção com botão "Perguntar à Sofia" — sob demanda, nunca automático |
+| Processo | Um estado de cada vez na jornada do usuário: Oportunidade → CV Enviado → Entrevista → Proposta |
+| Pesquisa de mercado | Salesforce/HubSpot/Pipedrive: barra de progresso no footer/topo do registro. LinkedIn/Indeed: meta-linha Cidade · Modelo · Tipo de contrato |
+
+### Wireframe aprovado — Estado Oportunidade (17/jun/2026)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ [●]  Empresa S.A.                                      [✕]  │
+│      Diretor Comercial                                       │
+│      São Paulo · Híbrido · CLT · Ver vaga ↗                 │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Descrição da vaga                                           │
+│  "Buscamos um Diretor Comercial com experiência em          │
+│   gestão de equipes de alta performance e resultados        │
+│   comprovados em vendas B2B..."                             │
+│  Ver descrição completa ▾                                   │
+│                                                              │
+│  ▶  Compatibilidade  [████████████░░░░░░]  78%              │
+│     (expandir para ver detalhes)                            │
+│                                                              │
+│  ▶  Análise holística                                       │
+│     [Perguntar à Sofia]                                      │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│  ●───────○───────○───────○                                  │
+│  Oportunidade  CV Enviado  Entrevista  Proposta             │
+├──────────────────────────────────────────────────────────────┤
+│  [Remover]       [Cancelar]      [Ir para vaga ↗]           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Regras:**
+- Descrição: preview 2-3 linhas sempre visível; "Ver descrição completa ▾" expande inline
+- Compatibilidade: fechada, mas barra + número (78%) visíveis mesmo colapsada; ▶ expande breakdown
+- Análise holística: Sofia sob demanda — [Perguntar à Sofia] dispara; nunca automático
+- [Remover]: destrói sem rastro (lead = sem histórico ainda)
+- [Ir para vaga ↗]: abre URL original em nova aba
 
 ---
 
