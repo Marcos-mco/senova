@@ -779,13 +779,101 @@ export default {
       const { url } = await request.json();
       if (!url || !url.startsWith('http')) return json({ error: 'URL inválida' }, 400);
       try {
-        const pageRes = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
-          signal: AbortSignal.timeout(8000),
+        // Normalizar URL: cards vindos de emails de alerta têm /comm/ que retorna
+        // a versão de rastreamento da página, sem o JSON-LD da vaga pública.
+        let fetchUrl = url;
+        if (fetchUrl.includes('linkedin.com/comm/')) {
+          fetchUrl = fetchUrl.replace('linkedin.com/comm/', 'linkedin.com/');
+          // Remover parâmetros de tracking do LinkedIn (?trackingId=..., ?trk=...)
+          try { const u = new URL(fetchUrl); fetchUrl = u.origin + u.pathname; } catch(e) {}
+        }
+
+        const pageRes = await fetch(fetchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          },
+          signal: AbortSignal.timeout(10000),
         });
         if (!pageRes.ok) return json({ error: `HTTP ${pageRes.status}` }, 502);
         const html = await pageRes.text();
-        // Remove blocos não relevantes
+
+        // 1. JSON-LD — LinkedIn, Indeed, Catho, InfoJobs expõem JobPosting para o Google Jobs
+        //    mesmo sem login. O erro anterior era remover <script> antes de extrair isso.
+        const ldRe = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+        let ldM;
+        while ((ldM = ldRe.exec(html)) !== null) {
+          try {
+            const parsed = JSON.parse(ldM[1].trim());
+            const items = Array.isArray(parsed) ? parsed : (parsed['@graph'] ? parsed['@graph'] : [parsed]);
+            for (const item of items) {
+              const raw = item.description || item.jobDescription || '';
+              if (raw.length > 100) {
+                const clean = raw
+                  .replace(/<br\s*\/?>/gi, '\n').replace(/<li[^>]*>/gi, '\n• ')
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+                  .replace(/\s{2,}/g,' ').trim();
+                if (clean.length > 100) {
+                  const meta = {};
+                  // Localização (jobLocation.address)
+                  const loc = item.jobLocation;
+                  if (loc) {
+                    const addr = (Array.isArray(loc) ? loc[0] : loc)?.address || {};
+                    const parts = [addr.addressLocality, addr.addressRegion, addr.addressCountry].filter(Boolean);
+                    if (parts.length) meta.localizacao = parts.join(', ');
+                  }
+                  // Jornada (employmentType: FULL_TIME → Tempo integral)
+                  const et = item.employmentType;
+                  if (et) {
+                    const t = Array.isArray(et) ? et[0] : et;
+                    const jMap = { FULL_TIME:'Tempo integral', PART_TIME:'Tempo parcial', CONTRACT:'Contrato', TEMPORARY:'Temporário', INTERN:'Estágio' };
+                    if (jMap[t]) meta.jornada = jMap[t];
+                  }
+                  // Modalidade (TELECOMMUTE → Remoto, localização física → Presencial)
+                  if (item.jobLocationType === 'TELECOMMUTE') meta.modalidade = 'Remoto';
+                  else if (loc) meta.modalidade = 'Presencial';
+                  // Salário (baseSalary)
+                  const sal = item.baseSalary;
+                  if (sal?.value) {
+                    const cur = sal.currency || 'BRL';
+                    const sym = cur === 'BRL' ? 'R$ ' : cur + ' ';
+                    const uMap = { MONTH:'/mês', YEAR:'/ano', HOUR:'/hora' };
+                    const u = uMap[sal.value.unitText] || '';
+                    const mn = sal.value.minValue, mx = sal.value.maxValue;
+                    if (mn && mx) meta.salario = `${sym}${mn} – ${sym}${mx}${u}`;
+                    else if (mn) meta.salario = `${sym}${mn}${u}`;
+                    else if (mx) meta.salario = `${sym}${mx}${u}`;
+                  }
+                  return json({ descricao: clean.slice(0, 5000), ...meta });
+                }
+              }
+            }
+          } catch(e) {}
+        }
+
+        // Teaser de email LinkedIn — rejeitar sempre
+        const _isEmailTeaser = (t) => t.includes('veja esta vaga') || t.includes('semelhantes no LinkedIn')
+          || t.includes('see this job') || t.includes('similar jobs on LinkedIn');
+
+        // 2. og:description — parcial mas útil para análise inicial
+        const ogM = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']{60,})["']/i)
+          || html.match(/<meta[^>]*content=["']([^"']{60,})["'][^>]*property=["']og:description["']/i);
+        if (ogM?.[1]) {
+          const val = ogM[1].replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
+          if (val.length > 80 && !_isEmailTeaser(val)) return json({ descricao: val, parcial: true });
+        }
+
+        // 3. meta description — último fallback parcial
+        const metaM = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']{60,})["']/i)
+          || html.match(/<meta[^>]*content=["']([^"']{60,})["'][^>]*name=["']description["']/i);
+        if (metaM?.[1]) {
+          const val = metaM[1].replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
+          if (val.length > 80 && !_isEmailTeaser(val)) return json({ descricao: val, parcial: true });
+        }
+
+        // 4. Extração de texto geral
         const stripped = html
           .replace(/<script[\s\S]*?<\/script>/gi, '')
           .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -793,11 +881,10 @@ export default {
           .replace(/<header[\s\S]*?<\/header>/gi, '')
           .replace(/<footer[\s\S]*?<\/footer>/gi, '')
           .replace(/<[^>]+>/g, ' ')
-          .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#\d+;/g, '')
-          .replace(/\s{2,}/g, ' ').trim();
-        const descricao = stripped.slice(0, 4000);
-        if (descricao.length < 200) return json({ error: 'Conteúdo insuficiente na URL' }, 422);
-        return json({ descricao });
+          .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'')
+          .replace(/\s{2,}/g,' ').trim();
+        if (stripped.length < 150) return json({ error: 'Conteúdo insuficiente' }, 422);
+        return json({ descricao: stripped.slice(0, 4000) });
       } catch (e) {
         return json({ error: 'Erro ao buscar URL: ' + (e.message||'timeout') }, 502);
       }

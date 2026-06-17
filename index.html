@@ -5296,9 +5296,17 @@ async function _mvAutoFetchDesc(){
     if(data.error||!_desc||_isGarbage) throw new Error('insuficiente');
     const ta=document.getElementById('mv-job-desc');
     if(ta) ta.value=_desc;
-    // Salvar no card para não buscar de novo
+    // Salvar no card: descrição + metadados vindos do JSON-LD (Worker)
     const _vi=vagas.findIndex(v=>String(v.id)===String(cardId));
-    if(_vi>=0){vagas[_vi].jobDescription=_desc;saveVagas();}
+    if(_vi>=0){
+      vagas[_vi].jobDescription=_desc;
+      if(data.localizacao&&!vagas[_vi].localizacao){vagas[_vi].localizacao=data.localizacao;const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=data.localizacao;}
+      if(data.modalidade&&!vagas[_vi].modelo){vagas[_vi].modelo=data.modalidade;const me=document.getElementById('mv-modelo');if(me)me.value=data.modalidade;}
+      if(data.jornada&&!vagas[_vi].jornada){vagas[_vi].jornada=data.jornada;const je=document.getElementById('mv-jornada');if(je)je.value=data.jornada;}
+      if(data.salario&&!vagas[_vi].salario){vagas[_vi].salario=data.salario;const se=document.getElementById('mv-salario');if(se)se.value=data.salario;}
+      saveVagas();
+      mvUpdateMetaInfo(vagas[_vi]);
+    }
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
     // Parcial = Worker sinalizou explicitamente OU descrição curta
