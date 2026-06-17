@@ -5253,7 +5253,7 @@ function _mvAbrirDescLead(){
   if(editBtn){editBtn.textContent='▴ Recolher';editBtn.style.color='var(--text3)';editBtn.onclick=()=>mvAjustarSecoesStatus('lead');}
 }
 
-function _mvRenderDescGuide(tipo){
+function _mvRenderDescGuide(tipo,portal){
   const guide=document.getElementById('mv-desc-guide');
   if(!guide) return;
   if(!tipo){guide.style.display='none';guide.innerHTML='';return;}
@@ -5264,12 +5264,33 @@ function _mvRenderDescGuide(tipo){
     guide.style.display='';
     return;
   }
+  if(tipo==='login'){
+    const _p=portal||'LinkedIn';
+    const _vagaUrl=document.getElementById('mv-origem-url')?.value.trim()||'https://www.linkedin.com/login';
+    const _isLI=_p==='LinkedIn';
+    guide.innerHTML=`<div style="background:#fff;border:1.5px solid ${_isLI?'#0A66C2':'var(--navy)'};border-radius:var(--radius);padding:16px 18px;text-align:center;">
+      <div style="font-size:20px;font-weight:800;color:#fff;background:${_isLI?'#0A66C2':'var(--navy)'};width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;letter-spacing:-0.5px;">in</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;">Entre no ${_p} para continuar</div>
+      <p style="font-size:12.5px;color:var(--text2);margin:0 0 14px;line-height:1.5;">
+        A extensão Senova importa a descrição automaticamente assim que você abrir a vaga logado.
+      </p>
+      <button onclick="window.open('${_vagaUrl}','_blank','noopener')"
+        style="background:${_isLI?'#0A66C2':'var(--navy)'};color:#fff;border:none;border-radius:6px;padding:9px 0;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;">
+        Entrar no ${_p} →
+      </button>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.4;">
+        Após entrar, a extensão captura e retorna a descrição automaticamente.
+      </div>
+    </div>`;
+    guide.style.display='';
+    return;
+  }
   const isNone=tipo==='none';
   guide.innerHTML=`<div style="background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;">
     <p style="font-size:13px;color:var(--text2);line-height:1.6;margin:0;">
       ${isNone
-        ?'Não foi possível carregar a descrição automaticamente. Use <b>Ir para vaga ↗</b> abaixo para abrir e ler.'
-        :'Descrição parcial. Para ver o texto completo da vaga, use <b>Ir para vaga ↗</b> abaixo.'}
+        ?'Clique em <b>Ir para vaga ↗</b> para abrir a vaga — a extensão Senova importa a descrição automaticamente.'
+        :'Descrição parcial carregada. Clique em <b>Ir para vaga ↗</b> para ver o texto completo — a extensão importa automaticamente.'}
     </p>
   </div>`;
   guide.style.display='';
@@ -5290,13 +5311,24 @@ async function _mvAutoFetchDesc(){
     });
     const data=await res.json();
     const _desc=data.descricao||'';
+    const _origemUrl2=document.getElementById('mv-origem-url')?.value.trim()||'';
+    const _isLinkedIn=_origemUrl2.includes('linkedin.com');
+    if(data.requiresLogin){
+      _mvFetchAttempted.delete(cardId);
+      _mvRenderDescGuide('login',data.portal||'LinkedIn');
+      return;
+    }
     const _isGarbage=_desc.length<100
       ||_desc.includes('3rd parties use essential')
       ||_desc.includes('respects your privacy')
       ||_desc.includes('respeita a sua privacidade')
       ||_desc.includes('cookies essenciais')
       ||(_desc.includes('cookie')&&(_desc.includes('privacy')||_desc.includes('privacidade')));
-    if(data.error||!_desc||_isGarbage) throw new Error('insuficiente');
+    if(data.error||!_desc||_isGarbage){
+      _mvFetchAttempted.delete(cardId);
+      _mvRenderDescGuide(_isLinkedIn?'login':'none',_isLinkedIn?'LinkedIn':null);
+      return;
+    }
     const ta=document.getElementById('mv-job-desc');
     if(ta) ta.value=_desc;
     // Salvar no card: descrição + metadados vindos do JSON-LD (Worker)
@@ -5316,9 +5348,9 @@ async function _mvAutoFetchDesc(){
     _mvRenderDescGuide((data.parcial||_desc.length<500)?'partial':null);
     analisarInline();
   }catch{
-    // Falhou — permitir nova tentativa na próxima abertura do card
     _mvFetchAttempted.delete(cardId);
-    _mvRenderDescGuide('none');
+    const _urlFail=document.getElementById('mv-origem-url')?.value.trim()||'';
+    _mvRenderDescGuide(_urlFail.includes('linkedin.com')?'login':'none',_urlFail.includes('linkedin.com')?'LinkedIn':null);
   }
 }
 

@@ -799,6 +799,17 @@ export default {
         if (!pageRes.ok) return json({ error: `HTTP ${pageRes.status}` }, 502);
         const html = await pageRes.text();
 
+        // Detecta LinkedIn authwall (login obrigatório)
+        const _finalUrl = pageRes.url || '';
+        const _isLinkedInUrl = fetchUrl.includes('linkedin.com');
+        if (_isLinkedInUrl && (
+          _finalUrl.includes('authwall') || _finalUrl.includes('/login') ||
+          html.includes('authwall') || html.includes('uas-login') ||
+          html.includes('/checkpoint/lg/login')
+        )) {
+          return json({ requiresLogin: true, portal: 'LinkedIn' });
+        }
+
         // 1. JSON-LD — LinkedIn, Indeed, Catho, InfoJobs expõem JobPosting para o Google Jobs
         //    mesmo sem login. O erro anterior era remover <script> antes de extrair isso.
         const ldRe = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
