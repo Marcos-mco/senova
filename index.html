@@ -5013,10 +5013,13 @@ function openVagaModal(id){
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
   // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
-  if(v&&v.status==='lead'&&editingVagaId&&editingVagaId!=='new'){
-    const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
-    const _hasScore=!!(v.atsScore&&parseInt(v.atsScore)>0);
-    if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
+  if(editingVagaId&&editingVagaId!=='new'){
+    const _vCheck=vagas.find(x=>String(x.id)===String(editingVagaId));
+    if(_vCheck&&_vCheck.status==='lead'){
+      const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
+      const _hasScore=!!(_vCheck.atsScore&&parseInt(_vCheck.atsScore)>0);
+      if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
+    }
   }
 }
 function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
