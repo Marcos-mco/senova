@@ -2108,6 +2108,7 @@ select option { background: var(--bg2); }
       <input type="hidden" id="mv-prioridade" value="media">
       <input type="hidden" id="mv-prioridade-vis">
       <input type="hidden" id="mv-salario">
+      <input type="hidden" id="mv-jornada">
       <input type="hidden" id="mv-motivo">
       <input type="hidden" id="mv-plano">
     </div>
@@ -4880,6 +4881,7 @@ function openVagaModal(id){
     const _planoEl=document.getElementById('mv-plano');if(_planoEl)_planoEl.value=v.plano||'';
     document.getElementById('mv-status').value=v.status==='contato'?'aplicado':v.status;
     document.getElementById('mv-salario').value=v.salario||'';
+    document.getElementById('mv-jornada').value=v.jornada||'';
     document.getElementById('mv-proxima').value=v.proxima||'';
     document.getElementById('mv-proxima-data').value=v.proximaData||'';
     document.getElementById('mv-localizacao').value=v.localizacao||'';
@@ -4978,6 +4980,7 @@ function openVagaModal(id){
     ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-modelo').value='';
     document.getElementById('mv-regime').value='';
+    const _jorC=document.getElementById('mv-jornada');if(_jorC)_jorC.value='';
     const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     const mvLinkN=document.getElementById('mv-link-vaga');
     if(mvLinkN){ mvLinkN.style.display='none'; mvLinkN.dataset.url=''; }
@@ -5320,6 +5323,7 @@ function saveVaga(){
     prioridade:document.getElementById('mv-prioridade').value,
     status:document.getElementById('mv-status').value,
     salario:document.getElementById('mv-salario').value,
+    jornada:document.getElementById('mv-jornada')?.value||'',
     proxima:document.getElementById('mv-proxima').value,
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
     plano:document.getElementById('mv-plano')?.value||'',
@@ -5445,6 +5449,7 @@ function descartarRascunhoVaga(){
   ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('mv-modelo').value='';
   document.getElementById('mv-regime').value='';
+  const _jorD=document.getElementById('mv-jornada');if(_jorD)_jorD.value='';
   document.getElementById('mv-canal').value='LinkedIn';
   const _indD=document.getElementById('mv-indicacao');if(_indD)_indD.value='';
   toggleIndicacaoRow('LinkedIn');
@@ -5559,20 +5564,26 @@ function mvRefreshDescPreview(){
   const expandBtn=document.getElementById('mv-desc-expand-btn');
   const editBtn=document.getElementById('mv-desc-edit-btn');
   if(desc){
-    // Detectar "... mais" / "... more" do LinkedIn — renderizar como link clicável
-    const _maisRe=/(\.\.\.\s*)(mais|more)\s*$/i;
+    // "... mais" / "... more" no FINAL = LinkedIn truncou — vira link para a vaga
+    const _maisRe=/\.\.\.\s*(mais|more)\s*$/i;
     const _temMais=_maisRe.test(desc);
-    const _esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    function _renderComMais(texto,limite){
-      const trunc=limite&&texto.length>limite?texto.slice(0,limite):texto;
-      const base=trunc.replace(_maisRe,'');
-      const link='<a onclick="irParaVaga()" style="color:var(--action);cursor:pointer;font-weight:600;white-space:nowrap;">... mais ↗</a>';
-      return _esc(base)+((_temMais||limite&&desc.length>limite)?link:'');
+    if(_temMais){
+      const base=desc.replace(_maisRe,'').trimEnd();
+      const _esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const maisLink='<a onclick="irParaVaga()" style="color:var(--action);cursor:pointer;font-weight:600;"> ... mais ↗</a>';
+      const html=_esc(base)+maisLink;
+      if(preview){preview.innerHTML=html;preview.style.display='';preview.style.whiteSpace='pre-wrap';}
+      if(full){full.innerHTML=html;full.style.display='none';full.style.whiteSpace='pre-wrap';}
+      if(expandBtn) expandBtn.style.display='none';
+    } else {
+      // Descrição completa — preview 300 chars + botão expandir dentro do Senova
+      if(preview){preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');preview.style.whiteSpace='';}
+      if(full){full.textContent=desc;full.style.whiteSpace='';}
+      if(preview) preview.style.display='';
+      if(full) full.style.display='none';
+      if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
     }
-    if(preview){preview.innerHTML=_renderComMais(desc,300);preview.style.display='';}
-    if(full){full.innerHTML=_renderComMais(desc,0);full.style.display='none';}
     if(ta) ta.style.display='none';
-    if(expandBtn) expandBtn.style.display=(!_temMais&&desc.length>300)?'':'none';
     if(editBtn){ editBtn.style.display=''; editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
     _mvRenderDescGuide(null);
   } else {
@@ -5669,9 +5680,11 @@ function mvUpdateMetaInfo(v){
   const el=document.getElementById('mv-meta-info');
   if(!el) return;
   const parts=[];
-  if(v?.localizacao) parts.push(v.localizacao);
+  if(v?.localizacao) parts.push(v.localizacao.split('·')[0].split('•')[0].trim());
   if(v?.modelo) parts.push(v.modelo);
+  if(v?.jornada) parts.push(v.jornada);
   if(v?.regime) parts.push(v.regime);
+  if(v?.salario) parts.push(v.salario);
   el.textContent=parts.join(' · ');
 }
 
@@ -5747,6 +5760,7 @@ function saveVagaSilent(){
     prioridade:document.getElementById('mv-prioridade')?.value||'media',
     status:document.getElementById('mv-status')?.value||'lead',
     salario:document.getElementById('mv-salario')?.value||'',
+    jornada:document.getElementById('mv-jornada')?.value||'',
     proxima:document.getElementById('mv-proxima')?.value||'',
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
     plano:document.getElementById('mv-plano')?.value||'',
@@ -8004,24 +8018,45 @@ loadCRM();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
-window.__senovaAtualizarDesc=function(url,desc){
+window.__senovaAtualizarDesc=function(url,desc,extra){
   if(!desc||desc.length<100) return;
   const _norm=u=>(u||'').split('?')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
   const vUrl=_norm(url);
   const idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;
   if(idx<0) return;
-  if(vagas[idx].jobDescription||vagas[idx].descricao) return; // já tem descrição
-  vagas[idx].jobDescription=desc.slice(0,5000);
+  if(!(vagas[idx].jobDescription||vagas[idx].descricao)){
+    vagas[idx].jobDescription=desc.slice(0,5000);
+  }
+  // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada)
+  if(extra){
+    if(extra.local&&!vagas[idx].localizacao){
+      const loc=(extra.local+'').split('·')[0].split('•')[0].trim();
+      if(loc){vagas[idx].localizacao=loc;const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=loc;}
+    }
+    if(extra.salario&&!vagas[idx].salario){
+      vagas[idx].salario=extra.salario;
+      const se=document.getElementById('mv-salario');if(se)se.value=extra.salario;
+    }
+    if(extra.modalidade&&!vagas[idx].modelo){
+      vagas[idx].modelo=extra.modalidade;
+      const me=document.getElementById('mv-modelo');if(me)me.value=extra.modalidade;
+    }
+    if(extra.jornada&&!vagas[idx].jornada){
+      vagas[idx].jornada=extra.jornada;
+      const je=document.getElementById('mv-jornada');if(je)je.value=extra.jornada;
+    }
+  }
   vagas[idx].updatedAt=Date.now();
   saveVagas();
-  showToast('✅ Descrição carregada do LinkedIn');
+  showToast('✅ Descrição e metadados carregados do LinkedIn');
   // Se o modal estiver aberto com este card, atualiza em tempo real
   if(String(editingVagaId)===String(vagas[idx].id)){
     const ta=document.getElementById('mv-job-desc');
-    if(ta){ta.value=desc.slice(0,5000);}
+    if(ta&&!ta.value.trim()){ta.value=desc.slice(0,5000);}
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
     _mvRenderDescGuide(null);
+    mvUpdateMetaInfo(vagas[idx]);
   }
 };
 

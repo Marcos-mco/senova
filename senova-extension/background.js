@@ -165,7 +165,7 @@ async function salvarVaga(payload) {
   return result;
 }
 
-async function autoUpdateDesc({ url, descricao, empresa, cargo }) {
+async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }) {
   if (!descricao || descricao.length < 100) return;
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
@@ -174,8 +174,8 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo }) {
     await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id },
       world: 'MAIN',
-      func: (u, d) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d); },
-      args: [url, descricao],
+      func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
+      args: [url, descricao, { local, salario, modalidade, jornada }],
     }).catch(() => {});
   } else {
     // Senova fechado — salva no KV para importar na próxima abertura

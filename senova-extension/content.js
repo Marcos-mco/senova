@@ -170,6 +170,46 @@
       '.job-details-jobs-unified-top-card__bullet'
     );
 
+    // 3b. Metadados adicionais: salário, modalidade (Presencial/Remoto/Híbrido), jornada (Tempo integral)
+    let salario = '';
+    let modalidade = '';
+    let jornada = '';
+
+    // Coleta todos os textos curtos das pills de "job insights"
+    const _insightTexts = Array.from(document.querySelectorAll(
+      '[class*="job-insight"] li, [class*="job-insight"] span, ' +
+      '[class*="salary"] span, [class*="salary"], ' +
+      '[class*="workplace"] span'
+    )).map(el => (el.innerText || '').trim()).filter(t => t.length > 1 && t.length < 120);
+
+    for (const t of _insightTexts) {
+      if (!salario && /R\$|€|\$\s*\d|salár|salary/i.test(t)) { salario = t.replace(/\s+/g, ' '); continue; }
+      if (!modalidade && /presencial|remoto|híbrido|hybrid|remote|on.?site/i.test(t)) {
+        modalidade = /presencial|on.?site/i.test(t) ? 'Presencial' : /remoto|remote/i.test(t) ? 'Remoto' : 'Híbrido'; continue;
+      }
+      if (!jornada && /tempo integral|full.?time|tempo parcial|part.?time/i.test(t)) {
+        jornada = /tempo integral|full.?time/i.test(t) ? 'Tempo integral' : 'Tempo parcial'; continue;
+      }
+    }
+
+    // Fallback: scan do bodyText para campos ainda ausentes
+    if (!salario || !modalidade || !jornada) {
+      const bTxt = document.body.innerText || '';
+      if (!salario) {
+        const sm = bTxt.match(/R\$\s*\d[\d.,]*\s*[KkMm]?(?:\s*por\s*m[eê]s|\/mês)?(?:\s*[-–]\s*R\$\s*\d[\d.,]*\s*[KkMm]?(?:\s*por\s*m[eê]s|\/mês)?)?/);
+        if (sm) salario = sm[0].replace(/\s+/g, ' ').trim();
+      }
+      if (!modalidade) {
+        if (/\bpresencial\b/i.test(bTxt)) modalidade = 'Presencial';
+        else if (/\bremoto\b|\bremote\b/i.test(bTxt)) modalidade = 'Remoto';
+        else if (/\bhíbrido\b|\bhybrid\b/i.test(bTxt)) modalidade = 'Híbrido';
+      }
+      if (!jornada) {
+        if (/\btempo integral\b|\bfull.time\b/i.test(bTxt)) jornada = 'Tempo integral';
+        else if (/\btempo parcial\b|\bpart.time\b/i.test(bTxt)) jornada = 'Tempo parcial';
+      }
+    }
+
     // 4. Descrição: DOM (seletores progressivamente mais amplos) → og:description → seleção
     let desc = txtArea(
       // Seletores específicos conhecidos
@@ -237,7 +277,7 @@
     }
     if (!forma) forma = emailNaDesc(desc) || 'Ver na vaga';
 
-    return { tipo: 'vaga', cargo, empresa, local, descricao: desc, forma_candidatura: forma, canal: 'LinkedIn', url };
+    return { tipo: 'vaga', cargo, empresa, local, descricao: desc, forma_candidatura: forma, canal: 'LinkedIn', url, salario, modalidade, jornada };
   }
 
   // ── GUPY ─────────────────────────────────────────────────────────
@@ -553,7 +593,7 @@
       if (d.descricao && d.descricao.length > 100) {
         chrome.runtime.sendMessage({
           type: 'AUTO_UPDATE_DESC',
-          payload: { url: location.href, descricao: d.descricao, empresa: d.empresa, cargo: d.cargo }
+          payload: { url: location.href, descricao: d.descricao, empresa: d.empresa, cargo: d.cargo, local: d.local, salario: d.salario, modalidade: d.modalidade, jornada: d.jornada }
         }).catch(() => {});
       } else if (_autoTries < 15) {
         _autoTries++;
