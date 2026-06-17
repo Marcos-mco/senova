@@ -5042,8 +5042,7 @@ function atualizarBotoesModal(statusOverride){
     const deleteBtn=document.getElementById('mv-delete-btn');
     if(deleteBtn){deleteBtn.textContent='Excluir';deleteBtn.style.display=editingVagaId&&editingVagaId!=='new'?'':'none';}
     const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-    const temScore=!!(editingVagaId&&editingVagaId!=='new'&&vagas.find(v=>String(v.id)===String(editingVagaId))?.atsScore);
-    const ativo=!!url&&temScore;
+    const ativo=!!url;
     html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
@@ -5196,9 +5195,9 @@ function mvAjustarSecoesStatus(status){
   const sofiaInline=document.getElementById('mv-sofia-inline');
   if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
 
-  // ── "↗ Ver vaga" no header: mostra para lead quando há URL ──
+  // ── "↗ Ver vaga" no header: oculto no lead (footer já tem "Ir para vaga ↗") ──
   const linkVaga=document.getElementById('mv-link-vaga');
-  if(linkVaga) linkVaga.style.display=linkVaga.dataset.url?'':'none';
+  if(linkVaga) linkVaga.style.display=isLead?'none':(linkVaga.dataset.url?'':'none');
 
   // ── Label do botão Excluir/Remover ──
   const deleteBtn=document.getElementById('mv-delete-btn');
@@ -5288,8 +5287,8 @@ async function _mvAutoFetchDesc(){
     if(_vi>=0){vagas[_vi].jobDescription=_desc;saveVagas();}
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
-    // Se curta (parcial): avisar que é parcial; se completa: sem guide
-    _mvRenderDescGuide(_desc.length<500?'partial':null);
+    // Parcial = Worker sinalizou explicitamente OU descrição curta
+    _mvRenderDescGuide((data.parcial||_desc.length<500)?'partial':null);
     analisarInline();
   }catch{
     // Falhou — permitir nova tentativa na próxima abertura do card
