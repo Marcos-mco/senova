@@ -1870,8 +1870,8 @@ select option { background: var(--bg2); }
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
           <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Análise</span>
           <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
-          <span id="mv-compat-class-label" style="font-size:12px;font-weight:600;flex-shrink:0;"></span>
           <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
+          <span id="mv-compat-class-label" style="font-size:12px;font-weight:600;flex-shrink:0;"></span>
         </div>
         <!-- Cabeçalho padrão (outros estados) -->
         <div id="mv-score-header-default" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -5012,7 +5012,9 @@ function openVagaModal(id){
     if(_vCheck&&_vCheck.status==='lead'){
       const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
       const _hasScore=!!(_vCheck.atsScore&&parseInt(_vCheck.atsScore)>0);
-      if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
+      const _hasBullets=(_vCheck.compatFortes?.length||0)+(_vCheck.compatAtencao?.length||0)>0;
+      const _hasRichAnalise=/^(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(_vCheck.atsAnalise||'');
+      if(_hasDesc&&(!_hasScore||(_hasScore&&!_hasBullets&&!_hasRichAnalise))) setTimeout(()=>mvAutoCompatCheck(),500);
     }
   }
 }
