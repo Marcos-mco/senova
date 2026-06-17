@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 15/jun/2026 — v3.28*
+*Atualizado: 17/jun/2026 — v3.33*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.29 (15/jun/2026)
+## ESTADO ATUAL — v3.32 (16/jun/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
@@ -29,13 +29,86 @@
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `95b1ffc` (15/jun/2026) — fix(home): fluxo oportunidades B1/B2/B3
+- **Último commit estável:** `efe1088` (17/jun/2026) — fix(modal): header empresa/cargo visíveis + status compacto + Cancelar
 
 ### O que foi feito nesta sessão (15/jun/2026 — sessão 2)
 - [x] B1: removido "+ Abrir processo" de Novidades no mercado (`_buildAlertasHtml` linhas 6545/6567)
 - [x] B2: regra OMIT aplicada — Oportunidades, Retornos e Mercado somem quando vazios
 - [x] B3: `proximaSalvar()` chama `renderHomeAcoes()` — "Entrevista sem data" some imediatamente
 - [x] Testado por Marcos — confirmado funcionando ✅
+- [x] B4: `renderATSResult()` captura `vaga-input.value` antes de limpar → salva como `jobDescription` no card
+- [x] Testado por Marcos ✅
+
+### O que foi feito nesta sessão (15/jun/2026 — sessão 3 — design)
+- [x] Reunião de equipe: redesign completo do card de Processo — wireframe aprovado
+- [x] Pesquisa de mercado: concorrentes (Huntr, Teal, Simplify, Levels.fyi, Career-Ops) — nenhum faz Projeto de Vida
+- [x] Framework "Pontuação ao Projeto" desenhado: 6 dimensões, pesos configuráveis, dados 100% gratuitos
+- [x] Estratégia de dados multi-país aprovada: IDHM + FIRJAN + IDEB (BR) · Eurostat + OECD (EU) · WorldBank + UN HDI (global)
+- [x] Decisões de produto registradas (ver tabela abaixo)
+
+### O que foi feito nesta sessão (16/jun/2026 — sessão 4)
+- [x] commit 8828f4c — redesign modal-vaga 9 zonas (feito sem protocolo — reconhecido)
+- [x] commit 04a552b — Sofia max_tokens 320→650, fallback notas, textarea resize (feito sem protocolo — reconhecido)
+- [x] Protocolo retomado: skill_qa.md + skill_fluxo.md lidos
+- [x] Diagnóstico completo do card levantado com Marcos (ver PENDÊNCIAS abaixo)
+
+### O que foi feito nesta sessão (16/jun/2026 — sessão 5 — arquitetura modal)
+- [x] Pesquisa de mercado: Huntr, Teal, Simplify, Linear — padrão de tabs para dado complexo
+- [x] Mapeamento completo do fluxo por status com Marcos (fluxograma em papel + conversa)
+- [x] Decisões de produto tomadas (ver tabela abaixo)
+- [x] Arquitetura do modal definida por estado — aprovada parcialmente
+- [x] commit 4e5b47b — estado Oportunidade no modal: Compatibilidade, Andamento, Ir para vaga, seções por status
+
+### O que foi feito nesta sessão (17/jun/2026 — sessão 6 — layout Oportunidade)
+- [x] 4 bugs corrigidos: scrollbar fino, kanban 5 colunas, modal fixo (não arrastável), hint visível no lead
+- [x] Auto-fetch descrição por URL com detecção de garbage (LinkedIn cookie pages)
+- [x] Trigger automático de análise após fetch bem-sucedido
+- [x] Wireframe aprovado por Marcos para estado Oportunidade (ver tabela PRÓXIMOS PASSOS)
+- [x] commit b17dc4d — layout Oportunidade: body reordenado, action bar oculta no lead, botão inline, footer [Excluir][Cancelar][Ir para vaga]
+- [x] commit efe1088 — header empresa/cargo sempre visíveis (border-bottom), status compacto, [Cancelar] restaurado
+- [ ] **PRÓXIMO: Marcos testa após reinício do PC → ajustes finais Oportunidade → CV Enviado**
+
+---
+
+## DECISÕES DE PRODUTO — SESSÃO 5 (16/jun/2026)
+
+| Decisão | Detalhe |
+|---------|---------|
+| Kanban — colunas | Oportunidade → CV Enviado → Entrevista → Proposta → [Aceito \| Arquivado] |
+| Coluna "Em Contato" | REMOVIDA — headhunters/indicações entram como Oportunidade |
+| "Negado"/"Descartado" | UNIFICADOS em "Arquivado" |
+| Modal sensível ao status | Cada estado tem missão e conteúdo próprio — não scroll único |
+| Análise técnica | Automática, sempre presente quando há descrição |
+| Sofia | Persistente — disponível em qualquer estado como chat contextual |
+| Fit Técnico ≠ Sofia | São duas inteligências separadas — não misturar em botão único |
+| Score | Sempre aberto (visível por padrão) |
+| Descrição da vaga | Fechada por padrão — clica para expandir |
+| "Candidatar" via Outlook | REMOVIDO — errado. Candidatar = abre URL da vaga no portal |
+| Score obrigatório | "Ir para vaga" só habilita após análise técnica |
+| "Ir para vaga" | Substitui "Candidatar" no estado Oportunidade |
+| Excluir ≠ Declinar | Oportunidade: Excluir (sem rastro). Processos ativos: Declinar/Arquivar |
+| "Se preparar p/entrevista" | NÃO é coluna do Kanban — é ação dentro do card Entrevista |
+| Sofia na Proposta | Ajuda a precificar e comparar com projeto de vida |
+| Captura de Aprendizado | Sempre ao encerrar (Aceito, Arquivado) |
+| Construção | Um estado de cada vez — Oportunidade primeiro |
+
+---
+
+## DECISÕES DE PRODUTO — SESSÃO 3 (15/jun/2026)
+
+| Decisão | Detalhe |
+|---------|---------|
+| Card redesign | Wireframe aprovado — 7 zonas (header, ações, score, análise, Sofia, descrição, docs, histórico) |
+| Sofia no card | Disparo MANUAL — só quando chamada. Prudência no consumo de API e no tom |
+| Pontuação ao Projeto | Score 0–100 composto por 6 dimensões com pesos configuráveis pelo usuário |
+| Análise — eixos | ATS (fit técnico) + Projeto de Vida (holístico) — dois eixos separados |
+| Dados | 100% gratuitos: IDHM, FIRJAN, IDEB, WorldBank, UN HDI, OECD, Eurostat |
+| Multi-país | Camada global (WorldBank + UN HDI) + camada local por país + fallback para país |
+| Salário Real Ajustado | Salário Nominal × (CoL Cidade Base / CoL Destino) — diferencial Senova |
+| Dimensões | Padrão no Perfil (A) + override por card (C) — onboarding Sofia captura o grosso |
+| Onboarding Sofia | Perguntas ABERTAS — nunca diretivas. "Me fale sobre sua família" não "Tem filhos?" |
+| Perfis psicológicos | Big Five, Âncoras de Carreira, Ikigai, RIASEC, VIA — coletados no onboarding |
+| Descrição no card | Padrão de mercado: ~300 chars visíveis + "Ver completo ▾" |
 
 ---
 
@@ -46,7 +119,7 @@
 | ~~B1~~ | ~~"+ Abrir processo" em Novidades no mercado~~ | ✅ resolvido 15/jun s2 | — |
 | ~~B2~~ | ~~Empty state "nenhuma nova" / "nenhum novo"~~ | ✅ resolvido 15/jun s2 | — |
 | ~~B3~~ | ~~"Entrevista sem data" persistia em Para Hoje~~ | ✅ resolvido 15/jun s2 | — |
-| B4 | Editar Processo: descrição da vaga não carrega (`mv-job-desc` vazio) | `abrirModalEdicao()` | **Alta** |
+| ~~B4~~ | ~~Editar Processo: descrição da vaga não carrega (`mv-job-desc` vazio)~~ | ✅ resolvido 15/jun s3 | — |
 | B5 | Worker usa `claude-sonnet-4-5` (obsoleto) | `senova-worker.js` | **Média** |
 | B6 | Botão "Verificar" em Busca Automática sem feedback visual | — | **Baixa** |
 | B7 | Sofia / Preparar entrevista não funcionando | — | **Média** |
@@ -57,13 +130,28 @@
 
 ## PRÓXIMOS PASSOS (por prioridade)
 
-### Agora — bugs estruturais
-1. **B4** — Editar Processo: popular `mv-job-desc` com `v.jobDesc` ao abrir modal
-2. **B5** — Worker: trocar `claude-sonnet-4-5` por `claude-sonnet-4-6` em `senova-worker.js`
+### REDESIGN MODAL — ARQUITETURA APROVADA (16/jun/2026)
 
-### Depois — produto Ciclo 1
-- VISÃO COMPLETA no card (Sofia analisa vaga + CV + projeto de vida antes de candidatar)
-- Retornos: indicador "N processos aguardando resposta" (não só retornos recebidos)
+**Abordagem:** construir um estado de cada vez. Oportunidade primeiro.
+
+**Arquitetura por estado:**
+
+| Estado | Missão | Conteúdo principal | Ações footer |
+|--------|--------|-------------------|--------------|
+| **Oportunidade** | Vale candidatar? | Score aberto + Descrição fechada + Análise técnica + Sofia opcional | [Excluir] [Ir para vaga ↗] |
+| **CV Enviado** | Acompanhar | Score compacto + Próxima ação + Notas + Detalhes + Sofia | [Arquivar] [Salvar] [Marcar entrevista] |
+| **Entrevista** | Preparar e registrar | Data/hora destaque + Sofia prepara + Notas + Resultado | [Arquivar] [Salvar] [Registrar resultado] |
+| **Proposta** | Negociar e decidir | Campos proposta + Sofia precifica + Notas negociação | [Arquivar] [Aceitar proposta] |
+| **Aceito/Arquivado** | Capturar aprendizado | Captura de Aprendizado + Histórico | [Fechar] |
+
+**Fixo em todos os estados:** header (empresa+cargo+status+✕) + meta info + barra progresso + Sofia sempre disponível
+
+**PRÓXIMO PASSO:** Implementar estado Oportunidade no modal (Fase 2 — código)
+
+### Depois — bugs e melhorias
+- **B5** — Worker: trocar `claude-sonnet-4-5` por `claude-sonnet-4-6` em `senova-worker.js`
+- Fluxo candidatura: 3 caminhos (mailto / portal / headhunter) — após card resolvido
+- Retornos: indicador "N processos aguardando resposta"
 - Responsivo mobile (768px+)
 
 ---
