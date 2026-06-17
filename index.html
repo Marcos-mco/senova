@@ -4899,7 +4899,16 @@ function openVagaModal(id){
     document.getElementById('mv-origem-url').value=origemUrlLimpa;
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
-    document.getElementById('mv-job-desc').value=v.jobDescription||v.descricao||'';
+    const _savedDesc=v.jobDescription||v.descricao||'';
+    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||(_savedDesc.length<250&&_savedDesc.toLowerCase().includes('linkedin')));
+    if(_descLixo){
+      // Teaser de email salvo por engano — limpar e rebuscar
+      const _vi=vagas.findIndex(x=>String(x.id)===String(v.id));
+      if(_vi>=0){vagas[_vi].jobDescription='';saveVagas();}
+      document.getElementById('mv-job-desc').value='';
+    } else {
+      document.getElementById('mv-job-desc').value=_savedDesc;
+    }
     mvRefreshDescPreview();
     document.getElementById('mv-motivo').value=v.motivo||'';
     // Docs section — nova lógica
