@@ -5,7 +5,7 @@ const APP_URL = 'https://marcos-mco.github.io/senova';
 
 // ── MENSAGENS DO POPUP ───────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'ANALISAR_VAGA') {
     analisarVaga(msg.payload)
       .then(sendResponse)
@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
   if (msg.type === 'AUTO_UPDATE_DESC') {
-    autoUpdateDesc(msg.payload).catch(() => {});
+    autoUpdateDesc(msg.payload, sender.tab).catch(() => {});
     sendResponse({ ok: true });
     return false;
   }
@@ -165,20 +165,35 @@ async function salvarVaga(payload) {
   return result;
 }
 
-async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }) {
+async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }, senderTab) {
   if (!descricao || descricao.length < 100) return;
+
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+
+  // "Ir para vaga" abre na mesma janela do Senova → não interrompe a navegação
+  // LinkedIn em janela separada → traz Senova para frente
+  const isDifferentWindow = !!(senderTab?.windowId && senovaTab?.windowId &&
+                               senderTab.windowId !== senovaTab.windowId);
+  let isFromPopup = false;
+  if (isDifferentWindow) {
+    const win = await chrome.windows.get(senderTab.windowId).catch(() => null);
+    isFromPopup = win?.type === 'popup';
+  }
+
   if (senovaTab) {
-    // Senova está aberto — atualiza direto na aba
     await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id },
       world: 'MAIN',
       func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
       args: [url, descricao, { local, salario, modalidade, jornada }],
     }).catch(() => {});
+    if (isDifferentWindow) {
+      if (isFromPopup) await chrome.tabs.remove(senderTab.id).catch(() => {});
+      await chrome.tabs.update(senovaTab.id, { active: true }).catch(() => {});
+      await chrome.windows.update(senovaTab.windowId, { focused: true }).catch(() => {});
+    }
   } else {
-    // Senova fechado — salva no KV para importar na próxima abertura
     await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', fonte: 'extensao_chrome' }).catch(() => {});
   }
 }
