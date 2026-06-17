@@ -5703,32 +5703,22 @@ function mvUpdateScoreDisplay(vOpt){
 async function mvAutoCompatCheck(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
   if(!jobDesc||!editingVagaId||editingVagaId==='new') return;
-  const _lang=(typeof cvLang!=='undefined'&&cvLang)?cvLang:'PT';
-  const perfil=(CV_BASE[_lang]||CV_BASE['PT']||'').slice(0,1200);
+  const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+  if(idx<0) return;
+  const v=vagas[idx];
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{
+    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',max_tokens:300,
-        system:'Você é especialista em recrutamento executivo. Avalie a compatibilidade entre o perfil e a vaga. Responda APENAS com JSON válido, sem texto adicional: {"score":XX,"veredicto":"uma frase direta sobre o fit"}',
-        messages:[{role:'user',content:'PERFIL:\n'+perfil+'\n\nVAGA:\n'+jobDesc.slice(0,3000)}]
-      })
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000)})
     });
     if(!res.ok) return;
     const data=await res.json();
-    const text=data.content?.find(b=>b.type==='text')?.text||'';
-    const m=text.match(/\{[\s\S]*?\}/);
-    if(!m) return;
-    let parsed; try{parsed=JSON.parse(m[0]);}catch{return;}
-    const score=Math.max(0,Math.min(100,parseInt(parsed.score)||0));
-    const veredicto=(parsed.veredicto||'').slice(0,200);
+    const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
     if(!score) return;
-    const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-    if(idx>=0){
-      vagas[idx].atsScore=String(score);
-      if(veredicto&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+veredicto;
-      saveVagas();
-    }
+    vagas[idx].atsScore=String(score);
+    const veredicto=data.resumo||'';
+    if(veredicto&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+veredicto;
+    saveVagas();
     mvUpdateScoreDisplay();
     const sofiaInline=document.getElementById('mv-sofia-inline');
     if(sofiaInline&&veredicto){
