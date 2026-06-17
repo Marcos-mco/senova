@@ -5721,7 +5721,11 @@ function mvUpdateScoreDisplay(vOpt){
     let html='';
     (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+escHtml(p)+'</span></div>';});
     (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+escHtml(p)+'</span></div>';});
-    signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';
+    if(!html){
+      const verd=(v?.atsAnalise||'').match(/VEREDICTO:\s*(.+)/i)?.[1]?.trim()||'';
+      if(verd) html='<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;">'+escHtml(verd)+'</div>';
+    }
+    signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Use Analisar para ver a análise completa.</span>';
   }
 }
 
@@ -5745,7 +5749,8 @@ async function mvAutoCompatCheck(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.resumo&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
+    const _hasRichNow=/^(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
+    if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     saveVagas();
     mvUpdateScoreDisplay();
   }catch(_){}
