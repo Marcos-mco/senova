@@ -5693,13 +5693,31 @@ function mvUpdateScoreDisplay(vOpt){
   const miniScore=document.getElementById('mv-compat-score-mini');
   if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=_v?.cor||'var(--border2)';}
   if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?_v?.cor:'var(--text3)';}
-  // Corpo expandido: só bullets (sem subtexto, sem barra, sem bloco veredicto)
+  // Corpo expandido
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
     if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
+    // Prioridade 1: texto completo da aba Analisar
+    const analise=(v?.atsAnalise||'').trim();
+    if(analise){
+      const lines=analise.split('\n').filter(l=>l.trim()&&!/^MATCH SCORE:/i.test(l.trim()));
+      let html='';
+      lines.forEach(line=>{
+        const t=line.trim(); if(!t) return;
+        const verd=t.match(/^VEREDICTO:\s*(.+)/i);
+        if(verd){html+=`<div style="font-size:13px;font-weight:700;color:${_v.cor};margin-top:8px;">VEREDICTO: ${escHtml(verd[1])}</div>`;return;}
+        if(/Keywords?\s+\d+\/\d+/i.test(t)){html+=`<div style="font-size:11px;color:var(--text3);margin-top:6px;">${escHtml(t)}</div>`;return;}
+        const lbl=t.match(/^([^:]{1,30}):\s*(.+)/);
+        if(lbl){html+=`<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;"><span style="font-weight:600;color:var(--navy);">${escHtml(lbl[1])}:</span> ${escHtml(lbl[2])}</div>`;return;}
+        html+=`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">${escHtml(t)}</div>`;
+      });
+      signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';
+      return;
+    }
+    // Fallback: bullets pontos_fortes / pontos_atencao
     let html='';
-    (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+p+'</span></div>';});
-    (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+p+'</span></div>';});
+    (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+escHtml(p)+'</span></div>';});
+    (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+escHtml(p)+'</span></div>';});
     signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';
   }
 }
