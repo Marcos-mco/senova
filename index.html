@@ -5204,25 +5204,26 @@ function mvAjustarSecoesStatus(status){
   const deleteBtn=document.getElementById('mv-delete-btn');
   if(deleteBtn) deleteBtn.textContent=isLead?'Excluir':'Remover';
 
-  // ── Descrição — fechada por padrão em lead quando sem texto ──
+  // ── Descrição — no estado Oportunidade está SEMPRE visível ──
   const ta=document.getElementById('mv-job-desc');
   const hint=document.getElementById('mv-analyze-hint');
   const editBtn=document.getElementById('mv-desc-edit-btn');
-  if(isLead&&ta&&!ta.value.trim()){
-    ta.style.display='none';
-    if(hint) hint.style.display='none';
-    const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
-    if(_origemUrl){
-      if(editBtn){editBtn.style.display='none';}
-      _mvRenderDescGuide('none');
-      if(editingVagaId&&editingVagaId!=='new') _mvAutoFetchDesc();
+  _mvRenderDescGuide(null);
+  if(isLead){
+    if(ta&&!ta.value.trim()){
+      // Sem descrição: mostra textarea pronta para colar
+      ta.style.display='';
+      if(hint) hint.style.display='';
+      if(editBtn) editBtn.style.display='none';
+      // Auto-fetch em background se tiver URL
+      const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
+      if(_origemUrl&&editingVagaId&&editingVagaId!=='new') _mvAutoFetchDesc();
     } else {
-      if(editBtn){editBtn.style.display='';editBtn.textContent='▾ Colar';editBtn.style.color='var(--action)';editBtn.disabled=false;editBtn.onclick=_mvAbrirDescLead;}
-      _mvRenderDescGuide(null);
+      // Com descrição: mostra preview (já tratado por mvRefreshDescPreview)
+      if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='var(--text3)';editBtn.onclick=mvEditarDesc;}
     }
-  } else if(!isLead){
+  } else {
     if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='';editBtn.onclick=mvEditarDesc;}
-    _mvRenderDescGuide(null);
   }
 }
 function _mvAbrirDescLead(){
