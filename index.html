@@ -1868,7 +1868,7 @@ select option { background: var(--bg2); }
         <!-- Cabeçalho colapsável (estado Oportunidade) -->
         <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
-          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Compatibilidade</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Análise</span>
           <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
           <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
         </div>
@@ -5169,6 +5169,7 @@ function mvAjustarSecoesStatus(status){
   if(compatCollapsed) compatCollapsed.style.display=isLead?'flex':'none';
   if(scoreHeaderDefault) scoreHeaderDefault.style.display=isLead?'none':'flex';
   if(compatBody) compatBody.style.display=isLead?'none':'';
+  if(isLead){const chev=document.getElementById('mv-compat-chevron');if(chev)chev.textContent='▶';}
 
   // ── Análise holística (só lead) ──
   const sofiaHolistica=document.getElementById('mv-sofia-holistica');
@@ -5675,31 +5676,35 @@ function mvUpdateScoreDisplay(vOpt){
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
   // Badge oculto — score está no cabeçalho colapsado
   if(atsBadge) atsBadge.style.display='none';
-  // Veredicto principal
-  const col=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--text3)';
-  const icon=ats>=75?'✓':ats>=55?'⚠':ats>0?'✗':'';
-  const label=ats>=75?'Boa compatibilidade ('+ats+'%)':ats>=55?'Compatibilidade parcial ('+ats+'%) — vale revisar o CV':ats>0?'Baixa compatibilidade ('+ats+'%) — CV precisa de ajustes':'';
+  // Termos e cores idênticos ao popup da extensão Senova
+  const _v=ats>=75
+    ?{titulo:'Ótima oportunidade',sub:'Vale uma análise completa — alto alinhamento com seu perfil.',cor:'#1A7A4A',bg:'#EAF7EF'}
+    :ats>=55
+    ?{titulo:'Pode valer a pena',sub:'Alinhamento parcial — analise antes de se candidatar.',cor:'#B8670A',bg:'#FFF8EC'}
+    :ats>0
+    ?{titulo:'Fora do seu perfil',sub:'Provavelmente não vale o tempo — mas você decide.',cor:'#C0281E',bg:'#FEF0EF'}
+    :null;
   // Badge total
   const badge=document.getElementById('mv-score-total-badge');
   if(badge){
-    if(ats){ badge.textContent=ats; badge.style.color=col; badge.style.display=''; }
+    if(ats&&_v){ badge.textContent=ats; badge.style.color=_v.cor; badge.style.display=''; }
     else badge.style.display='none';
   }
   // Mini barra colapsada
   const miniBar=document.getElementById('mv-compat-bar-mini');
   const miniScore=document.getElementById('mv-compat-score-mini');
-  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=col;}
-  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?col:'var(--text3)';}
-  // Conteúdo expandido: veredicto + bullets pontos fortes/atenção
+  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=_v?.cor||'var(--border2)';}
+  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?_v?.cor:'var(--text3)';}
+  // Conteúdo expandido — layout igual ao popup da extensão (sem emojis de título)
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
-    if(!ats){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';return;}
-    let html='';
-    if(label) html+='<div class="mv-signal" style="font-weight:600;color:'+col+';margin-bottom:6px;"><span>'+icon+'</span> '+label+'</div>';
-    (v?.compatFortes||[]).forEach(p=>{ html+='<div class="mv-signal"><span style="color:#1A7A4A;">✓</span> '+p+'</div>'; });
-    (v?.compatAtencao||[]).forEach(p=>{ html+='<div class="mv-signal"><span style="color:#B8670A;">⚠</span> '+p+'</div>'; });
-    if(v?.atsAnalise){const verb=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim();if(verb) html+='<div class="mv-signal" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);color:var(--text2);">💡 '+verb+'</div>';}
-    signalsEl.innerHTML=html||'<span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>';
+    if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
+    let html='<div style="font-size:13px;font-weight:700;color:'+_v.cor+';margin-bottom:2px;">'+_v.titulo+'</div>';
+    html+='<div style="font-size:11px;color:#5A6A7A;margin-bottom:7px;line-height:1.4;">'+_v.sub+'</div>';
+    (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+p+'</span></div>';});
+    (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+p+'</span></div>';});
+    if(v?.atsAnalise){const verb=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim();if(verb) html+='<div style="margin-top:8px;padding:7px 9px;background:#F0F4F8;border-radius:6px;border-left:3px solid '+_v.cor+';font-size:11.5px;color:#3A4A5A;line-height:1.5;">'+verb+'</div>';}
+    signalsEl.innerHTML=html;
   }
 }
 
@@ -5720,6 +5725,7 @@ async function mvAutoCompatCheck(){
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
     if(!score) return;
     vagas[idx].atsScore=String(score);
+    vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
     if(data.resumo&&!vagas[idx].atsAnalise) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
