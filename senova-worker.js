@@ -857,12 +857,18 @@ export default {
         const _isEmailTeaser = (t) => t.includes('veja esta vaga') || t.includes('semelhantes no LinkedIn')
           || t.includes('see this job') || t.includes('similar jobs on LinkedIn');
 
+        // Detecta texto de privacidade/cookies do LinkedIn (PT e EN) — rejeitar sempre
+        const _isPrivacyGarbage = (t) =>
+          t.includes('respeita a sua privacidade') || t.includes('respects your privacy') ||
+          t.includes('cookies essenciais') || t.includes('use essential') ||
+          (t.includes('cookie') && (t.includes('privacy') || t.includes('privacidade')));
+
         // 2. og:description — parcial mas útil para análise inicial
         const ogM = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']{60,})["']/i)
           || html.match(/<meta[^>]*content=["']([^"']{60,})["'][^>]*property=["']og:description["']/i);
         if (ogM?.[1]) {
           const val = ogM[1].replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
-          if (val.length > 80 && !_isEmailTeaser(val)) return json({ descricao: val, parcial: true });
+          if (val.length > 80 && !_isEmailTeaser(val) && !_isPrivacyGarbage(val)) return json({ descricao: val, parcial: true });
         }
 
         // 3. meta description — último fallback parcial
@@ -870,7 +876,7 @@ export default {
           || html.match(/<meta[^>]*content=["']([^"']{60,})["'][^>]*name=["']description["']/i);
         if (metaM?.[1]) {
           const val = metaM[1].replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
-          if (val.length > 80 && !_isEmailTeaser(val)) return json({ descricao: val, parcial: true });
+          if (val.length > 80 && !_isEmailTeaser(val) && !_isPrivacyGarbage(val)) return json({ descricao: val, parcial: true });
         }
 
         // 4. Extração de texto geral

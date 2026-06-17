@@ -4902,7 +4902,7 @@ function openVagaModal(id){
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
     const _savedDesc=v.jobDescription||v.descricao||'';
-    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||(_savedDesc.length<250&&_savedDesc.toLowerCase().includes('linkedin')));
+    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade')))||(_savedDesc.length<250&&_savedDesc.toLowerCase().includes('linkedin')));
     if(_descLixo){
       // Teaser de email salvo por engano — limpar e rebuscar
       const _vi=vagas.findIndex(x=>String(x.id)===String(v.id));
@@ -5292,7 +5292,9 @@ async function _mvAutoFetchDesc(){
     const _isGarbage=_desc.length<100
       ||_desc.includes('3rd parties use essential')
       ||_desc.includes('respects your privacy')
-      ||(_desc.includes('cookie')&&_desc.includes('privacy')&&_desc.length<600);
+      ||_desc.includes('respeita a sua privacidade')
+      ||_desc.includes('cookies essenciais')
+      ||(_desc.includes('cookie')&&(_desc.includes('privacy')||_desc.includes('privacidade')));
     if(data.error||!_desc||_isGarbage) throw new Error('insuficiente');
     const ta=document.getElementById('mv-job-desc');
     if(ta) ta.value=_desc;
