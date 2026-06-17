@@ -8011,7 +8011,19 @@ window.__senovaImportar=async function(){
     );
     if(novas.length===0) return;
     const agora=Date.now();
-    novas.forEach(v=>{vagas.push(_montarCardVarredura(v,agora));_imp.add(String(v.id));});
+    const _normUrl=u=>(u||'').split('?')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
+    novas.forEach(v=>{
+      _imp.add(String(v.id));
+      const vUrl=_normUrl(v.url);
+      // Atualizar card existente se tiver a mesma URL e não tiver descrição ainda
+      const idx=vUrl?vagas.findIndex(e=>{const eu=_normUrl(e.origemUrl);return eu&&eu===vUrl;}): -1;
+      if(idx>=0 && v.descricao && v.descricao.length>100 && !(vagas[idx].jobDescription||vagas[idx].descricao)){
+        vagas[idx].jobDescription=v.descricao.slice(0,5000);
+        vagas[idx].updatedAt=agora;
+      } else if(idx<0){
+        vagas.push(_montarCardVarredura(v,agora));
+      }
+    });
     localStorage.setItem('senova_ext_imported',JSON.stringify([..._imp].slice(-500)));
     saveVagas();renderCRM();
     showToast('✅ '+novas.length+' vaga'+(novas.length>1?'s':'')+' da extensão importada'+(novas.length>1?'s':'')+' — veja em Oportunidades');
