@@ -310,13 +310,14 @@ Classifique cada e-mail em: positivo | pipeline | hunter | vaga | negativo | mer
 
 Regras críticas:
 - Emails automáticos de confirmação de candidatura ("sua inscrição foi recebida", "application received", "thank you for applying", "confirmamos sua candidatura") → SEMPRE irrelevante
-- LinkedIn job alert / newsletter de vagas → vaga
+- Notificações LinkedIn de rede social (aceite de convite, "aceitou seu convite", "accepted your invitation", "conheça a rede", "pessoas que você talvez conheça", "people you may know", curtidas, comentários, aniversários) → SEMPRE irrelevante
+- LinkedIn job alert / newsletter de vagas / "vagas semelhantes" → vaga
 - Headhunter ou recrutador fazendo contato direto → hunter
 - Email de RH sobre vaga em que Marcos já se candidatou → pipeline
 - Resposta positiva de empresa (convite para entrevista, proposta) → positivo
 - Resposta negativa (não aprovado, vaga preenchida) → negativo
 - Newsletter de mercado, conteúdo executivo, Board Academy, artigos de liderança, insights de carreira, tendências do setor → mercado
-- Spam, promoções, marketing sem relação com recolocação → irrelevante
+- Spam, promoções, marketing, ferramentas SaaS sem relação com recolocação → irrelevante
 
 Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resumo":"resumo em 1 linha"},...]}`;
 

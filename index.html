@@ -7112,17 +7112,23 @@ async function bloquearEmailIdx(fonte,idx){
   const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
   const e=arr[idx]; if(!e) return;
   const from=(e.from||'').toLowerCase().trim();
-  if(!from) return;
-  if(!confirm(`Bloquear remetente "${e.from_name||from}"?\nNunca mais aparecerá no Senova.`)) return;
-  // Salva na blacklist do Worker (KV) + localStorage como fallback
-  try{ await fetch(WORKER_URL+'/api/blacklist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remetente:from})}); }catch{}
+  const subject=(e.subject||'').trim();
+  // Extrai palavras-chave do assunto (primeiras 4 palavras, sem artigos)
+  const _stopwords=new Set(['de','do','da','o','a','os','as','um','uma','que','e','em','no','na','por','para','com','seu','sua','este','esta']);
+  const subjectKw=subject.split(/\s+/).filter(w=>w.length>2&&!_stopwords.has(w.toLowerCase())).slice(0,4).join(' ').toLowerCase();
+  const opcao=confirm(`O que deseja bloquear?\n\nOK = Bloquear este TIPO de email\n     (assunto: "${subjectKw||subject.slice(0,40)}")\n\nCancelar = Bloquear REMETENTE\n     (${e.from_name||from})`);
+  let chave, tipo;
+  if(opcao){ chave=subjectKw||subject.slice(0,40).toLowerCase(); tipo='assunto'; }
+  else{ chave=from; tipo='remetente'; }
+  if(!chave) return;
+  try{ await fetch(WORKER_URL+'/api/blacklist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remetente:chave})}); }catch{}
   let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
-  if(!bloqueados.includes(from)){bloqueados.push(from);localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}
+  if(!bloqueados.includes(chave)){bloqueados.push(chave);localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}
   if(fonte==='processo') _emailsProcesso=_emailsProcesso.filter((_,i)=>i!==idx);
   else if(fonte==='mercado') _emailsMercado=_emailsMercado.filter((_,i)=>i!==idx);
   else _emailsIrrelevantes=_emailsIrrelevantes.filter((_,i)=>i!==idx);
   renderEmailsAvulsos(); atualizarSinais();
-  showToast(`🚫 ${e.from_name||from} bloqueado`);
+  showToast(`🚫 Bloqueado por ${tipo}: "${chave.slice(0,30)}"`);
 }
 
 function reclassificarEmail(fonte,idx){
