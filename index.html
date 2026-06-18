@@ -4300,6 +4300,7 @@ let _sinaisAlertas=[];
 let _sinaisMercado=[];
 let _vagasLeadPendentes=[];
 let _vagasLeadAutoAdicionadas=0;
+let _loteEmAnalise=new Set();
 let _varreduraStatus=null;
 let _emailsAvulsos=[];
 let _emailsProcesso=[];
@@ -4772,7 +4773,7 @@ function renderCRM(){
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-bottom:4px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">${c.proxima}</div>`:''}
           ${((c.proxima||c.indicacao)&&(typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription)))?`<div style="border-top:1px solid var(--border);margin:5px 0 4px;"></div>`:''}
-          ${(()=>{const sc=typeof c.score==='number'?c.score:(c.atsScore?parseInt(c.atsScore||0):null);if(sc!==null&&sc>=0){const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;}if(!!(c.descricao||c.jobDescription))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 7px;font-weight:600;">— Não analisada</span></div>';return '';})()}
+          ${(()=>{if(_loteEmAnalise.has(String(c.id)))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--action);background:#EEF4FF;border:1px solid #BFDBFE;border-radius:8px;padding:2px 7px;font-weight:600;">⏳ Analisando...</span></div>';const sc=typeof c.score==='number'?c.score:(c.atsScore?parseInt(c.atsScore||0):null);if(sc!==null&&sc>=0){const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;}if(!!(c.descricao||c.jobDescription))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 7px;font-weight:600;">— Não analisada</span></div>';return '';})()}
           ${(c.updatedAt||c.createdAt||nv>0)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;${_hasBody?'padding-top:6px;border-top:1px solid var(--border);':''}"><div>${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}</div><div style="font-size:10px;color:var(--text3);">${(c.updatedAt||c.createdAt)?formatTs(c.updatedAt||c.createdAt):''}</div></div>`:''}
         </div>`;
       }).join('')}
@@ -6705,23 +6706,26 @@ function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
 async function analisarLoteBackground(){
   const semScore=vagas.filter(v=>v.status==='lead'&&!!(v.descricao||v.jobDescription)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
   if(!semScore.length) return;
+  semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
+  renderCRM();
   for(const v of semScore){
     try{
       const desc=v.descricao||v.jobDescription||'';
       const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc})});
-      if(!res.ok) continue;
+      _loteEmAnalise.delete(String(v.id));
+      if(!res.ok){renderCRM();continue;}
       const data=await res.json();
-      if(typeof data.score!=='number') continue;
+      if(typeof data.score!=='number'){renderCRM();continue;}
       const idx=vagas.findIndex(x=>String(x.id)===String(v.id));
-      if(idx<0) continue;
+      if(idx<0){renderCRM();continue;}
       vagas[idx].score=data.score;
       if(data.classificacao) vagas[idx].classificacao=data.classificacao;
       if(data.resumo) vagas[idx].resumo=data.resumo;
       if(data.pontos_fortes) vagas[idx].pontos_fortes=data.pontos_fortes;
       saveVagas();
-    }catch{}
+      renderCRM();
+    }catch{_loteEmAnalise.delete(String(v.id));renderCRM();}
   }
-  renderCRM();
 }
 function toggleOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');
