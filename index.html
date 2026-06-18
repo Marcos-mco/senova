@@ -3962,6 +3962,10 @@ function loadCRM(){
       });
       localStorage.setItem('senova_migration_dedup_done','1');
     }
+    if(!localStorage.getItem('senova_migration_entrevista_legacy_v1')){
+      vagas=vagas.map(v=>v.status==='entrevista'&&!v.entrevistaData&&!v.entrevistaRealizada?{...v,entrevistaRealizada:true}:v);
+      localStorage.setItem('senova_migration_entrevista_legacy_v1','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
