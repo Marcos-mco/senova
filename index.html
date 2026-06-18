@@ -111,7 +111,7 @@ select option { background: var(--bg2); }
 
 /* ── KANBAN ── */
 .kanban { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
-.kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.kanban-col-header { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); padding: 6px 0 10px; border-bottom: 2px solid var(--border); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; position: sticky; top: 0; background: var(--bg); z-index: 4; }
 .col-count { background: var(--bg4); color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 4px solid transparent; box-shadow: var(--shadow); }
 .kcard:hover { border-color: var(--border2); box-shadow: var(--shadow-md); transform: translateY(-1px); }
@@ -1315,7 +1315,6 @@ select option { background: var(--bg2); }
     </div>
   </div>
   <div class="content">
-    <div class="stats" id="crm-stats"></div>
     <!-- Filtros -->
     <div class="filter-bar" id="crm-filter-bar">
       <div class="crm-search-wrap">
@@ -4676,15 +4675,6 @@ function setCrmTab(tab,btn){
 }
 
 function renderCRM(){
-  const leads=vagas.filter(v=>v.status==='lead').length;
-  const cvEnviado=vagas.filter(v=>v.status==='aplicado').length;
-  const processo=vagas.filter(v=>v.status==='entrevista').length;
-  const propostas=vagas.filter(v=>v.status==='proposta').length;
-  document.getElementById('crm-stats').innerHTML=`
-    <div class="stat"><div class="stat-val">${leads}</div><div class="stat-label">Oportunidades</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--action)">${cvEnviado}</div><div class="stat-label">CV Enviado</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--navy)">${processo}</div><div class="stat-label">Entrevistas</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>`;
   renderCRMKpiStrip();
 
   const listaBase = _crmFiltroInativo ? vagas.filter(isInativo) : (vagasFiltradas || vagas);
@@ -7661,16 +7651,12 @@ function renderCRMKpiStrip(){
   const total=ativas.length;
   const comRetorno=ativas.filter(v=>['entrevista','proposta'].includes(v.status)).length;
   const taxaRet=total>=2?Math.round(comRetorno/total*100):null;
-  const nEnt=ativas.filter(v=>v.status==='entrevista').length;
-  const nProp=ativas.filter(v=>v.status==='proposta').length;
   const taxaStr=taxaRet!==null?`${taxaRet}%`:'—';
   const taxaCor=taxaRet!==null&&taxaRet>=30?'var(--green)':taxaRet!==null&&taxaRet>=15?'var(--amber)':'var(--text3)';
-  const kpi=(num,label,color='var(--navy)')=>`<div class="home-kpi-strip" style="flex:1;min-width:110px;cursor:default;"><div><div class="home-kpi-lbl">${label}</div><div class="home-kpi-num" style="color:${color};">${num}</div></div></div>`;
+  const kpi=(num,label,color='var(--navy)')=>`<div class="home-kpi-strip" style="flex:0 0 auto;min-width:110px;cursor:default;"><div><div class="home-kpi-lbl">${label}</div><div class="home-kpi-num" style="color:${color};">${num}</div></div></div>`;
   el.innerHTML=[
     kpi(total||'—','Ativos'),
     kpi(taxaStr,'Taxa retorno',taxaCor),
-    kpi(nEnt||'—','Entrevistas',nEnt>0?'#7C3AED':'var(--text3)'),
-    kpi(nProp||'—','Propostas',nProp>0?'var(--green)':'var(--text3)'),
   ].join('');
 }
 
