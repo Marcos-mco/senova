@@ -5619,6 +5619,7 @@ async function salvarEntradaTimeline(){
   vagas[idx].timeline.unshift({ts:Date.now(),texto});
   vagas[idx].updatedAt=Date.now();
   vagas[idx].proxima=texto;
+  if(vagas[idx].status==='entrevista'&&!vagas[idx].entrevistaData) vagas[idx].entrevistaRealizada=true;
   saveVagas(); renderCRM();
   fecharFormTimeline();
   renderTimelineLista(vagas[idx].timeline);
@@ -7920,7 +7921,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
   const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
   // entrevistas sem data agendada — urgência máxima
-  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData);
+  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData&&!v.entrevistaRealizada&&!(v.timeline||[]).some(t=>t.texto&&t.texto!=='Card criado'&&t.texto.length>5));
   const entSemDataIds=new Set(entSemData.map(v=>v.id));
   // nível 3 sem data → surfacem no topo (excluindo já exibidos acima)
   const nivel3SemData=base.filter(v=>!entSemDataIds.has(v.id)&&nivelInativo(v)===3&&_getNextActionDate(v)===null);
