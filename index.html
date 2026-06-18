@@ -4731,6 +4731,7 @@ function renderCRM(){
     if(cf.sort==='newer') cards=[...cards].sort((a,b)=>((b.createdAt||0)-(a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
     else if(cf.sort==='az') cards=[...cards].sort((a,b)=>(a.empresa||'').localeCompare(b.empresa||'','pt'));
+    else if(cf.sort==='score') cards=[...cards].sort((a,b)=>{const sa=typeof a.score==='number'?a.score:(parseInt(a.atsScore)||0);const sb=typeof b.score==='number'?b.score:(parseInt(b.atsScore)||0);return sb-sa;});
     else if(_globalOrdem==='recente') cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
     // else: sort global (az, antigo, prioridade) preserva a ordem de listaBase
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
@@ -4741,7 +4742,7 @@ function renderCRM(){
       <div class="col-filter-sect">Canal</div>
       ${[['all','Todos'],['linkedin','LinkedIn'],['headhunter','Headhunter'],['email','Email'],['indicacao','Indicação']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="can-${col}" value="${v}" ${cf.canal===v?'checked':''} onchange="setColFilter('${col}','canal','${v}',event)"> ${l}</label>`).join('')}
       <div class="col-filter-sect">Ordenar</div>
-      ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo'],['az','A-Z']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
+      ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo'],['az','A-Z'],['score','Maior score']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
       ${hasFilter?`<button class="col-filter-reset" onclick="resetColFilter('${col}')">Limpar filtros</button>`:''}
     </div>`;
     return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
@@ -4756,7 +4757,7 @@ function renderCRM(){
         const nv=nivelInativo(c);
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
         const _logo=_companyLogo(c.empresa||'',c.origemUrl||'');
-        const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number';
+        const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription);
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
             <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
@@ -4770,8 +4771,8 @@ function renderCRM(){
           ${(c.fonte==='Adzuna'||c.fonte==='Jobicy')?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;">${c.fonte==='Adzuna'?'<span style="background:#EEF4FF;color:#1D4ED8;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Adzuna</span>':c.fonte==='Jobicy'?'<span style="background:#F0FDF4;color:#15803D;padding:1px 7px;border-radius:5px;font-size:10.5px;font-weight:600;">Jobicy</span>':''}</div>`:''}
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-bottom:4px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">${c.proxima}</div>`:''}
-          ${((c.proxima||c.indicacao)&&typeof c.score==='number')?`<div style="border-top:1px solid var(--border);margin:5px 0 4px;"></div>`:''}
-          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;})():''}
+          ${((c.proxima||c.indicacao)&&(typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription)))?`<div style="border-top:1px solid var(--border);margin:5px 0 4px;"></div>`:''}
+          ${(()=>{const sc=typeof c.score==='number'?c.score:(c.atsScore?parseInt(c.atsScore||0):null);if(sc!==null&&sc>=0){const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;}if(!!(c.descricao||c.jobDescription))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 7px;font-weight:600;">— Não analisada</span></div>';return '';})()}
           ${(c.updatedAt||c.createdAt||nv>0)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;${_hasBody?'padding-top:6px;border-top:1px solid var(--border);':''}"><div>${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}</div><div style="font-size:10px;color:var(--text3);">${(c.updatedAt||c.createdAt)?formatTs(c.updatedAt||c.createdAt):''}</div></div>`:''}
         </div>`;
       }).join('')}
@@ -6672,6 +6673,7 @@ async function verificarVagasVarredura(){
       pendentes.forEach(v=>vagas.push(_montarCardVarredura(v,agora)));
       saveVagas();
       _vagasLeadAutoAdicionadas=pendentes.length;
+      analisarLoteBackground();
     }
     atualizarSinalVarredura();
   }catch{ atualizarSinalVarredura(); }
@@ -6699,6 +6701,28 @@ function atualizarSinalOportunidades(){
   if(lista&&lista.style.display==='flex') renderOportunidades();
 }
 function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
+
+async function analisarLoteBackground(){
+  const semScore=vagas.filter(v=>v.status==='lead'&&!!(v.descricao||v.jobDescription)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
+  if(!semScore.length) return;
+  for(const v of semScore){
+    try{
+      const desc=v.descricao||v.jobDescription||'';
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc})});
+      if(!res.ok) continue;
+      const data=await res.json();
+      if(typeof data.score!=='number') continue;
+      const idx=vagas.findIndex(x=>String(x.id)===String(v.id));
+      if(idx<0) continue;
+      vagas[idx].score=data.score;
+      if(data.classificacao) vagas[idx].classificacao=data.classificacao;
+      if(data.resumo) vagas[idx].resumo=data.resumo;
+      if(data.pontos_fortes) vagas[idx].pontos_fortes=data.pontos_fortes;
+      saveVagas();
+    }catch{}
+  }
+  renderCRM();
+}
 function toggleOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');
   const chev=document.getElementById('sinal-oportunidades-chevron');
