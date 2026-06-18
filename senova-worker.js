@@ -245,6 +245,14 @@ async function salvarWhitelist(env, lista) {
   await env.SENOVA_KV.put('whitelist_dominios', JSON.stringify(lista));
 }
 
+async function getBlacklist(env) {
+  try { const raw = await env.SENOVA_KV.get('blacklist_remetentes'); return raw ? JSON.parse(raw) : []; }
+  catch { return []; }
+}
+async function salvarBlacklist(env, lista) {
+  await env.SENOVA_KV.put('blacklist_remetentes', JSON.stringify(lista));
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  CLASSIFICAÇÃO DE EMAILS VIA IA
 // ═══════════════════════════════════════════════════════════════════
@@ -623,9 +631,14 @@ export default {
         link_vaga: e.link_vaga || detectarLinkVaga(e.links),
       }));
 
+      // Blacklist: remetentes bloqueados pelo usuário nunca chegam ao Senova
+      const blacklist = await getBlacklist(env);
+      const _blLower = blacklist.map(s => s.toLowerCase());
+      const semBloqueados = novosComConteudo.filter(e => !_blLower.some(b => (e.from||'').toLowerCase().includes(b)));
+
       // Separar Google Alerts antes da classificação IA (conta só os novos para stats)
-      const alertasNovos = novosComConteudo.filter(isAlertaFn);
-      const emailsNormais = novosComConteudo.filter(e => !isAlertaFn(e));
+      const alertasNovos = semBloqueados.filter(isAlertaFn);
+      const emailsNormais = semBloqueados.filter(e => !isAlertaFn(e));
 
       const whitelist = await getWhitelist(env);
       const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
@@ -654,8 +667,16 @@ export default {
         }
       })());
 
-      const classificados = todoClassificados.filter(e => e.categoria !== 'irrelevante');
-      const irrelevantes  = todoClassificados.filter(e => e.categoria === 'irrelevante').slice(0, 10);
+      // Whitelist override: email de domínio prioritário nunca some como irrelevante
+      const _wlLower = whitelist.map(d => d.toLowerCase().replace(/^@/,''));
+      const comOverride = todoClassificados.map(e => {
+        if (e.categoria === 'irrelevante' && _wlLower.some(d => (e.from||'').toLowerCase().includes(d))) {
+          return {...e, categoria:'vaga', label:'Vaga nova', emoji:'📋', prioridade:4, resumo: e.resumo||'Domínio prioritário'};
+        }
+        return e;
+      });
+      const classificados = comOverride.filter(e => e.categoria !== 'irrelevante');
+      const irrelevantes  = comOverride.filter(e => e.categoria === 'irrelevante').slice(0, 10);
 
       // Stats do dia no KV
       const totalAlertas = alertasNovos.length;
@@ -776,6 +797,25 @@ export default {
       const lista = (await getWhitelist(env)).filter(d => d !== dominio?.toLowerCase().trim());
       await salvarWhitelist(env, lista);
       return json({ ok: true, dominios: lista });
+    }
+
+    // ── Blacklist de remetentes ──────────────────────────────────────
+    if (path === '/api/blacklist' && request.method === 'GET') {
+      return json({ remetentes: await getBlacklist(env) });
+    }
+    if (path === '/api/blacklist' && request.method === 'POST') {
+      const { remetente } = await request.json();
+      if (!remetente) return json({ erro: 'remetente obrigatório' }, 400);
+      const lista = await getBlacklist(env);
+      const r = remetente.toLowerCase().trim();
+      if (!lista.includes(r)) { lista.push(r); await salvarBlacklist(env, lista); }
+      return json({ ok: true, remetentes: lista });
+    }
+    if (path === '/api/blacklist' && request.method === 'DELETE') {
+      const { remetente } = await request.json();
+      const lista = (await getBlacklist(env)).filter(d => d !== remetente?.toLowerCase().trim());
+      await salvarBlacklist(env, lista);
+      return json({ ok: true, remetentes: lista });
     }
 
     if (path === '/api/sinais-mercado' && request.method === 'GET') {
@@ -1156,6 +1196,8 @@ async function analisarVaga(titulo, empresa, descricao, env) {
 CANDIDATO: ${PERFIL_MARCOS}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
+
+IDIOMAS — regra obrigatória: o candidato tem inglês avançado e espanhol avançado — NÃO fluente em nenhum dos dois. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) em inglês ou espanhol, registrar OBRIGATORIAMENTE em pontos_atencao. Nunca registrar inglês ou espanhol como ponto_forte se o requisito for fluência. Nunca afirmar que o candidato "atende" exigência de fluência em inglês ou espanhol.
 
 JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|"")}`;
 

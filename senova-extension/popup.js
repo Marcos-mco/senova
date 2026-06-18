@@ -18,6 +18,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) { mostrarEstado('generico'); return; }
 
+  // Botão "Habilitar emails deste portal" — aparece em qualquer site fora do Senova
+  try {
+    const tabUrl = tab.url || '';
+    const dominio = new URL(tabUrl).hostname.replace(/^www\./,'');
+    const isApp = tabUrl.startsWith(APP_URL);
+    if (!isApp && dominio && !tabUrl.startsWith('chrome://')) {
+      const wrap = document.getElementById('habilitar-portal-wrap');
+      const btn  = document.getElementById('btn-habilitar-portal');
+      if (wrap && btn) {
+        btn.textContent = `+ Habilitar emails de ${dominio}`;
+        wrap.style.display = 'block';
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Habilitando...';
+          try {
+            const res = await chrome.runtime.sendMessage({ type: 'HABILITAR_PORTAL', dominio });
+            btn.textContent = res?.ok ? `✓ ${dominio} habilitado` : '⚠ Erro ao habilitar';
+            btn.style.color = res?.ok ? '#1A7A4A' : '#C0281E';
+          } catch {
+            btn.textContent = '⚠ Erro ao habilitar';
+            btn.style.color = '#C0281E';
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
   // Injeta content script (para sites fora do manifest — Gupy, Catho, etc.)
   try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });

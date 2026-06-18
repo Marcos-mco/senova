@@ -35,6 +35,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: true });
     return false;
   }
+  if (msg.type === 'HABILITAR_PORTAL') {
+    fetch(WORKER + '/api/whitelist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dominio: msg.dominio }),
+    })
+      .then(r => r.json())
+      .then(d => sendResponse({ ok: true, dominios: d.dominios }))
+      .catch(e => sendResponse({ ok: false, erro: e.message }));
+    return true;
+  }
 });
 
 // ── ANÁLISE COMPLETA — injeta dados na aba do Senova ─────────────────

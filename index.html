@@ -1218,13 +1218,19 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
-      <!-- Whitelist domínios -->
+      <!-- Portais de email -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
-        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Domínios prioritários</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;">E-mails destes domínios são sempre classificados como recrutadores — nunca ignorados</div>
-        <textarea id="perfil-whitelist" rows="5" placeholder="Um domínio por linha:&#10;kornferry.com&#10;spencerstuart.com&#10;heidrick.com&#10;egonzehnder.com" style="font-size:14px;resize:vertical;margin-bottom:10px;"></textarea>
-        <button class="btn btn-ghost" onclick="salvarWhitelist()" style="font-size:13px;padding:8px 16px;">Salvar domínios</button>
-        <div id="whitelist-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;">✓ Domínios salvos</div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Portais de e-mail</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:14px;">E-mails destes portais nunca são ignorados pelo Senova. Ative os que usa e adicione outros.</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Sugeridos pelo Senova</div>
+        <div id="whitelist-chips-sugeridos" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Adicionados por você</div>
+        <div id="whitelist-chips-custom" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:24px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="whitelist-input-custom" type="text" placeholder="michaelpage.com.br" style="flex:1;font-size:13px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);">
+          <button class="btn btn-ghost" onclick="adicionarDominioCustom()" style="font-size:13px;padding:8px 14px;">+ Adicionar</button>
+        </div>
+        <div id="whitelist-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;">✓ Salvo</div>
       </div>
 
       <!-- Busca automática -->
@@ -3572,8 +3578,7 @@ async function carregarPerfil(){
     try{
       const wRes=await fetch(WORKER_URL+'/api/whitelist');
       const wData=await wRes.json();
-      const wEl=document.getElementById('perfil-whitelist');
-      if(wEl&&wData.dominios) wEl.value=(wData.dominios||[]).join('\n');
+      _renderWhitelistChips(wData.dominios||[]);
     }catch{}
   }catch(e){ console.warn('carregarPerfil',e); }
 }
@@ -3653,16 +3658,74 @@ async function desconectarOutlook(){
   showToast('Outlook desconectado');
 }
 
-async function salvarWhitelist(){
-  const el=document.getElementById('perfil-whitelist');
-  if(!el) return;
-  const dominios=el.value.split('\n').map(s=>s.trim()).filter(Boolean);
+const _WL_SUGERIDOS=[
+  {d:'michaelpage.com.br',l:'Michael Page'},
+  {d:'roberthalf.com.br',l:'Robert Half'},
+  {d:'catho.com',l:'Catho'},
+  {d:'vagas.com.br',l:'Vagas.com'},
+  {d:'infojobs.com.br',l:'InfoJobs'},
+  {d:'gupy.io',l:'Gupy'},
+  {d:'indeed.com',l:'Indeed'},
+  {d:'linkedin.com',l:'LinkedIn'},
+  {d:'greenhouse.io',l:'Greenhouse'},
+  {d:'lever.co',l:'Lever'},
+  {d:'workday.com',l:'Workday'},
+  {d:'kornferry.com',l:'Korn Ferry'},
+  {d:'heidrick.com',l:'Heidrick & Struggles'},
+  {d:'egonzehnder.com',l:'Egon Zehnder'},
+  {d:'spencerstuart.com',l:'Spencer Stuart'},
+];
+let _wlAtivos=new Set();
+
+function _renderWhitelistChips(ativos){
+  _wlAtivos=new Set((ativos||[]).map(d=>d.toLowerCase()));
+  const sug=document.getElementById('whitelist-chips-sugeridos');
+  const cust=document.getElementById('whitelist-chips-custom');
+  if(!sug||!cust) return;
+  const sugDoms=new Set(_WL_SUGERIDOS.map(x=>x.d));
+  sug.innerHTML=_WL_SUGERIDOS.map(({d,l})=>{
+    const on=_wlAtivos.has(d);
+    return `<button onclick="togglePortal('${d}')" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid ${on?'var(--navy)':'var(--border)'};background:${on?'var(--navy)':'#fff'};color:${on?'#fff':'var(--text2)'};transition:all .15s;">${l}</button>`;
+  }).join('');
+  const customAtivos=[..._wlAtivos].filter(d=>!sugDoms.has(d));
+  cust.innerHTML=customAtivos.length?customAtivos.map(d=>`<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);color:var(--text2);">${d}<button onclick="removerPortalCustom('${d}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;line-height:1;padding:0;">×</button></span>`).join(''):'<span style="font-size:13px;color:var(--text3);">Nenhum adicionado</span>';
+}
+
+async function togglePortal(dominio){
+  const ativo=_wlAtivos.has(dominio);
   try{
-    await fetch(WORKER_URL+'/api/whitelist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominios})});
-    const ok=document.getElementById('whitelist-save-ok');
-    if(ok){ok.style.display='block';setTimeout(()=>ok.style.display='none',3000);}
-    showToast('✅ Domínios salvos');
-  }catch{ showToast('Erro ao salvar domínios'); }
+    await fetch(WORKER_URL+'/api/whitelist',{method:ativo?'DELETE':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominio})});
+    if(ativo) _wlAtivos.delete(dominio); else _wlAtivos.add(dominio);
+    _renderWhitelistChips([..._wlAtivos]);
+    _flashWlOk();
+  }catch{ showToast('Erro ao atualizar portal'); }
+}
+
+async function removerPortalCustom(dominio){
+  try{
+    await fetch(WORKER_URL+'/api/whitelist',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominio})});
+    _wlAtivos.delete(dominio);
+    _renderWhitelistChips([..._wlAtivos]);
+    _flashWlOk();
+  }catch{ showToast('Erro ao remover portal'); }
+}
+
+async function adicionarDominioCustom(){
+  const inp=document.getElementById('whitelist-input-custom');
+  if(!inp) return;
+  const d=inp.value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*/,'');
+  if(!d){ showToast('Digite um domínio válido'); return; }
+  try{
+    await fetch(WORKER_URL+'/api/whitelist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominio:d})});
+    _wlAtivos.add(d); inp.value='';
+    _renderWhitelistChips([..._wlAtivos]);
+    _flashWlOk();
+  }catch{ showToast('Erro ao adicionar portal'); }
+}
+
+function _flashWlOk(){
+  const ok=document.getElementById('whitelist-save-ok');
+  if(ok){ok.style.display='block';setTimeout(()=>ok.style.display='none',2500);}
 }
 
 function perfilCertUpload(input){
@@ -6977,11 +7040,12 @@ function renderEmailsAvulsos(){
     const dataTxt=e.date?_tempoRelativo(e.date):'';
     const remetente=e.from_name||e.from||'(remetente)';
     const preview=(e.resumo||e.preview||'').slice(0,95);
-    const acoes=fonte==='processo'
+    const btnPrincipal=fonte==='processo'
       ?`<button class="btn-email-action btn-email-resp" onclick="event.stopPropagation();abrirModalResponder_fluxo('${fonte}',${idx})">↩ Responder</button>`
       :fonte==='mercado'
       ?`<button class="btn-email-action btn-email-open" data-wl="${escHtml(urlSegura(e.webLink||''))}" data-idx="${idx}" data-fonte="${fonte}" onclick="event.stopPropagation();const _u=this.dataset.wl;if(_u)window.open(_u,'_blank','noopener');else abrirModalResponder_fluxo(this.dataset.fonte,+this.dataset.idx);">↗ Abrir</button>`
-      :`<button class="btn-email-action btn-email-block" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫 Bloquear</button>`;
+      :``;
+    const acoes=`<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">${btnPrincipal}<div style="display:flex;gap:4px;"><button class="btn-email-action" style="font-size:11px;padding:3px 8px;border-color:var(--border);color:var(--text2);background:#fff;" onclick="event.stopPropagation();reclassificarEmail('${fonte}',${idx})">↺ Classificar</button><button class="btn-email-action" style="font-size:11px;padding:3px 8px;border-color:var(--border);color:var(--text3);background:#fff;" title="Bloquear remetente" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫</button></div></div>`;
     return `<div class="email-card" onclick="abrirModalResponder_fluxo('${fonte}',${idx})">
       <div class="email-card-band" style="background:${cor};"></div>
       <div class="email-card-body">
@@ -7044,18 +7108,44 @@ function abrirModalResponder_fluxo(fonte,idx){
     if(btn) btn.textContent='Enviar pelo Outlook';
   }
 }
-function bloquearEmailIdx(fonte,idx){
+async function bloquearEmailIdx(fonte,idx){
   const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
   const e=arr[idx]; if(!e) return;
   const from=(e.from||'').toLowerCase().trim();
   if(!from) return;
+  if(!confirm(`Bloquear remetente "${e.from_name||from}"?\nNunca mais aparecerá no Senova.`)) return;
+  // Salva na blacklist do Worker (KV) + localStorage como fallback
+  try{ await fetch(WORKER_URL+'/api/blacklist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remetente:from})}); }catch{}
   let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
   if(!bloqueados.includes(from)){bloqueados.push(from);localStorage.setItem('emails_bloqueados',JSON.stringify(bloqueados));}
   if(fonte==='processo') _emailsProcesso=_emailsProcesso.filter((_,i)=>i!==idx);
   else if(fonte==='mercado') _emailsMercado=_emailsMercado.filter((_,i)=>i!==idx);
   else _emailsIrrelevantes=_emailsIrrelevantes.filter((_,i)=>i!==idx);
+  renderEmailsAvulsos(); atualizarSinais();
+  showToast(`🚫 ${e.from_name||from} bloqueado`);
+}
+
+function reclassificarEmail(fonte,idx){
+  const arr=fonte==='mercado'?_emailsMercado:fonte==='irrelevante'?_emailsIrrelevantes:_emailsProcesso;
+  const e=arr[idx]; if(!e) return;
+  const cats=[
+    {v:'positivo',l:'🟢 Retorno positivo'},
+    {v:'pipeline',l:'⭐ Pipeline ativo'},
+    {v:'hunter',  l:'🎯 Contato de headhunter'},
+    {v:'vaga',    l:'📋 Vaga nova'},
+    {v:'negativo',l:'⚫ Retorno negativo'},
+    {v:'mercado', l:'📰 Inteligência de mercado'},
+    {v:'irrelevante',l:'— Irrelevante'},
+  ];
+  const opcoes=cats.map((c,i)=>`${i+1}. ${c.l}`).join('\n');
+  const escolha=prompt(`Reclassificar:\n"${e.subject}"\n\nEscolha o número:\n${opcoes}`);
+  if(!escolha) return;
+  const n=parseInt(escolha.trim());
+  if(!n||n<1||n>cats.length) return;
+  const nova=cats[n-1];
+  arr[idx]={...e, categoria:nova.v, label:nova.l.replace(/^.+? /,''), emoji:nova.l.split(' ')[0]};
   renderEmailsAvulsos();
-  atualizarSinais();
+  showToast(`↺ Reclassificado como: ${nova.l}`);
 }
 function stripHtml(html){
   if(!html) return '';
