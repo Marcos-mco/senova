@@ -7704,7 +7704,15 @@ function _buscarContatoPorEmpresa(empresa){
 
 function conectarOutlook(){
   window.open(WORKER_URL+'/api/auth/outlook','_blank','width=500,height=600');
-  setTimeout(async()=>{ const ok=await checkOutlookStatus(); if(ok) carregarEmails(true); },10000);
+  function _onOAuthMsg(e){
+    if(e.origin!=='https://marcos-mco.github.io'&&e.data!=='outlook_conectado') return;
+    if(e.data==='outlook_conectado'){
+      window.removeEventListener('message',_onOAuthMsg);
+      setTimeout(async()=>{ await checkOutlookStatus(); carregarEmails(true); showToast('✅ Outlook conectado!'); },800);
+    }
+  }
+  window.addEventListener('message',_onOAuthMsg);
+  setTimeout(()=>window.removeEventListener('message',_onOAuthMsg),120000);
 }
 
 async function toggleOutlook(){
