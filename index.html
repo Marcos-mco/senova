@@ -862,8 +862,11 @@ select option { background: var(--bg2); }
 
       <!-- Meu CV Master -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
-        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px;">Meu CV Master</div>
-        <textarea id="perfil-cv-texto" placeholder="Cole aqui o texto completo do seu CV..." style="min-height:140px;margin-bottom:12px;font-size:15px;resize:vertical;"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Meu CV Master</div>
+          <button id="btn-editar-cv" onclick="_cvMasterUnlock()" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);">✏ Editar</button>
+        </div>
+        <textarea id="perfil-cv-texto" placeholder="Cole aqui o texto completo do seu CV..." style="min-height:140px;margin-bottom:12px;font-size:15px;resize:vertical;background:var(--bg3);cursor:default;" readonly></textarea>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;border:1.5px dashed var(--border2);border-radius:var(--radius);padding:9px 14px;background:var(--bg3);flex:1;min-width:180px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--action)'" onmouseout="this.style.borderColor='var(--border2)'">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--action)" stroke-width="1.8"><path d="M8 10V2M4 6l4-4 4 4"/><rect x="2" y="12" width="12" height="2" rx="1" stroke-width="1.4"/></svg>
@@ -3248,10 +3251,15 @@ function saveVagaFromCV() {
 // ═══════════════════════════════════════════════
 function perfilCvUpload(input){
   const f=input.files[0]; if(!f) return;
+  const el=document.getElementById('perfil-cv-texto');
+  if(el.hasAttribute('readonly')){
+    if(!confirm('Substituir o CV master? Esta ação afeta todas as análises futuras.')) return;
+    _cvMasterUnlockSilent();
+  }
   const nome=f.name;
   if(f.type==='text/plain'){
     const r=new FileReader();
-    r.onload=e=>{ document.getElementById('perfil-cv-texto').value=e.target.result; document.getElementById('perfil-upload-nome').textContent=nome+' — texto carregado'; };
+    r.onload=e=>{ el.value=e.target.result; document.getElementById('perfil-upload-nome').textContent=nome+' — texto carregado'; };
     r.readAsText(f,'UTF-8');
   } else {
     document.getElementById('perfil-upload-nome').textContent=nome+' selecionado — cole o texto abaixo para melhor resultado';
@@ -3434,6 +3442,27 @@ function sofiaToggleTts(btn) {
   });
 }
 
+function _cvMasterUnlock(){
+  if(!confirm('Editar o CV master afeta todas as análises futuras.\n\nTem certeza?')) return;
+  _cvMasterUnlockSilent();
+}
+function _cvMasterUnlockSilent(){
+  const el=document.getElementById('perfil-cv-texto');
+  const btn=document.getElementById('btn-editar-cv');
+  el.removeAttribute('readonly');
+  el.style.background='';
+  el.style.cursor='';
+  el.focus();
+  if(btn){btn.textContent='🔒 Bloquear';btn.style.color='var(--action)';btn.onclick=_cvMasterLock;}
+}
+function _cvMasterLock(){
+  const el=document.getElementById('perfil-cv-texto');
+  const btn=document.getElementById('btn-editar-cv');
+  el.setAttribute('readonly','');
+  el.style.background='var(--bg3)';
+  el.style.cursor='default';
+  if(btn){btn.textContent='✏ Editar';btn.style.color='var(--text3)';btn.onclick=_cvMasterUnlock;}
+}
 function abrirImportLinkedIn(){
   const a=document.getElementById('import-li-area');
   if(a) a.style.display=a.style.display==='none'?'block':'none';
@@ -3441,7 +3470,12 @@ function abrirImportLinkedIn(){
 function usarImportLinkedIn(){
   const txt=document.getElementById('import-li-texto').value.trim();
   if(!txt) return;
-  document.getElementById('perfil-cv-texto').value=txt;
+  const el=document.getElementById('perfil-cv-texto');
+  if(el.hasAttribute('readonly')){
+    if(!confirm('Substituir o CV master com o texto do LinkedIn? Esta ação afeta todas as análises futuras.')) return;
+    _cvMasterUnlockSilent();
+  }
+  el.value=txt;
   document.getElementById('import-li-area').style.display='none';
   document.getElementById('perfil-cv-ok').style.display='block';
 }
@@ -3545,6 +3579,7 @@ async function salvarPerfil(){
     const ok=document.getElementById('perfil-save-ok');
     if(ok){ok.style.display='block';setTimeout(()=>ok.style.display='none',3000);}
     showToast('✅ Perfil salvo');
+    _cvMasterLock();
   }catch{ showToast('Erro ao salvar perfil'); }
   if(btn){btn.disabled=false;btn.textContent='Salvar perfil';}
 }
