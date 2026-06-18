@@ -645,29 +645,6 @@ export default {
       const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
-      // Marcar como lido + (opt) mover para pasta "Lidos pelo Senova" em background
-      ctx.waitUntil((async () => {
-        await Promise.allSettled(novos.map(e =>
-          fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isRead: true }),
-          })
-        ));
-        if (moverParaPasta && novos.length > 0) {
-          const folderId = await getOrCreateSenovaFolder(token, env);
-          if (folderId) {
-            await Promise.allSettled(novos.map(e =>
-              fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}/move`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ destinationId: folderId }),
-              })
-            ));
-          }
-        }
-      })());
-
       // Whitelist override: email de domínio prioritário nunca some como irrelevante
       const _wlLower = whitelist.map(d => d.toLowerCase().replace(/^@/,''));
       const comOverride = todoClassificados.map(e => {
@@ -678,6 +655,38 @@ export default {
       });
       const classificados = comOverride.filter(e => e.categoria !== 'irrelevante');
       const irrelevantes  = comOverride.filter(e => e.categoria === 'irrelevante').slice(0, 10);
+
+      // IDs a mover: emails relevantes (não-irrelevante) + alertas de vagas
+      const idsParaMover = new Set([
+        ...comOverride.filter(e => e.categoria !== 'irrelevante').map(e => e.id),
+        ...alertasNovos.map(e => e.id),
+      ]);
+
+      // Marcar como lido + (opt) mover para pasta "Lidos pelo Senova" em background
+      ctx.waitUntil((async () => {
+        await Promise.allSettled(novos.map(e =>
+          fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isRead: true }),
+          })
+        ));
+        if (moverParaPasta) {
+          const paraMovar = novos.filter(e => idsParaMover.has(e.id));
+          if (paraMovar.length > 0) {
+            const folderId = await getOrCreateSenovaFolder(token, env);
+            if (folderId) {
+              await Promise.allSettled(paraMovar.map(e =>
+                fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}/move`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ destinationId: folderId }),
+                })
+              ));
+            }
+          }
+        }
+      })());
 
       // Stats do dia no KV
       const totalAlertas = alertasNovos.length;
@@ -692,7 +701,7 @@ export default {
       return json({
         emails: classificados, irrelevantes, alertas: todosAlertas, total_lidos: emails.length,
         total_novos: novos.length, total_relevantes: classificados.length, whitelist,
-        movidos: moverParaPasta ? novos.length : 0,
+        movidos: moverParaPasta ? idsParaMover.size : 0,
       });
     }
 
