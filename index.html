@@ -6004,7 +6004,7 @@ async function gerarDocModal(tipo){
   }
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.analise,max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     let text=data.content?.find(b=>b.type==='text')?.text||'';
     if(tipo==='ats'){const cvPart=text.split('---CV---')[1];if(cvPart) text=cvPart.split('---CRM---')[0].trim();else text=text.trim();lastCV=text;}
@@ -6497,7 +6497,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.analise,max_tokens:800,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();

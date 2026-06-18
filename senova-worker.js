@@ -294,11 +294,10 @@ async function classificarEmails(emails, whitelist, env) {
       `[${idx}] De: ${e.from_name||e.from} | Assunto: ${e.subject} | Conteúdo: ${(e.conteudo_vaga||e.preview||'').slice(0, 400)}`
     ).join('\n');
     const wlStr = whitelist.length ? `\nWhitelist de domínios prioritários: ${whitelist.join(', ')}` : '';
-    const prompt = `Você é assistente de recolocação executiva de Marcos Franco, executivo sênior de marketing de Curitiba/PR.
+    const systemEmail = `Você é assistente de recolocação executiva de Marcos Franco, executivo sênior de marketing de Curitiba/PR.
 
 PERFIL: ${PERFIL_MARCOS}
 ${wlStr}
-
 Classifique cada e-mail em: positivo | pipeline | hunter | vaga | negativo | mercado | irrelevante
 
 Regras críticas:
@@ -311,16 +310,23 @@ Regras críticas:
 - Newsletter de mercado, conteúdo executivo, Board Academy, artigos de liderança, insights de carreira, tendências do setor → mercado
 - Spam, promoções, marketing sem relação com recolocação → irrelevante
 
-Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resumo":"resumo em 1 linha"},...]}
-
-E-MAILS:
-${listaEmails}`;
+Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resumo":"resumo em 1 linha"},...]}`;
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:800, messages:[{role:'user',content:prompt}] }),
+        headers: {
+          'Content-Type':'application/json',
+          'x-api-key':env.ANTHROPIC_API_KEY,
+          'anthropic-version':'2023-06-01',
+          'anthropic-beta':'prompt-caching-2024-07-31'
+        },
+        body: JSON.stringify({
+          model:'claude-sonnet-4-6',
+          max_tokens:800,
+          system:[{ type:'text', text:systemEmail, cache_control:{ type:'ephemeral' } }],
+          messages:[{ role:'user', content:`E-MAILS:\n${listaEmails}` }]
+        }),
       });
       const data = await res.json();
       const texto = data.content?.[0]?.text || '';
@@ -1129,11 +1135,9 @@ function vagaRecente(d) {
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
 async function analisarVaga(titulo, empresa, descricao, env) {
-  const prompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
+  const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
 
 CANDIDATO: ${PERFIL_MARCOS}
-
-VAGA: ${titulo} | ${empresa || ''} | ${(descricao||'').slice(0,4000)}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
@@ -1142,8 +1146,18 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:prompt}] }),
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key':env.ANTHROPIC_API_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-beta':'prompt-caching-2024-07-31'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system:[{ type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } }],
+        messages:[{ role:'user', content:`VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}` }]
+      }),
     });
     const data = await resp.json();
     return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
