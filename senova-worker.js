@@ -508,7 +508,12 @@ export default {
     // ── Auth Callback ────────────────────────────────────────────────
     if (path === '/api/auth/callback' && request.method === 'GET') {
       const code = url.searchParams.get('code');
-      if (!code) return htmlResp('<h2>Erro: código OAuth não recebido.</h2>', 400);
+      const oauthError = url.searchParams.get('error');
+      const oauthErrorDesc = url.searchParams.get('error_description');
+      if (!code) {
+        const msg = oauthError ? `Erro OAuth: ${oauthError}<br><small>${oauthErrorDesc||''}</small>` : 'Código OAuth não recebido. Tente conectar novamente.';
+        return htmlResp(`<h2>${msg}</h2><br><a href="https://marcos-mco.github.io/senova">← Voltar ao Senova</a>`, 400);
+      }
       const redirectUri = env.MS_REDIRECT_URI || 'https://senova-proxy.marcos-mco.workers.dev/api/auth/callback';
       const res = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
         method: 'POST',
