@@ -3521,7 +3521,8 @@ async function carregarPerfil(){
     document.getElementById('perfil-telefone').value=p.telefone||'';
     document.getElementById('perfil-linkedin-url').value=p.linkedin||'';
     document.getElementById('perfil-idioma').value=p.idioma_preferido||'pt';
-    _cvMasterDados={pt:p.cv_master_pt||p.cv_master||'',en:p.cv_master_en||'',es:p.cv_master_es||''};
+    const _cvStr=v=>typeof v==='string'?v:(v&&v.value?String(v.value):'');
+    _cvMasterDados={pt:_cvStr(p.cv_master_pt)||_cvStr(p.cv_master)||'',en:_cvStr(p.cv_master_en)||'',es:_cvStr(p.cv_master_es)||''};
     _cvMasterSetLang('pt');
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
