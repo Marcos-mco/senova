@@ -862,11 +862,16 @@ select option { background: var(--bg2); }
 
       <!-- Meu CV Master -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Meu CV Master</div>
           <button id="btn-editar-cv" onclick="_cvMasterUnlock()" style="font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);">✏ Editar</button>
         </div>
-        <textarea id="perfil-cv-texto" placeholder="Cole aqui o texto completo do seu CV..." style="min-height:140px;margin-bottom:8px;font-size:15px;resize:vertical;background:var(--bg3);cursor:default;" readonly></textarea>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button onclick="_cvMasterSetLang('pt')" id="cv-lang-pt" style="font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;border:1.5px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);">PT</button>
+          <button onclick="_cvMasterSetLang('en')" id="cv-lang-en" style="font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--text3);cursor:pointer;font-family:var(--font);">EN</button>
+          <button onclick="_cvMasterSetLang('es')" id="cv-lang-es" style="font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--text3);cursor:pointer;font-family:var(--font);">ES</button>
+        </div>
+        <textarea id="perfil-cv-texto" placeholder="CV não carregado..." style="min-height:200px;margin-bottom:8px;font-size:13px;font-family:monospace;line-height:1.6;resize:vertical;background:var(--bg3);cursor:default;" readonly></textarea>
         <div id="cv-master-acoes" style="display:none;gap:8px;margin-bottom:10px;">
           <button onclick="_cvMasterSalvar()" class="btn btn-primary" style="font-size:13px;padding:8px 20px;">Salvar</button>
           <button onclick="_cvMasterCancelar()" class="btn btn-ghost" style="font-size:13px;padding:8px 16px;">Cancelar</button>
@@ -3444,6 +3449,22 @@ function sofiaToggleTts(btn) {
 }
 
 let _cvMasterOriginal='';
+let _cvLangAtiva='pt';
+let _cvMasterDados={pt:'',en:'',es:''};
+
+function _cvMasterSetLang(lang){
+  _cvLangAtiva=lang;
+  ['pt','en','es'].forEach(l=>{
+    const btn=document.getElementById('cv-lang-'+l);
+    if(!btn) return;
+    const ativo=l===lang;
+    btn.style.background=ativo?'var(--navy)':'none';
+    btn.style.color=ativo?'#fff':'var(--text3)';
+    btn.style.borderColor=ativo?'var(--navy)':'var(--border)';
+    btn.style.fontWeight=ativo?'700':'600';
+  });
+  document.getElementById('perfil-cv-texto').value=_cvMasterDados[lang]||'';
+}
 function _cvMasterUnlock(){
   const el=document.getElementById('perfil-cv-texto');
   _cvMasterOriginal=el.value;
@@ -3455,7 +3476,13 @@ function _cvMasterUnlock(){
   document.getElementById('cv-master-acoes').style.display='flex';
 }
 function _cvMasterSalvar(){
+  _cvMasterDados[_cvLangAtiva]=document.getElementById('perfil-cv-texto').value.trim();
+  _cvMasterLock();
   salvarPerfil();
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(_cvMasterDados[_cvLangAtiva]);
+  a.download='CV_Marcos_Franco_2026_'+_cvLangAtiva.toUpperCase()+'.txt';
+  a.click();
 }
 function _cvMasterCancelar(){
   document.getElementById('perfil-cv-texto').value=_cvMasterOriginal;
@@ -3494,7 +3521,8 @@ async function carregarPerfil(){
     document.getElementById('perfil-telefone').value=p.telefone||'';
     document.getElementById('perfil-linkedin-url').value=p.linkedin||'';
     document.getElementById('perfil-idioma').value=p.idioma_preferido||'pt';
-    document.getElementById('perfil-cv-texto').value=p.cv_master||'';
+    _cvMasterDados={pt:p.cv_master_pt||p.cv_master||'',en:p.cv_master_en||'',es:p.cv_master_es||''};
+    _cvMasterSetLang('pt');
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
     document.getElementById('perfil-localizacoes').value=p.localizacoes||'';
@@ -3551,7 +3579,10 @@ async function salvarPerfil(){
     telefone:document.getElementById('perfil-telefone').value.trim(),
     linkedin:document.getElementById('perfil-linkedin-url').value.trim(),
     idioma_preferido:document.getElementById('perfil-idioma').value,
-    cv_master:document.getElementById('perfil-cv-texto').value.trim(),
+    cv_master:_cvMasterDados.pt||document.getElementById('perfil-cv-texto').value.trim(),
+    cv_master_pt:_cvMasterDados.pt||'',
+    cv_master_en:_cvMasterDados.en||'',
+    cv_master_es:_cvMasterDados.es||'',
     cargos_busca:document.getElementById('perfil-cargos-busca').value.trim(),
     salario_minimo:document.getElementById('perfil-salario-minimo').value,
     localizacoes:document.getElementById('perfil-localizacoes').value.trim(),
