@@ -22,6 +22,9 @@
 
 ## ESTADO ATUAL — v3.34 (17/jun/2026)
 
+### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
+- **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. Contém bugs, segurança, features A+B, economia de tokens, visão comercial e roadmap de 3 sprints. **NÃO ignorar.**
+
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.8)
@@ -202,11 +205,41 @@
 | ~~B2~~ | ~~Empty state "nenhuma nova" / "nenhum novo"~~ | ✅ resolvido 15/jun s2 | — |
 | ~~B3~~ | ~~"Entrevista sem data" persistia em Para Hoje~~ | ✅ resolvido 15/jun s2 | — |
 | ~~B4~~ | ~~Editar Processo: descrição da vaga não carrega (`mv-job-desc` vazio)~~ | ✅ resolvido 15/jun s3 | — |
-| B5 | Worker usa `claude-sonnet-4-5` (obsoleto) | `senova-worker.js` | **Média** |
+| ~~B5~~ | ~~Worker usa `claude-sonnet-4-5` (obsoleto)~~ | ✅ FANTASMA — Worker já usa 4-6 (confirmado Opus 17/jun) | — |
 | B6 | Botão "Verificar" em Busca Automática sem feedback visual | — | **Baixa** |
 | B7 | Sofia / Preparar entrevista não funcionando | — | **Média** |
 | B8 | LinkedIn no card de Contatos: URL sem link clicável | — | **Baixa** |
 | B9 | Idioma DE ausente em todos os seletores PT/EN/ES | — | **Média** |
+| B-N1 | Dashboard mostra "Em Contato" (coluna removida Sessão 5) | index.html STAGE_LABEL | **Médio** — Sprint A |
+| B-N2 | Status `negado`+`descartado` não unificados em `arquivado` | index.html | **Médio** — Sprint A |
+| B-N3 | XSS via URL de email (artigos Google Alert + webLink) | index.html linhas ~7300, ~6858 | **ALTO** — Sprint A |
+| B-N4 | Worker proxy aberto (`Access-Control-Allow-Origin: *`) | senova-worker.js | **Médio** — Sprint A |
+| B-N5 | Auto-check e Analisar podem disparar simultâneo sem lock | index.html | **Baixo** — Sprint A |
+
+---
+
+## ROADMAP DE SPRINTS — APROVADO 17/jun/2026
+*Baseado em REVISAO_OPUS_17jun2026.md — acatado integralmente por Marcos*
+
+### Sprint A — Segurança + Saneamento (próximo)
+- [ ] `urlSegura(u)` — corrigir XSS em URLs de email
+- [ ] CORS Worker restrito a `marcos-mco.github.io`
+- [ ] Unificar status: `negado`+`descartado`→`arquivado`; remover `contato` do dashboard
+- [ ] `corDoScore(score)` + `classificacaoDoScore(score)` — eliminar duplicação hex em 4 sítios
+- [ ] `const MODELOS` central (não 14 ocorrências espalhadas)
+
+### Sprint B — Economia de Tokens + Feature B Outlook
+- [ ] Prompt caching (`cache_control: ephemeral`) no Worker para PERFIL_MARCOS e system prompts
+- [ ] CV: opus→sonnet por defeito; opus só para análise explícita
+- [ ] Feature B: mover emails → "Lidos pelo Senova" — opt-in, default OFF, só categorias baixo valor
+
+### Sprint C — Feature A + Ordenação Kanban
+- [ ] Análise lazy-batch com cache por `gerarId` no KV
+- [ ] Ordenação/filtro por score no Kanban
+- [ ] Badge "Não analisada"
+
+### Pendência futura (após Oportunidade aprovado)
+- [ ] Análise Linear de Processo — mapear cada etapa vaga→resultado, decisões IA, acções utilizador
 
 ---
 
