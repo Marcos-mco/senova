@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.32 (16/jun/2026)
+## ESTADO ATUAL — v3.34 (17/jun/2026)
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
@@ -29,7 +29,7 @@
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `efe1088` (17/jun/2026) — fix(modal): header empresa/cargo visíveis + status compacto + Cancelar
+- **Último commit estável:** `8547b1c` (17/jun/2026) — logo modal fundo branco + ANÁLISE bullets/texto rico + auto-check
 
 ### O que foi feito nesta sessão (15/jun/2026 — sessão 2)
 - [x] B1: removido "+ Abrir processo" de Novidades no mercado (`_buildAlertasHtml` linhas 6545/6567)
@@ -66,7 +66,38 @@
 - [x] Wireframe aprovado por Marcos para estado Oportunidade (ver tabela PRÓXIMOS PASSOS)
 - [x] commit b17dc4d — layout Oportunidade: body reordenado, action bar oculta no lead, botão inline, footer [Excluir][Cancelar][Ir para vaga]
 - [x] commit efe1088 — header empresa/cargo sempre visíveis (border-bottom), status compacto, [Cancelar] restaurado
-- [ ] **PRÓXIMO: Marcos testa estado Oportunidade → aprovar → desenhar CV Enviado**
+
+### O que foi feito nesta sessão (17/jun/2026 — sessão 7 — extensão + ANÁLISE + logo) ✅ APROVADO POR MARCOS
+
+#### Extensão Chrome (background.js)
+- **Bug crítico corrigido:** parâmetro `_sender` renomeado para `sender` — TypeError silencioso impedia AUTO_UPDATE_DESC de funcionar
+- **Comportamento aprovado:** quando a extensão captura vaga em janela SEPARADA do Senova → fecha a aba LinkedIn + traz Senova para frente. Quando o usuário clica "Ir para vaga" (mesma janela) → NÃO interrompe a navegação
+- **Lógica:** `isDifferentWindow = senderTab.windowId !== senovaTab.windowId` — distingue os dois casos com precisão
+- **"... mais" removido** do fim das descrições capturadas (content.js regex no passo de limpeza)
+
+#### Seção ANÁLISE no card (estado Oportunidade) — DESIGN APROVADO
+- **Nome:** "ANÁLISE" (não "Compatibilidade", não "Fit", não outro)
+- **Header colapsado (sempre visível):** `▶ ANÁLISE ████████░░ 62%  Pode valer a pena`
+  - Ordem: chevron → label ANÁLISE → barra progressiva (flex:1) → percentual → classificação
+  - Cores: ≥75% verde `#1A7A4A`, ≥55% laranja `#B8670A`, >0% vermelho `#C0281E`
+  - Termos EXACTOS da extensão: "Ótima oportunidade" / "Pode valer a pena" / "Fora do seu perfil"
+- **Corpo expandido (ao clicar ▶):**
+  - Se `atsAnalise` contém análise rica (tem "Cargo real:", "Red flags:", etc.) → mostra texto formatado com labels em bold, VEREDICTO em cor do score
+  - Se não → mostra bullets ✓ verde (pontos_fortes) e △ laranja (pontos_atencao)
+  - Se bullets também vazios e VEREDICTO não é "Revisar manualmente." → mostra veredicto
+  - Último fallback: "Clique em Analisar para ver a análise completa."
+- **Auto-check:** ao abrir card lead, se tem descrição e não tem score (ou tem score mas sem bullets e sem análise rica) → chama mvAutoCompatCheck automaticamente (500ms delay)
+- **Worker fix:** max_tokens 500→1000 — JSON de pontos_fortes/pontos_atencao estava sendo cortado → parse falhava → fallback score:50 "Revisar manualmente."
+
+#### Logo no card modal — DESIGN APROVADO
+- **Container:** 44×44px, fundo BRANCO (`#fff`), borda `var(--border2)`, border-radius 10px
+- **Imagem:** 20×20px dentro do container (mesma escala do Kanban)
+- **Lógica:** `mvAtualizarLogo` define `data-empresa` no img → delega a `_resolveCompanyLogos()` (Clearbit autocomplete → `match.logo` → Google Favicon fallback) → `_applyLogo` actualiza Kanban E modal com o mesmo URL
+- **Letra fallback:** cor navy sobre fundo branco (não branco sobre navy)
+- **Cache:** `senova_logo_cache_v5`
+
+#### Último commit estável: `8547b1c` (17/jun/2026)
+- [ ] **PRÓXIMO: Marcos testa estado Oportunidade completo → aprovar → desenhar CV Enviado**
 
 ---
 
