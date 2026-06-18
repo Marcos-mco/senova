@@ -1364,7 +1364,6 @@ select option { background: var(--bg2); }
           <span style="font-size:12px;color:var(--text3);margin-left:4px;">Estágios:</span>
           <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="lead" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Oportunidade</label>
           <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="aplicado" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> CV Enviado</label>
-          <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="contato" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Em Contato</label>
           <label style="font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" class="limpeza-stage-cb" value="entrevista" onchange="filtrarLimpezaLote()" style="accent-color:var(--navy);"> Entrevista</label>
         </div>
         <div id="limpeza-lista" style="max-height:280px;overflow-y:auto;border:1px solid rgba(201,168,76,0.35);border-radius:8px;background:#fff;margin-bottom:12px;"></div>
@@ -1831,7 +1830,7 @@ select option { background: var(--bg2); }
           <option value="entrevista">● Entrevista</option>
           <option value="proposta">● Proposta</option>
           <option value="aceito">● Aceito</option>
-          <option value="negado">● Negado</option>
+          <option value="arquivado">● Arquivado</option>
         </select>
         <button onclick="closeVagaModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;padding:0 2px;flex-shrink:0;">✕</button>
       </div>
@@ -2188,10 +2187,9 @@ select option { background: var(--bg2); }
     <div id="mer-etapa-andamento" style="display:none;padding:14px 22px 16px;border-top:1px solid var(--border);flex-shrink:0;">
       <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:10px;">Qual é o status atual?</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-        <button class="mer-stage-btn" data-stage="contato" onclick="merSelecionarStage(this)" style="padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-family:var(--font);cursor:pointer;text-align:center;">📞 Em Contato</button>
         <button class="mer-stage-btn" data-stage="entrevista" onclick="merSelecionarStage(this)" style="padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-family:var(--font);cursor:pointer;text-align:center;">🎤 Entrevista</button>
         <button class="mer-stage-btn" data-stage="proposta" onclick="merSelecionarStage(this)" style="padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-family:var(--font);cursor:pointer;text-align:center;">🎉 Proposta</button>
-        <button class="mer-stage-btn" data-stage="negado" onclick="merSelecionarStage(this)" style="padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-family:var(--font);cursor:pointer;text-align:center;">❌ Negativado</button>
+        <button class="mer-stage-btn" data-stage="arquivado" onclick="merSelecionarStage(this)" style="padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-family:var(--font);cursor:pointer;text-align:center;">📋 Arquivado</button>
       </div>
       <div id="mer-andamento-extra" style="display:none;flex-direction:column;gap:8px;">
         <input type="date" id="mer-data" style="font-size:13px;font-family:var(--font);padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text1);width:100%;box-sizing:border-box;">
@@ -2485,7 +2483,7 @@ select option { background: var(--bg2); }
   </div>
 </div>
 
-<!-- ══ MINI-MODAL: ARQUIVAR PROCESSO (negado/aceito/descartado) ══ -->
+<!-- ══ MINI-MODAL: ARQUIVAR PROCESSO (arquivado/aceito) ══ -->
 <div class="modal-overlay" id="modal-arquivar" style="display:none;" onclick="if(event.target===this)arquivarSkip()">
   <div class="modal" style="width:min(420px,92vw);">
     <div style="padding:22px 22px 0;">
@@ -2880,7 +2878,7 @@ async function analyzeJob() {
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:4000,
+      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional do candidato: '+c:'';})()}`}]})
     });
@@ -2903,6 +2901,10 @@ let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,ats
 let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function urlSegura(u){if(!u||typeof u!=='string') return '';const t=u.trim();return(t.startsWith('https://')||t.startsWith('http://'))?t:'';}
+function corDoScore(s){return s>=75?'#1A7A4A':s>=55?'#B8670A':s>0?'#C0281E':'var(--border2)';}
+function bgDoScore(s){return s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';}
+function classificacaoDoScore(s){return s>=75?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}:s>=55?{titulo:'Pode valer a pena',cor:'#B8670A'}:s>0?{titulo:'Fora do seu perfil',cor:'#C0281E'}:null;}
+const MODELOS={analise:'claude-opus-4-8',rapido:'claude-sonnet-4-6'};
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   lastCRM = crm;
@@ -2923,8 +2925,8 @@ function renderATSResult(analise,cv,crm) {
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
   if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;saveVagas();}}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
-  const col = score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
-  const bg = score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
+  const col = corDoScore(score);
+  const bg = bgDoScore(score);
   const bc = score>=75?'#A7F3D0':score>=55?'#FDE68A':'#FCA5A5';
 
   const fmt = analise.split('\n').map(l=>{
@@ -3074,7 +3076,7 @@ async function gerarCartaATS(btn){
   try{
     const ctxStr=ctx?`\n\nContexto adicional: ${ctx}`:'';
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:700,
         system:CARTA_SYSTEM(lang),
         messages:[{role:'user',content:`Escreva a carta em ${langLabel[lang]||'portugu\u00eas'} para a vaga de ${cargo} na ${empresa}.\n\nAN\u00c1LISE DA VAGA (use para personalizar):\n${analise}${ctxStr}`}]
       })
@@ -3096,7 +3098,7 @@ async function sugerirRespostaATS(btn){
   btn.textContent='Gerando\u2026'; btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:600,
         system:'Voc\u00ea sugere respostas profissionais a emails e mensagens sobre processos seletivos para executivos. Tom adequado ao contexto (formal se RH corporativo, mais direto se headhunter). Retorne APENAS o texto da resposta, sem t\u00edtulo.',
         messages:[{role:'user',content:`Mensagem recebida sobre a vaga de ${cargo} na ${empresa}:\n\n"${msg}"\n\nSuggira uma resposta profissional para Marcos Franco, executivo candidato. Seja conciso, mostre interesse e disponibilidade.`}]
       })
@@ -3201,7 +3203,7 @@ function declinarVagaATS() {
   const notas = [score?'Match ATS: '+score+'/100':'','Declinada'].filter(Boolean).join(' — ');
   const hoje  = dataAtualFormatada();
   if(idx>=0) {
-    vagas[idx].status='negado';
+    vagas[idx].status='arquivado';
     vagas[idx].proxima='Declinada';
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
@@ -3209,7 +3211,7 @@ function declinarVagaATS() {
     saveVagas();
   } else if(atsEmpresa||atsCargo) {
     const _t=Date.now();
-    vagas.push({id:_t,empresa:atsEmpresa||'A definir',cargo:atsCargo||'A definir',canal:'Análise CV',prioridade:'media',status:'negado',salario:'',proxima:'Declinada',notas,emailDest:atsEmailDest||'',origemUrl:'',data:hoje,createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}]});
+    vagas.push({id:_t,empresa:atsEmpresa||'A definir',cargo:atsCargo||'A definir',canal:'Análise CV',prioridade:'media',status:'arquivado',salario:'',proxima:'Declinada',notas,emailDest:atsEmailDest||'',origemUrl:'',data:hoje,createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}]});
     saveVagas();
   }
   renderCRM();
@@ -3327,7 +3329,7 @@ async function _sofiaGerarPerfil(){
   let j={};
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:extrPrompt}]})});
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:800,messages:[{role:'user',content:extrPrompt}]})});
     const data=await res.json();
     const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
     const m=raw.match(/\{[\s\S]*\}/);
@@ -3625,7 +3627,7 @@ Responda em ${liLang==='PT'?'português':'liLang'==='EN'?'inglês':'espanhol'} d
   try {
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:3000,
         messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -3816,7 +3818,7 @@ function formatTs(ts){
   return `${String(d.getDate()).padStart(2,'0')}/${MESES_PT[d.getMonth()]}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 function nivelInativo(v){
-  if(!v.updatedAt||['negado','aceito','descartado'].includes(v.status)) return 0;
+  if(!v.updatedAt||['aceito','arquivado'].includes(v.status)) return 0;
   const dias=(Date.now()-v.updatedAt)/(24*3600*1000);
   if(dias>=_diasInativo*3) return 3;
   if(dias>=_diasInativo*2) return 2;
@@ -3828,7 +3830,7 @@ function isInativo(v){ return nivelInativo(v)>0; }
 function loadCRM(){
   try{
     const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
-    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'negado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
+    vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'arquivado'}:v.status==='negado'?{...v,status:'arquivado'}:v.status==='descartado'?{...v,status:'arquivado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
     vagas=vagas.map(v=>{
       // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
       // (evita que cards antigos apareçam como inativos por erro de migração)
@@ -4055,7 +4057,7 @@ function _mostrarProximoDup(){
   document.getElementById('dedup-nova-titulo').textContent=nova.titulo||'—';
   document.getElementById('dedup-nova-empresa').textContent=nova.empresa||'—';
   document.getElementById('dedup-nova-local').textContent=nova.local||nova.fonte||'';
-  const scoreCor=nova.score>=75?'#1A7A4A':nova.score>=55?'#B8670A':'#C0281E';
+  const scoreCor=corDoScore(nova.score);
   document.getElementById('dedup-nova-badges').innerHTML=
     `<span style="font-size:11px;font-weight:700;color:${scoreCor};background:${scoreCor}18;padding:2px 8px;border-radius:8px;">${nova.score}/100</span>`+
     (nova.fonte?`<span style="font-size:11px;color:var(--text3);background:var(--bg4);padding:2px 8px;border-radius:8px;">${nova.fonte}</span>`:'');
@@ -4139,8 +4141,8 @@ function renderWidgetRevisao(){
     sinalTxt.innerHTML = `<strong>${qtd}</strong> vaga${qtd===1?'':' s'} abaixo do limiar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
   }
   if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
-  const cor=s=>s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';
-  const bg=s=>s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';
+  const cor=corDoScore;
+  const bg=bgDoScore;
   listaEl.innerHTML = lista.map((v,i)=>{
     const vagaUrl=v.url||v.link||v.origemUrl||'';
     return `<div id="rev-row-${i}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
@@ -4167,7 +4169,7 @@ function toggleRevisaoLista(){
 function renderIndicacoesHome(){
   const lista=document.getElementById('indicacoes-inline-lista');
   const countEl=document.getElementById('sinal-indicacoes-count');
-  const leads=vagas.filter(v=>v.canal==='Indicação'&&!['aceito','negado','arquivado','descartado'].includes(v.status));
+  const leads=vagas.filter(v=>v.canal==='Indicação'&&!['aceito','arquivado'].includes(v.status));
   if(countEl){
     if(leads.length>0){countEl.textContent=leads.length+' ativa'+(leads.length>1?'s':'');countEl.style.display='';}
     else{countEl.style.display='none';}
@@ -4248,8 +4250,8 @@ function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
-const COL_STATUS={lead:'Oportunidade',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',negado:'Negado'};
-const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',contato:'#0EA5E9',entrevista:'#8B5CF6',proposta:'#059669',aceito:'#15803D',negado:'#DC2626'};
+const COL_STATUS={lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',arquivado:'Arquivado'};
+const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',entrevista:'#8B5CF6',proposta:'#059669',aceito:'#15803D',arquivado:'#6B7280'};
 const TEMP_LABEL={hot:'🔥',warm:'🌤',cold:'❄️',new:'◌'};
 
 let vagasFiltradas = null;
@@ -4258,11 +4260,10 @@ let filtroAtivo = false;
 const PROXIMA_SUGESTAO={
   lead:'Pesquisar vagas abertas e identificar contato na empresa',
   aplicado:'Aguardar retorno — follow-up em 7 dias',
-  contato:'Enviar mensagem de acompanhamento — agendar call',
   entrevista:'Preparar para a entrevista — pesquisar empresa e cultura',
   proposta:'Avaliar proposta — negociar condições se necessário',
   aceito:'Assinar contrato e alinhar data de início',
-  negado:'Registrar aprendizado — reativar contato em 3 meses'
+  arquivado:'Registrar aprendizado — reativar contato em 3 meses'
 };
 let _proximaIdx=-1;
 let _crmFiltroInativo=false;
@@ -4295,7 +4296,7 @@ function dropVaga(newStatus, event) {
     saveVagas();
     renderCRM();
     // Status de arquivo → captura de aprendizado
-    if(['negado','aceito','descartado'].includes(newStatus)){
+    if(['aceito','arquivado'].includes(newStatus)){
       dragVagaId=null;
       abrirModalArquivar(idx,newStatus);
       return;
@@ -4373,13 +4374,10 @@ function proximaSkip(){
 let _arquivarIdx=-1;
 let _arquivarStatus='';
 
-const _MOTIVOS_NEGADO=[
+const _MOTIVOS_ARQUIVADO=[
   'Perfil não avançou na triagem','Outro candidato selecionado',
-  'Vaga cancelada ou congelada','Salário não alinhado',
-  'Processo muito longo — desisti','Fit cultural não identificado',
-  'Falta de experiência específica','Outro'
-];
-const _MOTIVOS_DESCARTADO=[
+  'Vaga cancelada ou congelada','Processo muito longo — desisti',
+  'Fit cultural não identificado','Falta de experiência específica',
   'Salário abaixo do esperado','Empresa não alinhada aos meus valores',
   'Localização ou modelo de trabalho inviável','Cargo não corresponde ao descrito',
   'Preferi focar em outra oportunidade','Outro'
@@ -4411,14 +4409,13 @@ function abrirModalArquivar(idx,status){
     salarioRow.style.display='block';
     btn.textContent='Registrar';
   } else {
-    emoji.textContent= status==='negado'?'📋':'🚫';
-    titulo.textContent= status==='negado'?'Registrar aprendizado':'Descartar processo';
+    emoji.textContent='📋';
+    titulo.textContent='Arquivar processo';
     aceitoMsg.style.display='none';
     motivoRow.style.display='block';
     salarioRow.style.display='none';
     btn.textContent='Registrar';
-    const motivos= status==='negado'?_MOTIVOS_NEGADO:_MOTIVOS_DESCARTADO;
-    sel.innerHTML=motivos.map(m=>`<option value="${m}">${m}</option>`).join('');
+    sel.innerHTML=_MOTIVOS_ARQUIVADO.map(m=>`<option value="${m}">${m}</option>`).join('');
   }
   document.getElementById('modal-arquivar').style.display='flex';
 }
@@ -4438,7 +4435,7 @@ function arquivarSalvar(){
     tlTxt='Proposta aceita'+(salario?' — '+salario:'')+(obs?' — '+obs:'');
   } else {
     motivo=document.getElementById('modal-arquivar-motivo').value;
-    tlTxt=(status==='negado'?'Processo encerrado':'Processo descartado')+' — '+motivo+(obs?' — '+obs:'');
+    tlTxt='Processo arquivado — '+motivo+(obs?' — '+obs:'');
   }
 
   v.motivoArquivamento=motivo;
@@ -4480,7 +4477,7 @@ function aplicarFiltros() {
   const canal = document.getElementById('filter-canal')?.value||'';
   const ordem = document.getElementById('filter-ordem')?.value||'recente';
   const q = (document.getElementById('crm-busca')?.value||'').toLowerCase().trim();
-  let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
+  let lista = vagas.filter(v=>v.status!=='aceito'&&v.status!=='arquivado');
   if(pri) lista = lista.filter(v=>v.prioridade===pri);
   if(canal) lista = lista.filter(v=>v.canal===canal);
   if(q && q.length>=2) lista = lista.filter(v=>[v.empresa,v.cargo].some(f=>typeof f==='string'&&f.toLowerCase().includes(q)));
@@ -4527,7 +4524,7 @@ function filtrarLimpezaLote(){
   const limiar=dias*24*3600*1000;
   const agora=Date.now();
   const stages=Array.from(document.querySelectorAll('.limpeza-stage-cb:checked')).map(el=>el.value);
-  const ARQUIVADOS=['aceito','negado','descartado'];
+  const ARQUIVADOS=['aceito','arquivado'];
   const lista=vagas.filter(v=>{
     if(ARQUIVADOS.includes(v.status)) return false;
     if(stages.length>0&&!stages.includes(v.status)) return false;
@@ -4604,7 +4601,7 @@ function arquivarSelecionadosLote(){
   const ts=Date.now();
   vagas.forEach(v=>{
     if(_limpezaSelecionados.has(v.id)){
-      v.status='descartado'; v.updatedAt=ts;
+      v.status='arquivado'; v.updatedAt=ts;
       if(!v.timeline) v.timeline=[];
       v.timeline.push({ts,texto:`Arquivado via limpeza em lote`});
     }
@@ -4621,7 +4618,7 @@ function arquivarSelecionadosLote(){
 }
 
 function limpezaExpressa(){
-  const ARQUIVADOS=['aceito','negado','descartado'];
+  const ARQUIVADOS=['aceito','arquivado'];
   const limite=60*24*3600*1000;
   const agora=Date.now();
   const candidatos=vagas.filter(v=>{
@@ -4637,7 +4634,7 @@ function limpezaExpressa(){
   const exemplos=candidatos.slice(0,3).map(v=>v.empresa||'—').join(', ')+(n>3?` e mais ${n-3}`:'');
   if(!confirm(`Arquivar ${n} oportunidade${n>1?'s':''} sem atualização há 60+ dias?\n\nExemplos: ${exemplos}\n\nVocê poderá ver os arquivados nos Processos a qualquer momento.`)) return;
   candidatos.forEach(v=>{
-    v.status='descartado'; v.updatedAt=agora;
+    v.status='arquivado'; v.updatedAt=agora;
     if(!v.timeline) v.timeline=[];
     v.timeline.push({ts:agora,texto:'Arquivado via Limpeza Expressa (60+ dias inativo)'});
   });
@@ -4649,7 +4646,7 @@ function limpezaExpressa(){
 function _avaliarLimpezaCard(){
   const card=document.getElementById('home-limpeza-card');
   if(!card) return;
-  const ARQUIVADOS=['aceito','negado','descartado'];
+  const ARQUIVADOS=['aceito','arquivado'];
   const limite=60*24*3600*1000;
   const agora=Date.now();
   const velhos=vagas.filter(v=>!ARQUIVADOS.includes(v.status)&&v.status==='lead'&&(!v.updatedAt||(agora-v.updatedAt)>=limite));
@@ -4681,7 +4678,7 @@ function setCrmTab(tab,btn){
 function renderCRM(){
   const leads=vagas.filter(v=>v.status==='lead').length;
   const cvEnviado=vagas.filter(v=>v.status==='aplicado').length;
-  const processo=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+  const processo=vagas.filter(v=>v.status==='entrevista').length;
   const propostas=vagas.filter(v=>v.status==='proposta').length;
   document.getElementById('crm-stats').innerHTML=`
     <div class="stat"><div class="stat-val">${leads}</div><div class="stat-label">Oportunidades</div></div>
@@ -4695,7 +4692,7 @@ function renderCRM(){
   if(bannerInativo) bannerInativo.style.display = _crmFiltroInativo ? 'flex' : 'none';
   const bannerTxt = document.getElementById('crm-inativo-banner-txt');
   if(bannerTxt) bannerTxt.textContent = `⚠ Mostrando apenas cards inativos (${_diasInativo}+ dias sem atualização)`;
-  const colsArq=['aceito','negado','descartado'];
+  const colsArq=['aceito','arquivado'];
   const nArq=vagas.filter(v=>colsArq.includes(v.status)).length;
   const btnArq=document.getElementById('crm-arquivados-btn');
   if(btnArq){ btnArq.style.display=nArq>0?'inline-block':'none'; btnArq.textContent=`${nArq} arquivado${nArq===1?'':'s'}`; btnArq.style.color=_mostrarArquivados?'var(--navy)':'var(--text3)'; btnArq.style.borderColor=_mostrarArquivados?'var(--navy)':'var(--border)'; }
@@ -4756,7 +4753,7 @@ function renderCRM(){
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-bottom:4px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">${c.proxima}</div>`:''}
           ${((c.proxima||c.indicacao)&&typeof c.score==='number')?`<div style="border-top:1px solid var(--border);margin:5px 0 4px;"></div>`:''}
-          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=sc>=75?'#1A7A4A':sc>=55?'#B8670A':'#C0281E';const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=fp>=75?'#1A7A4A':fp>=55?'#B8670A':'#C0281E';return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;})():''}
+          ${typeof c.score==='number'?(()=>{const sc=c.score;const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;})():''}
           ${(c.updatedAt||c.createdAt||nv>0)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;${_hasBody?'padding-top:6px;border-top:1px solid var(--border);':''}"><div>${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}</div><div style="font-size:10px;color:var(--text3);">${(c.updatedAt||c.createdAt)?formatTs(c.updatedAt||c.createdAt):''}</div></div>`:''}
         </div>`;
       }).join('')}
@@ -4911,9 +4908,9 @@ function openVagaModal(id){
         docsSec.style.display='';
         if(cvTxt) cvTxt.value=v.atsCV||'';
         if(cartaTxt) cartaTxt.value=v.atsCarta||'';
-        if(v.atsScore&&scoreEl){const s=parseInt(v.atsScore||0);const sc=s>=75?'#1A7A4A':s>=55?'#B8670A':'#C0281E';const sb=s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';scoreEl.style.cssText+=`;color:${sc};background:${sb};border:1px solid ${sc}33;`;scoreEl.textContent='Score: '+s+'/100';scoreEl.style.display='';}
+        if(v.atsScore&&scoreEl){const s=parseInt(v.atsScore||0);const sc=corDoScore(s);const sb=bgDoScore(s);scoreEl.style.cssText+=`;color:${sc};background:${sb};border:1px solid ${sc}33;`;scoreEl.textContent='Score: '+s+'/100';scoreEl.style.display='';}
         if(kwEl) kwEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
-        if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsScore||0);const c2=sc2>=75?'#1A7A4A':sc2>=55?'#B8670A':'#C0281E';resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
+        if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsScore||0);const c2=corDoScore(sc2);resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
         // Restaurar lastCV para permitir downloads sem reanálise
         lastCV=v.atsCV;
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
@@ -5039,13 +5036,13 @@ function atualizarBotoesModal(statusOverride){
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const temAtsCV=!!(v&&(v.atsCV||(typeof v.score==='number'&&v.score>0)));
   const proxSec=document.getElementById('mv-proxima-section');
-  if(proxSec) proxSec.style.display=(status==='lead'||status==='negado'||status==='aceito')?'none':'';
+  if(proxSec) proxSec.style.display=(status==='lead'||status==='arquivado'||status==='aceito')?'none':'';
   const decPanel=document.getElementById('mv-declinar-panel');
   if(decPanel) decPanel.style.display='none';
   const acoes=document.getElementById('mv-footer-acoes');
   if(!acoes) return;
   const cancelarBtn=document.getElementById('mv-btn-cancelar');
-  const isClosed=status==='negado'||status==='aceito';
+  const isClosed=status==='arquivado'||status==='aceito';
   let html='';
   if(status==='lead'){
     // Footer Oportunidade: [Excluir] [flex] [Cancelar] [Ir para vaga ↗]
@@ -5112,7 +5109,7 @@ function cancelarDeclinar(){
 }
 function confirmarDeclinar(){
   const motivo=document.getElementById('mv-declinar-motivo')?.value||'Outro';
-  document.getElementById('mv-status').value='negado';
+  document.getElementById('mv-status').value='arquivado';
   document.getElementById('mv-motivo').value=motivo;
   saveVaga();
 }
@@ -5137,7 +5134,7 @@ function candidatarDoModal(){
 function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
 function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
-function encerrarVaga(motivo){ document.getElementById('mv-status').value='negado'; document.getElementById('mv-motivo').value=motivo; atualizarBotoes(); }
+function encerrarVaga(motivo){ document.getElementById('mv-status').value='arquivado'; document.getElementById('mv-motivo').value=motivo; atualizarBotoes(); }
 function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
 
 function irParaVaga(){
@@ -5502,7 +5499,7 @@ function abrirFormTimeline(){
   document.getElementById('mv-timeline-texto').value='';
   document.getElementById('mv-tl-lembrar-data').value='';
   const vaga=editingVagaId&&editingVagaId!=='new'?vagas.find(v=>String(v.id)===String(editingVagaId)):null;
-  const ocultarLembrar=vaga&&(vaga.status==='negado'||vaga.status==='aceito');
+  const ocultarLembrar=vaga&&(vaga.status==='arquivado'||vaga.status==='aceito');
   document.getElementById('mv-tl-lembrar-row').style.display=ocultarLembrar?'none':'';
   setTimeout(()=>document.getElementById('mv-timeline-texto').focus(),60);
 }
@@ -5556,7 +5553,7 @@ function mvRenderPipeline(status){
   if(!bar) return;
   const stages=['lead','aplicado','entrevista','proposta'];
   const labels=['Oportunidade','CV Enviado','Entrevista','Proposta'];
-  if(status==='negado'||status==='aceito'){bar.innerHTML='<span style="font-size:11px;color:var(--text3);font-weight:600;padding:2px 0;">'+(status==='aceito'?'✓ Processo encerrado — Aceito':'✕ Processo encerrado')+'</span>';return;}
+  if(status==='arquivado'||status==='aceito'){bar.innerHTML='<span style="font-size:11px;color:var(--text3);font-weight:600;padding:2px 0;">'+(status==='aceito'?'✓ Processo encerrado — Aceito':'✕ Processo arquivado')+'</span>';return;}
   const idx=stages.indexOf(status);
   bar.innerHTML=stages.map((s,i)=>{
     const col=i<idx?'var(--navy)':i===idx?'#C9A84C':'var(--border)';
@@ -5671,17 +5668,10 @@ function mvUpdateScoreDisplay(vOpt){
   const ats=parseInt(v?.atsScore||0);
   const atsBar=document.getElementById('mv-ats-bar');
   const atsBadge=document.getElementById('mv-ats-score-badge');
-  const atsCol=ats>=75?'#1A7A4A':ats>=55?'#B8670A':ats>0?'#C0281E':'var(--border2)';
+  const atsCol=corDoScore(ats);
   if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
   if(atsBadge) atsBadge.style.display='none';
-  // Termos e cores idênticos ao popup da extensão Senova
-  const _v=ats>=75
-    ?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}
-    :ats>=55
-    ?{titulo:'Pode valer a pena',cor:'#B8670A'}
-    :ats>0
-    ?{titulo:'Fora do seu perfil',cor:'#C0281E'}
-    :null;
+  const _v=classificacaoDoScore(ats);
   // Label classificação na linha do header colapsado
   const classLabelEl=document.getElementById('mv-compat-class-label');
   if(classLabelEl){classLabelEl.textContent=_v?.titulo||'';classLabelEl.style.color=_v?.cor||'var(--text3)';}
@@ -5840,7 +5830,7 @@ Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases cada:
 Tom: conselheiro de confiança, direto, sem eufemismos. Complete sempre as 3 partes.`;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'claude-sonnet-4-6',max_tokens:650})});
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:MODELOS.rapido,max_tokens:650})});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
@@ -5933,7 +5923,7 @@ async function analisarInline(){
   const contextoFull=ctx?'\n\n---\nContexto desta rodada: '+ctx:'';
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:4000,system:ATS_SYSTEM(cvLang),
+      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,system:ATS_SYSTEM(cvLang),
         messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull}]})});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
@@ -5951,8 +5941,8 @@ async function analisarInline(){
       const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
       if(idx>=0){vagas[idx].atsCV=cv;vagas[idx].atsScore=score?String(score):'';vagas[idx].atsKeywords=keywords;vagas[idx].atsAnalise=analise;vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].updatedAt=Date.now();saveVagas();}
     }
-    const scoreCol=score>=75?'#1A7A4A':score>=55?'#B8670A':'#C0281E';
-    const scoreBg=score>=75?'#EAF7EF':score>=55?'#FFF8EC':'#FEF0EF';
+    const scoreCol=corDoScore(score);
+    const scoreBg=bgDoScore(score);
     const badge=document.getElementById('mv-ats-score-badge');
     if(badge&&score){badge.style.cssText+=`;color:${scoreCol};background:${scoreBg};border:1px solid ${scoreCol}33;`;badge.textContent='Score: '+score+'/100';badge.style.display='';}
     mvUpdateScoreDisplay();
@@ -6024,7 +6014,7 @@ async function gerarDocModal(tipo){
   }
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:MODELOS.analise,max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     let text=data.content?.find(b=>b.type==='text')?.text||'';
     if(tipo==='ats'){const cvPart=text.split('---CV---')[1];if(cvPart) text=cvPart.split('---CRM---')[0].trim();else text=text.trim();lastCV=text;}
@@ -6071,7 +6061,7 @@ function openContatoModal(id){
   document.getElementById('mc-delete-btn').style.display=isNew?'none':'flex';
   const vagaSel=document.getElementById('mc-vaga-id');
   if(vagaSel){
-    const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='negado');
+    const ativas=vagas.filter(v=>v.status!=='aceito'&&v.status!=='arquivado');
     vagaSel.innerHTML='<option value="">— Nenhuma —</option>'+ativas.map(v=>`<option value="${v.id}">${v.empresa}${v.cargo?' — '+v.cargo:''}</option>`).join('');
   }
   const tlForm=document.getElementById('mc-timeline-form');
@@ -6344,7 +6334,7 @@ async function gerarComunicacao(){
       prompt=`Canal: ${canal}\nRemetente: ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}\nMensagem recebida:\n"${recebida}"\n\nMarcos Franco é o destinatário.`;
     }
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:600,system,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const raw=(data.content?.[0]?.text||'').trim();
     if(_comunicacaoMode==='responder'){
@@ -6431,7 +6421,7 @@ Formato:
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:800,
         messages:[{role:'user',content:genPrompt}]})
     });
     const data=await res.json();
@@ -6517,7 +6507,7 @@ Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXA
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,
+      body:JSON.stringify({model:MODELOS.analise,max_tokens:800,
         messages:[{role:'user',content:evalPrompt}]})
     });
     const data=await res.json();
@@ -6563,7 +6553,7 @@ Seja conciso (máx 150 palavras). Tom encorajador e executivo.`;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:400,
         messages:[{role:'user',content:summaryPrompt}]})
     });
     const data=await res.json();
@@ -6969,7 +6959,7 @@ function merSelecionarStage(btn){
   const stage=btn.dataset.stage;
   document.getElementById('mer-etapa-andamento').dataset.stage=stage;
   const extra=document.getElementById('mer-andamento-extra');
-  extra.style.display=stage==='negado'?'none':'flex';
+  extra.style.display=stage==='arquivado'?'none':'flex';
   document.getElementById('mer-confirmar-btn').style.display='inline-block';
 }
 function merConfirmarAndamento(){
@@ -6984,8 +6974,8 @@ function merAceitar(){
   atualizarPipelineEmail('contato','','Aceito via email — recrutador contatado');
 }
 function merDeclinar(){
-  if(!confirm('Declinar esta oportunidade?\nO card será marcado como Negativado.')) return;
-  atualizarPipelineEmail('negado','','Declinado via email');
+  if(!confirm('Declinar esta oportunidade?\nO card será arquivado.')) return;
+  atualizarPipelineEmail('arquivado','','Arquivado via email');
 }
 function abrirModalResponder(idx){
   const e=_emailsAvulsos[idx]; if(!e) return;
@@ -7005,7 +6995,7 @@ function abrirModalResponder(idx){
     const assunto=e.subject||'';
     const card=vagas.find(v=>v.emailDest&&v.emailDest.toLowerCase()===emailAddr&&(v.emailAssunto||'')===(assunto||''));
     if(card){
-      const COL={lead:'Oportunidade',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta',negado:'Negativado',aceito:'Aceito',descartado:'Arquivado'};
+      const COL={lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',arquivado:'Arquivado'};
       cardLink.innerHTML=`<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#EEF4FA;color:var(--navy);border:1px solid #C8DAED;border-radius:20px;padding:2px 10px;cursor:pointer;" onclick="fecharModalEmailResponder();openVagaModal('${card.id}')">📋 ${card.empresa} — ${card.cargo} <span style="color:var(--text3);">(${COL[card.status]||card.status})</span></span>`;
       cardLink.style.display='block';
     } else {
@@ -7144,7 +7134,7 @@ async function gerarRespostaEmailAvulso(btn){
   btn.textContent='Gerando…';btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:600,
         system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
         messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de Negócios e Vendas (Uberlândia, MG, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
       })
@@ -7540,7 +7530,7 @@ ${JSON.stringify(lista)}`;
     const res=await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       signal:ctrl.signal,
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
     clearTimeout(timer);
     const data=await res.json();
@@ -7644,7 +7634,7 @@ function atualizarStatsHome(){
   try{
     const lead=vagas.filter(v=>v.status==='lead').length;
     const candidatados=vagas.filter(v=>v.status==='aplicado').length;
-    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+    const pipeline=vagas.filter(v=>v.status==='entrevista').length;
     const proposta=vagas.filter(v=>v.status==='proposta').length;
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     set('stat-lead',lead); set('stat-candidatados',candidatados);
@@ -7655,7 +7645,7 @@ function _syncRelatoriosStats(){
   try{
     const lead=vagas.filter(v=>v.status==='lead').length;
     const candidatados=vagas.filter(v=>v.status==='aplicado').length;
-    const pipeline=vagas.filter(v=>v.status==='contato'||v.status==='entrevista').length;
+    const pipeline=vagas.filter(v=>v.status==='entrevista').length;
     const proposta=vagas.filter(v=>v.status==='proposta').length;
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     set('rel-stat-lead',lead); set('rel-stat-candidatados',candidatados);
@@ -7666,7 +7656,7 @@ function _syncRelatoriosStats(){
 function renderCRMKpiStrip(){
   const el=document.getElementById('crm-kpi-strip');
   if(!el) return;
-  const ARCH=['aceito','negado','descartado'];
+  const ARCH=['aceito','arquivado'];
   const ativas=vagas.filter(v=>!ARCH.includes(v.status));
   const total=ativas.length;
   const comRetorno=ativas.filter(v=>['contato','entrevista','proposta'].includes(v.status)).length;
@@ -7686,10 +7676,10 @@ function renderCRMKpiStrip(){
 
 function renderDashboardPipeline(){
   try{
-    const STAGES=['lead','aplicado','contato','entrevista','proposta'];
-    const STAGE_LABEL={lead:'Oportunidade',aplicado:'CV Enviado',contato:'Em Contato',entrevista:'Entrevista',proposta:'Proposta'};
-    const STAGE_COLOR={lead:'#7C3AED',aplicado:'#2563EB',contato:'#0EA5E9',entrevista:'#8B5CF6',proposta:'#059669'};
-    const ARCHIVED=['aceito','negado','descartado'];
+    const STAGES=['lead','aplicado','entrevista','proposta'];
+    const STAGE_LABEL={lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta'};
+    const STAGE_COLOR={lead:'#7C3AED',aplicado:'#2563EB',entrevista:'#8B5CF6',proposta:'#059669'};
+    const ARCHIVED=['aceito','arquivado'];
 
     const ativas=vagas.filter(v=>!ARCHIVED.includes(v.status));
     const arquivadas=vagas.filter(v=>ARCHIVED.includes(v.status));
@@ -7801,7 +7791,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
   const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
   const hfPri=document.getElementById('hf-prioridade')?.value||'all';
   const hfCanal=document.getElementById('hf-canal')?.value||'all';
-  let base=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado');
+  let base=vagas.filter(v=>v.status!=='arquivado'&&v.status!=='aceito');
   if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
   if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
   const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
@@ -7898,7 +7888,7 @@ const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:
     });
   }
   // Processos sem atualização → item de atenção em Para Hoje
-  const niTotal=vagas.filter(v=>v.status!=='negado'&&v.status!=='aceito'&&v.status!=='descartado'&&isInativo(v)).length;
+  const niTotal=vagas.filter(v=>v.status!=='arquivado'&&v.status!=='aceito'&&isInativo(v)).length;
   if(niTotal>0){
     const sepAt=document.createElement('div');
     sepAt.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
