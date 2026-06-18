@@ -253,6 +253,45 @@ async function salvarBlacklist(env, lista) {
   await env.SENOVA_KV.put('blacklist_remetentes', JSON.stringify(lista));
 }
 
+// ── Padrões automáticos de email (consentimento explícito) ──────────
+const PADROES_DEFINIDOS = {
+  linkedin_alertas: {
+    label: 'Alertas de vaga do LinkedIn',
+    matchFrom: ['linkedin.com'],
+    matchSubject: ['alerta de vaga', 'job alert', 'alertas de vaga', 'vagas salvas', 'vagas semelhantes'],
+  },
+  adzuna: {
+    label: 'Alertas Adzuna / Gabi',
+    matchFrom: ['adzuna'],
+    matchSubject: [],
+  },
+  google_alerts: {
+    label: 'Google Alerts de emprego',
+    matchFrom: ['googlealerts-noreply', 'google-alerts'],
+    matchSubject: [],
+  },
+};
+
+async function getPadroes(env) {
+  try { return await env.SENOVA_KV.get('padroes_automaticos', 'json') || []; }
+  catch { return []; }
+}
+
+function estaAutorizado(email, whitelist, padroesAtivos) {
+  const from = (email.from || '').toLowerCase();
+  const subj = (email.subject || '').toLowerCase();
+  // 1. Domínio na whitelist do usuário
+  if (whitelist.some(d => from.includes(d.toLowerCase().replace(/^@/, '')))) return true;
+  // 2. Padrão automático habilitado pelo usuário
+  for (const id of padroesAtivos) {
+    const def = PADROES_DEFINIDOS[id];
+    if (!def) continue;
+    if (def.matchFrom.some(f => from.includes(f))) return true;
+    if (def.matchSubject.length && def.matchSubject.some(s => subj.includes(s))) return true;
+  }
+  return false;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  CLASSIFICAÇÃO DE EMAILS VIA IA
 // ═══════════════════════════════════════════════════════════════════
@@ -637,11 +676,16 @@ export default {
       const _blLower = blacklist.map(s => s.toLowerCase());
       const semBloqueados = novosComConteudo.filter(e => !_blLower.some(b => (e.from||'').toLowerCase().includes(b)));
 
-      // Separar Google Alerts antes da classificação IA (conta só os novos para stats)
-      const alertasNovos = semBloqueados.filter(isAlertaFn);
-      const emailsNormais = semBloqueados.filter(e => !isAlertaFn(e));
-
+      // Consentimento explícito: só processar emails de fontes autorizadas pelo usuário
+      // A IA nunca vê o que não foi autorizado — princípio de privacidade by design (LGPD/GDPR)
       const whitelist = await getWhitelist(env);
+      const padroesAtivos = await getPadroes(env);
+      const autorizado = semBloqueados.filter(e => estaAutorizado(e, whitelist, padroesAtivos));
+
+      // Separar alertas dos normais (só entre os autorizados)
+      const alertasNovos = autorizado.filter(isAlertaFn);
+      const emailsNormais = autorizado.filter(e => !isAlertaFn(e));
+
       const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
@@ -807,6 +851,18 @@ export default {
       const lista = (await getWhitelist(env)).filter(d => d !== dominio?.toLowerCase().trim());
       await salvarWhitelist(env, lista);
       return json({ ok: true, dominios: lista });
+    }
+
+    // ── Padrões automáticos de email ────────────────────────────────
+    if (path === '/api/padroes' && request.method === 'GET') {
+      return json({ padroes: await getPadroes(env), definidos: PADROES_DEFINIDOS });
+    }
+    if (path === '/api/padroes' && request.method === 'POST') {
+      const { padroes } = await request.json();
+      if (!Array.isArray(padroes)) return json({ erro: 'padroes deve ser array' }, 400);
+      const validos = padroes.filter(id => PADROES_DEFINIDOS[id]);
+      await env.SENOVA_KV.put('padroes_automaticos', JSON.stringify(validos));
+      return json({ ok: true, padroes: validos });
     }
 
     // ── Blacklist de remetentes ──────────────────────────────────────
