@@ -8337,10 +8337,15 @@ document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-me
 loadCRM();
 // Roteamento por URL param: ?page=crm abre Pipeline direto (usado pelo botão "Ver no Pipeline" da extensão)
 (function(){
-  const _p=new URLSearchParams(location.search).get('page');
+  const _params=new URLSearchParams(location.search);
+  const _p=_params.get('page');
   const _validPages=['home','crm','ats','emails','radar','contatos','perfil','relatorios'];
   if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
   if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
+  if(_params.get('outlook_ok')==='1'){
+    history.replaceState({},'',location.pathname);
+    setTimeout(async()=>{ await checkOutlookStatus(); showToast('✅ Outlook conectado com sucesso!'); carregarEmails(true); },600);
+  }
 })();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
