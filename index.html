@@ -2902,6 +2902,7 @@ async function analyzeJob() {
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
 let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function urlSegura(u){if(!u||typeof u!=='string') return '';const t=u.trim();return(t.startsWith('https://')||t.startsWith('http://'))?t:'';}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   lastCRM = crm;
@@ -6855,7 +6856,7 @@ function renderEmailsAvulsos(){
     const acoes=fonte==='processo'
       ?`<button class="btn-email-action btn-email-resp" onclick="event.stopPropagation();abrirModalResponder_fluxo('${fonte}',${idx})">↩ Responder</button>`
       :fonte==='mercado'
-      ?`<button class="btn-email-action btn-email-open" onclick="event.stopPropagation();${e.webLink?`window.open('${e.webLink}','_blank','noopener')`:`abrirModalResponder_fluxo('mercado',${idx})`}">↗ Abrir</button>`
+      ?`<button class="btn-email-action btn-email-open" data-wl="${escHtml(urlSegura(e.webLink||''))}" data-idx="${idx}" data-fonte="${fonte}" onclick="event.stopPropagation();const _u=this.dataset.wl;if(_u)window.open(_u,'_blank','noopener');else abrirModalResponder_fluxo(this.dataset.fonte,+this.dataset.idx);">↗ Abrir</button>`
       :`<button class="btn-email-action btn-email-block" onclick="event.stopPropagation();bloquearEmailIdx('${fonte}',${idx})">🚫 Bloquear</button>`;
     return `<div class="email-card" onclick="abrirModalResponder_fluxo('${fonte}',${idx})">
       <div class="email-card-band" style="background:${cor};"></div>
@@ -6996,7 +6997,7 @@ function abrirModalResponder(idx){
   const corpo=document.getElementById('mer-corpo');
   if(corpo) corpo.value=stripHtml(e.body||e.preview||'');
   const wl=document.getElementById('mer-weblink');
-  if(wl){ if(e.webLink){wl.href=e.webLink;wl.style.display='inline';}else{wl.style.display='none';} }
+  if(wl){ const _wl=urlSegura(e.webLink||''); if(_wl){wl.href=_wl;wl.style.display='inline';}else{wl.style.display='none';} }
   // Mostrar card vinculado se existir
   const cardLink=document.getElementById('mer-card-link');
   if(cardLink){
@@ -7274,7 +7275,7 @@ function _buildAlertasHtml(){
     const titulo=(s.titulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const resumo=(s.resumo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const tipoLabel={movimento_exec:'Movimento executivo',expansao:'Expansão',fusao:'Fusão/M&A',outro:'Notícia'}[s.tipo]||'Notícia';
-    const url=s.url||s.link||'';
+    const url=urlSegura(s.url||s.link||'');
     const meta=[tipoLabel,s.empresa].filter(Boolean).join(' · ');
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">${meta}</div>
@@ -7293,11 +7294,11 @@ function _buildAlertasHtml(){
     if(e._isArtigo){
       // Artigo individual extraído do HTML do alerta
       const titulo=(e._artTitulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,100);
-      const url=e._artUrl||'';
+      const url=urlSegura(e._artUrl||'');
       return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div style="font-size:10.5px;color:var(--text3);margin-bottom:3px;">${keyword}${dataTxt?' · '+dataTxt:''}</div>
         ${url
-          ?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:13px;font-weight:600;color:var(--action);text-decoration:none;line-height:1.45;display:block;margin-bottom:6px;">${titulo||url} ↗</a>`
+          ?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:13px;font-weight:600;color:var(--action);text-decoration:none;line-height:1.45;display:block;margin-bottom:6px;">${titulo||escHtml(url)} ↗</a>`
           :`<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">${titulo}</div>`
         }
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
