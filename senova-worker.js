@@ -508,12 +508,7 @@ export default {
     // ── Auth Callback ────────────────────────────────────────────────
     if (path === '/api/auth/callback' && request.method === 'GET') {
       const code = url.searchParams.get('code');
-      const oauthError = url.searchParams.get('error');
-      const oauthErrorDesc = url.searchParams.get('error_description');
-      if (!code) {
-        const msg = oauthError ? `Erro OAuth: ${oauthError}<br><small>${oauthErrorDesc||''}</small>` : 'Código OAuth não recebido. Tente conectar novamente.';
-        return htmlResp(`<h2>${msg}</h2><br><a href="https://marcos-mco.github.io/senova">← Voltar ao Senova</a>`, 400);
-      }
+      if (!code) return htmlResp('<h2>Erro: código OAuth não recebido.</h2>', 400);
       const redirectUri = env.MS_REDIRECT_URI || 'https://senova-proxy.marcos-mco.workers.dev/api/auth/callback';
       const res = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
         method: 'POST',
@@ -535,7 +530,7 @@ export default {
         refresh_token: token.refresh_token,
         expires_at: Date.now() + (token.expires_in * 1000),
       });
-      return Response.redirect('https://marcos-mco.github.io/senova/?outlook_ok=1', 302);
+      return htmlResp(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#F7F5F0;}.box{background:#fff;border-radius:14px;padding:40px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.1);}.icon{font-size:48px;margin-bottom:16px;}.title{font-size:22px;font-weight:700;color:#1A3A5C;margin-bottom:8px;}.sub{color:#8A8680;font-size:14px;}</style></head><body><div class="box"><div class="icon">✅</div><div class="title">Outlook conectado!</div><div class="sub">Esta janela fechará automaticamente.</div></div><script>try{window.opener.postMessage('outlook_conectado','*');}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},1500);</script></body></html>`);
     }
 
     // ── Desconectar Outlook ──────────────────────────────────────────

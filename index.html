@@ -3573,7 +3573,7 @@ async function carregarPerfil(){
     if(pill) pill.textContent='';
     try{
       const h=await (await fetch(WORKER_URL+'/health')).json();
-      if(pill){ pill.textContent=h.outlook_conectado?'✅ Conectado':'— Não conectado'; pill.style.color=h.outlook_conectado?'var(--green)':'var(--text3)'; }
+      const _olOk=h.outlook==='conectado'; if(pill){ pill.textContent=_olOk?'✅ Conectado':'— Não conectado'; pill.style.color=_olOk?'var(--green)':'var(--text3)'; }
     }catch{}
     try{
       const wRes=await fetch(WORKER_URL+'/api/whitelist');
@@ -7705,14 +7705,12 @@ function _buscarContatoPorEmpresa(empresa){
 function conectarOutlook(){
   window.open(WORKER_URL+'/api/auth/outlook','_blank','width=500,height=600');
   function _onOAuthMsg(e){
-    if(e.origin!=='https://marcos-mco.github.io'&&e.data!=='outlook_conectado') return;
-    if(e.data==='outlook_conectado'){
-      window.removeEventListener('message',_onOAuthMsg);
-      setTimeout(async()=>{ await checkOutlookStatus(); carregarEmails(true); showToast('✅ Outlook conectado!'); },800);
-    }
+    if(e.data!=='outlook_conectado') return;
+    window.removeEventListener('message',_onOAuthMsg);
+    setTimeout(async()=>{ await checkOutlookStatus(); carregarEmails(true); showToast('✅ Outlook conectado!'); },500);
   }
   window.addEventListener('message',_onOAuthMsg);
-  setTimeout(()=>window.removeEventListener('message',_onOAuthMsg),120000);
+  setTimeout(()=>window.removeEventListener('message',_onOAuthMsg),300000);
 }
 
 async function toggleOutlook(){
@@ -8342,10 +8340,6 @@ loadCRM();
   const _validPages=['home','crm','ats','emails','radar','contatos','perfil','relatorios'];
   if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
   if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
-  if(_params.get('outlook_ok')==='1'){
-    history.replaceState({},'',location.pathname);
-    setTimeout(async()=>{ await checkOutlookStatus(); showToast('✅ Outlook conectado com sucesso!'); carregarEmails(true); },600);
-  }
 })();
 checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
