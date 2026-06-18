@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 17/jun/2026 — v3.33*
+*Atualizado: 18/jun/2026 — v3.35*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,87 +20,160 @@
 
 ---
 
-## ESTADO ATUAL — v3.34 (17/jun/2026)
+## ESTADO ATUAL — v3.35 (18/jun/2026)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. Contém bugs, segurança, features A+B, economia de tokens, visão comercial e roadmap de 3 sprints. **NÃO ignorar.**
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.8)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker v7.9)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `8547b1c` (17/jun/2026) — logo modal fundo branco + ANÁLISE bullets/texto rico + auto-check
+- **Último commit estável:** `58839fc` (18/jun/2026)
 
-### O que foi feito nesta sessão (15/jun/2026 — sessão 2)
-- [x] B1: removido "+ Abrir processo" de Novidades no mercado (`_buildAlertasHtml` linhas 6545/6567)
-- [x] B2: regra OMIT aplicada — Oportunidades, Retornos e Mercado somem quando vazios
-- [x] B3: `proximaSalvar()` chama `renderHomeAcoes()` — "Entrevista sem data" some imediatamente
-- [x] Testado por Marcos — confirmado funcionando ✅
-- [x] B4: `renderATSResult()` captura `vaga-input.value` antes de limpar → salva como `jobDescription` no card
-- [x] Testado por Marcos ✅
+---
 
-### O que foi feito nesta sessão (15/jun/2026 — sessão 3 — design)
-- [x] Reunião de equipe: redesign completo do card de Processo — wireframe aprovado
-- [x] Pesquisa de mercado: concorrentes (Huntr, Teal, Simplify, Levels.fyi, Career-Ops) — nenhum faz Projeto de Vida
-- [x] Framework "Pontuação ao Projeto" desenhado: 6 dimensões, pesos configuráveis, dados 100% gratuitos
-- [x] Estratégia de dados multi-país aprovada: IDHM + FIRJAN + IDEB (BR) · Eurostat + OECD (EU) · WorldBank + UN HDI (global)
-- [x] Decisões de produto registradas (ver tabela abaixo)
+## O QUE FOI FEITO — SESSÃO 8 (18/jun/2026)
 
-### O que foi feito nesta sessão (16/jun/2026 — sessão 4)
-- [x] commit 8828f4c — redesign modal-vaga 9 zonas (feito sem protocolo — reconhecido)
-- [x] commit 04a552b — Sofia max_tokens 320→650, fallback notas, textarea resize (feito sem protocolo — reconhecido)
-- [x] Protocolo retomado: skill_qa.md + skill_fluxo.md lidos
-- [x] Diagnóstico completo do card levantado com Marcos (ver PENDÊNCIAS abaixo)
+### Bugs corrigidos
+- [x] Bug "Entrevista — agendar data e horário" persistindo em Para Hoje — migração one-shot `senova_migration_entrevista_legacy_v1` (commit `12ae2c9`)
+- [x] OAuth Outlook: campo `h.outlook_conectado` não existia no `/health` — corrigido para `h.outlook === 'conectado'` (commit `b266306`)
+- [x] Callback OAuth: `window.close()` bloqueado pelo Chrome após redirects OAuth — restaurado HTML original com `postMessage` + tentativa de close (commit `b266306`)
+- [x] Detecção da extensão Senova: status hardcoded "Não detectada" — content.js agora dispara `senova:ext-ready`, app escuta e atualiza para "✅ Extensão ativa" (commit `61d7a15`)
+- [x] LinkedIn notificações de rede social (aceites de convite, curtidas, etc.) classificadas como irrelevante pela IA (commit `58839fc`)
 
-### O que foi feito nesta sessão (16/jun/2026 — sessão 5 — arquitetura modal)
-- [x] Pesquisa de mercado: Huntr, Teal, Simplify, Linear — padrão de tabs para dado complexo
-- [x] Mapeamento completo do fluxo por status com Marcos (fluxograma em papel + conversa)
-- [x] Decisões de produto tomadas (ver tabela abaixo)
-- [x] Arquitetura do modal definida por estado — aprovada parcialmente
-- [x] commit 4e5b47b — estado Oportunidade no modal: Compatibilidade, Andamento, Ir para vaga, seções por status
+### Sprint A — FECHADO ✅
+Todos os 5 itens implementados e aprovados por Marcos + revisão de código por Bruno:
+- [x] `urlSegura()` — XSS em URLs de email (commit `b556722`)
+- [x] CORS Worker restrito a `marcos-mco.github.io` (commit `d8d0529`)
+- [x] Status unificado: `negado`+`descartado`→`arquivado`; `contato`→`aplicado`; sem "Em Contato" no dashboard (commits `4a79987` + `92b1fab`)
+- [x] `corDoScore()` + `bgDoScore()` + `classificacaoDoScore()` centralizados (commit `4a79987`)
+- [x] `const MODELOS` central — 14 call sites atualizados (commit `4a79987`)
 
-### O que foi feito nesta sessão (17/jun/2026 — sessão 6 — layout Oportunidade)
-- [x] 4 bugs corrigidos: scrollbar fino, kanban 5 colunas, modal fixo (não arrastável), hint visível no lead
-- [x] Auto-fetch descrição por URL com detecção de garbage (LinkedIn cookie pages)
-- [x] Trigger automático de análise após fetch bem-sucedido
-- [x] Wireframe aprovado por Marcos para estado Oportunidade (ver tabela PRÓXIMOS PASSOS)
-- [x] commit b17dc4d — layout Oportunidade: body reordenado, action bar oculta no lead, botão inline, footer [Excluir][Cancelar][Ir para vaga]
-- [x] commit efe1088 — header empresa/cargo sempre visíveis (border-bottom), status compacto, [Cancelar] restaurado
+### Sprint B — FECHADO ✅
+- [x] Prompt caching (`cache_control: ephemeral`) no Worker para análise de vagas e emails (commit `9ca05d7`)
+- [x] CV e avaliador de entrevista: `MODELOS.analise` → `MODELOS.rapido` (Sonnet); análise ATS explícita mantém Opus (commit `9ca05d7`)
 
-### O que foi feito nesta sessão (17/jun/2026 — sessão 7 — extensão + ANÁLISE + logo) ✅ APROVADO POR MARCOS
+### Sprint B+ — Feature B Email — IMPLEMENTADO (teste parcial)
+- [x] Worker: whitelist force-show — email de domínio prioritário nunca é `irrelevante` (commit `99fcadc`)
+- [x] Worker: blacklist de remetentes — KV `blacklist_remetentes` + rotas `/api/blacklist` GET/POST/DELETE (commit `99fcadc`)
+- [x] Worker: pré-filtro de emails bloqueados antes da classificação IA (commit `99fcadc`)
+- [x] Perfil → Outlook: textarea substituído por chips clicáveis — 15 portais sugeridos pelo Senova + campo custom (commit `99fcadc`)
+- [x] Email card: botões `↺ Classificar` e `🚫 Bloquear` em todos os cards (commit `99fcadc`)
+- [x] Bloquear email: oferece escolha — tipo (palavras-chave do assunto) ou remetente (commit `58839fc`)
+- [x] Extensão: botão `+ Habilitar emails de <dominio>` no popup em qualquer portal (commits `99fcadc`, `61d7a15`)
+- [x] Worker: mover TODOS emails processados para "Lidos pelo Senova" (commit `e1e937a`)
 
-#### Extensão Chrome (background.js)
-- **Bug crítico corrigido:** parâmetro `_sender` renomeado para `sender` — TypeError silencioso impedia AUTO_UPDATE_DESC de funcionar
-- **Comportamento aprovado:** quando a extensão captura vaga em janela SEPARADA do Senova → fecha a aba LinkedIn + traz Senova para frente. Quando o usuário clica "Ir para vaga" (mesma janela) → NÃO interrompe a navegação
-- **Lógica:** `isDifferentWindow = senderTab.windowId !== senovaTab.windowId` — distingue os dois casos com precisão
-- **"... mais" removido** do fim das descrições capturadas (content.js regex no passo de limpeza)
+### Sprint C — FECHADO ✅
+- [x] Análise lazy-batch com cache por `gerarId` no KV (commit `aaac151`)
+- [x] Ordenação/filtro por score no Kanban (commit `aaac151`)
+- [x] Badge "Não analisada" para vagas sem score (commit `aaac151`)
 
-#### Seção ANÁLISE no card (estado Oportunidade) — DESIGN APROVADO
-- **Nome:** "ANÁLISE" (não "Compatibilidade", não "Fit", não outro)
-- **Header colapsado (sempre visível):** `▶ ANÁLISE ████████░░ 62%  Pode valer a pena`
-  - Ordem: chevron → label ANÁLISE → barra progressiva (flex:1) → percentual → classificação
-  - Cores: ≥75% verde `#1A7A4A`, ≥55% laranja `#B8670A`, >0% vermelho `#C0281E`
-  - Termos EXACTOS da extensão: "Ótima oportunidade" / "Pode valer a pena" / "Fora do seu perfil"
-- **Corpo expandido (ao clicar ▶):**
-  - Se `atsAnalise` contém análise rica (tem "Cargo real:", "Red flags:", etc.) → mostra texto formatado com labels em bold, VEREDICTO em cor do score
-  - Se não → mostra bullets ✓ verde (pontos_fortes) e △ laranja (pontos_atencao)
-  - Se bullets também vazios e VEREDICTO não é "Revisar manualmente." → mostra veredicto
-  - Último fallback: "Clique em Analisar para ver a análise completa."
-- **Auto-check:** ao abrir card lead, se tem descrição e não tem score (ou tem score mas sem bullets e sem análise rica) → chama mvAutoCompatCheck automaticamente (500ms delay)
-- **Worker fix:** max_tokens 500→1000 — JSON de pontos_fortes/pontos_atencao estava sendo cortado → parse falhava → fallback score:50 "Revisar manualmente."
+---
 
-#### Logo no card modal — DESIGN APROVADO
-- **Container:** 44×44px, fundo BRANCO (`#fff`), borda `var(--border2)`, border-radius 10px
-- **Imagem:** 20×20px dentro do container (mesma escala do Kanban)
-- **Lógica:** `mvAtualizarLogo` define `data-empresa` no img → delega a `_resolveCompanyLogos()` (Clearbit autocomplete → `match.logo` → Google Favicon fallback) → `_applyLogo` actualiza Kanban E modal com o mesmo URL
-- **Letra fallback:** cor navy sobre fundo branco (não branco sobre navy)
-- **Cache:** `senova_logo_cache_v5`
+## PENDÊNCIAS DESTA SESSÃO (prioridade para próxima)
 
-#### Último commit estável: `8547b1c` (17/jun/2026)
-- [ ] **PRÓXIMO: Marcos testa estado Oportunidade completo → aprovar → desenhar CV Enviado**
+### 1. OAuth Outlook — confirmar funcionamento
+Marcos não confirmou que o OAuth funciona com o fix final (`b266306`). Na próxima sessão: testar "Conectar Outlook" → popup → login → toast "✅ Outlook conectado!".
+
+### 2. Sprint B/C — testes de Marcos pendentes
+- Sprint B: toggle "Lidos pelo Senova" + CV via Sonnet — não testados por Marcos
+- Sprint C: badge "Não analisada" + sort por score — não testados por Marcos
+
+### 3. Feature B — emails ainda faltando
+Emails de portais como Michael Page não chegavam ao Senova. Com a whitelist force-show implementada, aguardar teste real. Possível que alguns portais ainda estejam faltando por filtros desconhecidos.
+
+### 4. Kanban card indevido
+Card "Rogério aceitou seu convite; conheça a rede dessa pessoa" apareceu no kanban — provavelmente importado pela extensão ao visitar a página. Marcos deve excluir manualmente (botão Excluir no footer do card).
+
+---
+
+## PRÓXIMAS FEATURES (backlog aprovado)
+
+### Feature B — itens restantes
+- [ ] Reclassificação com "aprendizado" — ao reclassificar, salvar padrão no KV para aplicar automaticamente nas próximas classificações (não só local)
+- [ ] Análise linear de processo — mapear cada etapa vaga→resultado (registrada 17/jun/2026)
+
+### Fluxo candidatura (próximo estado a construir)
+- [ ] Implementar estado "CV Enviado" no modal — após estado Oportunidade aprovado
+- [ ] 3 caminhos de candidatura: portal / email headhunter / indicação
+
+### Futuro
+- [ ] Responsivo mobile (768px+)
+- [ ] Multi-usuário (bloqueante para versão comercial)
+- [ ] Análise Linear de Processo (ver REVISAO_OPUS_17jun2026.md)
+
+---
+
+## BUGS ATIVOS CONFIRMADOS
+
+| # | Descrição | Arquivo / Local | Prioridade |
+|---|-----------|-----------------|-----------|
+| ~~B1~~ | ~~"+ Abrir processo" em Novidades no mercado~~ | ✅ resolvido 15/jun s2 | — |
+| ~~B2~~ | ~~Empty state "nenhuma nova" / "nenhum novo"~~ | ✅ resolvido 15/jun s2 | — |
+| ~~B3~~ | ~~"Entrevista sem data" persistia em Para Hoje~~ | ✅ resolvido 18/jun s8 | — |
+| ~~B4~~ | ~~Editar Processo: descrição da vaga não carrega~~ | ✅ resolvido 15/jun s3 | — |
+| ~~B5~~ | ~~Worker usa `claude-sonnet-4-5` (obsoleto)~~ | ✅ FANTASMA — já usava 4-6 | — |
+| ~~B-N1~~ | ~~Dashboard mostra "Em Contato"~~ | ✅ resolvido Sprint A | — |
+| ~~B-N2~~ | ~~Status `negado`+`descartado` não unificados~~ | ✅ resolvido Sprint A | — |
+| ~~B-N3~~ | ~~XSS via URL de email~~ | ✅ resolvido Sprint A | — |
+| ~~B-N4~~ | ~~Worker CORS aberto~~ | ✅ resolvido Sprint A | — |
+| B6 | Botão "Verificar" em Busca Automática sem feedback visual | index.html | **Baixa** |
+| B7 | Sofia / Preparar entrevista não funcionando | index.html | **Média** |
+| B8 | LinkedIn no card de Contatos: URL sem link clicável | index.html | **Baixa** |
+| B9 | Idioma DE ausente em todos os seletores PT/EN/ES | index.html | **Média** |
+
+---
+
+## ROADMAP DE SPRINTS — STATUS
+
+| Sprint | Status | Observação |
+|--------|--------|-----------|
+| Sprint A — Segurança + Saneamento | ✅ FECHADO | Aprovado por Marcos + revisado por Bruno |
+| Sprint B — Tokens + Outlook | ✅ FECHADO | Implementado; teste Marcos pendente |
+| Sprint B+ — Feature B Email | ✅ IMPLEMENTADO | Teste parcial; OAuth a confirmar |
+| Sprint C — ATS + Kanban | ✅ FECHADO | Implementado; teste Marcos pendente |
+
+---
+
+## ARQUITETURA DE EMAIL (v1.0 — 18/jun/2026)
+
+### Fluxo atual
+1. Worker busca últimos 50 emails (7 dias) via Graph API
+2. Blacklist: remetentes bloqueados → removidos antes da IA
+3. Alertas Google (job alerts) → separados automaticamente
+4. IA classifica em: `positivo | pipeline | hunter | vaga | negativo | mercado | irrelevante`
+5. Whitelist override: email de domínio na whitelist → nunca `irrelevante`
+6. `irrelevante` → não aparecem no Senova (máx 10 mostrados na aba Limpar)
+7. Emails processados → movidos para "Lidos pelo Senova" (se toggle ON)
+
+### KV keys de email
+- `whitelist_dominios` — domínios prioritários (force-show)
+- `blacklist_remetentes` — remetentes/assuntos bloqueados
+- `senova_email_vistos_*` — IDs já vistos (evita duplicatas)
+- `outlook_folder_lidos` — ID da pasta "Lidos pelo Senova"
+
+### Regras de classificação IA (críticas)
+- LinkedIn notificações de rede (aceites, curtidas, aniversários) → **irrelevante**
+- Confirmação de candidatura → **irrelevante**
+- LinkedIn job alert / vagas → **vaga**
+- Headhunter com contato direto → **hunter**
+- RH sobre vaga candidatada → **pipeline**
+
+---
+
+## DECISÕES DE PRODUTO — SESSÃO 8 (18/jun/2026)
+
+| Decisão | Detalhe |
+|---------|---------|
+| Whitelist de portais | Chips clicáveis no Perfil — 15 sugeridos + campo custom. Ativo = emails do domínio nunca somem |
+| Blacklist | Por remetente OU por tipo (palavras-chave do assunto) — usuário escolhe ao clicar 🚫 |
+| Extensão "Habilitar" | Botão no popup da extensão para qualquer site — adiciona domínio à whitelist com 1 clique |
+| Mover emails | TODOS os emails processados vão para "Lidos pelo Senova" (não só baixo valor) |
+| LinkedIn notificações | IA deve classificar como `irrelevante` — regra explícita no prompt |
 
 ---
 
@@ -115,7 +188,6 @@
 | "Compatibilidade" | Accordion colapsado por padrão; barra + score visíveis mesmo fechado |
 | "Análise holística" | Seção com botão "Perguntar à Sofia" — sob demanda, nunca automático |
 | Processo | Um estado de cada vez na jornada do usuário: Oportunidade → CV Enviado → Entrevista → Proposta |
-| Pesquisa de mercado | Salesforce/HubSpot/Pipedrive: barra de progresso no footer/topo do registro. LinkedIn/Indeed: meta-linha Cidade · Modelo · Tipo de contrato |
 
 ### Wireframe aprovado — Estado Oportunidade (17/jun/2026)
 
@@ -146,13 +218,6 @@
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Regras:**
-- Descrição: preview 2-3 linhas sempre visível; "Ver descrição completa ▾" expande inline
-- Compatibilidade: fechada, mas barra + número (78%) visíveis mesmo colapsada; ▶ expande breakdown
-- Análise holística: Sofia sob demanda — [Perguntar à Sofia] dispara; nunca automático
-- [Remover]: destrói sem rastro (lead = sem histórico ainda)
-- [Ir para vaga ↗]: abre URL original em nova aba
-
 ---
 
 ## DECISÕES DE PRODUTO — SESSÃO 5 (16/jun/2026)
@@ -165,35 +230,9 @@
 | Modal sensível ao status | Cada estado tem missão e conteúdo próprio — não scroll único |
 | Análise técnica | Automática, sempre presente quando há descrição |
 | Sofia | Persistente — disponível em qualquer estado como chat contextual |
-| Fit Técnico ≠ Sofia | São duas inteligências separadas — não misturar em botão único |
-| Score | Sempre aberto (visível por padrão) |
-| Descrição da vaga | Fechada por padrão — clica para expandir |
-| "Candidatar" via Outlook | REMOVIDO — errado. Candidatar = abre URL da vaga no portal |
+| "Candidatar" via Outlook | REMOVIDO — candidatar = abre URL da vaga no portal |
 | Score obrigatório | "Ir para vaga" só habilita após análise técnica |
-| "Ir para vaga" | Substitui "Candidatar" no estado Oportunidade |
 | Excluir ≠ Declinar | Oportunidade: Excluir (sem rastro). Processos ativos: Declinar/Arquivar |
-| "Se preparar p/entrevista" | NÃO é coluna do Kanban — é ação dentro do card Entrevista |
-| Sofia na Proposta | Ajuda a precificar e comparar com projeto de vida |
-| Captura de Aprendizado | Sempre ao encerrar (Aceito, Arquivado) |
-| Construção | Um estado de cada vez — Oportunidade primeiro |
-
----
-
-## DECISÕES DE PRODUTO — SESSÃO 3 (15/jun/2026)
-
-| Decisão | Detalhe |
-|---------|---------|
-| Card redesign | Wireframe aprovado — 7 zonas (header, ações, score, análise, Sofia, descrição, docs, histórico) |
-| Sofia no card | Disparo MANUAL — só quando chamada. Prudência no consumo de API e no tom |
-| Pontuação ao Projeto | Score 0–100 composto por 6 dimensões com pesos configuráveis pelo usuário |
-| Análise — eixos | ATS (fit técnico) + Projeto de Vida (holístico) — dois eixos separados |
-| Dados | 100% gratuitos: IDHM, FIRJAN, IDEB, WorldBank, UN HDI, OECD, Eurostat |
-| Multi-país | Camada global (WorldBank + UN HDI) + camada local por país + fallback para país |
-| Salário Real Ajustado | Salário Nominal × (CoL Cidade Base / CoL Destino) — diferencial Senova |
-| Dimensões | Padrão no Perfil (A) + override por card (C) — onboarding Sofia captura o grosso |
-| Onboarding Sofia | Perguntas ABERTAS — nunca diretivas. "Me fale sobre sua família" não "Tem filhos?" |
-| Perfis psicológicos | Big Five, Âncoras de Carreira, Ikigai, RIASEC, VIA — coletados no onboarding |
-| Descrição no card | Padrão de mercado: ~300 chars visíveis + "Ver completo ▾" |
 
 ---
 
@@ -201,73 +240,10 @@
 
 | # | Descrição | Arquivo / Local | Prioridade |
 |---|-----------|-----------------|-----------|
-| ~~B1~~ | ~~"+ Abrir processo" em Novidades no mercado~~ | ✅ resolvido 15/jun s2 | — |
-| ~~B2~~ | ~~Empty state "nenhuma nova" / "nenhum novo"~~ | ✅ resolvido 15/jun s2 | — |
-| ~~B3~~ | ~~"Entrevista sem data" persistia em Para Hoje~~ | ✅ resolvido 15/jun s2 | — |
-| ~~B4~~ | ~~Editar Processo: descrição da vaga não carrega (`mv-job-desc` vazio)~~ | ✅ resolvido 15/jun s3 | — |
-| ~~B5~~ | ~~Worker usa `claude-sonnet-4-5` (obsoleto)~~ | ✅ FANTASMA — Worker já usa 4-6 (confirmado Opus 17/jun) | — |
-| B6 | Botão "Verificar" em Busca Automática sem feedback visual | — | **Baixa** |
-| B7 | Sofia / Preparar entrevista não funcionando | — | **Média** |
-| B8 | LinkedIn no card de Contatos: URL sem link clicável | — | **Baixa** |
-| B9 | Idioma DE ausente em todos os seletores PT/EN/ES | — | **Média** |
-| B-N1 | Dashboard mostra "Em Contato" (coluna removida Sessão 5) | index.html STAGE_LABEL | **Médio** — Sprint A |
-| B-N2 | Status `negado`+`descartado` não unificados em `arquivado` | index.html | **Médio** — Sprint A |
-| B-N3 | XSS via URL de email (artigos Google Alert + webLink) | index.html linhas ~7300, ~6858 | **ALTO** — Sprint A |
-| B-N4 | Worker proxy aberto (`Access-Control-Allow-Origin: *`) | senova-worker.js | **Médio** — Sprint A |
-| B-N5 | Auto-check e Analisar podem disparar simultâneo sem lock | index.html | **Baixo** — Sprint A |
-
----
-
-## ROADMAP DE SPRINTS — APROVADO 17/jun/2026
-*Baseado em REVISAO_OPUS_17jun2026.md — acatado integralmente por Marcos*
-
-### Sprint A — Segurança + Saneamento (próximo)
-- [ ] `urlSegura(u)` — corrigir XSS em URLs de email
-- [ ] CORS Worker restrito a `marcos-mco.github.io`
-- [ ] Unificar status: `negado`+`descartado`→`arquivado`; remover `contato` do dashboard
-- [ ] `corDoScore(score)` + `classificacaoDoScore(score)` — eliminar duplicação hex em 4 sítios
-- [ ] `const MODELOS` central (não 14 ocorrências espalhadas)
-
-### Sprint B — Economia de Tokens + Feature B Outlook
-- [ ] Prompt caching (`cache_control: ephemeral`) no Worker para PERFIL_MARCOS e system prompts
-- [ ] CV: opus→sonnet por defeito; opus só para análise explícita
-- [ ] Feature B: mover emails → "Lidos pelo Senova" — opt-in, default OFF, só categorias baixo valor
-
-### Sprint C — Feature A + Ordenação Kanban
-- [ ] Análise lazy-batch com cache por `gerarId` no KV
-- [ ] Ordenação/filtro por score no Kanban
-- [ ] Badge "Não analisada"
-
-### Pendência futura (após Oportunidade aprovado)
-- [ ] Análise Linear de Processo — mapear cada etapa vaga→resultado, decisões IA, acções utilizador
-
----
-
-## PRÓXIMOS PASSOS (por prioridade)
-
-### REDESIGN MODAL — ARQUITETURA APROVADA (16/jun/2026)
-
-**Abordagem:** construir um estado de cada vez. Oportunidade primeiro.
-
-**Arquitetura por estado:**
-
-| Estado | Missão | Conteúdo principal | Ações footer |
-|--------|--------|-------------------|--------------|
-| **Oportunidade** | Vale candidatar? | Score aberto + Descrição fechada + Análise técnica + Sofia opcional | [Excluir] [Ir para vaga ↗] |
-| **CV Enviado** | Acompanhar | Score compacto + Próxima ação + Notas + Detalhes + Sofia | [Arquivar] [Salvar] [Marcar entrevista] |
-| **Entrevista** | Preparar e registrar | Data/hora destaque + Sofia prepara + Notas + Resultado | [Arquivar] [Salvar] [Registrar resultado] |
-| **Proposta** | Negociar e decidir | Campos proposta + Sofia precifica + Notas negociação | [Arquivar] [Aceitar proposta] |
-| **Aceito/Arquivado** | Capturar aprendizado | Captura de Aprendizado + Histórico | [Fechar] |
-
-**Fixo em todos os estados:** header (empresa+cargo+status+✕) + meta info + barra progresso + Sofia sempre disponível
-
-**PRÓXIMO PASSO:** Implementar estado Oportunidade no modal (Fase 2 — código)
-
-### Depois — bugs e melhorias
-- **B5** — Worker: trocar `claude-sonnet-4-5` por `claude-sonnet-4-6` em `senova-worker.js`
-- Fluxo candidatura: 3 caminhos (mailto / portal / headhunter) — após card resolvido
-- Retornos: indicador "N processos aguardando resposta"
-- Responsivo mobile (768px+)
+| B6 | Botão "Verificar" em Busca Automática sem feedback visual | index.html | **Baixa** |
+| B7 | Sofia / Preparar entrevista não funcionando | index.html | **Média** |
+| B8 | LinkedIn no card de Contatos: URL sem link clicável | index.html | **Baixa** |
+| B9 | Idioma DE ausente em todos os seletores PT/EN/ES | index.html | **Média** |
 
 ---
 
@@ -280,7 +256,7 @@
 - Nunca refatorar CSS junto com correção de bug
 - Um fix de cada vez: commit → Marcos testa → aprova → próximo
 - Nunca commitar sem rodar checklist do `skill_qa.md`
-- Nunca "nenhuma nova", "nenhum novo", "0 vagas" — categoria vazia SOME (Sprint 01)
+- Nunca "nenhuma nova", "nenhum novo", "0 vagas" — categoria vazia SOME
 - Novidades no mercado NUNCA têm "+ Abrir processo" — são informativas
 
 ### CV e Perfil (ver PERFIL_MARCOS.md para detalhes)
