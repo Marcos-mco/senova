@@ -1151,10 +1151,24 @@ select option { background: var(--bg2); }
       <!-- Outlook -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:12px;">Outlook / Microsoft 365</div>
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
           <div id="outlook-status-perfil" style="font-size:13px;color:var(--text3);">Verificando...</div>
           <button class="btn btn-ghost" onclick="window.location.href=WORKER_URL+'/api/auth/outlook'" style="font-size:13px;padding:7px 16px;">Conectar Outlook</button>
           <button class="btn btn-ghost" onclick="desconectarOutlook()" style="font-size:13px;padding:7px 16px;color:var(--red);border-color:var(--red);">Desconectar</button>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;">
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+            <div style="position:relative;flex-shrink:0;margin-top:1px;">
+              <input type="checkbox" id="toggle-mover-emails" onchange="salvarToggleMoverEmails(this.checked)" style="opacity:0;position:absolute;width:0;height:0;">
+              <div id="toggle-mover-track" onclick="document.getElementById('toggle-mover-emails').click()" style="width:38px;height:22px;border-radius:11px;background:var(--border2);cursor:pointer;transition:background 0.2s;display:flex;align-items:center;padding:2px;">
+                <div id="toggle-mover-thumb" style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform 0.2s;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">Mover emails lidos para "Lidos pelo Senova"</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;">Cria automaticamente a pasta no Outlook e move os emails processados pelo Senova. Desativado por padrão.</div>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -2764,6 +2778,7 @@ function showPage(page) {
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
+  if(page==='perfil'){ inicializarToggleMoverEmails(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
   if(page==='sofia') sofiaTab(1);
@@ -3534,6 +3549,19 @@ async function salvarPerfil(){
   if(btn){btn.disabled=false;btn.textContent='Salvar perfil';}
 }
 
+function salvarToggleMoverEmails(ativo){
+  localStorage.setItem('senova_mover_emails', ativo?'1':'0');
+  const track=document.getElementById('toggle-mover-track');
+  const thumb=document.getElementById('toggle-mover-thumb');
+  if(track) track.style.background=ativo?'var(--navy)':'var(--border2)';
+  if(thumb) thumb.style.transform=ativo?'translateX(16px)':'translateX(0)';
+}
+function inicializarToggleMoverEmails(){
+  const ativo=localStorage.getItem('senova_mover_emails')==='1';
+  const cb=document.getElementById('toggle-mover-emails');
+  if(cb) cb.checked=ativo;
+  salvarToggleMoverEmails(ativo);
+}
 async function desconectarOutlook(){
   if(!confirm('Desconectar Outlook?')) return;
   await fetch(WORKER_URL+'/api/auth/outlook',{method:'DELETE'});
@@ -7539,11 +7567,14 @@ async function carregarEmails(forcar){
   if(!connected){ atualizarSinais(); return; }
   if(forcar) showToast('🔄 Verificando emails…', 2000);
   try{
-    const url=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
+    const mover=localStorage.getItem('senova_mover_emails')==='1';
+    const base=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
+    const url=mover?(base+(base.includes('?')?'&':'?')+'mover=true'):base;
     const res=await fetch(url);
     if(!res.ok) throw new Error(`emails ${res.status}`);
     const data=await res.json();
     if(data.reauth){ conectarOutlook(); return; }
+    if(data.movidos>0) showToast(`📁 ${data.movidos} email${data.movidos===1?'':'s'} movido${data.movidos===1?'':'s'} para "Lidos pelo Senova"`,3000);
     let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
     const emails=(data.emails||data.novos||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
     const total=emails.length;

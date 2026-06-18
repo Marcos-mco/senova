@@ -540,6 +540,7 @@ export default {
       }
       const limite = parseInt(url.searchParams.get('limite') || '50');
       const apenasNovos = !url.searchParams.get('limite');
+      const moverParaPasta = url.searchParams.get('mover') === 'true';
 
       const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
       // Fetch principal: texto (leve, para classificação)
@@ -630,14 +631,28 @@ export default {
       const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
       await salvarVistos(env, novos.map(e => e.id));
 
-      // Marcar como lido no Outlook em background (não bloqueia a resposta)
-      ctx.waitUntil(Promise.allSettled(novos.map(e =>
-        fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isRead: true }),
-        })
-      )));
+      // Marcar como lido + (opt) mover para pasta "Lidos pelo Senova" em background
+      ctx.waitUntil((async () => {
+        await Promise.allSettled(novos.map(e =>
+          fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isRead: true }),
+          })
+        ));
+        if (moverParaPasta && novos.length > 0) {
+          const folderId = await getOrCreateSenovaFolder(token, env);
+          if (folderId) {
+            await Promise.allSettled(novos.map(e =>
+              fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}/move`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ destinationId: folderId }),
+              })
+            ));
+          }
+        }
+      })());
 
       const classificados = todoClassificados.filter(e => e.categoria !== 'irrelevante');
       const irrelevantes  = todoClassificados.filter(e => e.categoria === 'irrelevante').slice(0, 10);
@@ -655,6 +670,7 @@ export default {
       return json({
         emails: classificados, irrelevantes, alertas: todosAlertas, total_lidos: emails.length,
         total_novos: novos.length, total_relevantes: classificados.length, whitelist,
+        movidos: moverParaPasta ? novos.length : 0,
       });
     }
 
@@ -1163,6 +1179,44 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
     return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
   } catch {
     return { score:50, classificacao:'analisar', resumo:'Revisar manualmente.', pontos_fortes:[], pontos_atencao:[], salario_compativel:true, localizacao:'', modelo:'', regime:'' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PASTA OUTLOOK — "Lidos pelo Senova"
+// ═══════════════════════════════════════════════════════════════════
+async function getOrCreateSenovaFolder(token, env) {
+  const KV_KEY = 'senova_folder_id';
+  try {
+    const cached = await env.SENOVA_KV.get(KV_KEY);
+    if (cached) return cached;
+
+    // Buscar pasta existente
+    const listRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/mailFolders?$filter=displayName eq 'Lidos pelo Senova'&$select=id`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      if (listData.value?.length > 0) {
+        const id = listData.value[0].id;
+        await env.SENOVA_KV.put(KV_KEY, id, { expirationTtl: 86400 * 30 });
+        return id;
+      }
+    }
+
+    // Criar pasta
+    const createRes = await fetch('https://graph.microsoft.com/v1.0/me/mailFolders', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName: 'Lidos pelo Senova' }),
+    });
+    if (!createRes.ok) return null;
+    const created = await createRes.json();
+    await env.SENOVA_KV.put(KV_KEY, created.id, { expirationTtl: 86400 * 30 });
+    return created.id;
+  } catch {
+    return null;
   }
 }
 
