@@ -1377,7 +1377,7 @@ select option { background: var(--bg2); }
         <span id="crm-inativo-banner-txt">⚠ Mostrando apenas cards inativos (7+ dias sem atualização)</span>
         <button onclick="limparFiltroInativo()" style="margin-left:auto;background:none;border:1px solid #C09000;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;color:#5A4000;">✕ Limpar filtro</button>
       </div>
-      <div id="crm-kpi-strip" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>
+      <div id="crm-meta" style="display:flex;align-items:center;gap:16px;padding:4px 0 12px;font-size:12px;color:var(--text3);"></div>
       <div class="kanban" id="kanban-vagas"></div>
       <div id="kanban-arquivados-wrap" style="display:none;">
         <div style="margin-top:14px;padding:8px 4px 6px;border-top:1.5px dashed var(--border);display:flex;align-items:center;gap:6px;">
@@ -7644,7 +7644,7 @@ function _syncRelatoriosStats(){
 }
 
 function renderCRMKpiStrip(){
-  const el=document.getElementById('crm-kpi-strip');
+  const el=document.getElementById('crm-meta');
   if(!el) return;
   const ARCH=['aceito','arquivado'];
   const ativas=vagas.filter(v=>!ARCH.includes(v.status));
@@ -7653,11 +7653,7 @@ function renderCRMKpiStrip(){
   const taxaRet=total>=2?Math.round(comRetorno/total*100):null;
   const taxaStr=taxaRet!==null?`${taxaRet}%`:'—';
   const taxaCor=taxaRet!==null&&taxaRet>=30?'var(--green)':taxaRet!==null&&taxaRet>=15?'var(--amber)':'var(--text3)';
-  const kpi=(num,label,color='var(--navy)')=>`<div class="home-kpi-strip" style="flex:0 0 auto;min-width:110px;cursor:default;"><div><div class="home-kpi-lbl">${label}</div><div class="home-kpi-num" style="color:${color};">${num}</div></div></div>`;
-  el.innerHTML=[
-    kpi(total||'—','Ativos'),
-    kpi(taxaStr,'Taxa retorno',taxaCor),
-  ].join('');
+  el.innerHTML=`<span><strong style="color:var(--navy);font-weight:700;">${total}</strong> ativos</span><span style="opacity:.4">·</span><span>Taxa de retorno: <strong style="color:${taxaCor};font-weight:700;">${taxaStr}</strong></span>`;
 }
 
 function renderDashboardPipeline(){
