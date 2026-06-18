@@ -8447,6 +8447,9 @@ window.__senovaImportar();
   window.__senovaExtCarregar=_carregarExtData;
   // Recebe via CustomEvent (world:MAIN do executeScript)
   window.addEventListener('senova:ext-data',function(e){ _carregarExtData(e.detail); },{once:true});
+  function _marcarExtAtiva(){ const el=document.getElementById('perfil-extensao-status'); if(el){ el.innerHTML='✅ Extensão ativa'; el.style.color='var(--green)'; el.style.background='#EAF7EF'; el.style.borderColor='#A8D5BA'; } }
+  if(window.__senovaContentLoaded) _marcarExtAtiva();
+  else window.addEventListener('senova:ext-ready', _marcarExtAtiva, {once:true});
   // Fallbacks por timeout caso o executeScript chegue antes ou depois
   setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },600);
   setTimeout(()=>{ if(window.__senovaExtData) _carregarExtData(); },1400);

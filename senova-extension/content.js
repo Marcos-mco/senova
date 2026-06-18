@@ -4,6 +4,7 @@
 (function () {
   if (window.__senovaContentLoaded) return;
   window.__senovaContentLoaded = true;
+  window.dispatchEvent(new CustomEvent('senova:ext-ready'));
 
   const host = location.hostname;
   const url  = location.href;
