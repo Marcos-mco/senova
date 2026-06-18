@@ -4683,7 +4683,7 @@ function renderCRM(){
   document.getElementById('crm-stats').innerHTML=`
     <div class="stat"><div class="stat-val">${leads}</div><div class="stat-label">Oportunidades</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--action)">${cvEnviado}</div><div class="stat-label">CV Enviado</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--navy)">${processo}</div><div class="stat-label">Em Contato / Entrevista</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--navy)">${processo}</div><div class="stat-label">Entrevistas</div></div>
     <div class="stat"><div class="stat-val" style="color:var(--green)">${propostas}</div><div class="stat-label">Propostas</div></div>`;
   renderCRMKpiStrip();
 
@@ -7659,7 +7659,7 @@ function renderCRMKpiStrip(){
   const ARCH=['aceito','arquivado'];
   const ativas=vagas.filter(v=>!ARCH.includes(v.status));
   const total=ativas.length;
-  const comRetorno=ativas.filter(v=>['contato','entrevista','proposta'].includes(v.status)).length;
+  const comRetorno=ativas.filter(v=>['entrevista','proposta'].includes(v.status)).length;
   const taxaRet=total>=2?Math.round(comRetorno/total*100):null;
   const nEnt=ativas.filter(v=>v.status==='entrevista').length;
   const nProp=ativas.filter(v=>v.status==='proposta').length;
@@ -7716,7 +7716,7 @@ function renderDashboardPipeline(){
         const c=(v.canal||'Outros').trim();
         if(!cMap[c]) cMap[c]={total:0,retorno:0};
         cMap[c].total++;
-        if(['contato','entrevista','proposta','aceito'].includes(v.status)) cMap[c].retorno++;
+        if(['entrevista','proposta','aceito'].includes(v.status)) cMap[c].retorno++;
       });
       const ordem=Object.entries(cMap).sort((a,b)=>b[1].total-a[1].total);
       if(!ordem.length){
