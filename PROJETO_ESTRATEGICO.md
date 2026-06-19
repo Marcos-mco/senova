@@ -33,7 +33,7 @@ Colocar o executivo sênior na posição certa, no menor tempo possível, usando
 
 **Marco** — Executivo Sênior em Recolocação (45–60 anos)
 - Ex-diretor, head ou gerente sênior | Curitiba, SP, RJ, Buenos Aires, Lisboa
-- Renda alvo: R$15–30k CLT ou €3,5–8k/mês na Europa
+- Renda alvo: R$19–25k CLT (piso privado R$15k) — Europa sem valor definido, linha de exploração.
 - Tempo médio de recolocação no mercado: 8–18 meses
 - Canal prioritário: headhunters + rede pessoal + candidaturas diretas
 

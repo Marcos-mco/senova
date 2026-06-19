@@ -14,9 +14,7 @@ Sempre que Marcos precisar:
 - Localização: Curitiba, PR | Tel: (41) 99615-2224 | marcos_mco@hotmail.com
 - LinkedIn: linkedin.com/in/marcos-ribeiro-franco-69153a12
 - Pretensão Brasil: R$19–25k CLT (exceção AGTU/educação: R$15–20k) | mínimo PJ: R$15k
-- Pretensão Europa (ES/PT): €3.500–5.500/mês — referência para cargos Diretor/Head
-- Pretensão Europa (DE/DACH): €5.000–8.000/mês — referência para cargos Diretor/Head
-- Obs: valores europeus são referência de mercado — validar por vaga e setor antes de negociar
+- Pretensão Europa: sem valor definido — linha de exploração ligada à proximidade familiar (Tainara, Alemanha), avaliar caso a caso quando surgir oportunidade concreta. Não é frente precificada do pipeline.
 - Aceita: CEO / CMO / CSO / Diretor / Head / Gerente Sênior / Analista Sênior (sem ego de cargo)
 - Aceita PJ via LaborDei | Aceita relocação SC
 
