@@ -254,11 +254,16 @@ async function salvarBlacklist(env, lista) {
 }
 
 // ── Padrões automáticos de email (consentimento explícito) ──────────
+// Domínios de redes sociais: autorização APENAS por assunto, nunca por domínio
+const SOCIAL_DOMAINS = ['linkedin.com', 'facebook.com', 'twitter.com', 'instagram.com'];
+
 const PADROES_DEFINIDOS = {
   linkedin_alertas: {
     label: 'Alertas de vaga do LinkedIn',
-    matchFrom: ['linkedin.com'],
-    matchSubject: ['alerta de vaga', 'job alert', 'alertas de vaga', 'vagas salvas', 'vagas semelhantes'],
+    matchFrom: ['linkedin.com'], // ignorado para redes sociais — veja estaAutorizado()
+    matchSubject: ['alerta de vaga', 'job alert', 'alertas de vaga', 'vagas salvas',
+                   'vagas semelhantes', 'vagas similares', 'novas vagas', 'vaga recomendada',
+                   'oportunidades de emprego', 'vagas para você', 'vagas que podem'],
   },
   adzuna: {
     label: 'Alertas Adzuna / Gabi',
@@ -280,13 +285,15 @@ async function getPadroes(env) {
 function estaAutorizado(email, whitelist, padroesAtivos) {
   const from = (email.from || '').toLowerCase();
   const subj = (email.subject || '').toLowerCase();
-  // 1. Domínio na whitelist do usuário
-  if (whitelist.some(d => from.includes(d.toLowerCase().replace(/^@/, '')))) return true;
+  const isSocial = SOCIAL_DOMAINS.some(d => from.includes(d));
+  // 1. Domínio na whitelist — redes sociais ignoram esta regra (passam só por assunto)
+  if (!isSocial && whitelist.some(d => from.includes(d.toLowerCase().replace(/^@/, '')))) return true;
   // 2. Padrão automático habilitado pelo usuário
   for (const id of padroesAtivos) {
     const def = PADROES_DEFINIDOS[id];
     if (!def) continue;
-    if (def.matchFrom.some(f => from.includes(f))) return true;
+    // Para redes sociais: verificar apenas por assunto, nunca por domínio
+    if (!isSocial && def.matchFrom.some(f => from.includes(f))) return true;
     if (def.matchSubject.length && def.matchSubject.some(s => subj.includes(s))) return true;
   }
   return false;
