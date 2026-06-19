@@ -586,7 +586,7 @@ export default {
         const base = env.MS_REDIRECT_URI?.replace('/api/auth/callback','') || 'https://senova-proxy.marcos-mco.workers.dev';
         return json({ erro: 'Outlook não conectado.', reauth: true, url_auth: base + '/api/auth/outlook' }, 401);
       }
-      const limite = parseInt(url.searchParams.get('limite') || '50');
+      const limite = parseInt(url.searchParams.get('limite') || '100');
       const apenasNovos = !url.searchParams.get('limite');
       const moverParaPasta = url.searchParams.get('mover') === 'true';
 
@@ -620,9 +620,14 @@ export default {
 
       const isAlertaFn = e => {
         const f = (e.from || '').toLowerCase();
+        const subj = (e.subject || '').toLowerCase();
         if (f.includes('linkedin')) return false;
+        if (f.includes('adzuna')) return false; // Adzuna job listings → fluxo normal de vaga
+        // Google Alert sobre vagas → email normal, não signal de mercado
+        if ((f.includes('googlealerts-noreply') || f.includes('google-alerts')) &&
+            /vaga|emprego|\bjob\b|oportunidade|candidatura|hiring/i.test(subj)) return false;
         return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
-               f.includes('adzuna') || f.includes('alertas@') ||
+               f.includes('alertas@') ||
                (f.includes('jobalerts') && !f.includes('linkedin')) ||
                (f.includes('job-alert') && !f.includes('linkedin'));
       };
