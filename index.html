@@ -3109,6 +3109,7 @@ async function analyzeJob() {
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='';
 let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _decodeHtml(s){if(!s) return '';const t=document.createElement('textarea');t.innerHTML=s;return t.value;}
 function urlSegura(u){if(!u||typeof u!=='string') return '';const t=u.trim();return(t.startsWith('https://')||t.startsWith('http://'))?t:'';}
 function corDoScore(s){return s>=75?'#1A7A4A':s>=55?'#B8670A':s>0?'#C0281E':'var(--border2)';}
 function bgDoScore(s){return s>=75?'#EAF7EF':s>=55?'#FFF8EC':'#FEF0EF';}
@@ -7728,7 +7729,7 @@ function _buildAlertasHtml(){
     const dataTxt=e.date?_tempoRelativo(e.date):'';
     if(e._isArtigo){
       // Artigo individual extraído do HTML do alerta
-      const titulo=(e._artTitulo||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').slice(0,100);
+      const titulo=escHtml(_decodeHtml(e._artTitulo||'')).slice(0,100);
       const url=urlSegura(e._artUrl||'');
       return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
         <div style="font-size:10.5px;color:var(--text3);margin-bottom:3px;">${keyword}${dataTxt?' · '+dataTxt:''}</div>
@@ -7949,7 +7950,8 @@ async function carregarSinaisMercado(){
     const resp=await fetch(WORKER_URL+'/api/sinais-mercado'+param);
     if(!resp.ok) return;
     const data=await resp.json();
-    _sinaisMercado=(data.sinais||[]);
+    const _smRaw=data.sinais||[];const _smSeen=new Set();
+    _sinaisMercado=_smRaw.filter(s=>{const k=s.url||s.link||s.titulo||'';if(!k||_smSeen.has(k))return false;_smSeen.add(k);return true;});
     atualizarSinais();
   }catch(e){ /* RSS opcional — falha silenciosa */ }
 }
@@ -8017,14 +8019,21 @@ async function carregarEmails(forcar){
     if(badge){ badge.textContent=total; badge.style.display=total>0?'':'none'; }
     // Google Alerts: expandir artigos individuais em vez de mostrar o email inteiro
     const alertasRaw=(data.alertas||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
-    _sinaisAlertas=[];
+    _sinaisAlertas=[];const _saSeen=new Set();
     for(const e of alertasRaw){
       if(e.artigos&&e.artigos.length){
         for(const a of e.artigos){
           const isObj=typeof a==='object'&&a!==null;
-          _sinaisAlertas.push({...e,_isArtigo:true,_artTitulo:isObj?(a.titulo||a.url||''):a,_artUrl:isObj?(a.url||a):(a||''),artigos:undefined});
+          const artUrl=isObj?(a.url||a):(a||'');
+          const artKey=artUrl||(isObj?a.titulo:a)||'';
+          if(artKey&&_saSeen.has(artKey)) continue;
+          if(artKey) _saSeen.add(artKey);
+          _sinaisAlertas.push({...e,_isArtigo:true,_artTitulo:isObj?(a.titulo||a.url||''):a,_artUrl:artUrl,artigos:undefined});
         }
       } else {
+        const eKey=e.id||e.messageId||'';
+        if(eKey&&_saSeen.has(eKey)) continue;
+        if(eKey) _saSeen.add(eKey);
         _sinaisAlertas.push(e);
       }
     }
