@@ -2892,7 +2892,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); const _agora=Date.now();const _ultimoSync=parseInt(localStorage.getItem('sn_full_sync_ts')||'0');const _syncCompleto=(_agora-_ultimoSync)>30*60*1000;if(_syncCompleto)localStorage.setItem('sn_full_sync_ts',String(_agora));carregarEmails(_syncCompleto); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
+  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); const _syncCompleto=!sessionStorage.getItem('sn_session_sync');if(_syncCompleto)sessionStorage.setItem('sn_session_sync','1');carregarEmails(_syncCompleto); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); inicializarToggleMoverEmails(); inicializarPadroes(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
