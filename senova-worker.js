@@ -697,9 +697,14 @@ export default {
       await salvarVistos(env, autorizado.map(e => e.id));
 
       // Whitelist override: email de domínio prioritário nunca some como irrelevante
+      // Exceção: redes sociais — notificações do LinkedIn (conexões, mensagens) NÃO devem virar vaga
       const _wlLower = whitelist.map(d => d.toLowerCase().replace(/^@/,''));
+      const _noOverrideDomains = ['linkedin.com', 'facebook.com', 'twitter.com', 'instagram.com', 'tiktok.com'];
       const comOverride = todoClassificados.map(e => {
-        if (e.categoria === 'irrelevante' && _wlLower.some(d => (e.from||'').toLowerCase().includes(d))) {
+        const from = (e.from||'').toLowerCase();
+        if (e.categoria === 'irrelevante' &&
+            _wlLower.some(d => from.includes(d)) &&
+            !_noOverrideDomains.some(d => from.includes(d))) {
           return {...e, categoria:'vaga', label:'Vaga nova', emoji:'📋', prioridade:4, resumo: e.resumo||'Domínio prioritário'};
         }
         return e;
