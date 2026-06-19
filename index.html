@@ -487,7 +487,7 @@ select option { background: var(--bg2); }
       <div class="avatar">MF</div>
       <div>
         <div class="user-name">Marcos Franco</div>
-        <div class="user-role">Executivo · Uberlândia, MG</div>
+        <div class="user-role">Executivo · Curitiba, PR</div>
       </div>
     </div>
   </div>
@@ -912,7 +912,7 @@ select option { background: var(--bg2); }
           </div>
           <div class="form-row" style="margin:0;">
             <label class="field-label">Localização / região</label>
-            <input type="text" id="perfil-localizacoes" placeholder="Uberlândia, MG — aceito remoto e ES/DE">
+            <input type="text" id="perfil-localizacoes" placeholder="Curitiba, PR — aceito remoto e ES/DE">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:18px;">
@@ -2607,7 +2607,7 @@ select option { background: var(--bg2); }
 const CV_BASE = {
 PT:`MARCOS FRANCO
 Executivo de Negócios, Vendas & Crescimento | Diretor Comercial · CSO · Diretor de Negócios
-Uberlândia, MG | (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
+Curitiba, PR | (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
 
 RESUMO EXECUTIVO
 Sou um executivo sênior com trajetória de liderança em negócios, vendas e crescimento nos setores de mídia, educação e tecnologia. Construí e dirigi operações de grande escala — quase 12 anos na RPC/Globo como Gerente e depois Diretor de Marketing, com equipe de 30 pessoas, 8 afiliadas e portfólio de R$ 500 milhões. Combino visão estratégica, capacidade de formação de equipes e domínio de IA como diferencial operacional. MBA em Administração de Empresas (FGV); Mestre em Direção de Marketing e Vendas (Universitat de Barcelona); Mestrado em Marketing (Universidade de Évora). Inglês e espanhol avançados.
@@ -2667,7 +2667,7 @@ IDIOMAS: Português (nativo) · Inglês (avançado) · Espanhol (avançado)
 DOCÊNCIA: ESPM e UniExpoente — Comportamento do Consumidor, Planejamento Estratégico, Marketing Digital
 COMPETÊNCIAS: Liderança de equipes multidisciplinares · Comunicação executiva · Adaptabilidade estratégica · Inteligência Artificial aplicada a negócios · Gestão comercial e desenvolvimento de negócios`,
 EN:`MARCOS FRANCO | Business, Sales & Growth Executive | Commercial Director · CSO · Business Director
-Uberlândia, Brazil | +55 (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
+Curitiba, Brazil | +55 (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
 
 EXECUTIVE SUMMARY
 Senior executive with a track record of building and leading business, sales and growth operations in media, education and technology. Nearly 12 years at RPC/Globo as Marketing Manager then Marketing Director — 30-person team, 8 affiliates, R$500M portfolio. I bring strategic vision, team-building capability and applied AI as an operational differentiator. MBA in Business Administration (FGV); Master's in Marketing and Sales Management (Universitat de Barcelona); Master's in Marketing (Universidade de Évora). Advanced English and Spanish.
@@ -2726,7 +2726,7 @@ LANGUAGES: Portuguese (native) · English (advanced) · Spanish (advanced)
 TEACHING: ESPM & UniExpoente — Consumer Behavior, Strategic Planning, Digital Marketing
 SKILLS: Multidisciplinary team leadership · Executive communication · Strategic adaptability · Applied AI for business · Commercial management & business development`,
 ES:`MARCOS FRANCO | Ejecutivo de Negocios, Ventas y Crecimiento | Director Comercial · CSO · Director de Negocios
-Uberlândia, Brasil | +55 (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
+Curitiba, Brasil | +55 (41) 99615-2224 | marcos_mco@hotmail.com | linkedin.com/in/marcos-ribeiro-franco-69153a12
 
 RESUMEN EJECUTIVO
 Soy un ejecutivo sénior con trayectoria de liderazgo en negocios, ventas y crecimiento en los sectores de medios, educación y tecnología. Construí y dirigí operaciones a gran escala — casi 12 años en RPC/Globo como Gerente y luego Director de Marketing, con equipo de 30 personas, 8 afiliadas y cartera de R$500M. Combino visión estratégica, capacidad de formación de equipos e IA aplicada como diferencial operativo. MBA en Administración de Empresas (FGV); Máster en Dirección de Marketing and Sales (Universitat de Barcelona); Máster en Marketing (Universidade de Évora). Inglés y español avanzados.
@@ -2832,7 +2832,7 @@ function setLang(lang,btn) {
   btn.classList.add('active');
 }
 
-const ATS_SYSTEM = (lang) => `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Uberlândia, MG).
+const ATS_SYSTEM = (lang) => `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
 
 PERFIL DO CANDIDATO:
 ${CV_BASE[lang]}
@@ -6238,7 +6238,7 @@ async function gerarDocModal(tipo){
     const _anaStr=_anaVaga?`\n\nANÁLISE ANTERIOR:\n${_anaVaga.slice(0,1500)}`:'';
     prompt=`Escreva a carta para a vaga abaixo.\n\n${vagaTexto}${_anaStr}${ctxStr}`;
   } else {
-    system=`Você é assistente executivo de Marcos Franco, executivo sênior de Negócios, Vendas e Crescimento em Uberlândia, MG. Escreva respostas profissionais, objetivas e na voz de Marcos. Use português correto com acentos.`;
+    system=`Você é assistente executivo de Marcos Franco, executivo sênior de Negócios, Vendas e Crescimento em Curitiba, PR. Escreva respostas profissionais, objetivas e na voz de Marcos. Use português correto com acentos.`;
     prompt=`Sugira uma resposta profissional para o contato abaixo.\n\nContexto da vaga: ${metaVaga}\n\nContato recebido:\n${emailRecebido}${ctxStr}`;
   }
   try{
@@ -6551,10 +6551,10 @@ async function gerarComunicacao(){
     let system='',prompt='';
     if(_comunicacaoMode==='linkedin'){
       system='Você gera notas de conexão para LinkedIn em português. Máximo 300 caracteres, natural, profissional, personalizada. Retorne APENAS o texto, sem aspas.';
-      prompt=`Nota de conexão LinkedIn para enviar a ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}. Marcos Franco é executivo de Negócios e Vendas em Uberlândia, MG (gestão comercial, crescimento, estratégia corporativa). A nota deve ser calorosa, específica e curta.`;
+      prompt=`Nota de conexão LinkedIn para enviar a ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}. Marcos Franco é executivo de Negócios e Vendas em Curitiba, PR (gestão comercial, crescimento, estratégia corporativa). A nota deve ser calorosa, específica e curta.`;
     } else if(_comunicacaoMode==='followup'){
       system='Você gera mensagens de reativação de networking para executivos. Em português, tom natural e caloroso. Retorne APENAS a mensagem pronta para envio.';
-      prompt=`Mensagem de follow-up para ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}.\nHistórico:\n${histStr||'Sem interações anteriores registradas.'}\nMarcos Franco, executivo de Negócios e Vendas em Uberlândia, MG. Gere mensagem de reativação adequada ao histórico.`;
+      prompt=`Mensagem de follow-up para ${nome}${cargo?', '+cargo:''}${empresa?', '+empresa:''}.\nHistórico:\n${histStr||'Sem interações anteriores registradas.'}\nMarcos Franco, executivo de Negócios e Vendas em Curitiba, PR. Gere mensagem de reativação adequada ao histórico.`;
     } else {
       const recebida=document.getElementById('com-recebida').value.trim();
       if(!recebida){alert('Cole a mensagem recebida antes de gerar.');btn.textContent='Gerar resposta';btn.disabled=false;return;}
@@ -7424,7 +7424,7 @@ async function gerarRespostaEmailAvulso(btn){
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODELOS.rapido,max_tokens:600,
         system:'Você sugere respostas profissionais a emails sobre processos seletivos e oportunidades executivas. Tom formal mas direto, adequado ao contexto (RH corporativo ou headhunter). Retorne APENAS o texto da resposta, sem assunto nem cabeçalho. Máximo 3 parágrafos.',
-        messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de Negócios e Vendas (Uberlândia, MG, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
+        messages:[{role:'user',content:`Email recebido de ${remetente}:\nAssunto: ${assunto}\n\n${corpo}\n\nSuggira uma resposta profissional para Marcos Franco, executivo sênior de Negócios e Vendas (Curitiba, PR, 25+ anos de experiência). Mostre interesse, disponibilidade e profissionalismo.`}]
       })
     });
     const data=await res.json();
@@ -8327,7 +8327,7 @@ function downloadPDFExecutivo(){
   const margL=15; const margR=195; const larg=180;
   // Extrair título específico da vaga (linha 1 do lastCV) e corpo sem cabeçalho
   const cvLinhas=(lastCV||'').split('\n');
-  const tituloCV=cvLinhas[1]?.trim()||'Executivo Sênior de Negócios | Uberlândia, MG';
+  const tituloCV=cvLinhas[1]?.trim()||'Executivo Sênior de Negócios | Curitiba, PR';
   let skipAte=0;
   for(let i=0;i<Math.min(8,cvLinhas.length);i++){if(cvLinhas[i].trim()===''){skipAte=i+1;break;}}
   const cvCorpo=cvLinhas.slice(skipAte).join('\n');
@@ -8390,7 +8390,7 @@ function downloadPDFExecutivo(){
     doc.rect(0,287,210,10,'F');
     doc.setFontSize(8);
     doc.setTextColor(branco[0],branco[1],branco[2]);
-    doc.text('Marcos Franco  |  Uberlândia, MG',margL,293);
+    doc.text('Marcos Franco  |  Curitiba, PR',margL,293);
     doc.text('Pagina '+i+' de '+pages,190,293,{align:'right'});
   }
   doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
