@@ -2894,8 +2894,7 @@ function showPage(page) {
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); carregarEmails(false); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
-  if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); }
-  if(page==='perfil'){ inicializarToggleMoverEmails(); inicializarPadroes(); }
+  if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); inicializarToggleMoverEmails(); inicializarPadroes(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
   if(page==='sofia') sofiaTab(1);
