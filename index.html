@@ -8049,6 +8049,14 @@ async function carregarEmails(forcar){
     }
     if(_sinaisAlertas.length){_alertasHoje=_sinaisAlertas.length;}
     const emailsVaga=emails.filter(e=>e.categoria!=='irrelevante'&&e.categoria!=='mercado');
+    // Não sobrescrever estado existente quando sync parcial (não forçado) retorna 0 novos.
+    // Emails já foram processados e estão em vistos — _emailsProcesso ainda é válido.
+    if(emailsVaga.length===0&&!forcar){
+      atualizarSinais();
+      renderRetornos();
+      renderOportunidades();
+      return;
+    }
     _emailsProcesso=emailsVaga;
     _emailsMercado=emails.filter(e=>e.categoria==='mercado');
     _emailsIrrelevantes=data.irrelevantes||[];
