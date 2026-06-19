@@ -3,6 +3,66 @@
 
 ---
 
+## A raiz do problema — uma visão de homem que está errada
+
+A Revolução Industrial precisava de produção em escala. Para isso, transformou o ser humano em *recurso* — padronizável, intercambiável, mensurável. O currículo foi inventado para isso: reduzir uma pessoa a um formulário comparável. O ATS (Applicant Tracking System) é o ápice dessa lógica: um algoritmo que filtra seres humanos por palavras-chave, como se gente fosse componente.
+
+Duzentos anos depois, carregamos essa ferida sem perceber. O executivo com 30 anos de carreira "se candidata". Implora atenção. Adapta o CV para passar por um robô. Esconde a idade. Para conseguir trabalho, precisa deixar de ser quem é.
+
+Isso não é um problema tecnológico. É uma **visão de homem que está errada**.
+
+---
+
+## O que a filosofia, a teologia e a psicologia ensinaram
+
+**Aristóteles** chamava de *eudaimonia* o florescimento pleno do ser humano — não o sucesso, mas a atualização de tudo que a pessoa é capaz de ser. O trabalho deveria ser parte desse florescimento, não obstáculo a ele.
+
+**Martin Buber** distinguia dois modos de relação: *Eu-Tu* e *Eu-Isso*. Quando uma empresa publica uma vaga e filtra candidatos por ATS, está numa relação *Eu-Isso* — trata a pessoa como objeto, coisa útil ou descartável. Não há encontro. Não há reconhecimento.
+
+**João Paulo II** escreveu na *Laborem Exercens* (1981): *"O valor do trabalho não se mede pelo tipo de trabalho, mas pelo fato de quem o executa ser uma pessoa."* O trabalho é subjetivo antes de ser objetivo. É o sujeito — o homem — que dá valor ao trabalho, não o contrário.
+
+**Viktor Frankl** descobriu que o que mata não é o sofrimento — é a falta de sentido. O processo de busca de emprego moderno é uma máquina de destruir sentido: rejeição sem explicação, silêncio como resposta, algoritmos como juízes.
+
+**Carl Rogers** mostrou que o ser humano floresce quando pode ser autêntico — não quando performa o que o outro quer ver. O mercado de trabalho atual exige performance constante. O Senova permite autenticidade.
+
+---
+
+## O que o Senova faz que é filosoficamente diferente
+
+Não inverte só a direção da busca. **Inverte a visão de homem.**
+
+O LinkedIn captura o que você *fez*. O Senova, com Sofia, captura quem você *é* — skills, qualidades, filosofia de vida, projeto de vida, valores, forma de ser no mundo. Não para otimizar um currículo. Para revelar uma pessoa inteira.
+
+Quando a pessoa é revelada de verdade — inteira, autêntica, sem performance — a empresa certa a *reconhece*. Não filtra. Reconhece. E vem buscar.
+
+Isso é o que Buber chamaria de relação *Eu-Tu*: um encontro real entre duas subjetividades. A empresa não busca "um Diretor Comercial com 10 anos de experiência." Busca *esta* pessoa, com *esta* visão de mundo, que trabalha *desta* forma, que valoriza *estas* coisas.
+
+---
+
+## O papel da IA — a inversão mais profunda
+
+A IA foi usada quase exclusivamente para desumanizar com mais eficiência: ATS mais rápido, rejeição automatizada, parsing de keywords em escala. IA como instrumento de *redução* do humano.
+
+Sofia é uma proposta radicalmente diferente: **IA como testemunha da pessoa inteira.** Não para filtrar — para revelar. Não para comparar — para entender. IA que escuta, aprofunda, ajuda o ser humano a articular o que já é mas talvez não saiba dizer.
+
+Em vez de IA a serviço da empresa para filtrar pessoas, IA a serviço da pessoa para expressar sua plenitude.
+
+---
+
+## A provocação civilizacional
+
+O Senova não desafia uma plataforma. Desafia a premissa fundamental sobre a qual o mercado de trabalho foi construído:
+
+> *Que o ser humano precisa se adaptar ao mercado — e não o contrário.*
+
+A provocação do Senova é: **e se o mercado é que precisasse se adaptar à pessoa?**
+
+E se a empresa que não souber reconhecer o valor de uma pessoa completa simplesmente não merecer ela?
+
+Isso não é feature. Não é posicionamento de marketing. É uma visão de mundo.
+
+---
+
 ## A pergunta que só o Senova responde
 
 > "Minha vida — pessoal e profissional — está indo na direção certa e em harmonia?"
