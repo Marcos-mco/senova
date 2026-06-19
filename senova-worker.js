@@ -285,15 +285,13 @@ async function getPadroes(env) {
 function estaAutorizado(email, whitelist, padroesAtivos) {
   const from = (email.from || '').toLowerCase();
   const subj = (email.subject || '').toLowerCase();
-  const isSocial = SOCIAL_DOMAINS.some(d => from.includes(d));
-  // 1. Domínio na whitelist — redes sociais ignoram esta regra (passam só por assunto)
-  if (!isSocial && whitelist.some(d => from.includes(d.toLowerCase().replace(/^@/, '')))) return true;
+  // 1. Domínio na whitelist do usuário
+  if (whitelist.some(d => from.includes(d.toLowerCase().replace(/^@/, '')))) return true;
   // 2. Padrão automático habilitado pelo usuário
   for (const id of padroesAtivos) {
     const def = PADROES_DEFINIDOS[id];
     if (!def) continue;
-    // Para redes sociais: verificar apenas por assunto, nunca por domínio
-    if (!isSocial && def.matchFrom.some(f => from.includes(f))) return true;
+    if (def.matchFrom.some(f => from.includes(f))) return true;
     if (def.matchSubject.length && def.matchSubject.some(s => subj.includes(s))) return true;
   }
   return false;
@@ -870,6 +868,28 @@ export default {
       const lista = (await getWhitelist(env)).filter(d => d !== dominio?.toLowerCase().trim());
       await salvarWhitelist(env, lista);
       return json({ ok: true, dominios: lista });
+    }
+
+    // ── Diagnóstico de emails (temporário) ─────────────────────────
+    if (path === '/api/emails/diagnostico' && request.method === 'GET') {
+      const token = await getValidToken(env);
+      if (!token) return json({ erro: 'Outlook não conectado' }, 401);
+      const whitelist = await getWhitelist(env);
+      const padroesAtivos = await getPadroes(env);
+      const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
+      const msRes = await fetch(
+        `https://graph.microsoft.com/v1.0/me/messages?$top=30&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const msData = await msRes.json();
+      const emails = (msData.value || []).map(e => {
+        const fromAddr = e.from?.emailAddress?.address || '';
+        const fromName = e.from?.emailAddress?.name || '';
+        const subj = e.subject || '';
+        const autorizado = estaAutorizado({ from: fromAddr, subject: subj }, whitelist, padroesAtivos);
+        return { from: fromAddr, from_name: fromName, subject: subj.slice(0, 80), autorizado, date: e.receivedDateTime.slice(0,16) };
+      });
+      return json({ whitelist, padroes: padroesAtivos, emails });
     }
 
     // ── Padrões automáticos de email ────────────────────────────────
