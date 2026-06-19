@@ -8019,21 +8019,31 @@ async function carregarEmails(forcar){
     if(badge){ badge.textContent=total; badge.style.display=total>0?'':'none'; }
     // Google Alerts: expandir artigos individuais em vez de mostrar o email inteiro
     const alertasRaw=(data.alertas||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
-    _sinaisAlertas=[];const _saSeen=new Set();
-    for(const e of alertasRaw){
+    _sinaisAlertas=[];
+    // Dedup emails antes de expandir artigos (mesmo email pode aparecer em múltiplas pastas)
+    const _emailDedup=new Set();
+    const alertasDedup=alertasRaw.filter(e=>{
+      const k=e.id||e.messageId||((e.subject||'')+'|'+(e.date||''));
+      if(!k||_emailDedup.has(k)) return false;
+      _emailDedup.add(k); return true;
+    });
+    const _saSeen=new Set();
+    for(const e of alertasDedup){
       if(e.artigos&&e.artigos.length){
         for(const a of e.artigos){
           const isObj=typeof a==='object'&&a!==null;
           const artUrl=isObj?(a.url||a):(a||'');
-          const artKey=artUrl||(isObj?a.titulo:a)||'';
+          const artTitulo=isObj?(a.titulo||a.url||''):a;
+          // Filtrar links promocionais e de navegação
+          if(artUrl&&/apps\.apple\.com|play\.google\.com|onelink\.to/i.test(artUrl)) continue;
+          if(!artTitulo||artTitulo.length<10) continue;
+          if(/baixe|instale|aplicativo|android|iphone|app store|google play/i.test(artTitulo)) continue;
+          const artKey=artUrl||artTitulo||'';
           if(artKey&&_saSeen.has(artKey)) continue;
           if(artKey) _saSeen.add(artKey);
-          _sinaisAlertas.push({...e,_isArtigo:true,_artTitulo:isObj?(a.titulo||a.url||''):a,_artUrl:artUrl,artigos:undefined});
+          _sinaisAlertas.push({...e,_isArtigo:true,_artTitulo:artTitulo,_artUrl:artUrl,artigos:undefined});
         }
       } else {
-        const eKey=e.id||e.messageId||'';
-        if(eKey&&_saSeen.has(eKey)) continue;
-        if(eKey) _saSeen.add(eKey);
         _sinaisAlertas.push(e);
       }
     }
