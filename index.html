@@ -8003,7 +8003,7 @@ async function carregarEmails(forcar){
   if(forcar) showToast('🔄 Verificando emails…', 2000);
   try{
     const mover=localStorage.getItem('senova_mover_emails')==='1';
-    const base=forcar?(WORKER_URL+'/api/emails?limite=50'):(WORKER_URL+'/api/emails');
+    const base=forcar?(WORKER_URL+'/api/emails?limite=100'):(WORKER_URL+'/api/emails');
     const url=mover?(base+(base.includes('?')?'&':'?')+'mover=true'):base;
     const res=await fetch(url);
     if(!res.ok) throw new Error(`emails ${res.status}`);
