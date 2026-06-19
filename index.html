@@ -406,6 +406,9 @@ select option { background: var(--bg2); }
 
 .sh-ver-mais { display:block; width:100%; padding:10px 24px; font-size:12px; color:var(--action); font-weight:600; cursor:pointer; border:none; border-top:1px solid var(--border); background:none; font-family:var(--font); text-align:left; transition:background 0.1s; letter-spacing:0.01em; }
 .sh-ver-mais:hover { background:var(--bg3); }
+.ctx-item { background:var(--bg3); border-radius:var(--radius); border:1px solid var(--border); padding:12px 14px; }
+.ctx-item-texto { font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:8px; }
+.ctx-item-footer { display:flex; align-items:center; justify-content:space-between; }
 
 /* ── BADGE REVISAR ── */
 .badge-revisar { background:#FFF9E6; color:#8B6914; border:1px solid #C9A84C; border-radius:4px; font-size:10.5px; padding:1px 6px; font-weight:600; }
@@ -819,6 +822,7 @@ select option { background: var(--bg2); }
       <button class="perfil-tab-btn" onclick="perfilTab(3,this)">Documentos</button>
       <button class="perfil-tab-btn" onclick="perfilTab(4,this)">Integrações</button>
       <button class="perfil-tab-btn" onclick="perfilTab(5,this)">Preferências</button>
+      <button class="perfil-tab-btn" onclick="perfilTab(6,this)">Contexto</button>
     </nav>
 
     <!-- ── TAB 1: PERFIL ── -->
@@ -1320,6 +1324,28 @@ select option { background: var(--bg2); }
       </div>
 
     </div><!-- /panel-5 -->
+
+    <!-- ── PAINEL 6 — Contexto adicional ── -->
+    <div id="perfil-panel-6" class="perfil-tab-panel">
+      <div style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:20px;padding:12px 14px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--navy);">Informações sobre sua trajetória que não estão no CV oficial. O Senova inclui automaticamente na análise quando a vaga tem relação com o conteúdo.</div>
+
+      <!-- Adicionar nova entrada -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">NOVA INFORMAÇÃO</div>
+        <textarea id="ctx-novo-texto" rows="3" placeholder="Ex: Gestor de implantação SAP — 3 projetos em empresas de médio porte, setor de serviços..." style="width:100%;font-size:14px;resize:vertical;margin-bottom:10px;font-family:var(--font);padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);box-sizing:border-box;"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);">
+            <input type="checkbox" id="ctx-novo-usar" checked style="accent-color:var(--navy);width:15px;height:15px;">
+            Usar em análises de vagas
+          </label>
+          <button onclick="ctxAdicionar()" style="padding:9px 20px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);">+ Adicionar</button>
+        </div>
+      </div>
+
+      <!-- Lista de entradas -->
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">INFORMAÇÕES CADASTRADAS</div>
+      <div id="ctx-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div><!-- /panel-6 -->
 
     <!-- Salvar fixo -->
     <div style="position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 80%,transparent);padding:16px 0 8px;z-index:10;">
@@ -2850,10 +2876,11 @@ function sofiaTab(n){
   });
 }
 function perfilTab(n, btn){
-  [1,2,3,4,5].forEach(i=>{
+  [1,2,3,4,5,6].forEach(i=>{
     const panel=document.getElementById('perfil-panel-'+i);
     if(panel) panel.classList.toggle('active', i===n);
   });
+  if(n===6) ctxRenderizar();
   document.querySelectorAll('.perfil-tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
 }
@@ -2889,8 +2916,8 @@ const ATS_SYSTEM = (lang) => `Você é Especialista Sênior em ATS e Recrutament
 PERFIL DO CANDIDATO:
 ${CV_BASE[lang]}
 
-CARGO-ALVO: Diretor Comercial / Diretor de Vendas / Diretor de Negócios / CSO (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
-PRETENSÃO: R$15.000 CLT (BR) · €50-70k (ES/DE)
+CARGO-ALVO: CMO / CSO / CEO / Diretor Comercial / Diretor de Marketing / Diretor de Negócios (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
+PRETENSÃO: R$19–25k CLT (BR) · €3.500–5.500/mês (ES/PT) · €5.000–8.000/mês (DE/DACH)
 
 REGRAS ABSOLUTAS:
 - NUNCA invente métricas ou fatos não presentes no CV base
@@ -2954,6 +2981,85 @@ INSTRUÇÕES:
 - Retorne APENAS o texto da carta, sem cabeçalho, sem título, sem assinatura formatada`;
 };
 
+// ═══════════════════════════════════════════════
+//  CONTEXTO ADICIONAL
+// ═══════════════════════════════════════════════
+const CTX_KEY = 'senova_contexto_extra';
+const CTX_DEFAULT = [
+  {id:'ctx_01',usar:true,dt:'2026-06-19',texto:'Carreira editorial e produção gráfica (1989–2001): Editora Abril — Supervisor/Coord. de Produção (23 revistas/ano, equipe 28 pessoas, desktop publishing Macintosh); Intec Tecnologia — Gerente de Produção (1ª revista 100% computação gráfica do Brasil); DLS – Dória, Lara e Stalimir Associados — Produtor Gráfico (agência fundada por João Dória). Relevante: editorial, publishing, produção gráfica, comunicação, mídia impressa.'},
+  {id:'ctx_02',usar:true,dt:'2026-06-19',texto:'Gerente Nacional de Produção — Editel Listas Telefônicas / Grupo Carvajal (abr/1996–2001): equipe até 50 pessoas em 5 estados; autogestão (mão de obra -73%, produção +240%); color management e perfis ICC. Relevante: gestão operacional, produção, eficiência, supply chain, logística.'},
+  {id:'ctx_03',usar:true,dt:'2026-06-19',texto:'Ghaphical Consult — Consultor Independente (1995–1996): especialização em color management, calibração, perfis ICC. Clientes: Posigraf, Editora Abril, Editora Símbolo, Gráfica Ultraset.'},
+  {id:'ctx_04',usar:true,dt:'2026-06-19',texto:'Docência: ESAMC/ESPM Maceió (2002–2004) e UniExpoente Curitiba (2006). Disciplinas: Comportamento do Consumidor, Planejamento Estratégico, Marketing Digital. Relevante: educação executiva, academia, treinamento, docência.'},
+  {id:'ctx_05',usar:true,dt:'2026-06-19',texto:'ISO 9000 — Auditor Líder e membro do comitê de qualidade (Editel/Grupo Carvajal, 1996–2001). Relevante: qualidade, compliance, processos, certificação, normas.'},
+  {id:'ctx_06',usar:true,dt:'2026-06-19',texto:'Gestão de implantação ERP: Oracle · SAP · TOTVS. Atuação como gestor de projeto de implantação. Relevante: ERP, Oracle, SAP, TOTVS, transformação digital, sistemas, projetos de tecnologia.'},
+  {id:'ctx_07',usar:true,dt:'2026-06-19',texto:'Gestão estratégica de IA aplicada a negócios: liderança de produto AI-native (SaaS B2C). Uso operacional: inteligência de mercado, análise de fit, pesquisa competitiva, redação executiva. Prompt engineering aplicado a processos comerciais. Integração de LLMs em fluxos de decisão executiva. Relevante: inteligência artificial, inovação, transformação digital, tecnologia, SaaS, produto digital.'}
+];
+
+function ctxCarregar() {
+  try { return JSON.parse(localStorage.getItem(CTX_KEY)); } catch { return null; }
+}
+function ctxInicializar() {
+  if (!ctxCarregar()) localStorage.setItem(CTX_KEY, JSON.stringify(CTX_DEFAULT));
+}
+function ctxSalvarTodos(entries) {
+  localStorage.setItem(CTX_KEY, JSON.stringify(entries));
+}
+function ctxRenderizar() {
+  ctxInicializar();
+  const entries = ctxCarregar() || [];
+  const lista = document.getElementById('ctx-lista');
+  if (!lista) return;
+  if (!entries.length) {
+    lista.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0;">Nenhuma informação adicional cadastrada.</p>';
+    return;
+  }
+  lista.innerHTML = entries.map(e => `
+    <div class="ctx-item" id="ctx-${e.id}">
+      <div class="ctx-item-texto">${e.texto.replace(/</g,'&lt;')}</div>
+      <div class="ctx-item-footer">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3);">
+          <input type="checkbox" ${e.usar?'checked':''} onchange="ctxToggleUsar('${e.id}',this.checked)" style="accent-color:var(--navy);width:14px;height:14px;">
+          Usar em análises
+        </label>
+        <button onclick="ctxRemover('${e.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:0 4px;" title="Remover">×</button>
+      </div>
+    </div>`).join('');
+}
+function ctxAdicionar() {
+  const ta = document.getElementById('ctx-novo-texto');
+  const texto = ta?.value.trim();
+  if (!texto) return;
+  ctxInicializar();
+  const usar = document.getElementById('ctx-novo-usar')?.checked ?? true;
+  const entries = ctxCarregar() || [];
+  entries.unshift({id:'ctx_'+Date.now(), texto, usar, dt:new Date().toISOString().slice(0,10)});
+  ctxSalvarTodos(entries);
+  ta.value = '';
+  ctxRenderizar();
+  showToast('Informação adicionada.');
+}
+function ctxRemover(id) {
+  const entries = (ctxCarregar() || []).filter(e => e.id !== id);
+  ctxSalvarTodos(entries);
+  ctxRenderizar();
+}
+function ctxToggleUsar(id, usar) {
+  const entries = ctxCarregar() || [];
+  const e = entries.find(e => e.id === id);
+  if (e) { e.usar = usar; ctxSalvarTodos(entries); }
+}
+function ctxBuscarRelevantes(vagaTexto) {
+  ctxInicializar();
+  const entries = (ctxCarregar() || []).filter(e => e.usar);
+  if (!entries.length) return [];
+  const vaga = vagaTexto.toLowerCase();
+  return entries.filter(e => {
+    const words = e.texto.toLowerCase().split(/[\s,·•\-–:()\/]+/).filter(w => w.length > 5);
+    const matches = words.filter(w => vaga.includes(w));
+    return matches.length >= 2;
+  });
+}
+
 function _hideAtsExtras(){}
 async function analyzeJob() {
   const vaga = document.getElementById('vaga-input').value.trim();
@@ -2984,7 +3090,7 @@ async function analyzeJob() {
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,
         system:ATS_SYSTEM(cvLang),
-        messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional do candidato: '+c:'';})()}`}]})
+        messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional (manual): '+c:'';})()}${(()=>{const rel=ctxBuscarRelevantes(vaga);return rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o que for relevante para esta vaga específica):\n'+rel.map(e=>'• '+e.texto).join('\n'):'';})()}`}]})
     });
     const data = await res.json();
     const text = data.content?.find(b=>b.type==='text')?.text||'';
