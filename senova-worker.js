@@ -692,7 +692,9 @@ export default {
       const emailsNormais = autorizado.filter(e => !isAlertaFn(e));
 
       const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
-      await salvarVistos(env, novos.map(e => e.id));
+      // Salvar vistos APENAS para emails autorizados — emails bloqueados por consentimento
+      // não devem ser marcados como vistos, para reaparecer quando o usuário autorizar a fonte.
+      await salvarVistos(env, autorizado.map(e => e.id));
 
       // Whitelist override: email de domínio prioritário nunca some como irrelevante
       const _wlLower = whitelist.map(d => d.toLowerCase().replace(/^@/,''));
