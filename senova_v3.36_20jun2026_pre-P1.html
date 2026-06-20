@@ -4513,8 +4513,8 @@ function _montarCardVarredura(v, agora){
     createdAt:agora, updatedAt:agora,
     timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
     origemUrl:v.url||'',
-    score:v.score, atsScore:(typeof v.score==='number'&&v.score>0)?String(Math.round(v.score)):'', classificacao:v.classificacao, resumo:v.resumo,
-    pontos_fortes:v.pontos_fortes||[], compatFortes:v.pontos_fortes||[], compatAtencao:v.pontos_atencao||[], descricao:v.descricao||'', fonte:v.fonte||'',
+    score:v.score, classificacao:v.classificacao, resumo:v.resumo,
+    pontos_fortes:v.pontos_fortes||[], descricao:v.descricao||'', fonte:v.fonte||'',
     localizacao:v.localizacao||'', modelo:v.modelo||'', regime:v.regime||'',
   };
 }
@@ -6072,8 +6072,8 @@ function mvConcluirEditarDesc(){
 // ── PONTUAÇÃO AO PROJETO ─────────────────────────────────────────────────────
 function mvUpdateScoreDisplay(vOpt){
   const v=vOpt||(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
-  // ATS score — usa atsScore (app) ou cai para score salvo (extensão), nunca recalcula aqui
-  const ats=parseInt(v?.atsScore||0)||(typeof v?.score==='number'&&v.score>0?Math.round(v.score):0);
+  // ATS score
+  const ats=parseInt(v?.atsScore||0);
   const atsBar=document.getElementById('mv-ats-bar');
   const atsBadge=document.getElementById('mv-ats-score-badge');
   const atsCol=corDoScore(ats);
@@ -8645,10 +8645,9 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   const _descMudou=!_exDesc||desc.length>_exDesc.length+200||_exDesc.slice(0,120)!==desc.slice(0,120);
   if(_descMudou){
     vagas[idx].jobDescription=desc.slice(0,5000);
-    // Descrição mudou — score calculado de outra descrição é inválido (app E extensão)
+    // Descrição mudou — score calculado de outra descrição é inválido
     vagas[idx].atsScore='';
     vagas[idx].atsAnalise='';
-    vagas[idx].score=null;
   }
   // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada)
   if(extra){
@@ -8682,7 +8681,7 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
     mvUpdateMetaInfo(vagas[idx]);
     // Auto-check de compatibilidade se lead sem score ainda
     const _vAtual=vagas[idx];
-    if(_vAtual.status==='lead'&&!(_vAtual.atsScore&&parseInt(_vAtual.atsScore)>0)&&!(typeof _vAtual.score==='number'&&_vAtual.score>0)){
+    if(_vAtual.status==='lead'&&!(_vAtual.atsScore&&parseInt(_vAtual.atsScore)>0)){
       setTimeout(()=>mvAutoCompatCheck(),800);
     }
   }
