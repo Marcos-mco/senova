@@ -642,11 +642,17 @@ export default {
       const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
       // HTML fetch individual: só para emails de vaga sem URL encontrada no texto,
       // ou para alertas (extrai artigos). Não bloqueia o fluxo se falhar.
+      // Cap de subrequests: o prefixo síncrono do .map serializa o contador,
+      // então o limite é respeitado mesmo com execução concorrente.
+      let _htmlCount = 0;
+      const HTML_CAP = 20;
       await Promise.allSettled(emailsBase.map(async e => {
         const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
         const isAlerta = isAlertaFn(e);
         const precisaHtml = (mightBeVaga && !e.link_vaga) || isAlerta;
         if (!precisaHtml) return;
+        if (_htmlCount >= HTML_CAP) return;
+        _htmlCount++;
         try {
           const r = await fetch(
             `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}?$select=body`,
@@ -738,29 +744,32 @@ export default {
         ...alertasNovos.map(e => e.id),
       ]);
 
-      // Marcar como lido: apenas emails autorizados (privacidade + limite de subrequests)
+      // Marcar como lido: apenas emails autorizados (privacidade + consentimento)
       // Emails não autorizados não são marcados — reaparecem quando fonte for liberada
+      // Via Graph $batch (20/subrequest) para não estourar o limite do Worker.
       const paraMarcarLido = autorizado.filter(e => !e.is_read);
       ctx.waitUntil((async () => {
-        await Promise.allSettled(paraMarcarLido.map(e =>
-          fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isRead: true }),
-          })
-        ));
+        // 1. Marcar como lido (PATCH em lote)
+        if (paraMarcarLido.length) {
+          await graphBatch(token, paraMarcarLido.map((e, i) => ({
+            id: String(i), method: 'PATCH',
+            url: `/me/messages/${encodeURIComponent(e.id)}`,
+            headers: { 'Content-Type': 'application/json' },
+            body: { isRead: true },
+          })));
+        }
+        // 2. Mover relevantes + alertas para "Lidos pelo Senova" (POST em lote)
         if (moverParaPasta) {
           const paraMovar = novos.filter(e => idsParaMover.has(e.id));
           if (paraMovar.length > 0) {
             const folderId = await getOrCreateSenovaFolder(token, env);
             if (folderId) {
-              await Promise.allSettled(paraMovar.map(e =>
-                fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}/move`, {
-                  method: 'POST',
-                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ destinationId: folderId }),
-                })
-              ));
+              await graphBatch(token, paraMovar.map((e, i) => ({
+                id: String(i), method: 'POST',
+                url: `/me/messages/${encodeURIComponent(e.id)}/move`,
+                headers: { 'Content-Type': 'application/json' },
+                body: { destinationId: folderId },
+              })));
             }
           }
         }
@@ -895,7 +904,7 @@ export default {
       const padroesAtivos = await getPadroes(env);
       const dataMinima = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
       const msRes = await fetch(
-        `https://graph.microsoft.com/v1.0/me/messages?$top=30&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime`,
+        `https://graph.microsoft.com/v1.0/me/messages?$top=50&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,isRead`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const msData = await msRes.json();
@@ -904,9 +913,10 @@ export default {
         const fromName = e.from?.emailAddress?.name || '';
         const subj = e.subject || '';
         const autorizado = estaAutorizado({ from: fromAddr, subject: subj }, whitelist, padroesAtivos);
-        return { from: fromAddr, from_name: fromName, subject: subj.slice(0, 80), autorizado, date: e.receivedDateTime.slice(0,16) };
+        return { from: fromAddr, from_name: fromName, subject: subj.slice(0, 80), autorizado, is_read: e.isRead, date: e.receivedDateTime.slice(0,16) };
       });
-      return json({ whitelist, padroes: padroesAtivos, emails });
+      const autorizadosNaoLidos = emails.filter(e => e.autorizado && !e.is_read).length;
+      return json({ whitelist, padroes: padroesAtivos, autorizados_nao_lidos: autorizadosNaoLidos, emails });
     }
 
     // ── Padrões automáticos de email ────────────────────────────────
@@ -1349,6 +1359,27 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
 // ═══════════════════════════════════════════════════════════════════
 //  PASTA OUTLOOK — "Lidos pelo Senova"
 // ═══════════════════════════════════════════════════════════════════
+// Graph $batch: executa até 20 requests por subrequest, em chunks.
+// Reduz drasticamente o nº de subrequests (limite ~50/invocação no Worker).
+async function graphBatch(token, requests) {
+  const respostas = [];
+  for (let i = 0; i < requests.length; i += 20) {
+    const chunk = requests.slice(i, i + 20);
+    try {
+      const res = await fetch('https://graph.microsoft.com/v1.0/$batch', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: chunk }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        respostas.push(...(data.responses || []));
+      }
+    } catch {}
+  }
+  return respostas;
+}
+
 async function getOrCreateSenovaFolder(token, env) {
   const KV_KEY = 'senova_folder_id';
   try {
