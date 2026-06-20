@@ -8636,6 +8636,9 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   const _exDesc=vagas[idx].jobDescription||vagas[idx].descricao||'';
   if(!_exDesc||desc.length>_exDesc.length+200){
     vagas[idx].jobDescription=desc.slice(0,5000);
+    // Descrição mudou substancialmente — score antigo é de outra descrição, limpar
+    vagas[idx].atsScore='';
+    vagas[idx].atsAnalise='';
   }
   // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada)
   if(extra){
