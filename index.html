@@ -8634,9 +8634,10 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   const idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;
   if(idx<0) return;
   const _exDesc=vagas[idx].jobDescription||vagas[idx].descricao||'';
-  if(!_exDesc||desc.length>_exDesc.length+200){
+  const _descMudou=!_exDesc||desc.length>_exDesc.length+200||_exDesc.slice(0,120)!==desc.slice(0,120);
+  if(_descMudou){
     vagas[idx].jobDescription=desc.slice(0,5000);
-    // Descrição mudou substancialmente — score antigo é de outra descrição, limpar
+    // Descrição mudou — score calculado de outra descrição é inválido
     vagas[idx].atsScore='';
     vagas[idx].atsAnalise='';
   }
