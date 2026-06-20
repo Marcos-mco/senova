@@ -4245,6 +4245,16 @@ function loadCRM(){
       vagas=vagas.map(v=>v.status==='entrevista'&&!v.entrevistaData&&!v.entrevistaRealizada?{...v,entrevistaRealizada:true}:v);
       localStorage.setItem('senova_migration_entrevista_legacy_v1','1');
     }
+    if(!localStorage.getItem('senova_migration_limpar_resumo_v1')){
+      // Remove e.resumo do Worker que foi erroneamente salvo como jobDescription
+      const _resumoPatterns=[/linkedin job alert/i,/fora do perfil/i,/dentro do perfil/i,/vaga de .+ na .+—/i,/salário em /i,/perfil geográfico/i,/compatib/i];
+      vagas=vagas.map(v=>{
+        if(!v.jobDescription) return v;
+        const isResumo=_resumoPatterns.some(p=>p.test(v.jobDescription));
+        return isResumo?{...v,jobDescription:''}:v;
+      });
+      localStorage.setItem('senova_migration_limpar_resumo_v1','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
@@ -7869,18 +7879,7 @@ function _enriquecerURLsExistentes(emails){
   if(!emails||!emails.length) return;
   let atualizados=0;
 
-  // 0. Preencher jobDescription de cards existentes que não têm (retroativo)
-  emails.forEach(e=>{
-    if(!e.resumo) return;
-    const assunto=(e.subject||e.assunto||'').trim();
-    if(!assunto) return;
-    const card=vagas.find(v=>
-      v.emailAssunto&&
-      (v.emailAssunto.trim()===assunto||v.emailAssunto.trim().toLowerCase()===assunto.toLowerCase())&&
-      !v.jobDescription
-    );
-    if(card){ card.jobDescription=e.resumo; atualizados++; }
-  });
+  // e.resumo é sumário de análise do Worker — não é descrição da vaga; não usar como jobDescription
 
   // 1. Atualizar cards com email correspondente nos últimos 7 dias
   emails.forEach(e=>{
