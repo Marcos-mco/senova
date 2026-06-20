@@ -5615,7 +5615,7 @@ function mvAjustarSecoesStatus(status){
       // Só usar notas se o card veio de email (tem emailAssunto) — extensão não tem notas
       if(_notasClean.length>30&&_vCur?.emailAssunto){
         ta.value=_notasClean;
-        if(_vCur&&!_vCur.jobDescription){_vCur.jobDescription=_notasClean;saveVagas();}
+        // Não persistir notas em jobDescription — extensão deve atualizar com a descrição completa
         mvRefreshDescPreview();
         if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='var(--text3)';editBtn.onclick=mvEditarDesc;}
       } else {
@@ -8128,7 +8128,7 @@ async function carregarEmails(forcar){
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
-          {const _t=Date.now();const _resumo=e.resumo||'';vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'',notas:conteudoVaga,jobDescription:_resumo,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
+          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'',notas:conteudoVaga,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
           if(e.categoria==='hunter') _sinaisEmails.huntersN++; else _sinaisEmails.vagasN++;
         }
@@ -8634,7 +8634,8 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   const vUrl=_norm(url);
   const idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;
   if(idx<0) return;
-  if(!(vagas[idx].jobDescription||vagas[idx].descricao)){
+  const _exDesc=vagas[idx].jobDescription||vagas[idx].descricao||'';
+  if(!_exDesc||desc.length>_exDesc.length+200){
     vagas[idx].jobDescription=desc.slice(0,5000);
   }
   // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada)
@@ -8662,7 +8663,7 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   // Se o modal estiver aberto com este card, atualiza em tempo real
   if(String(editingVagaId)===String(vagas[idx].id)){
     const ta=document.getElementById('mv-job-desc');
-    if(ta&&!ta.value.trim()){ta.value=desc.slice(0,5000);}
+    if(ta&&(!ta.value.trim()||desc.length>ta.value.length+200)){ta.value=desc.slice(0,5000);}
     mvRefreshDescPreview();
     mvAtualizarBtnAnalise();
     _mvRenderDescGuide(null);
@@ -8697,7 +8698,8 @@ window.__senovaImportar=async function(){
       const vUrl=_normUrl(v.url);
       // Atualizar card existente se tiver a mesma URL e não tiver descrição ainda
       const idx=vUrl?vagas.findIndex(e=>{const eu=_normUrl(e.origemUrl);return eu&&eu===vUrl;}): -1;
-      if(idx>=0 && v.descricao && v.descricao.length>100 && !(vagas[idx].jobDescription||vagas[idx].descricao)){
+      const _exD=vagas[idx]?.jobDescription||vagas[idx]?.descricao||'';
+      if(idx>=0 && v.descricao && v.descricao.length>100 && (!_exD||v.descricao.length>_exD.length+200)){
         vagas[idx].jobDescription=v.descricao.slice(0,5000);
         vagas[idx].updatedAt=agora;
       } else if(idx<0){
