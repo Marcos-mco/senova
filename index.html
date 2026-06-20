@@ -4255,6 +4255,21 @@ function loadCRM(){
       });
       localStorage.setItem('senova_migration_limpar_resumo_v1','1');
     }
+    if(!localStorage.getItem('senova_migration_score_normaliza_v1')){
+      // Cards antigos divergiam: o app recalculava e gerava número ≠ do salvo.
+      // Normaliza para o score salvo (extensão/busca) ser o autoritativo no modal.
+      // Respeita análise completa explícita (atsCV) — essa fica como está.
+      vagas=vagas.map(v=>{
+        if(v.status!=='lead'||v.atsCV) return v;
+        if(typeof v.score==='number'&&v.score>0){
+          return {...v, atsScore:String(Math.round(v.score)),
+            compatFortes:(v.pontos_fortes&&v.pontos_fortes.length)?v.pontos_fortes:(v.compatFortes||[]),
+            compatAtencao:(v.pontos_atencao&&v.pontos_atencao.length)?v.pontos_atencao:(v.compatAtencao||[])};
+        }
+        return v;
+      });
+      localStorage.setItem('senova_migration_score_normaliza_v1','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
