@@ -919,6 +919,46 @@ export default {
       return json({ whitelist, padroes: padroesAtivos, autorizados_nao_lidos: autorizadosNaoLidos, emails });
     }
 
+    // ── Limpar backlog: não-lidos antigos da Caixa de Entrada ──────
+    // Busca não-lidos da inbox (sem janela de data), filtra autorizados,
+    // marca-lido + move via $batch. Repetível: chamar até processados=0.
+    if (path === '/api/emails/limpar-backlog' && request.method === 'GET') {
+      const token = await getValidToken(env);
+      if (!token) return json({ erro: 'Outlook não conectado' }, 401);
+      const whitelist = await getWhitelist(env);
+      const padroesAtivos = await getPadroes(env);
+      const folderId = await getOrCreateSenovaFolder(token, env);
+      const msRes = await fetch(
+        `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$filter=isRead eq false&$top=100&$orderby=receivedDateTime desc&$select=id,subject,from`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!msRes.ok) { const err = await msRes.json().catch(()=>null); return json({ erro: 'fetch inbox falhou', status: msRes.status, detalhes: err }, 502); }
+      const msData = await msRes.json();
+      const naoLidos = (msData.value || []);
+      const autorizados = naoLidos
+        .map(e => ({ id: e.id, from: e.from?.emailAddress?.address || '', subject: e.subject || '' }))
+        .filter(e => estaAutorizado({ from: e.from, subject: e.subject }, whitelist, padroesAtivos));
+      // Marcar lido
+      const marcRes = autorizados.length ? await graphBatch(token, autorizados.map((e, i) => ({
+        id: String(i), method: 'PATCH', url: `/me/messages/${encodeURIComponent(e.id)}`,
+        headers: { 'Content-Type': 'application/json' }, body: { isRead: true },
+      }))) : [];
+      // Mover
+      const movRes = (folderId && autorizados.length) ? await graphBatch(token, autorizados.map((e, i) => ({
+        id: String(i), method: 'POST', url: `/me/messages/${encodeURIComponent(e.id)}/move`,
+        headers: { 'Content-Type': 'application/json' }, body: { destinationId: folderId },
+      }))) : [];
+      const marc_ok = marcRes.filter(r => r.status >= 200 && r.status < 300).length;
+      const mov_ok = movRes.filter(r => r.status >= 200 && r.status < 300).length;
+      return json({
+        inbox_nao_lidos: naoLidos.length,
+        autorizados: autorizados.length,
+        marcados_ok: marc_ok,
+        movidos_ok: mov_ok,
+        restam_aprox: naoLidos.length, // chamar de novo se ainda houver autorizados
+      });
+    }
+
     // ── Padrões automáticos de email ────────────────────────────────
     if (path === '/api/padroes' && request.method === 'GET') {
       return json({ padroes: await getPadroes(env), definidos: PADROES_DEFINIDOS });
