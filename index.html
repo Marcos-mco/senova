@@ -8044,6 +8044,14 @@ async function carregarEmails(forcar){
     const data=await res.json();
     if(data.reauth){ conectarOutlook(); return; }
     if(data.movidos>0) showToast(`📁 ${data.movidos} email${data.movidos===1?'':'s'} movido${data.movidos===1?'':'s'} para "Lidos pelo Senova"`,3000);
+    // Limpeza de backlog: não-lidos antigos da inbox que ficam fora da janela do sync.
+    // Só no sync forçado (não a cada poll). Marca-lido sempre; move se a toggle estiver ON.
+    if(forcar){
+      fetch(WORKER_URL+'/api/emails/limpar-backlog'+(mover?'?mover=true':''))
+        .then(r=>r.json())
+        .then(b=>{ if(b&&b.movidos_ok>0) showToast(`🧹 ${b.movidos_ok} email${b.movidos_ok===1?'':'s'} antigo${b.movidos_ok===1?'':'s'} arrumado${b.movidos_ok===1?'':'s'}`,3000); })
+        .catch(()=>{});
+    }
     let bloqueados=[];try{bloqueados=JSON.parse(localStorage.getItem('emails_bloqueados')||'[]');}catch{}
     const emails=(data.emails||data.novos||[]).filter(e=>!bloqueados.includes((e.from||'').toLowerCase().trim()));
     const total=emails.length;

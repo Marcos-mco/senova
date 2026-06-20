@@ -925,9 +925,10 @@ export default {
     if (path === '/api/emails/limpar-backlog' && request.method === 'GET') {
       const token = await getValidToken(env);
       if (!token) return json({ erro: 'Outlook não conectado' }, 401);
+      const moverParaPasta = url.searchParams.get('mover') === 'true';
       const whitelist = await getWhitelist(env);
       const padroesAtivos = await getPadroes(env);
-      const folderId = await getOrCreateSenovaFolder(token, env);
+      const folderId = moverParaPasta ? await getOrCreateSenovaFolder(token, env) : null;
       const msRes = await fetch(
         `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$filter=isRead eq false&$top=100&$orderby=receivedDateTime desc&$select=id,subject,from`,
         { headers: { Authorization: `Bearer ${token}` } }
