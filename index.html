@@ -8722,13 +8722,25 @@ window.__senovaImportar=async function(){
     novas.forEach(v=>{
       _imp.add(String(v.id));
       const vUrl=_normUrl(v.url);
-      // Atualizar card existente se tiver a mesma URL e não tiver descrição ainda
+      // Atualizar card existente com a mesma URL
       const idx=vUrl?vagas.findIndex(e=>{const eu=_normUrl(e.origemUrl);return eu&&eu===vUrl;}): -1;
       const _exD=vagas[idx]?.jobDescription||vagas[idx]?.descricao||'';
-      if(idx>=0 && v.descricao && v.descricao.length>100 && (!_exD||v.descricao.length>_exD.length+200)){
-        vagas[idx].jobDescription=v.descricao.slice(0,5000);
+      if(idx>=0){
+        // Card já existe: a extensão trouxe análise fresca → score/bullets vencem
+        // o recálculo do app (evita divergência extensão vs modal).
+        if(typeof v.score==='number'&&v.score>0){
+          vagas[idx].score=v.score;
+          vagas[idx].atsScore=String(Math.round(v.score));
+          if(v.pontos_fortes&&v.pontos_fortes.length) vagas[idx].compatFortes=v.pontos_fortes;
+          if(v.pontos_atencao&&v.pontos_atencao.length) vagas[idx].compatAtencao=v.pontos_atencao;
+          if(!vagas[idx].fonte) vagas[idx].fonte='extensao_chrome';
+        }
+        // Descrição: só substitui se a nova for mais completa
+        if(v.descricao && v.descricao.length>100 && (!_exD||v.descricao.length>_exD.length+200)){
+          vagas[idx].jobDescription=v.descricao.slice(0,5000);
+        }
         vagas[idx].updatedAt=agora;
-      } else if(idx<0){
+      } else {
         vagas.push(_montarCardVarredura(v,agora));
       }
     });
