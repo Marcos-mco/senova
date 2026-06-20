@@ -5607,16 +5607,27 @@ function mvAjustarSecoesStatus(status){
   _mvRenderDescGuide(null);
   if(isLead){
     if(ta&&!ta.value.trim()){
-      // Sem descrição: nunca mostrar textarea vazia — buscar automaticamente
-      ta.style.display='none';
-      if(hint) hint.style.display='none';
-      if(editBtn) editBtn.style.display='none';
-      const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
-      if(_origemUrl&&editingVagaId&&editingVagaId!=='new'){
-        _mvRenderDescGuide('loading');
-        _mvAutoFetchDesc();
+      // Sem jobDescription: tentar usar notas do email (fallback sem precisar de sync)
+      const _vCur=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+      const _notasRaw=_vCur?.notas||'';
+      const _notasClean=_notasRaw.replace(/vagas\s+semelhantes\s+no\s+linkedin[^.]*\.?/gi,'').replace(/veja\s+esta\s+vaga[^.]*\.?/gi,'').replace(/see\s+this\s+job[^.]*\.?/gi,'').replace(/similar\s+jobs[^.]*\.?/gi,'').replace(/\s+/g,' ').trim();
+      if(_notasClean.length>30){
+        ta.value=_notasClean;
+        if(_vCur&&!_vCur.jobDescription){_vCur.jobDescription=_notasClean;saveVagas();}
+        mvRefreshDescPreview();
+        if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='var(--text3)';editBtn.onclick=mvEditarDesc;}
       } else {
-        _mvRenderDescGuide('none');
+        // Sem conteúdo útil: buscar automaticamente via URL
+        ta.style.display='none';
+        if(hint) hint.style.display='none';
+        if(editBtn) editBtn.style.display='none';
+        const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
+        if(_origemUrl&&editingVagaId&&editingVagaId!=='new'){
+          _mvRenderDescGuide('loading');
+          _mvAutoFetchDesc();
+        } else {
+          _mvRenderDescGuide('none');
+        }
       }
     } else {
       // Com descrição: mostra preview (já tratado por mvRefreshDescPreview)
