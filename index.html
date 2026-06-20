@@ -5270,7 +5270,8 @@ function openVagaModal(id){
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
     const _savedDesc=v.jobDescription||v.descricao||'';
-    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade'))));
+    // Lixo: apenas em descrições CURTAS (<600 chars). Descrições longas da extensão ficam intactas.
+    const _descLixo=_savedDesc&&_savedDesc.length<600&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade'))));
     if(_descLixo){
       // Descrição lixo salva — limpar e permitir rebusca
       const _vi=vagas.findIndex(x=>String(x.id)===String(v.id));
@@ -5611,7 +5612,8 @@ function mvAjustarSecoesStatus(status){
       const _vCur=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
       const _notasRaw=_vCur?.notas||'';
       const _notasClean=_notasRaw.replace(/vagas\s+semelhantes\s+no\s+linkedin[^.]*\.?/gi,'').replace(/veja\s+esta\s+vaga[^.]*\.?/gi,'').replace(/see\s+this\s+job[^.]*\.?/gi,'').replace(/similar\s+jobs[^.]*\.?/gi,'').replace(/\s+/g,' ').trim();
-      if(_notasClean.length>30){
+      // Só usar notas se o card veio de email (tem emailAssunto) — extensão não tem notas
+      if(_notasClean.length>30&&_vCur?.emailAssunto){
         ta.value=_notasClean;
         if(_vCur&&!_vCur.jobDescription){_vCur.jobDescription=_notasClean;saveVagas();}
         mvRefreshDescPreview();
