@@ -694,9 +694,24 @@ export default {
 
       // Separar alertas dos normais (só entre os autorizados)
       const alertasNovos = autorizado.filter(isAlertaFn);
-      const emailsNormais = autorizado.filter(e => !isAlertaFn(e));
+      const emailsParaClassificar = autorizado.filter(e => !isAlertaFn(e));
 
-      const todoClassificados = await classificarEmails(emailsNormais, whitelist, env);
+      // Pré-filtro: notificações sociais do LinkedIn → irrelevante sem custo de IA
+      // Padrão: messaging-digest, notifications de conexão/mensagem/visualização
+      const _linkedinSocialFrom = /messaging-digest-noreply@linkedin\.com|notifications@linkedin\.com/i;
+      const _linkedinSocialSubj = /enviou uma mensagem|acabou de se conectar|aceitou seu convite|visualizou seu perfil|curtiu sua|comentou em|parabenizou|celebrando|aniversário|new message|has accepted|accepted your|viewed your|reacted to|commented on|birthday|new connection|connected with/i;
+      const isSocialLinkedIn = e => {
+        const from = (e.from || '').toLowerCase();
+        const subj = (e.subject || '');
+        return _linkedinSocialFrom.test(from) ||
+          (from.includes('linkedin.com') && _linkedinSocialSubj.test(subj));
+      };
+      const socialIrrelevante = emailsParaClassificar.filter(isSocialLinkedIn)
+        .map(e => ({...e, categoria:'irrelevante', label:'Social LinkedIn', emoji:'👥', prioridade:1, resumo:'Notificação social do LinkedIn'}));
+      const emailsNormais = emailsParaClassificar.filter(e => !isSocialLinkedIn(e));
+
+      const classificadosIA = await classificarEmails(emailsNormais, whitelist, env);
+      const todoClassificados = [...classificadosIA, ...socialIrrelevante];
       // Salvar vistos APENAS para emails autorizados — emails bloqueados por consentimento
       // não devem ser marcados como vistos, para reaparecer quando o usuário autorizar a fonte.
       await salvarVistos(env, autorizado.map(e => e.id));
@@ -723,9 +738,11 @@ export default {
         ...alertasNovos.map(e => e.id),
       ]);
 
-      // Marcar como lido + (opt) mover para pasta "Lidos pelo Senova" em background
+      // Marcar como lido: apenas emails autorizados (privacidade + limite de subrequests)
+      // Emails não autorizados não são marcados — reaparecem quando fonte for liberada
+      const paraMarcarLido = autorizado.filter(e => !e.is_read);
       ctx.waitUntil((async () => {
-        await Promise.allSettled(novos.map(e =>
+        await Promise.allSettled(paraMarcarLido.map(e =>
           fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
