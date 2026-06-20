@@ -5421,10 +5421,9 @@ function openVagaModal(id){
     const _vCheck=vagas.find(x=>String(x.id)===String(editingVagaId));
     if(_vCheck&&_vCheck.status==='lead'){
       const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
-      const _hasScore=!!(_vCheck.atsScore&&parseInt(_vCheck.atsScore)>0);
-      const _hasBullets=(_vCheck.compatFortes?.length||0)+(_vCheck.compatAtencao?.length||0)>0;
-      const _hasRichAnalise=/^(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(_vCheck.atsAnalise||'');
-      if(_hasDesc&&(!_hasScore||(_hasScore&&!_hasBullets&&!_hasRichAnalise))) setTimeout(()=>mvAutoCompatCheck(),500);
+      // Score salvo (app OU extensão/busca) é autoritativo — só recalcula se NÃO há score algum
+      const _hasScore=!!((_vCheck.atsScore&&parseInt(_vCheck.atsScore)>0)||(typeof _vCheck.score==='number'&&_vCheck.score>0));
+      if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
     }
   }
 }
