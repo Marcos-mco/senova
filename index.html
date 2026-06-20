@@ -7151,7 +7151,7 @@ function renderOportunidades(){
     html+=`<div style="font-size:13px;color:var(--text2);">${_vagasLeadAutoAdicionadas} vaga${_vagasLeadAutoAdicionadas===1?'':'s'} adicionada${_vagasLeadAutoAdicionadas===1?'':'s'} automaticamente esta sessão.</div>
     <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>`;
   } else {
-    html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma nova. <button onclick="verificarVagasVarredura()" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
+    html+=`<div style="font-size:13px;color:var(--text3);">Nenhuma nova. <button onclick="this.textContent='Verificando...';this.disabled=true;verificarVagasVarredura().finally(()=>{this.textContent='↺ Verificar';this.disabled=false;})" style="font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;">↺ Verificar</button></div>`;
   }
   html+='</div>';
   lista.innerHTML=html;
