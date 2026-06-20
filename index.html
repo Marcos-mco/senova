@@ -5270,7 +5270,7 @@ function openVagaModal(id){
     const mvLink=document.getElementById('mv-link-vaga');
     if(mvLink){ mvLink.dataset.url=origemUrlLimpa; mvLink.style.display=origemUrlLimpa?'':'none'; }
     const _savedDesc=v.jobDescription||v.descricao||'';
-    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade')))||(_savedDesc.length<250&&_savedDesc.toLowerCase().includes('linkedin')));
+    const _descLixo=_savedDesc&&(_savedDesc.includes('veja esta vaga')||_savedDesc.includes('semelhantes no LinkedIn')||_savedDesc.includes('see this job')||_savedDesc.includes('similar jobs on LinkedIn')||_savedDesc.includes('respeita a sua privacidade')||_savedDesc.includes('respects your privacy')||_savedDesc.includes('cookies essenciais')||(_savedDesc.includes('cookie')&&(_savedDesc.includes('privacy')||_savedDesc.includes('privacidade'))));
     if(_descLixo){
       // Descrição lixo salva — limpar e permitir rebusca
       const _vi=vagas.findIndex(x=>String(x.id)===String(v.id));
@@ -7050,12 +7050,16 @@ function atualizarSinalOportunidades(){
   const s=document.getElementById('sinal-oportunidades');
   if(!txt) return;
   const nBusca=_vagasLeadAutoAdicionadas;
-  const nEmail=_sinaisEmails.leads;
+  const nEmailNovos=_sinaisEmails.leads;
+  const nFunil=vagas.filter(v=>v.status==='lead').length;
+  const nEmail=nEmailNovos>0?nEmailNovos:nFunil;
   const total=nBusca+nEmail;
   if(total>0){
-    txt.textContent=`${total} oportunidade${total===1?'':'s'} nova${total===1?'':'s'}`;
+    txt.textContent=nEmailNovos>0
+      ?`${total} oportunidade${total===1?'':'s'} nova${total===1?'':'s'}`
+      :`${total} oportunidade${total===1?'':'s'} no funil`;
     const partes=[];
-    if(nEmail>0) partes.push(`${nEmail} de email`);
+    if(nEmailNovos>0) partes.push(`${nEmailNovos} de email`);
     if(nBusca>0) partes.push(`${nBusca} da busca automática`);
     if(sub) sub.textContent=partes.length>1?partes.join(' · '):'';
     s&&(s.style.display='',s.style.opacity='1');
@@ -7105,20 +7109,27 @@ function toggleVarreduraHome(){ toggleOportunidades(); }
 function renderOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');
   if(!lista||lista.style.display==='none') return;
-  const nEmail=_sinaisEmails.leads;
+  const nEmailNovos=_sinaisEmails.leads;
+  const nFunil=vagas.filter(v=>v.status==='lead').length;
   const nBusca=_vagasLeadPendentes.length;
   let html='';
   // Sub A: vagas de email (já nos Processos)
-  if(nEmail>0){
-    const vN=_sinaisEmails.vagasN||0;
-    const hN=_sinaisEmails.huntersN||0;
-    const partes=[];
-    if(vN>0) partes.push(`${vN} vaga${vN===1?'':'s'} direta${vN===1?'':'s'}`);
-    if(hN>0) partes.push(`${hN} de headhunter`);
-    const detalhe=partes.length>0?partes.join(' · '):`${nEmail} vaga${nEmail===1?'':'s'}`;
+  if(nEmailNovos>0||nFunil>0){
+    const nShow=nEmailNovos>0?nEmailNovos:nFunil;
+    let detalhe;
+    if(nEmailNovos>0){
+      const vN=_sinaisEmails.vagasN||0;
+      const hN=_sinaisEmails.huntersN||0;
+      const partes=[];
+      if(vN>0) partes.push(`${vN} vaga${vN===1?'':'s'} direta${vN===1?'':'s'}`);
+      if(hN>0) partes.push(`${hN} de headhunter`);
+      detalhe=partes.length>0?partes.join(' · ')+' adicionada'+`${nShow===1?'':'s'} esta sessão.`:`${nShow} vaga${nShow===1?'':'s'} adicionada${nShow===1?'':'s'} esta sessão.`;
+    } else {
+      detalhe=`${nShow} vaga${nShow===1?'':'s'} em acompanhamento no funil.`;
+    }
     html+=`<div style="padding:10px 22px 10px;border-bottom:1px solid var(--border);">
       <div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Já nos processos</div>
-      <div style="font-size:13px;color:var(--text2);">${detalhe} adicionada${nEmail===1?'':'s'} esta sessão.</div>
+      <div style="font-size:13px;color:var(--text2);">${detalhe}</div>
       <button onclick="showPage('crm')" style="margin-top:6px;font-size:12px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver em Processos →</button>
     </div>`;
   }
@@ -7845,6 +7856,19 @@ function _enriquecerURLsExistentes(emails){
   if(!emails||!emails.length) return;
   let atualizados=0;
 
+  // 0. Preencher jobDescription de cards existentes que não têm (retroativo)
+  emails.forEach(e=>{
+    if(!e.resumo) return;
+    const assunto=(e.subject||e.assunto||'').trim();
+    if(!assunto) return;
+    const card=vagas.find(v=>
+      v.emailAssunto&&
+      (v.emailAssunto.trim()===assunto||v.emailAssunto.trim().toLowerCase()===assunto.toLowerCase())&&
+      !v.jobDescription
+    );
+    if(card){ card.jobDescription=e.resumo; atualizados++; }
+  });
+
   // 1. Atualizar cards com email correspondente nos últimos 7 dias
   emails.forEach(e=>{
     const linkVaga=e.link_vaga||'';
@@ -8091,7 +8115,7 @@ async function carregarEmails(forcar){
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
-          {const _t=Date.now();vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'',notas:conteudoVaga,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
+          {const _t=Date.now();const _resumo=e.resumo||'';vagas.push({id:_t+Math.floor(Math.random()*10000),empresa,cargo,canal,prioridade:'media',status:'lead',salario:'',proxima:'',notas:conteudoVaga,jobDescription:_resumo,emailDest:emailDestFinal,emailAssunto:assunto,origemUrl:linkVaga,data:novaData,createdAt:_t,updatedAt:_t,tags,timeline:[{ts:_t,texto:'Card criado'}]});}
           _sinaisEmails.leads++;
           if(e.categoria==='hunter') _sinaisEmails.huntersN++; else _sinaisEmails.vagasN++;
         }
