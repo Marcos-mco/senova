@@ -8763,6 +8763,12 @@ window.__senovaImportar=async function(){
         if(v.descricao && v.descricao.length>100 && (!_exD||v.descricao.length>_exD.length+200)){
           vagas[idx].jobDescription=v.descricao.slice(0,5000);
         }
+        // Cargo/empresa: a extensão extrai limpo da página da vaga → substitui o título
+        // feio que veio do assunto do email. Guard: nunca aceitar título-digest.
+        const _ct=(v.titulo||'').trim();
+        if(_ct.length>2 && _ct.length<160 && !/vagas?\s+(semelhantes|similares|para você|recomendad)|jobs you may|pesquisa de emprego/i.test(_ct)) vagas[idx].cargo=_ct;
+        const _et=(v.empresa||'').trim();
+        if(_et.length>1 && _et.length<120) vagas[idx].empresa=_et;
         vagas[idx].updatedAt=agora;
       } else {
         vagas.push(_montarCardVarredura(v,agora));
