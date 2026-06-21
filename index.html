@@ -4270,7 +4270,7 @@ function loadCRM(){
       });
       localStorage.setItem('senova_migration_score_normaliza_v1','1');
     }
-    if(!localStorage.getItem('senova_migration_score_reset_v1')){
+    if(!localStorage.getItem('senova_migration_score_reset_v2')){
       // Reset solicitado: zerar scores dos cards de Oportunidade para recalcular
       // limpo com a arquitetura nova (campos separados + temp0). Preserva descrição
       // e CV gerado (atsCV/atsAnalise) — só zera os números/bullets. Ao abrir o card,
@@ -4278,7 +4278,7 @@ function loadCRM(){
       vagas=vagas.map(v=>v.status==='lead'
         ? {...v, atsScore:'', atsCvScore:'', score:null, compatFortes:[], compatAtencao:[]}
         : v);
-      localStorage.setItem('senova_migration_score_reset_v1','1');
+      localStorage.setItem('senova_migration_score_reset_v2','1');
       setTimeout(()=>{ try{ _recalcLeadsReset(); }catch{} }, 2500);
     }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
