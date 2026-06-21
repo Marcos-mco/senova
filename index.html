@@ -6157,7 +6157,8 @@ function mvUpdateScoreDisplay(vOpt){
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 async function mvAutoCompatCheck(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  if(!jobDesc||!editingVagaId||editingVagaId==='new') return;
+  // Não calcular com descrição incompleta (snippet de email). Espera a descrição completa (extensão).
+  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return;
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return;
   const v=vagas[idx];
@@ -7122,7 +7123,7 @@ function atualizarSinalOportunidades(){
 function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
 
 async function analisarLoteBackground(){
-  const semScore=vagas.filter(v=>v.status==='lead'&&!!(v.descricao||v.jobDescription)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
+  const semScore=vagas.filter(v=>v.status==='lead'&&((v.jobDescription||v.descricao||'').trim().length>=400)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
   if(!semScore.length) return;
   semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
   renderCRM();
@@ -7151,7 +7152,7 @@ async function analisarLoteBackground(){
 async function _recalcLeadsReset(){
   let guard=0;
   while(guard++<30){
-    const restam=vagas.filter(v=>v.status==='lead'&&!!(v.descricao||v.jobDescription)&&typeof v.score!=='number'&&!v.atsScore).length;
+    const restam=vagas.filter(v=>v.status==='lead'&&((v.jobDescription||v.descricao||'').trim().length>=400)&&typeof v.score!=='number'&&!v.atsScore).length;
     if(!restam) break;
     await analisarLoteBackground();
   }
@@ -8710,6 +8711,12 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   vagas[idx].updatedAt=Date.now();
   saveVagas();
   showToast('✅ Descrição e metadados carregados do LinkedIn');
+  // Descrição entrou (enriquecimento em background ou manual) → recalcula o score
+  // mesmo com o card fechado. Debounce para agrupar várias chegando em sequência.
+  if(vagas[idx].status==='lead'&&_descMudou&&desc.length>=400){
+    clearTimeout(window._enriqRecalcT);
+    window._enriqRecalcT=setTimeout(()=>{ try{ analisarLoteBackground(); }catch{} }, 1500);
+  }
   // Se o modal estiver aberto com este card, atualiza em tempo real
   if(String(editingVagaId)===String(vagas[idx].id)){
     const ta=document.getElementById('mv-job-desc');
@@ -8726,6 +8733,19 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   }
 };
 
+// Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
+// para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
+window.__senovaPendentesDesc=function(){
+  try{
+    const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').replace(/\/$/,'');
+    return (vagas||[]).filter(v=>v.status==='lead'
+        && /linkedin\.com\/.*jobs\/view\//i.test(v.origemUrl||'')
+        && !((v.jobDescription||v.descricao||'').trim().length>120))
+      .map(v=>_norm(v.origemUrl))
+      .filter((u,i,a)=>u&&/\/jobs\/view\//.test(u)&&a.indexOf(u)===i)
+      .slice(0,20);
+  }catch{ return []; }
+};
 // Exposto como window.__senovaImportar para o background.js disparar imediatamente ao salvar
 window.__senovaImportar=async function(){
   try{

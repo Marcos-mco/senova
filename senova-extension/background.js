@@ -218,3 +218,62 @@ async function salvarSinal({ titulo, empresa, url, resumo }) {
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
+
+// ── ENRIQUECIMENTO EM SEGUNDO PLANO ──────────────────────────────────
+// Enquanto o Senova está aberto, abre as vagas do LinkedIn sem descrição em
+// uma ABA DE FUNDO (mesma janela, sem foco). O content.js auto-extrai e envia
+// AUTO_UPDATE_DESC; fechamos a aba. Throttle: uma por vez, com pausa (anti-bot).
+chrome.alarms.create('senova-enrich', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-enrich') enriquecerPendentes().catch(() => {}); });
+
+let _enriquecendo = false;
+async function _tentadasGet() {
+  const s = await chrome.storage.session.get('senova_enriq_tentadas');
+  return new Set(s.senova_enriq_tentadas || []);
+}
+async function _tentadasAdd(set, url) {
+  set.add(url);
+  await chrome.storage.session.set({ senova_enriq_tentadas: [...set].slice(-300) });
+}
+
+async function enriquecerPendentes() {
+  if (_enriquecendo) return;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return; // só com o Senova aberto
+
+  let pend = [];
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: () => (typeof window.__senovaPendentesDesc === 'function') ? window.__senovaPendentesDesc() : [],
+    });
+    pend = out?.[0]?.result || [];
+  } catch { return; }
+
+  const tentadas = await _tentadasGet();
+  const alvos = pend.filter(u => /linkedin\.com\/.*jobs\/view\//i.test(u) && !tentadas.has(u)).slice(0, 3);
+  if (!alvos.length) return;
+
+  _enriquecendo = true;
+  try {
+    for (const url of alvos) {
+      await _tentadasAdd(tentadas, url);
+      await _enriquecerUma(url, senovaTab.windowId);
+      await new Promise(r => setTimeout(r, 4000)); // throttle entre vagas
+    }
+  } finally { _enriquecendo = false; }
+}
+
+async function _enriquecerUma(url, windowId) {
+  let tabId;
+  try {
+    const tab = await chrome.tabs.create({ url, active: false, windowId }); // aba de fundo, sem foco
+    tabId = tab.id;
+    // content.js (em /jobs/view/) auto-extrai e envia AUTO_UPDATE_DESC ao carregar.
+    // autoUpdateDesc atualiza o card; como a aba está na mesma janela, não rouba foco.
+    await new Promise(r => setTimeout(r, 9000)); // tempo de carregar + extrair
+  } catch {} finally {
+    if (tabId) await chrome.tabs.remove(tabId).catch(() => {});
+  }
+}
