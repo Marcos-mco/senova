@@ -7,7 +7,19 @@
 
 ---
 
-## v3.28 — 12/jun/2026 (ATUAL)
+## v3.37 — 21/jun/2026 (ATUAL) — Sessão 10
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.15 (recarregar local)
+**Commit estável:** `825c2d9` | **Worker:** $batch + limpar-backlog + temperature:0
+
+- **P3 ✅** emails marcar-lido/mover: causa raiz = limite de subrequests; Graph $batch + endpoint limpar-backlog (auto no sync). Confirmado.
+- **P1 ✅** score: separar Compatibilidade (`atsScore`) do ATS do CV (`atsCvScore`); `temperature:0` no /api/analisar-vaga (determinístico); reset eager recalcula leads; **só calcula com descrição ≥400 chars**.
+- **P2 🧪** vagas de email sem descrição: **extensão enriquece em background** (aba de fundo, content.js extrai, throttle); re-captura limpa cargo/empresa. Falta teste (recarregar extensão).
+- **Estudo de precificação** criado (`ESTUDO_PRECIFICACAO_20jun2026.md`) — insumo do business plan.
+- **Pendente:** P4 (logos), P5 (validar fixes).
+
+---
+
+## v3.28 — 12/jun/2026 — Sessão 7
 **Status:** Funcional · Deploy GitHub Pages ✅
 **Commits:** `2da579b` | **Worker:** v7.8 (sem alteração)
 

@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 18/jun/2026 — v3.36 (Sessão 9)*
+*Atualizado: 21/jun/2026 — v3.37 (Sessão 10)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -33,7 +33,43 @@
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `6666546` (18/jun/2026)
+- **Último commit estável:** `825c2d9` (21/jun/2026 — Sessão 10) + doc precificação após
+- **Worker:** deployado com $batch (emails) + limpar-backlog + `temperature:0` no /api/analisar-vaga
+
+---
+
+## ⚠️ AO RETOMAR (Sessão 11) — AÇÕES IMEDIATAS
+1. **Recarregar a extensão**: `chrome://extensions` → Senova → ↻ recarregar. Confirmar **v2.15**. (Arquivos da extensão são locais; mudaram na Sessão 10.)
+2. **Carregar Senova com código novo**: `?v=algo` ou DevTools → Disable cache → F5 (cache do navegador já enganou testes antes).
+3. **Testar P2 (enriquecimento em background)**: logado no LinkedIn, Senova aberto ~1 min → cards de email sem descrição devem preencher descrição + score sozinhos (abas piscando = funcionando). Cards com snippet curto ficam "Não analisada" (correto — não calcula sem desc completa ≥400 chars).
+4. Se P2 ok → seguir ordem: **P4 (logos)** → **P5 (validar fixes)**.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 10 (20-21/jun/2026)
+
+### P3 — Emails lidos/movidos ✅ FECHADO E CONFIRMADO
+Causa raiz era **limite de subrequests do Worker** (não a lógica). Fixes: `encodeURIComponent` no PATCH (`21e358c`); **Graph $batch** 20 ops/subrequest (`062b1c2`); endpoint `/api/emails/limpar-backlog` para não-lidos antigos (`8a619b1`) + disparo automático no sync forçado (`0cb182f`). Verificado: `autorizados_nao_lidos:0`, 27 emails movidos.
+
+### P1 — Score divergente ✅ RESOLVIDO (raiz)
+4 camadas corrigidas + arquitetura nova:
+- Score da extensão autoritativo; guards de auto-recálculo (`36ea103`, `b6d5c66`); migração normaliza antigos (`50b8174`); re-captura atualiza card existente (`3a7af5c`).
+- **Raiz (`9a19826`):** separar **Compatibilidade (`atsScore`)** do **ATS do CV (`atsCvScore`)** — um sobrescrevia o outro. `temperature:0` no `/api/analisar-vaga` (Sonnet 4.6) → determinístico. **NÃO** dá pra usar temperature no Opus 4.8 (erro 400).
+- **Reset eager** (`6fa5211`,`847051d`,`82499f5`): zera scores dos leads e recalcula em lote (`_recalcLeadsReset` → `analisarLoteBackground`), cards já com score (decisão "eager" do estudo).
+- **Só calcula com descrição completa (≥400 chars)** em TODOS os gatilhos (Marcos: "não calcular de snippet").
+
+### P2 — Vagas reais de email sem descrição → 🧪 IMPLEMENTADO, FALTA TESTE
+**Solução padrão de mercado: extensão enriquece em background** (`825c2d9`). Worker não consegue buscar LinkedIn (bloqueia); a extensão (logada) sim.
+- `background.js`: alarm 1min; com Senova aberto, lê pendentes (`window.__senovaPendentesDesc`), abre URL canônica em **aba de fundo** (mesma janela, sem foco), `content.js` auto-extrai → `AUTO_UPDATE_DESC` → atualiza card, fecha aba. Throttle 3/min, 4s, marca tentadas.
+- `manifest`: +`alarms`, −`windows`, v2.15 (resolveu o órfão `"windows"`).
+- Re-captura também limpa cargo/empresa do título feio de email (`e0ef67d`).
+
+### Estudo de precificação / arquitetura → `ESTUDO_PRECIFICACAO_20jun2026.md`
+Insumo do **business plan**. Decisões: arquitetura "processa uma vez, mural read-only"; 4 análises separadas (Compatibilidade/ATS/CV/Sofia); Sonnet+cache+temp0 na decisão (nunca rebaixar o sinal que o usuário age em cima); alavanca de custo = eager vs lazy + funil + cache (~$0,01/vaga); **planos: Recomeço grátis 3m (missão) / Essencial R$29 / Profissional R$59 / Executivo R$129**; diferenciar por ferramentas, não por cota de buscas.
+
+### Pendência conhecida
+- Cards antigos com score já gravado mantêm o valor (fix é pra frente). Reset eager (rodou) cobre os leads.
+- Descrição via servidor está **fora** (LinkedIn bloqueia) — só pela extensão.
 
 ---
 
