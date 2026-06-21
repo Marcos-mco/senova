@@ -1,4 +1,4 @@
-// Service worker — Senova Extension v2.3
+// Service worker — Senova Extension v2.16
 
 const WORKER  = 'https://senova-proxy.marcos-mco.workers.dev';
 const APP_URL = 'https://marcos-mco.github.io/senova';
@@ -226,6 +226,13 @@ async function salvarSinal({ titulo, empresa, url, resumo }) {
 chrome.alarms.create('senova-enrich', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-enrich') enriquecerPendentes().catch(() => {}); });
 
+// Ao abrir/recarregar o Senova, checa pendências logo (sem esperar o alarme de 1 min).
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status !== 'complete') return;
+  if (!tab?.url || !tab.url.startsWith(APP_URL)) return;
+  setTimeout(() => enriquecerPendentes().catch(() => {}), 2500);
+});
+
 let _enriquecendo = false;
 async function _tentadasGet() {
   const s = await chrome.storage.session.get('senova_enriq_tentadas');
@@ -234,6 +241,27 @@ async function _tentadasGet() {
 async function _tentadasAdd(set, url) {
   set.add(url);
   await chrome.storage.session.set({ senova_enriq_tentadas: [...set].slice(-300) });
+}
+
+// Lê APENAS a existência do cookie de sessão do LinkedIn (li_at) para saber se o
+// usuário está logado. Nunca lê o valor do cookie, nunca o transmite — princípio
+// ético do Senova. Serve só para não abrir abas inúteis quando não há sessão.
+async function _linkedInLogado() {
+  try {
+    const c = await chrome.cookies.get({ url: 'https://www.linkedin.com', name: 'li_at' });
+    return !!c;
+  } catch { return true; } // sem permissão/erro: não bloqueia o fluxo antigo
+}
+
+// Mostra (necessario=true) ou esconde (false) no app o aviso "faça login no LinkedIn".
+async function _notificarLogin(tabId, necessario, qtd) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId }, world: 'MAIN',
+      func: (n, q) => { if (typeof window.__senovaLoginLinkedIn === 'function') window.__senovaLoginLinkedIn(n, q); },
+      args: [necessario, qtd],
+    });
+  } catch {}
 }
 
 async function enriquecerPendentes() {
@@ -251,8 +279,23 @@ async function enriquecerPendentes() {
     pend = out?.[0]?.result || [];
   } catch { return; }
 
+  const linkedinPend = pend.filter(u => /linkedin\.com\/.*jobs\/view\//i.test(u));
+
+  // Nada do LinkedIn aguardando → garante o aviso oculto.
+  if (!linkedinPend.length) { await _notificarLogin(senovaTab.id, false, 0); return; }
+
+  // Não logado: não abre abas (LinkedIn bloqueia sem sessão) e avisa o usuário.
+  // NÃO marca como "tentada" → ao logar, estas vagas são reprocessadas sozinhas.
+  if (!(await _linkedInLogado())) {
+    await _notificarLogin(senovaTab.id, true, linkedinPend.length);
+    return;
+  }
+
+  // Logado: some o aviso e processa em background.
+  await _notificarLogin(senovaTab.id, false, 0);
+
   const tentadas = await _tentadasGet();
-  const alvos = pend.filter(u => /linkedin\.com\/.*jobs\/view\//i.test(u) && !tentadas.has(u)).slice(0, 3);
+  const alvos = linkedinPend.filter(u => !tentadas.has(u)).slice(0, 3);
   if (!alvos.length) return;
 
   _enriquecendo = true;

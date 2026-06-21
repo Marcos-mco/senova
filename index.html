@@ -5175,7 +5175,7 @@ function renderCRM(){
           ${c.indicacao?`<div style="font-size:11px;color:#1A7A4A;margin-bottom:4px;">👤 ${c.indicacao}</div>`:''}
           ${c.proxima?`<div class="kcard-proxima" data-full="${(c.proxima||'').replace(/"/g,'&quot;')}" onmouseenter="_showProximaTip(this)" onmouseleave="_hideProximaTip()">${c.proxima}</div>`:''}
           ${((c.proxima||c.indicacao)&&(typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription)))?`<div style="border-top:1px solid var(--border);margin:5px 0 4px;"></div>`:''}
-          ${(()=>{if(_loteEmAnalise.has(String(c.id)))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--action);background:#EEF4FF;border:1px solid #BFDBFE;border-radius:8px;padding:2px 7px;font-weight:600;">⏳ Analisando...</span></div>';const sc=typeof c.score==='number'?c.score:(c.atsScore?parseInt(c.atsScore||0):null);if(sc!==null&&sc>=0){const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;}if(!!(c.descricao||c.jobDescription))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 7px;font-weight:600;">— Não analisada</span></div>';return '';})()}
+          ${(()=>{if(_loteEmAnalise.has(String(c.id)))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--action);background:#EEF4FF;border:1px solid #BFDBFE;border-radius:8px;padding:2px 7px;font-weight:600;">⏳ Analisando...</span></div>';const sc=typeof c.score==='number'?c.score:(c.atsScore?parseInt(c.atsScore||0):null);if(sc!==null&&sc>=0){const cor=corDoScore(sc);const fitHtml=typeof c.fitProjeto==='number'?(()=>{const fp=c.fitProjeto;const fc=corDoScore(fp);return `<span style="color:var(--text3);font-size:10.5px;font-weight:500;margin-left:10px;">Fit ao Projeto</span> <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${fc};">${fp}%</span>`;})():'';return `<div style="margin-top:${(c.proxima||c.indicacao)?0:6}px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;"><span style="font-size:10.5px;color:var(--text3);font-weight:500;">Compatibilidade</span><span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${cor};">${sc}%</span>${fitHtml}</div>`;}if(!!(c.descricao||c.jobDescription))return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 7px;font-weight:600;">— Não analisada</span></div>';if(c.status==='lead'&&c.origemUrl)return '<div style="margin-top:5px;"><span style="font-size:10.5px;color:var(--action);background:#EEF4FF;border:1px solid #BFDBFE;border-radius:8px;padding:2px 7px;font-weight:600;">⏳ Aguardando análise</span></div>';return '';})()}
           ${(c.updatedAt||c.createdAt||nv>0)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;${_hasBody?'padding-top:6px;border-top:1px solid var(--border);':''}"><div>${nv===1?`<span class="badge badge-inativo-1">⚠ ${_diasInativo}d</span>`:nv===2?`<span class="badge badge-inativo-2">🔴 ${_diasInativo*2}d</span>`:nv===3?`<span class="badge badge-inativo-3">🚨 ${_diasInativo*3}d</span>`:''}</div><div style="font-size:10px;color:var(--text3);">${(c.updatedAt||c.createdAt)?formatTs(c.updatedAt||c.createdAt):''}</div></div>`:''}
         </div>`;
       }).join('')}
@@ -8745,6 +8745,34 @@ window.__senovaPendentesDesc=function(){
       .filter((u,i,a)=>u&&/\/jobs\/view\//.test(u)&&a.indexOf(u)===i)
       .slice(0,20);
   }catch{ return []; }
+};
+// Exposto para a extensão: aviso "faça login no LinkedIn". O enriquecimento em
+// background só lê a descrição da vaga com o LinkedIn logado. Quando há vagas
+// aguardando e o usuário NÃO está logado, a extensão chama isto com necessario=true.
+// Ao logar, a extensão reprocessa sozinha e chama com necessario=false (banner some).
+window.__senovaLoginLinkedIn=function(necessario,qtd){
+  let b=document.getElementById('snv-login-li');
+  const n=qtd||0;
+  if(!necessario||n<1){
+    if(b){ b.style.opacity='0'; b.style.transform='translateX(-50%) translateY(-8px)'; setTimeout(()=>{ if(b)b.remove(); },250); }
+    return;
+  }
+  const plural=n>1;
+  if(!b){
+    b=document.createElement('div');
+    b.id='snv-login-li';
+    b.style.cssText='position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--navy);color:#fff;border:1px solid var(--gold);border-radius:12px;padding:13px 18px;box-shadow:0 6px 24px rgba(0,0,0,0.22);z-index:10000;display:flex;align-items:center;gap:14px;max-width:min(580px,92vw);font-family:var(--font);opacity:0;transition:opacity .25s,transform .25s;';
+    document.body.appendChild(b);
+  }
+  b.innerHTML='<div style="font-size:22px;line-height:1;flex-shrink:0;">🔒</div>'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px;">'+n+' vaga'+(plural?'s':'')+' do LinkedIn aguardando análise</div>'
+    +'<div style="font-size:13.5px;color:#D6E0EC;line-height:1.45;">Faça login no LinkedIn — só uma vez — e o Senova analisa tudo sozinho.</div>'
+    +'</div>'
+    +'<button id="snv-login-li-btn" style="flex-shrink:0;background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:11px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;min-height:44px;">Abrir LinkedIn ↗</button>';
+  const btn=document.getElementById('snv-login-li-btn');
+  if(btn) btn.onclick=()=>window.open('https://www.linkedin.com/login','_blank');
+  requestAnimationFrame(()=>{ b.style.opacity='1'; b.style.transform='translateX(-50%) translateY(0)'; });
 };
 // Exposto como window.__senovaImportar para o background.js disparar imediatamente ao salvar
 window.__senovaImportar=async function(){
