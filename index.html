@@ -3133,7 +3133,7 @@ function renderATSResult(analise,cv,crm) {
   }
 
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
-  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;saveVagas();}}
+  if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){vagas[_vi].atsCV=cv;vagas[_vi].atsCvScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;saveVagas();}}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
   const col = corDoScore(score);
   const bg = bgDoScore(score);
@@ -3394,7 +3394,7 @@ async function candidatarVagaATS(){
     const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});
   }
   const savedIdx=idx>=0?idx:vagas.length-1;
-  vagas[savedIdx].atsScore=score;
+  vagas[savedIdx].atsCvScore=score;
   vagas[savedIdx].atsKeywords=keywords;
   vagas[savedIdx].atsAnalise=_atsAnalise;
   vagas[savedIdx].atsCV=lastCV;
@@ -5320,9 +5320,9 @@ function openVagaModal(id){
         docsSec.style.display='';
         if(cvTxt) cvTxt.value=v.atsCV||'';
         if(cartaTxt) cartaTxt.value=v.atsCarta||'';
-        if(v.atsScore&&scoreEl){const s=parseInt(v.atsScore||0);const sc=corDoScore(s);const sb=bgDoScore(s);scoreEl.style.cssText+=`;color:${sc};background:${sb};border:1px solid ${sc}33;`;scoreEl.textContent='Score: '+s+'/100';scoreEl.style.display='';}
+        if(v.atsCvScore&&scoreEl){const s=parseInt(v.atsCvScore||0);const sc=corDoScore(s);const sb=bgDoScore(s);scoreEl.style.cssText+=`;color:${sc};background:${sb};border:1px solid ${sc}33;`;scoreEl.textContent='Score: '+s+'/100';scoreEl.style.display='';}
         if(kwEl) kwEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
-        if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsScore||0);const c2=corDoScore(sc2);resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
+        if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsCvScore||0);const c2=corDoScore(sc2);resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
         // Restaurar lastCV para permitir downloads sem reanálise
         lastCV=v.atsCV;
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
@@ -5797,6 +5797,7 @@ function saveVaga(){
     indicacao:document.getElementById('mv-indicacao')?.value||existing?.indicacao||'',
     jobDescription:document.getElementById('mv-job-desc').value,
     atsScore:existing?.atsScore||'',
+    atsCvScore:existing?.atsCvScore||'',
     atsKeywords:existing?.atsKeywords||'',
     atsAnalise:existing?.atsAnalise||'',
     atsCV:existing?.atsCV||'',
@@ -6295,7 +6296,7 @@ function saveVagaSilent(){
     origemUrl:document.getElementById('mv-origem-url')?.value||'',
     motivo:document.getElementById('mv-motivo')?.value||'',
     jobDescription:document.getElementById('mv-job-desc')?.value||'',
-    atsScore:existing?.atsScore||'',atsKeywords:existing?.atsKeywords||'',
+    atsScore:existing?.atsScore||'',atsCvScore:existing?.atsCvScore||'',atsKeywords:existing?.atsKeywords||'',
     atsAnalise:existing?.atsAnalise||'',atsCV:existing?.atsCV||'',
     atsCarta:existing?.atsCarta||'',tags:existing?.tags||[],
     score:existing?.score,classificacao:existing?.classificacao,
@@ -6361,7 +6362,7 @@ async function analisarInline(){
     atsEmpresa=empresa;atsCargo=cargo;
     if(editingVagaId&&editingVagaId!=='new'){
       const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-      if(idx>=0){vagas[idx].atsCV=cv;vagas[idx].atsScore=score?String(score):'';vagas[idx].atsKeywords=keywords;vagas[idx].atsAnalise=analise;vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].updatedAt=Date.now();saveVagas();}
+      if(idx>=0){vagas[idx].atsCV=cv;vagas[idx].atsCvScore=score?String(score):'';vagas[idx].atsKeywords=keywords;vagas[idx].atsAnalise=analise;vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].updatedAt=Date.now();saveVagas();}
     }
     const scoreCol=corDoScore(score);
     const scoreBg=bgDoScore(score);
@@ -8661,6 +8662,7 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
     vagas[idx].jobDescription=desc.slice(0,5000);
     // Descrição mudou — score calculado de outra descrição é inválido (app E extensão)
     vagas[idx].atsScore='';
+    vagas[idx].atsCvScore='';
     vagas[idx].atsAnalise='';
     vagas[idx].score=null;
   }

@@ -1385,6 +1385,7 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
       },
       body: JSON.stringify({
         model:'claude-sonnet-4-6',
+        temperature:0,
         max_tokens:1000,
         system:[{ type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } }],
         messages:[{ role:'user', content:`VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}` }]
