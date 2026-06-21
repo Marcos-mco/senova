@@ -4279,6 +4279,7 @@ function loadCRM(){
         ? {...v, atsScore:'', atsCvScore:'', score:null, compatFortes:[], compatAtencao:[]}
         : v);
       localStorage.setItem('senova_migration_score_reset_v1','1');
+      setTimeout(()=>{ try{ _recalcLeadsReset(); }catch{} }, 2500);
     }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
@@ -7136,12 +7137,23 @@ async function analisarLoteBackground(){
       const idx=vagas.findIndex(x=>String(x.id)===String(v.id));
       if(idx<0){renderCRM();continue;}
       vagas[idx].score=data.score;
+      vagas[idx].atsScore=String(Math.round(data.score));
       if(data.classificacao) vagas[idx].classificacao=data.classificacao;
       if(data.resumo) vagas[idx].resumo=data.resumo;
-      if(data.pontos_fortes) vagas[idx].pontos_fortes=data.pontos_fortes;
+      if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }
+      if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
       saveVagas();
       renderCRM();
     }catch{_loteEmAnalise.delete(String(v.id));renderCRM();}
+  }
+}
+// Recalcula TODOS os leads sem score (lote processa 5 por vez; aqui repetimos até zerar).
+async function _recalcLeadsReset(){
+  let guard=0;
+  while(guard++<30){
+    const restam=vagas.filter(v=>v.status==='lead'&&!!(v.descricao||v.jobDescription)&&typeof v.score!=='number'&&!v.atsScore).length;
+    if(!restam) break;
+    await analisarLoteBackground();
   }
 }
 function toggleOportunidades(){
