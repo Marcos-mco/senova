@@ -8707,6 +8707,13 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
       vagas[idx].jornada=extra.jornada;
       const je=document.getElementById('mv-jornada');if(je)je.value=extra.jornada;
     }
+    // Cargo/empresa reais da página da vaga → substituem o título feio vindo de
+    // e-mail de digest ("…e vagas semelhantes", "…e mais outras"). Guarda: nunca
+    // aceitar título de digest nem "LinkedIn" como empresa.
+    const _ct=(extra.cargo||'').trim();
+    if(_ct.length>2&&_ct.length<160&&!/vagas?\s+(semelhantes|similares|para você|recomendad)|jobs you may|pesquisa de emprego|mais outras|seu perfil talvez/i.test(_ct)) vagas[idx].cargo=_ct;
+    const _et=(extra.empresa||'').trim();
+    if(_et.length>1&&_et.length<120&&!/^linkedin$/i.test(_et)) vagas[idx].empresa=_et;
   }
   vagas[idx].updatedAt=Date.now();
   saveVagas();

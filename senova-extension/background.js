@@ -177,7 +177,8 @@ async function salvarVaga(payload) {
 }
 
 async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }, senderTab) {
-  if (!descricao || descricao.length < 100) return;
+  console.log('[SNV] descrição chegou da aba:', url, '|', (descricao || '').length, 'chars');
+  if (!descricao || descricao.length < 100) { console.log('[SNV] descrição curta/vazia (<100) — aba de fundo não renderizou'); return; }
 
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
@@ -197,8 +198,8 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
       target: { tabId: senovaTab.id },
       world: 'MAIN',
       func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
-      args: [url, descricao, { local, salario, modalidade, jornada }],
-    }).catch(() => {});
+      args: [url, descricao, { local, salario, modalidade, jornada, cargo, empresa }],
+    }).then(() => console.log('[SNV] card atualizado no app:', url)).catch(e => console.log('[SNV] erro ao atualizar card:', e.message));
     if (isDifferentWindow) {
       if (isFromPopup) await chrome.tabs.remove(senderTab.id).catch(() => {});
       await chrome.tabs.update(senovaTab.id, { active: true }).catch(() => {});
@@ -224,13 +225,14 @@ async function salvarSinal({ titulo, empresa, url, resumo }) {
 // uma ABA DE FUNDO (mesma janela, sem foco). O content.js auto-extrai e envia
 // AUTO_UPDATE_DESC; fechamos a aba. Throttle: uma por vez, com pausa (anti-bot).
 chrome.alarms.create('senova-enrich', { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-enrich') enriquecerPendentes().catch(() => {}); });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-enrich') { console.log('[SNV] alarme disparou'); enriquecerPendentes().catch(e => console.log('[SNV] erro no ciclo:', e.message)); } });
 
 // Ao abrir/recarregar o Senova, checa pendências logo (sem esperar o alarme de 1 min).
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
   if (!tab?.url || !tab.url.startsWith(APP_URL)) return;
-  setTimeout(() => enriquecerPendentes().catch(() => {}), 2500);
+  console.log('[SNV] Senova carregou — checando pendências em 2.5s');
+  setTimeout(() => enriquecerPendentes().catch(e => console.log('[SNV] erro no ciclo:', e.message)), 2500);
 });
 
 let _enriquecendo = false;
@@ -250,7 +252,7 @@ async function _linkedInLogado() {
   try {
     const c = await chrome.cookies.get({ url: 'https://www.linkedin.com', name: 'li_at' });
     return !!c;
-  } catch { return true; } // sem permissão/erro: não bloqueia o fluxo antigo
+  } catch (e) { console.log('[SNV] cookies indisponível:', e.message); return true; } // sem permissão/erro: não bloqueia o fluxo antigo
 }
 
 // Mostra (necessario=true) ou esconde (false) no app o aviso "faça login no LinkedIn".
@@ -265,10 +267,10 @@ async function _notificarLogin(tabId, necessario, qtd) {
 }
 
 async function enriquecerPendentes() {
-  if (_enriquecendo) return;
+  if (_enriquecendo) { console.log('[SNV] já estava enriquecendo — pulei'); return; }
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
-  if (!senovaTab) return; // só com o Senova aberto
+  if (!senovaTab) { console.log('[SNV] Senova não está aberto'); return; }
 
   let pend = [];
   try {
@@ -277,16 +279,19 @@ async function enriquecerPendentes() {
       func: () => (typeof window.__senovaPendentesDesc === 'function') ? window.__senovaPendentesDesc() : [],
     });
     pend = out?.[0]?.result || [];
-  } catch { return; }
+  } catch (e) { console.log('[SNV] erro lendo pendentes:', e.message); return; }
 
   const linkedinPend = pend.filter(u => /linkedin\.com\/.*jobs\/view\//i.test(u));
+  console.log('[SNV] pendentes total:', pend.length, '| LinkedIn /jobs/view/:', linkedinPend.length, linkedinPend);
 
   // Nada do LinkedIn aguardando → garante o aviso oculto.
   if (!linkedinPend.length) { await _notificarLogin(senovaTab.id, false, 0); return; }
 
   // Não logado: não abre abas (LinkedIn bloqueia sem sessão) e avisa o usuário.
   // NÃO marca como "tentada" → ao logar, estas vagas são reprocessadas sozinhas.
-  if (!(await _linkedInLogado())) {
+  const logado = await _linkedInLogado();
+  console.log('[SNV] logado no LinkedIn (cookie li_at):', logado);
+  if (!logado) {
     await _notificarLogin(senovaTab.id, true, linkedinPend.length);
     return;
   }
@@ -296,27 +301,64 @@ async function enriquecerPendentes() {
 
   const tentadas = await _tentadasGet();
   const alvos = linkedinPend.filter(u => !tentadas.has(u)).slice(0, 3);
-  if (!alvos.length) return;
+  console.log('[SNV] já tentadas:', tentadas.size, '| alvos deste ciclo:', alvos.length, alvos);
+  if (!alvos.length) { console.log('[SNV] nada novo a tentar (todas já tentadas nesta sessão)'); return; }
 
   _enriquecendo = true;
   try {
     for (const url of alvos) {
       await _tentadasAdd(tentadas, url);
-      await _enriquecerUma(url, senovaTab.windowId);
-      await new Promise(r => setTimeout(r, 4000)); // throttle entre vagas
+      console.log('[SNV] buscando descrição (API pública):', url);
+      await _enriquecerUma(url, senovaTab.id);
+      await new Promise(r => setTimeout(r, 4000)); // throttle entre vagas (anti rate-limit)
     }
-  } finally { _enriquecendo = false; }
+  } finally { _enriquecendo = false; console.log('[SNV] ciclo de enriquecimento terminou'); }
 }
 
-async function _enriquecerUma(url, windowId) {
-  let tabId;
-  try {
-    const tab = await chrome.tabs.create({ url, active: false, windowId }); // aba de fundo, sem foco
-    tabId = tab.id;
-    // content.js (em /jobs/view/) auto-extrai e envia AUTO_UPDATE_DESC ao carregar.
-    // autoUpdateDesc atualiza o card; como a aba está na mesma janela, não rouba foco.
-    await new Promise(r => setTimeout(r, 9000)); // tempo de carregar + extrair
-  } catch {} finally {
-    if (tabId) await chrome.tabs.remove(tabId).catch(() => {});
-  }
+// Converte um trecho de HTML em texto legível (sem DOMParser — indisponível no service worker).
+function _htmlToText(h) {
+  return (h || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|div|h[1-6]|ul|ol)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// Busca a descrição pela API pública de vaga do LinkedIn (jobs-guest), que devolve
+// o texto SEM abrir aba, sem foco e SEM enviar o cookie do usuário (credentials:'omit').
+// Motivo: o LinkedIn congela a renderização de abas sem foco, então a antiga aba de
+// fundo nunca entregava a descrição. Traz também cargo e empresa reais (limpa título feio).
+async function _buscarDescricaoGuest(url) {
+  const id = (url.match(/\/jobs\/view\/(\d+)/) || [])[1];
+  if (!id) return null;
+  const r = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, { credentials: 'omit' });
+  if (!r.ok) { console.log('[SNV] guest HTTP', r.status, 'p/', id); return null; }
+  const html = await r.text();
+  const mDesc = html.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/i)
+             || html.match(/description__text[^>]*>([\s\S]*?)<\/div>/i);
+  const descricao = mDesc ? _htmlToText(mDesc[1]) : '';
+  const mCargo = html.match(/top-card-layout__title[^>]*>([\s\S]*?)<\/h[12]>/i)
+              || html.match(/topcard__title[^>]*>([\s\S]*?)<\/h[12]>/i);
+  const cargo = mCargo ? _htmlToText(mCargo[1]) : '';
+  const mEmp = html.match(/topcard__org-name-link[^>]*>([\s\S]*?)<\/a>/i)
+            || html.match(/topcard__flavor[^>]*>([\s\S]*?)<\/span>/i);
+  const empresa = mEmp ? _htmlToText(mEmp[1]) : '';
+  return { descricao, cargo, empresa };
+}
+
+async function _enriquecerUma(url, senovaTabId) {
+  let dados = null;
+  try { dados = await _buscarDescricaoGuest(url); }
+  catch (e) { console.log('[SNV] erro no fetch guest:', e.message); return; }
+  const desc = (dados && dados.descricao) || '';
+  if (desc.length < 100) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return; }
+  console.log('[SNV] guest OK p/', url, '|', desc.length, 'chars | cargo:', dados.cargo, '| empresa:', dados.empresa);
+  await chrome.scripting.executeScript({
+    target: { tabId: senovaTabId }, world: 'MAIN',
+    func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
+    args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa }],
+  }).then(() => console.log('[SNV] card atualizado no app:', url)).catch(e => console.log('[SNV] erro ao atualizar card:', e.message));
 }
