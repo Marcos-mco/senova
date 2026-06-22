@@ -4281,6 +4281,12 @@ function loadCRM(){
       localStorage.setItem('senova_migration_score_reset_v2','1');
       setTimeout(()=>{ try{ _recalcLeadsReset(); }catch{} }, 2500);
     }
+    if(!localStorage.getItem('senova_migration_remover_lixo_sem_vaga_v1')){
+      // Remove "vagas" que são ruído de e-mail (boas-vindas/notificações) e não têm
+      // link nenhum. Seguro: vaga real sempre tem URL. Ver _ehVagaLixo.
+      vagas=vagas.filter(v=>!_ehVagaLixo(v));
+      localStorage.setItem('senova_migration_remover_lixo_sem_vaga_v1','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
@@ -4543,6 +4549,16 @@ function _montarCardVarredura(v, agora){
     pontos_fortes:v.pontos_fortes||[], compatFortes:v.pontos_fortes||[], compatAtencao:v.pontos_atencao||[], descricao:v.descricao||'', fonte:v.fonte||'',
     localizacao:v.localizacao||'', modelo:v.modelo||'', regime:v.regime||'',
   };
+}
+
+// Detecta "vaga" que é ruído de e-mail: sem link nenhum + título de saudação/
+// notificação do LinkedIn (boas-vindas, rede). Vaga real SEMPRE tem URL — por isso
+// é seguro filtrar só quando não há link. Funciona com objeto do Worker (url/titulo)
+// e com card do app (origemUrl/cargo).
+function _ehVagaLixo(v){
+  const semUrl=!(((v.url||v.origemUrl)||'').trim());
+  const ruido=/bem.?vind|welcome|seja bem|de novo$|sua rede social|notificaç(ão|ões)|convite|anivers[áa]rio/i;
+  return semUrl && ruido.test(((v.titulo||v.cargo||'')+' '+(v.empresa||'')).trim());
 }
 
 // ── Widget "Vagas para revisar" na Home ─────────────────────────
@@ -7082,7 +7098,7 @@ async function verificarVagasVarredura(){
     _varreduraStatus=resSt.ok?await resSt.json():null;
     const deletados=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
     const pendentes=(dataLead.vagas||[])
-      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id)));
+      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v));
     _vagasLeadPendentes=[];
     if(pendentes.length>0){
       const agora=Date.now();
@@ -8808,7 +8824,8 @@ window.__senovaImportar=async function(){
       v.fonte==='extensao_chrome'&&
       !_imp.has(String(v.id))&&
       !vagas.some(e=>String(e.id)===String(v.id))&&
-      !_del.has(String(v.id))
+      !_del.has(String(v.id))&&
+      !_ehVagaLixo(v)
     );
     if(novas.length===0) return;
     const agora=Date.now();
