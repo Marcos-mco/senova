@@ -3047,6 +3047,9 @@ function ctxToggleUsar(id, usar) {
   const e = entries.find(e => e.id === id);
   if (e) { e.usar = usar; ctxSalvarTodos(entries); }
 }
+function ctxTextoAtivos() {
+  return (ctxCarregar() || []).filter(e => e.usar).map(e => e.texto);
+}
 function ctxBuscarRelevantes(vagaTexto) {
   ctxInicializar();
   const entries = (ctxCarregar() || []).filter(e => e.usar);
@@ -4424,7 +4427,7 @@ async function importarVagasLead(){
         const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||''}),
+          body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||'',contexto:ctxTextoAtivos()}),
         });
         const analise = await res.json();
         analisadas++;
@@ -6210,7 +6213,7 @@ async function mvAutoCompatCheck(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000)})
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
     });
     if(!res.ok) return;
     const data=await res.json();
@@ -7175,7 +7178,7 @@ async function analisarLoteBackground(){
   for(const v of semScore){
     try{
       const desc=v.descricao||v.jobDescription||'';
-      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc})});
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos()})});
       _loteEmAnalise.delete(String(v.id));
       if(!res.ok){renderCRM();continue;}
       const data=await res.json();

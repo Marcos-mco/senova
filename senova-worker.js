@@ -434,8 +434,8 @@ export default {
 
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
-      const { titulo, empresa, descricao } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env));
+      const { titulo, empresa, descricao, contexto } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto));
     }
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
@@ -1363,7 +1363,7 @@ function vagaRecente(d) {
 // ═══════════════════════════════════════════════════════════════════
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
-async function analisarVaga(titulo, empresa, descricao, env) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto) {
   const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
 
 CANDIDATO: ${PERFIL_MARCOS}
@@ -1388,7 +1388,7 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
         temperature:0,
         max_tokens:1000,
         system:[{ type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } }],
-        messages:[{ role:'user', content:`VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}` }]
+        messages:[{ role:'user', content:`VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
       }),
     });
     const data = await resp.json();
