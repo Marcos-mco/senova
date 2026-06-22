@@ -349,7 +349,10 @@ async function _buscarDescricaoGuest(url) {
   const r = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, { credentials: 'omit' });
   if (!r.ok) { console.log('[SNV] guest HTTP', r.status, 'p/', id); return null; }
   const html = await r.text();
-  const mDesc = html.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/i)
+  // Ancorar no botão "ver mais" (fim real da descrição) evita truncar num </div>
+  // interno. Fallbacks: </div> simples e description__text.
+  const mDesc = html.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>\s*<(?:button|a)[^>]*show-more-less-html__button/i)
+             || html.match(/show-more-less-html__markup[^>]*>([\s\S]*?)<\/div>/i)
              || html.match(/description__text[^>]*>([\s\S]*?)<\/div>/i);
   const descricao = mDesc ? _htmlToText(mDesc[1]) : '';
   const mCargo = html.match(/top-card-layout__title[^>]*>([\s\S]*?)<\/h[12]>/i)

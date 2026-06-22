@@ -8761,9 +8761,13 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
 window.__senovaPendentesDesc=function(){
   try{
     const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').replace(/\/$/,'');
+    // Título de digest = veio de e-mail "X e vagas semelhantes / e mais outras".
+    // Esses precisam de enriquecimento MESMO já tendo descrição (o texto é do e-mail,
+    // não da vaga real), para trocar título feio + descrição + nota pelos corretos.
+    const _ehDigestTitulo=t=>/vagas?\s+(semelhantes|similares|para você|recomendad)|e mais outras|seu perfil talvez|novas vagas/i.test(t||'');
     return (vagas||[]).filter(v=>v.status==='lead'
         && /linkedin\.com\/.*jobs\/view\//i.test(v.origemUrl||'')
-        && !((v.jobDescription||v.descricao||'').trim().length>120))
+        && (!((v.jobDescription||v.descricao||'').trim().length>120) || _ehDigestTitulo(v.cargo)))
       .map(v=>_norm(v.origemUrl))
       .filter((u,i,a)=>u&&/\/jobs\/view\//.test(u)&&a.indexOf(u)===i)
       .slice(0,20);
