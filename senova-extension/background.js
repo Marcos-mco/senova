@@ -373,12 +373,13 @@ async function _enriquecerUma(url, senovaTabId) {
   if (desc.length < 100) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return false; }
   console.log('[SNV] guest OK p/', url, '|', desc.length, 'chars | cargo:', dados.cargo, '| empresa:', dados.empresa);
   try {
-    await chrome.scripting.executeScript({
+    const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTabId }, world: 'MAIN',
-      func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
+      func: (u, d, extra) => (typeof window.__senovaAtualizarDesc === 'function') ? window.__senovaAtualizarDesc(u, d, extra) : false,
       args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa }],
     });
-    console.log('[SNV] card atualizado no app:', url);
-    return true;
+    const updated = out && out[0] && out[0].result === true;
+    console.log(updated ? '[SNV] card atualizado no app:' : '[SNV] card NÃO casou — vai re-tentar:', url);
+    return updated; // só "queima" a tentativa quando o card realmente mudou
   } catch (e) { console.log('[SNV] erro ao atualizar card:', e.message); return false; }
 }
