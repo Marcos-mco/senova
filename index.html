@@ -8737,6 +8737,11 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   }
   vagas[idx].updatedAt=Date.now();
   saveVagas();
+  // saveVagas NÃO redesenha o Kanban — sem isto o card fica visualmente preso
+  // ("Aguardando análise" / título feio) mesmo com os dados já atualizados.
+  // Debounce agrupa várias chegando em sequência do enriquecimento em lote.
+  clearTimeout(window._enriqRenderT);
+  window._enriqRenderT=setTimeout(()=>{ try{ if(typeof renderCRM==='function') renderCRM(); }catch{} }, 350);
   showToast('✅ Descrição e metadados carregados do LinkedIn');
   // Descrição entrou (enriquecimento em background ou manual) → recalcula o score
   // mesmo com o card fechado. Debounce para agrupar várias chegando em sequência.
