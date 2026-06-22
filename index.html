@@ -8781,6 +8781,21 @@ window.__senovaLoginLinkedIn=function(necessario,qtd){
   if(btn) btn.onclick=()=>window.open('https://www.linkedin.com/login','_blank');
   requestAnimationFrame(()=>{ b.style.opacity='1'; b.style.transform='translateX(-50%) translateY(0)'; });
 };
+// Exposto para a extensão: indicador "Analisando vagas…" enquanto o enriquecimento
+// em background processa. ativo=true mostra; false esconde.
+window.__senovaProcessando=function(ativo){
+  let p=document.getElementById('snv-processando');
+  if(!ativo){ if(p){ p.style.opacity='0'; setTimeout(()=>{ if(p)p.remove(); },250); } return; }
+  if(!p){
+    if(!document.getElementById('snv-spin-style')){ const s=document.createElement('style'); s.id='snv-spin-style'; s.textContent='@keyframes snvspin{to{transform:rotate(360deg)}}'; document.head.appendChild(s); }
+    p=document.createElement('div');
+    p.id='snv-processando';
+    p.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border:1px solid var(--action);border-radius:24px;padding:10px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9998;display:flex;align-items:center;gap:10px;font-family:var(--font);font-size:13.5px;font-weight:600;opacity:0;transition:opacity .25s;';
+    p.innerHTML='<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:snvspin .7s linear infinite;flex-shrink:0;"></span> Analisando vagas… aguarde um instante';
+    document.body.appendChild(p);
+  }
+  requestAnimationFrame(()=>{ p.style.opacity='1'; });
+};
 // Exposto como window.__senovaImportar para o background.js disparar imediatamente ao salvar
 window.__senovaImportar=async function(){
   try{

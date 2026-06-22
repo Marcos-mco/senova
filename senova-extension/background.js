@@ -266,6 +266,17 @@ async function _notificarLogin(tabId, necessario, qtd) {
   } catch {}
 }
 
+// Mostra (true) ou esconde (false) o indicador "Analisando vagas…" no app.
+async function _notificarProcessando(tabId, ativo) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId }, world: 'MAIN',
+      func: (a) => { if (typeof window.__senovaProcessando === 'function') window.__senovaProcessando(a); },
+      args: [ativo],
+    });
+  } catch {}
+}
+
 async function enriquecerPendentes() {
   if (_enriquecendo) { console.log('[SNV] já estava enriquecendo — pulei'); return; }
   const tabs = await chrome.tabs.query({});
@@ -300,19 +311,20 @@ async function enriquecerPendentes() {
   await _notificarLogin(senovaTab.id, false, 0);
 
   const tentadas = await _tentadasGet();
-  const alvos = linkedinPend.filter(u => !tentadas.has(u)).slice(0, 3);
+  const alvos = linkedinPend.filter(u => !tentadas.has(u)).slice(0, 6);
   console.log('[SNV] já tentadas:', tentadas.size, '| alvos deste ciclo:', alvos.length, alvos);
   if (!alvos.length) { console.log('[SNV] nada novo a tentar (todas já tentadas nesta sessão)'); return; }
 
   _enriquecendo = true;
+  await _notificarProcessando(senovaTab.id, true);
   try {
     for (const url of alvos) {
-      await _tentadasAdd(tentadas, url);
       console.log('[SNV] buscando descrição (API pública):', url);
-      await _enriquecerUma(url, senovaTab.id);
-      await new Promise(r => setTimeout(r, 4000)); // throttle entre vagas (anti rate-limit)
+      const ok = await _enriquecerUma(url, senovaTab.id);
+      if (ok) await _tentadasAdd(tentadas, url); // só "queima" a tentativa se deu certo → falhas reprocessam
+      await new Promise(r => setTimeout(r, 1500)); // throttle leve entre buscas (anti rate-limit)
     }
-  } finally { _enriquecendo = false; console.log('[SNV] ciclo de enriquecimento terminou'); }
+  } finally { _enriquecendo = false; await _notificarProcessando(senovaTab.id, false); console.log('[SNV] ciclo de enriquecimento terminou'); }
 }
 
 // Converte um trecho de HTML em texto legível (sem DOMParser — indisponível no service worker).
@@ -349,16 +361,21 @@ async function _buscarDescricaoGuest(url) {
   return { descricao, cargo, empresa };
 }
 
+// Retorna true se conseguiu enriquecer o card; false caso contrário (p/ reprocessar depois).
 async function _enriquecerUma(url, senovaTabId) {
   let dados = null;
   try { dados = await _buscarDescricaoGuest(url); }
-  catch (e) { console.log('[SNV] erro no fetch guest:', e.message); return; }
+  catch (e) { console.log('[SNV] erro no fetch guest:', e.message); return false; }
   const desc = (dados && dados.descricao) || '';
-  if (desc.length < 100) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return; }
+  if (desc.length < 100) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return false; }
   console.log('[SNV] guest OK p/', url, '|', desc.length, 'chars | cargo:', dados.cargo, '| empresa:', dados.empresa);
-  await chrome.scripting.executeScript({
-    target: { tabId: senovaTabId }, world: 'MAIN',
-    func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
-    args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa }],
-  }).then(() => console.log('[SNV] card atualizado no app:', url)).catch(e => console.log('[SNV] erro ao atualizar card:', e.message));
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: senovaTabId }, world: 'MAIN',
+      func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
+      args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa }],
+    });
+    console.log('[SNV] card atualizado no app:', url);
+    return true;
+  } catch (e) { console.log('[SNV] erro ao atualizar card:', e.message); return false; }
 }
