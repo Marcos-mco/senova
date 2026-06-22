@@ -7,7 +7,24 @@
 
 ---
 
-## v3.37 — 21/jun/2026 (ATUAL) — Sessão 10
+## v3.38 — 22/jun/2026 (ATUAL) — Sessão 11
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.16** (recarregar local — +permissão `cookies`)
+**Commit estável:** `a6c2c57` | **Worker:** sem alteração nesta sessão
+
+Sessão dedicada ao **enriquecimento de vagas de e-mail** (causa: vagas de digest sem descrição/score, com títulos feios). Arquitetura trocada e vários bugs de raiz resolvidos:
+
+- **Enriquecimento via API pública `jobs-guest`** do LinkedIn (`_buscarDescricaoGuest`) — substitui a aba de fundo (que o LinkedIn congelava sem foco). Sem abrir aba, sem foco, sem enviar cookie. Traz cargo/empresa reais → limpa título de digest.
+- **Detecção de login** via cookie `li_at` (só existência, nunca o valor) → **banner "Faça login no LinkedIn"** quando deslogado; **indicador "⚙️ Analisando vagas…"** quando processando.
+- **Casamento por ID da vaga** (`/jobs/view/ID`) em vez de URL crua — à prova de `?`, `#`, `/comm/`. `__senovaAtualizarDesc` retorna se casou; só "queima" a tentativa quando o card muda de fato (falha reprocessa).
+- **Limiar único (>120 chars)** entre pendente/gravar/pontuar — fim do limbo "Aguardando análise" das descrições 120–399.
+- **Render respeita `filtroAtivo`** (card sob filtro não ficava mais preso).
+- **Dedup por ID da vaga** (`_vagaJaExiste`) — mesma vaga por fontes diferentes não duplica + migração que junta duplicados já existentes.
+- **Remoção de cards-lixo** sem link (boas-vindas/notificações de e-mail) — `_ehVagaLixo` + migração.
+- **Agente `senova-auditor`** criado em `.claude/agents/` (auditoria de causa raiz com arquitetura embutida).
+
+---
+
+## v3.37 — 21/jun/2026 — Sessão 10
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.15 (recarregar local)
 **Commit estável:** `825c2d9` | **Worker:** $batch + limpar-backlog + temperature:0
 

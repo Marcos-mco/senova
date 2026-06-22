@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 21/jun/2026 — v3.37 (Sessão 10)*
+*Atualizado: 22/jun/2026 — v3.38 (Sessão 11)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.36 (18/jun/2026 — Sessão 9)
+## ESTADO ATUAL — v3.38 (22/jun/2026 — Sessão 11)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -28,21 +28,48 @@
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — versão: `e206a904`)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — sem alteração na Sessão 11)
+- **Extensão Chrome:** **v2.16** (arquivos locais — recarregar em `chrome://extensions`; +permissão `cookies`)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `825c2d9` (21/jun/2026 — Sessão 10) + doc precificação após
-- **Worker:** deployado com $batch (emails) + limpar-backlog + `temperature:0` no /api/analisar-vaga
+- **Último commit estável:** `a6c2c57` (22/jun/2026 — Sessão 11)
+
+### 🔎 Agente de auditoria
+- **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 11) — AÇÕES IMEDIATAS
-1. **Recarregar a extensão**: `chrome://extensions` → Senova → ↻ recarregar. Confirmar **v2.15**. (Arquivos da extensão são locais; mudaram na Sessão 10.)
-2. **Carregar Senova com código novo**: `?v=algo` ou DevTools → Disable cache → F5 (cache do navegador já enganou testes antes).
-3. **Testar P2 (enriquecimento em background)**: logado no LinkedIn, Senova aberto ~1 min → cards de email sem descrição devem preencher descrição + score sozinhos (abas piscando = funcionando). Cards com snippet curto ficam "Não analisada" (correto — não calcula sem desc completa ≥400 chars).
-4. Se P2 ok → seguir ordem: **P4 (logos)** → **P5 (validar fixes)**.
+## ⚠️ AO RETOMAR (Sessão 12) — AÇÕES IMEDIATAS
+1. **Recarregar a extensão**: `chrome://extensions` → Senova → ↻ recarregar. Confirmar **v2.16**.
+2. **Abrir Senova com `Ctrl+Shift+R`** (cache do navegador já enganou testes — sempre forçar). As migrações de dedup/limpeza rodam uma vez no load.
+3. **Validar enriquecimento end-to-end** (logado no LinkedIn, ~1-2 min, SEM filtro/busca ativo na coluna): cards de digest sem descrição preenchem **título real + descrição + Compatibilidade** sozinhos, e aparece o indicador "⚙️ Analisando vagas…". Sem duplicatas da mesma vaga.
+4. **Próxima frente aprovada:** **arquivo de experiências complementares do CV** — JÁ EXISTE o arquivo (usar o existente, não criar outro); falta o **campo de entrada** no Perfil + o **uso na análise** (injetar nas análises de compatibilidade para a IA não ignorar experiências reais, ex.: IES — Expoente/Eadcon, docência).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 11 (22/jun/2026)
+
+**Tema:** fechar o enriquecimento de vagas vindas de e-mail (digest sem descrição, título feio, sem score, presas em "Aguardando análise"). Trocada a arquitetura e resolvidos vários bugs de raiz. Diagnóstico final feito com o agente `senova-auditor`.
+
+### Enriquecimento — nova arquitetura
+- **Aba de fundo NÃO funciona** (LinkedIn congela renderização de aba sem foco) → trocado por **fetch na API pública `jobs-guest`** (`_buscarDescricaoGuest` no background.js): pega descrição + cargo + empresa reais, sem abrir aba, sem foco, `credentials:'omit'` (não envia cookie).
+- **Detecção de login** via cookie `li_at` (só existência) → **banner "Faça login no LinkedIn"** (deslogado) e **indicador "⚙️ Analisando vagas…"** (processando). `manifest` +permissão `cookies`, v2.16.
+
+### Bugs de raiz corrigidos (a maioria achada pela auditoria)
+- **Casamento por ID da vaga** (`/jobs/view/ID`), não URL crua — duas funções de norm divergiam (`#`) e o card não casava. `__senovaAtualizarDesc` agora **retorna se casou**; `_enriquecerUma` só marca "tentado" quando o card muda de fato (falha reprocessa).
+- **`saveVagas()` não redesenha o Kanban** → enriquecimento agora redesenha (respeitando `filtroAtivo` — senão card sob filtro/busca ficava preso).
+- **3 limiares de descrição em conflito** (>120 pendente / ≥100 grava / ≥400 pontua) prendiam descrições 120–399 em "Aguardando análise" para sempre → **limiar único >120** em tudo (app + extensão).
+- **Dedup por ID da vaga** (`_vagaJaExiste` / `_jobIdLinkedIn`) — mesma vaga por fontes diferentes (digest vs candidatura) não duplica mais; migração `senova_migration_dedup_jobid_v1` junta duplicados já existentes (mantém o melhor: status > nota > descrição > recente).
+- **Cards-lixo sem link** (e-mail de boas-vindas/notificação viravam "vaga") → `_ehVagaLixo` bloqueia na entrada + migração remove existentes.
+- **Cards de título-digest** entram na fila de enriquecimento mesmo já tendo descrição (o texto era do e-mail) → trocam pelo título/descrição/nota reais.
+
+### Ferramenta nova
+- **Agente `senova-auditor`** em `.claude/agents/` — diagnóstico de causa raiz com arquitetura/fluxo/armadilhas embutidos. Read-only.
+
+### Pendência / próxima frente
+- **Arquivo de experiências complementares do CV** (aprovado): já existe o arquivo; falta campo de entrada no Perfil + uso na análise de compatibilidade. Ver "AO RETOMAR".
 
 ---
 
