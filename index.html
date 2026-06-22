@@ -4561,6 +4561,17 @@ function _ehVagaLixo(v){
   return semUrl && ruido.test(((v.titulo||v.cargo||'')+' '+(v.empresa||'')).trim());
 }
 
+// ID real da vaga do LinkedIn (número em /jobs/view/ID) — chave de identidade da vaga.
+function _jobIdLinkedIn(u){ const m=(u||'').match(/\/jobs\/view\/(\d+)/i); return m?m[1]:null; }
+// Já existe um card para ESTA mesma vaga? Evita duplicar quando a mesma vaga do
+// LinkedIn chega por outra fonte (e-mail de digest, busca automática) e já está no
+// pipeline — inclusive quando você já se candidatou (não recriar como "nova").
+function _vagaJaExiste(v){
+  const jid=_jobIdLinkedIn(v.url||v.origemUrl);
+  if(!jid) return false;
+  return (vagas||[]).some(e=>_jobIdLinkedIn(e.origemUrl)===jid);
+}
+
 // ── Widget "Vagas para revisar" na Home ─────────────────────────
 const _REVISAO_KEY = 'senova_revisao_pendente';
 
@@ -7098,7 +7109,7 @@ async function verificarVagasVarredura(){
     _varreduraStatus=resSt.ok?await resSt.json():null;
     const deletados=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
     const pendentes=(dataLead.vagas||[])
-      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v));
+      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v)&&!_vagaJaExiste(v));
     _vagasLeadPendentes=[];
     if(pendentes.length>0){
       const agora=Date.now();
@@ -8849,8 +8860,10 @@ window.__senovaImportar=async function(){
     novas.forEach(v=>{
       _imp.add(String(v.id));
       const vUrl=_normUrl(v.url);
-      // Atualizar card existente com a mesma URL
-      const idx=vUrl?vagas.findIndex(e=>{const eu=_normUrl(e.origemUrl);return eu&&eu===vUrl;}): -1;
+      // Atualizar card existente com a mesma URL — ou a MESMA vaga (mesmo ID do
+      // LinkedIn) chegando por outra fonte, evitando duplicar.
+      let idx=vUrl?vagas.findIndex(e=>{const eu=_normUrl(e.origemUrl);return eu&&eu===vUrl;}): -1;
+      if(idx<0){ const _jid=_jobIdLinkedIn(v.url); if(_jid) idx=vagas.findIndex(e=>_jobIdLinkedIn(e.origemUrl)===_jid); }
       const _exD=vagas[idx]?.jobDescription||vagas[idx]?.descricao||'';
       if(idx>=0){
         // Card já existe: a extensão trouxe análise fresca → score/bullets vencem
