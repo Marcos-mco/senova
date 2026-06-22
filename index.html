@@ -8691,9 +8691,13 @@ checkOutlookStatus();
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
 window.__senovaAtualizarDesc=function(url,desc,extra){
   if(!desc||desc.length<100) return;
-  const _norm=u=>(u||'').split('?')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
-  const vUrl=_norm(url);
-  const idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;
+  const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
+  // Casar pelo ID da vaga (número em /jobs/view/ID) é à prova de diferenças de
+  // ?, #, /comm/ e maiúsculas. Fallback: comparação por URL normalizada.
+  const _jobId=u=>{const m=(u||'').match(/\/jobs\/view\/(\d+)/i);return m?m[1]:null;};
+  const tgtId=_jobId(url);
+  let idx=tgtId?vagas.findIndex(v=>_jobId(v.origemUrl)===tgtId):-1;
+  if(idx<0){const vUrl=_norm(url);idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;}
   if(idx<0) return;
   const _exDesc=vagas[idx].jobDescription||vagas[idx].descricao||'';
   const _descMudou=!_exDesc||desc.length>_exDesc.length+200||_exDesc.slice(0,120)!==desc.slice(0,120);
