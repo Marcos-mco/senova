@@ -7139,7 +7139,7 @@ function atualizarSinalOportunidades(){
 function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
 
 async function analisarLoteBackground(){
-  const semScore=vagas.filter(v=>v.status==='lead'&&((v.jobDescription||v.descricao||'').trim().length>=400)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
+  const semScore=vagas.filter(v=>v.status==='lead'&&((v.jobDescription||v.descricao||'').trim().length>120)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
   if(!semScore.length) return;
   semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
   renderCRM();
@@ -8690,7 +8690,7 @@ checkOutlookStatus();
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
 window.__senovaAtualizarDesc=function(url,desc,extra){
-  if(!desc||desc.length<100) return false;
+  if(!desc||desc.length<=120) return false; // <=120 fica "pendente" p/ re-buscar — limiar único
   const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
   // Casar pelo ID da vaga (número em /jobs/view/ID) é à prova de diferenças de
   // ?, #, /comm/ e maiúsculas. Fallback: comparação por URL normalizada.
@@ -8741,11 +8741,13 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   // ("Aguardando análise" / título feio) mesmo com os dados já atualizados.
   // Debounce agrupa várias chegando em sequência do enriquecimento em lote.
   clearTimeout(window._enriqRenderT);
-  window._enriqRenderT=setTimeout(()=>{ try{ if(typeof renderCRM==='function') renderCRM(); }catch{} }, 350);
+  window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} }, 350);
   showToast('✅ Descrição e metadados carregados do LinkedIn');
-  // Descrição entrou (enriquecimento em background ou manual) → recalcula o score
-  // mesmo com o card fechado. Debounce para agrupar várias chegando em sequência.
-  if(vagas[idx].status==='lead'&&_descMudou&&desc.length>=400){
+  // Descrição entrou → recalcula a Compatibilidade. Limiar único (>120) alinhado a
+  // gravar/pendente. Roda também se o lead ainda está sem nota (evita ficar preso
+  // em "Aguardando análise" quando a descrição não mudou mas nunca foi pontuada).
+  const _semNota=!(vagas[idx].atsScore&&parseInt(vagas[idx].atsScore)>0)&&!(typeof vagas[idx].score==='number'&&vagas[idx].score>0);
+  if(vagas[idx].status==='lead'&&desc.length>120&&(_descMudou||_semNota)){
     clearTimeout(window._enriqRecalcT);
     window._enriqRecalcT=setTimeout(()=>{ try{ analisarLoteBackground(); }catch{} }, 1500);
   }

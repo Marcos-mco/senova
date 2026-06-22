@@ -370,7 +370,7 @@ async function _enriquecerUma(url, senovaTabId) {
   try { dados = await _buscarDescricaoGuest(url); }
   catch (e) { console.log('[SNV] erro no fetch guest:', e.message); return false; }
   const desc = (dados && dados.descricao) || '';
-  if (desc.length < 100) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return false; }
+  if (desc.length <= 120) { console.log('[SNV] guest sem descrição útil p/', url, '(', desc.length, 'chars )'); return false; } // limiar único com o app
   console.log('[SNV] guest OK p/', url, '|', desc.length, 'chars | cargo:', dados.cargo, '| empresa:', dados.empresa);
   try {
     const out = await chrome.scripting.executeScript({
