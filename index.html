@@ -4287,6 +4287,24 @@ function loadCRM(){
       vagas=vagas.filter(v=>!_ehVagaLixo(v));
       localStorage.setItem('senova_migration_remover_lixo_sem_vaga_v1','1');
     }
+    if(!localStorage.getItem('senova_migration_dedup_jobid_v1')){
+      // Junta cards da MESMA vaga do LinkedIn (mesmo /jobs/view/ID), que viravam
+      // duplicatas quando a vaga chegava por fontes diferentes (digest de e-mail vs
+      // candidatura). Mantém o "melhor": status mais avançado → com nota → com
+      // descrição → mais recente. Cards sem ID do LinkedIn ficam intactos.
+      const _ordSt={aceito:6,proposta:5,entrevista:4,aplicado:3,lead:2,arquivado:1};
+      const _temNota=v=>(typeof v.score==='number'&&v.score>0)||(v.atsScore&&parseInt(v.atsScore)>0);
+      const _melhor=(a,b)=>{
+        const sa=_ordSt[a.status]||0,sb=_ordSt[b.status]||0; if(sa!==sb) return sa>sb?a:b;
+        const na=_temNota(a),nb=_temNota(b); if(na!==nb) return na?a:b;
+        const da=(a.jobDescription||a.descricao||'').length,db=(b.jobDescription||b.descricao||'').length; if(da!==db) return da>db?a:b;
+        return (a.updatedAt||a.createdAt||0)>=(b.updatedAt||b.createdAt||0)?a:b;
+      };
+      const _porJob=new Map(); const _semJob=[];
+      vagas.forEach(v=>{ const jid=_jobIdLinkedIn(v.origemUrl); if(!jid){_semJob.push(v);return;} _porJob.set(jid, _porJob.has(jid)?_melhor(_porJob.get(jid),v):v); });
+      vagas=[..._semJob, ...Array.from(_porJob.values())];
+      localStorage.setItem('senova_migration_dedup_jobid_v1','1');
+    }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
     // Migração suave: adiciona campos novos sem perder dados existentes
