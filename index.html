@@ -5228,7 +5228,7 @@ function renderCRM(){
     else if(cf.sort==='older') cards=[...cards].sort((a,b)=>((a.createdAt||0)-(b.createdAt||0))||((+a.id||0)-(+b.id||0)));
     else if(cf.sort==='az') cards=[...cards].sort((a,b)=>(a.empresa||'').localeCompare(b.empresa||'','pt'));
     else if(cf.sort==='score') cards=[...cards].sort((a,b)=>{const sa=typeof a.score==='number'?a.score:(parseInt(a.atsScore)||0);const sb=typeof b.score==='number'?b.score:(parseInt(b.atsScore)||0);return sb-sa;});
-    else if(_globalOrdem==='recente') cards=[...cards].sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0)));
+    else if(_globalOrdem==='recente') cards=[...cards].sort((a,b)=>{const sa=typeof a.score==='number'?a.score:(parseInt(a.atsScore)||0);const sb=typeof b.score==='number'?b.score:(parseInt(b.atsScore)||0);if(sb!==sa)return sb-sa;return((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))||((+b.id||0)-(+a.id||0));});
     // else: sort global (az, antigo, prioridade) preserva a ordem de listaBase
     const corPri={'alta':'#CC0000','media':'#0066CC','baixa':'#008800'};
     const totalCol=listaBase.filter(v=>v.status===col).length;
