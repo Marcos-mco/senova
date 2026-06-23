@@ -7,7 +7,20 @@
 
 ---
 
-## v3.38 — 22/jun/2026 (ATUAL) — Sessão 11
+## v3.39 — 23/jun/2026 (ATUAL) — Sessão 13
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.16 (sem alteração)
+**Commit estável:** `5964639` | **Worker:** sem alteração nesta sessão
+
+Sessão de **segurança de dados** — recuperação de card perdido + blindagem contra perda futura.
+
+- **Incidente:** card "TV Integração" (entrevista, ATS 91) sumiu por **delete acidental** (id em `senova_deleted_ids`), não pela migração. Recuperado do `senova_backup_20260616.json` (só o card, mesclado ao estado atual — nada recente perdido).
+- **Fix #1 — Migração não-destrutiva:** `dedup_jobid` nunca funde/apaga entrevista/proposta/aceito; duplicata comum vira arquivado com timeline, em vez de deletada sem rastro.
+- **Fix #2 — Backup automático:** snapshot diário de `senova_vagas_v2` antes das migrações (3 dias), sacrificável sob cota (`saveVagas` descarta para nunca perder o vivo). Nova UI "Pontos de restauração automáticos" em Perfil > Preferências.
+- **Validado por Marcos:** Testes 1 (regressão) e 2 (backup visível) OK.
+
+---
+
+## v3.38 — 22/jun/2026 — Sessão 11
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.16** (recarregar local — +permissão `cookies`)
 **Commit estável:** `a6c2c57` | **Worker:** sem alteração nesta sessão
 

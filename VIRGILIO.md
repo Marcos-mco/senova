@@ -41,7 +41,8 @@
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 13) — AÇÕES IMEDIATAS
+## ⚠️ AO RETOMAR (Sessão 14) — AÇÕES IMEDIATAS
+0. **✅ Sessão 13 (segurança de dados) NO AR e VALIDADA por Marcos:** Fix #1 migração não-destrutiva + Fix #2 backup automático (commit `d7f7023`). Testes 1 (regressão) e 2 (backup visível em Perfil > Preferências) OK.
 1. **Recarregar extensão v2.16** + abrir Senova com `Ctrl+Shift+R`.
 2. **✅ Sessão 12 VALIDADA end-to-end (card FPP):** após cadastrar contexto (educação + mkt digital), score **72→82%** e os pontos_atencao mudaram — sumiu "sem experiência em IES"; a IA passou a reconhecer o setor educacional ("destacar experiências anteriores em educação"). Feature contexto complementar → análise do Kanban: **FECHADA E PROVADA**.
 3. **🔴 GAP DO PERFIL BASE (importante):** grep no Worker por EADCon/Expoente/ensino/educação/marketing digital/HubSpot/Google Ads deu **zero**. O `PERFIL_MARCOS` base está resumido demais e OMITE o setor educacional inteiro e as competências de marketing digital — que Marcos TEM. A IA não erra; o perfil está incompleto. **Revisar e enriquecer o `PERFIL_MARCOS` base** (EADCon/Expoente são carreira principal, não apêndice de contexto). Marcos vai observar nas próximas análises antes de agir.
@@ -67,6 +68,8 @@
 ### Fix #2 — Backup automático (commit d7f7023)
 - Snapshot diário de `senova_vagas_v2` antes das migrações (3 dias), sacrificável
   sob cota. UI "Pontos de restauração automáticos" em Perfil > Preferências.
+
+**✅ Validado por Marcos (23/jun):** Testes 1 (regressão) e 2 (backup visível) OK. No ar.
 
 ---
 
