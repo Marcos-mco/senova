@@ -7949,6 +7949,24 @@ function fecharModalCandidatura(){
   document.getElementById('modal-candidatura').style.display='none';
   _candidaturaVagaIdx=-1;
 }
+// Marca uma vaga como candidatura enviada: status "CV Enviado" + timeline + follow-up 7 dias.
+// Mutação pura (não salva nem redesenha) — quem chama decide. Reusado pelo fluxo Outlook
+// e pela ponte da extensão (__senovaCandidaturaEnviada), para não divergir a transição.
+function _marcarCandidaturaEnviada(v,texto){
+  if(!v) return;
+  const ts=Date.now();
+  if(!v.timeline)v.timeline=[];
+  v.timeline.unshift({ts,texto:texto||'CV enviado'});
+  const fu=new Date(ts+7*24*3600*1000);
+  const dd=String(fu.getDate()).padStart(2,'0');
+  const mm=String(fu.getMonth()+1).padStart(2,'0');
+  const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
+  v.status='aplicado';
+  v.proxima='Follow-up — verificar retorno';
+  v.data=fuStr;
+  v.updatedAt=ts;
+  v.timeline.unshift({ts:ts+1,texto:'Follow-up agendado para '+fuStr});
+}
 async function enviarCandidaturaOutlook(btn){
   const para=(document.getElementById('mcand-email')?.value||'').trim();
   const assunto=(document.getElementById('mcand-assunto')?.value||'').trim();
@@ -7965,20 +7983,7 @@ async function enviarCandidaturaOutlook(btn){
     const json=await res.json().catch(()=>({}));
     if(res.ok){
       if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
-        const v=vagas[_candidaturaVagaIdx];
-        const ts=Date.now();
-        if(!v.timeline)v.timeline=[];
-        v.timeline.unshift({ts,texto:'CV enviado por Outlook para '+para});
-        // follow-up automático em 7 dias
-        const fu=new Date(ts+7*24*3600*1000);
-        const dd=String(fu.getDate()).padStart(2,'0');
-        const mm=String(fu.getMonth()+1).padStart(2,'0');
-        const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
-        v.status='aplicado';
-        v.proxima='Follow-up — verificar retorno';
-        v.data=fuStr;
-        v.updatedAt=ts;
-        v.timeline.unshift({ts:ts+1,texto:'Follow-up agendado para '+fuStr});
+        _marcarCandidaturaEnviada(vagas[_candidaturaVagaIdx],'CV enviado por Outlook para '+para);
         saveVagas();
       }
       btn.textContent='✓ Enviado!';
@@ -8994,6 +8999,28 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
       setTimeout(()=>mvAutoCompatCheck(),800);
     }
   }
+  return true;
+};
+
+// Exposto para a extensão: candidatura enviada na página da vaga → move o card para
+// "CV Enviado" (status aplicado) + follow-up 7 dias. Casa por jobId do LinkedIn (fallback
+// URL normalizada), exatamente como __senovaAtualizarDesc. Idempotente: não duplica se já
+// avançado. Retorna true só quando um card foi encontrado e movido (o background lê isso).
+window.__senovaCandidaturaEnviada=function(url){
+  const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
+  const tgtId=_jobIdLinkedIn(url);
+  let idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0){const vUrl=_norm(url);idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;}
+  if(idx<0) return false;
+  // Idempotência: a extensão pode reenviar. Já candidatado/avançado → não duplica timeline.
+  const _st=vagas[idx].status;
+  if(_st==='aplicado'||_st==='entrevista'||_st==='proposta'||_st==='aceito') return true;
+  _marcarCandidaturaEnviada(vagas[idx],'CV enviado pela vaga ('+(vagas[idx].canal||'LinkedIn')+')');
+  saveVagas();
+  // saveVagas NÃO redesenha o Kanban — sem isto o card não muda de coluna na tela.
+  clearTimeout(window._enriqRenderT);
+  window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} }, 200);
+  try{ showToast('✅ Candidatura registrada — card movido para CV Enviado'); }catch{}
   return true;
 };
 
