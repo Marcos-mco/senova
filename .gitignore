@@ -1,0 +1,19 @@
+# Dependências / build
+node_modules/
+.wrangler/
+
+# Backups locais do app (snapshots de index.html) — segurança fica no git/tags
+senova_v*.html
+
+# Dados pessoais / de negócio — NUNCA publicar em repo público
+cvs/
+*.xlsx
+~$*
+
+# Sistema operacional
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Config local do Claude Code (mantém agents/ e hooks; ignora config da máquina)
+.claude/settings.local.json

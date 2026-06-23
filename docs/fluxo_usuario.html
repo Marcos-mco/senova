@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senova — Fluxos do Usuário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #F0F4F8; color: #2C2C2A; min-height: 100vh; }
+
+header {
+  background: #1A3A5C;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-left h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: #C9A84C;
+}
+.header-left p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 3px;
+}
+
+.tabs {
+  background: #1A3A5C;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  padding: 0 32px;
+  gap: 2px;
+}
+.tab {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+.tab:hover { color: rgba(255,255,255,0.85); }
+.tab.active { color: #C9A84C; border-bottom-color: #C9A84C; font-weight: 600; }
+
+.content { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.section-header { margin-bottom: 20px; }
+.section-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: #1A3A5C;
+  margin-bottom: 5px;
+}
+.section-header p { font-size: 13px; color: #666; line-height: 1.6; }
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+}
+.card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: #1A3A5C;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #C9A84C;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.missing-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f8d7da;
+  color: #721c24;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.mermaid-wrap {
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+}
+.lg { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #555; }
+.lg-dot { width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: #1A3A5C;
+  color: white;
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+th:first-child { border-radius: 6px 0 0 0; }
+th:last-child { border-radius: 0 6px 0 0; }
+td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8f9ff; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.b-done    { background: #d4edda; color: #155724; }
+.b-open    { background: #fff3cd; color: #856404; }
+.b-missing { background: #f8d7da; color: #721c24; }
+.b-decide  { background: #cce5ff; color: #004085; }
+
+.gap-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 800px) {
+  .gap-grid { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .tabs { padding: 0 16px; overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Senova — Fluxos do Usuário</h1>
+    <p>v3.28 &nbsp;·&nbsp; 12/jun/2026 &nbsp;·&nbsp; Ciclo 1</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active"  onclick="showTab('candidatura', this)">Jornada de Candidatura</button>
+  <button class="tab"         onclick="showTab('diario', this)">Rotina Diária</button>
+  <button class="tab"         onclick="showTab('onboarding', this)">Onboarding Sofia ⚠</button>
+  <button class="tab"         onclick="showTab('ciclo1', this)">Status Ciclo 1</button>
+</div>
+
+<div class="content">
+
+<!-- ══════════════════════════════════════════════════
+     TAB 1 — JORNADA DE CANDIDATURA
+══════════════════════════════════════════════════ -->
+<div id="tab-candidatura" class="section active">
+  <div class="section-header">
+    <h2>Jornada de Candidatura</h2>
+    <p>Fluxo completo desde a descoberta da vaga até o resultado final. Inclui todas as fontes de entrada, análise com IA, candidatura via Outlook e acompanhamento no kanban.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fluxo principal — do Lead ao Resultado</div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    classDef blue   fill:#2E6DA4,color:#fff,stroke:none
+    classDef navy   fill:#1A3A5C,color:#fff,stroke:#C9A84C,stroke-width:2px
+    classDef gold   fill:#C9A84C,color:#1A3A5C,stroke:none,font-weight:bold
+    classDef green  fill:#2d6a4f,color:#fff,stroke:none
+    classDef red    fill:#9b2335,color:#fff,stroke:none
+    classDef purple fill:#5c4b8a,color:#fff,stroke:none
+
+    E1([Varredura automática]):::navy
+    E2([Email de recrutador]):::navy
+    E3([Extensão Chrome]):::navy
+    E4([Entrada manual]):::navy
+
+    E1 & E2 & E3 & E4 --> LEAD[Lead em Processos]:::blue
+
+    LEAD --> D1{Vale a pena?}:::gold
+    D1 -- Sim --> ANALISAR[Analisar Candidatura]:::blue
+    D1 -- Não --> DESC([Descartado]):::red
+
+    ANALISAR --> D2{Score ATS}:::gold
+    D2 -- Forte ou razoável --> CV[CV Otimizado]:::blue
+    D2 -- Fora do perfil --> DESC
+
+    CV --> CARTA[Carta de candidatura]:::blue
+    CARTA --> ENVIO[Enviar via Outlook]:::blue
+    ENVIO --> APLIC([Aplicado]):::green
+
+    APLIC --> D3{Retorno?}:::gold
+    D3 -- Email positivo --> ENT[Entrevista agendada]:::blue
+    D3 -- Negativo --> NEG([Negado]):::red
+    D3 -- Silêncio --> FUP[Follow-up]:::blue
+    FUP -- mais 7 dias --> D3
+
+    ENT --> PREP[Preparar com Sofia]:::blue
+    PREP --> D4{Resultado}:::gold
+    D4 -- Avançou --> PROP[Proposta recebida]:::blue
+    D4 -- Não avançou --> NEG
+
+    PROP --> D5{Aceitar?}:::gold
+    D5 -- Sim --> ACE([Aceito]):::green
+    D5 -- Não --> DESC
+
+    NEG  --> LRN[Captura de Aprendizado]:::purple
+    ACE  --> LRN
+    DESC --> LRN
+    LRN  --> FIM([Insight salvo no histórico]):::purple
+      </div>
+    </div>
+    <div class="legend">
+      <div class="lg"><span class="lg-dot" style="background:#1A3A5C;outline:2px solid #C9A84C"></span> Fonte de entrada</div>
+      <div class="lg"><span class="lg-dot" style="background:#2E6DA4"></span> Etapa de processo</div>
+      <div class="lg"><span class="lg-dot" style="background:#C9A84C"></span> Decisão / bifurcação</div>
+      <div class="lg"><span class="lg-dot" style="background:#2d6a4f"></span> Resultado positivo</div>
+      <div class="lg"><span class="lg-dot" style="background:#9b2335"></span> Resultado negativo</div>
+      <div class="lg"><span class="lg-dot" style="background:#5c4b8a"></span> Aprendizado capturado</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Detalhe — Análise de Candidatura</div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    classDef blue   fill:#2E6DA4,color:#fff,stroke:none
+    classDef gold   fill:#C9A84C,color:#1A3A5C,stroke:none
+    classDef green  fill:#2d6a4f,color:#fff,stroke:none
+    classDef red    fill:#9b2335,color:#fff,stroke:none
+    classDef gray   fill:#64748b,color:#fff,stroke:none
+
+    INICIO([Clica Analisar]):::blue
+    INICIO --> CTX[Contexto adicional]:::gray
+    CTX --> IA[IA gera Score ATS]:::blue
+
+    IA --> SCORE{Score}:::gold
+    SCORE -- 80-100 Excelente --> ACT1[Candidatar direto]:::green
+    SCORE -- 65-79 Forte --> ACT2[Ajustes menores]:::green
+    SCORE -- 40-64 Razoável --> ACT3[Ajustes moderados]:::gold
+    SCORE -- 0-39 Fora do perfil --> ACT4[Declinar]:::red
+
+    ACT1 --> CVOPT[CV Otimizado]:::blue
+    ACT2 --> CVOPT
+    ACT3 --> CVOPT
+
+    CVOPT --> CARTA[Carta gerada]:::blue
+    CARTA --> PREVIEW[Preview do email]:::blue
+    PREVIEW --> ENVIO[Enviar via Outlook]:::blue
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Detalhe — Entrevista</div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    classDef blue   fill:#2E6DA4,color:#fff,stroke:none
+    classDef gold   fill:#C9A84C,color:#1A3A5C,stroke:none
+    classDef green  fill:#2d6a4f,color:#fff,stroke:none
+    classDef purple fill:#5c4b8a,color:#fff,stroke:none
+
+    CONVITE([Convite recebido]) --> MODAL[Modal de Entrevista]:::blue
+    MODAL --> CANAL[Registrar canal]:::blue
+    CANAL --> DATA[Data e hora]:::blue
+    DATA --> CAL[Evento no Outlook]:::blue
+
+    CAL --> PREP[Preparar com Sofia]:::purple
+    PREP --> BRIEF[Briefing da empresa]:::purple
+    BRIEF --> SIM[Simulação de perguntas]:::purple
+    SIM --> NOTAS[Notas e estratégia]:::purple
+
+    NOTAS --> ENT([Entrevista realizada]):::blue
+    ENT --> RES{Resultado}:::gold
+    RES -- Avançou --> PROX[Próximo estágio]:::green
+    RES -- Não avançou --> APR[Captura de aprendizado]:::purple
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 2 — ROTINA DIÁRIA
+══════════════════════════════════════════════════ -->
+<div id="tab-diario" class="section">
+  <div class="section-header">
+    <h2>Rotina Diária</h2>
+    <p>O que o usuário encontra ao abrir o Senova todo dia. A Home é o painel de controle — não precisa ir a outras abas para saber o que fazer.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fluxo da Home — Para Hoje + O que há de novo</div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    classDef blue   fill:#2E6DA4,color:#fff,stroke:none
+    classDef navy   fill:#1A3A5C,color:#fff,stroke:none
+    classDef gold   fill:#C9A84C,color:#1A3A5C,stroke:none
+    classDef green  fill:#2d6a4f,color:#fff,stroke:none
+    classDef red    fill:#9b2335,color:#fff,stroke:none
+    classDef sec    fill:#F0F4F8,color:#1A3A5C,stroke:#2E6DA4,stroke-width:1.5px
+
+    ABRIR([Abre o app]) --> HOME[Home carrega]:::blue
+    HOME --> WORKER[Worker busca sinais]:::blue
+
+    WORKER --> HOJE[Para Hoje]:::sec
+    WORKER --> NOVO[O que há de novo]:::sec
+
+    HOJE --> A1[Ações agendadas com data]:::navy
+    HOJE --> A2[Retornos recebidos]:::navy
+    HOJE --> A3[Contatos para acionar]:::navy
+    HOJE --> A4[Processos inativos]:::navy
+
+    NOVO --> N1[Oportunidades automáticas]:::blue
+    NOVO --> N2[Emails de recrutador]:::blue
+    NOVO --> N3[Novidades no mercado]:::blue
+    NOVO --> N4[Oportunidades para revisar]:::blue
+
+    A1 -- Clicar --> MOD[Modal do Processo]:::gold
+    A2 -- Clicar --> EMOD[Modal de Email]:::gold
+    A3 -- Clicar --> CMOD[Modal de Contato]:::gold
+    A4 -- Clicar --> MOD
+
+    N1 -- Adicionar --> LEAD[Lead em Processos]:::green
+    N1 -- Ignorar   --> IGN([Ignorado]):::red
+    N2 -- Clicar    --> EMOD
+    N3 -- Clicar    --> ART([Abre artigo]):::blue
+    N4 -- Revisar   --> MOD
+      </div>
+    </div>
+    <div class="legend">
+      <div class="lg"><span class="lg-dot" style="background:#1A3A5C"></span> Para Hoje — ação imediata</div>
+      <div class="lg"><span class="lg-dot" style="background:#2E6DA4"></span> O que há de novo — sinais</div>
+      <div class="lg"><span class="lg-dot" style="background:#C9A84C"></span> Modais de ação</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fontes dos sinais — Como chegam à Home</div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    classDef ext    fill:#1A3A5C,color:#fff,stroke:#C9A84C,stroke-width:2px
+    classDef worker fill:#5c4b8a,color:#fff,stroke:none
+    classDef kv     fill:#64748b,color:#fff,stroke:none
+    classDef home   fill:#2E6DA4,color:#fff,stroke:none
+
+    subgraph EXTERNAS["Fontes externas"]
+        direction TB
+        F1([Adzuna / Jobicy]):::ext
+        F2([Outlook Email]):::ext
+        F3([Google Alerts RSS]):::ext
+        F4([Bing News RSS]):::ext
+        F5([Fathom reuniões]):::ext
+    end
+
+    subgraph WORKER_SG["Worker Cloudflare"]
+        direction TB
+        W1[Cron 07h BRT]:::worker
+        W2[Classificação por IA]:::worker
+        W3[Cache KV 4h]:::kv
+    end
+
+    EXTERNAS --> WORKER_SG
+
+    WORKER_SG --> HOME_SG
+
+    subgraph HOME_SG["Home — O que há de novo"]
+        direction TB
+        H1[Oportunidades]:::home
+        H2[Retornos]:::home
+        H3[Novidades no mercado]:::home
+        H4[Para revisar]:::home
+    end
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 3 — ONBOARDING SOFIA (F1 — não implementado)
+══════════════════════════════════════════════════ -->
+<div id="tab-onboarding" class="section">
+  <div class="section-header">
+    <h2>Onboarding Sofia <span style="font-size:13px;font-family:Inter,sans-serif;font-weight:500;background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:10px;vertical-align:middle;margin-left:6px;">F1 — Não implementado</span></h2>
+    <p>Fluxo planejado para o primeiro acesso. Hoje o usuário preenche o Perfil manualmente. Com F1, Sofia conduz uma entrevista guiada e preenche tudo automaticamente.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fluxo de Onboarding — Primeiro acesso <span class="missing-badge">Planejado</span></div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    classDef blue   fill:#2E6DA4,color:#fff,stroke:none
+    classDef navy   fill:#1A3A5C,color:#fff,stroke:none
+    classDef gold   fill:#C9A84C,color:#1A3A5C,stroke:none
+    classDef green  fill:#2d6a4f,color:#fff,stroke:none
+    classDef sofia  fill:#5c4b8a,color:#fff,stroke:none
+    classDef manual fill:#64748b,color:#fff,stroke:none
+
+    ABRIR([Primeiro acesso]) --> CHECK{Perfil\nexiste?}:::gold
+    CHECK -- Não --> SOFIA_BV[Sofia boas-vindas]:::sofia
+    CHECK -- Sim  --> HOME([Home]):::green
+
+    SOFIA_BV --> ENT1[Perguntas abertas\nCareer Anchors]:::sofia
+    ENT1 --> ENT2[Cargo alvo\ne pretensão]:::sofia
+    ENT2 --> ENT3[Localização\ne modelo de trabalho]:::sofia
+    ENT3 --> ENT4[Países de interesse]:::sofia
+    ENT4 --> ENT5[Idiomas e certificações]:::sofia
+    ENT5 --> ENT6[Projetos de vida ativos]:::sofia
+
+    ENT6 --> SALVAR[Sofia salva perfil]:::blue
+    SALVAR --> CVUP[Upload do CV base]:::blue
+    CVUP --> OUTLOOK[Conectar Outlook]:::blue
+    OUTLOOK --> ALERTS[Configurar Google Alerts]:::blue
+    ALERTS --> PRONTO([Home — pronto para usar]):::green
+
+    SOFIA_BV -. Hoje: manual .-> PERF[Perfil — formulário\npreencher manualmente]:::manual
+    PERF --> PRONTO
+      </div>
+    </div>
+    <div class="legend">
+      <div class="lg"><span class="lg-dot" style="background:#5c4b8a"></span> Sofia (IA guiada) — F1 planejado</div>
+      <div class="lg"><span class="lg-dot" style="background:#64748b"></span> Caminho atual (manual) — já funciona</div>
+      <div class="lg"><span class="lg-dot" style="background:#2E6DA4"></span> Configuração técnica</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Etapas do onboarding por Sofia — detalhe</div>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Pergunta da Sofia</th>
+        <th>Campo preenchido no Perfil</th>
+        <th>Âncora Career Anchors</th>
+      </tr>
+      <tr><td>1</td><td>O que você faz de melhor e gosta de fazer?</td><td>Habilidades principais</td><td>Competência técnica</td></tr>
+      <tr><td>2</td><td>Qual cargo você está buscando agora?</td><td>Cargo alvo</td><td>—</td></tr>
+      <tr><td>3</td><td>Qual é a sua pretensão salarial?</td><td>Pretensão (R$)</td><td>Segurança financeira</td></tr>
+      <tr><td>4</td><td>Onde você quer trabalhar? (cidade, país, remoto)</td><td>Localização + países</td><td>Estilo de vida</td></tr>
+      <tr><td>5</td><td>Você prefere trabalho presencial, híbrido ou remoto?</td><td>Modelo de trabalho</td><td>Autonomia</td></tr>
+      <tr><td>6</td><td>Que idiomas você fala com fluência?</td><td>Idiomas</td><td>—</td></tr>
+      <tr><td>7</td><td>Além da recolocação, quais outros projetos de vida você tem agora?</td><td>Projetos de vida</td><td>Desafio puro / Serviço</td></tr>
+      <tr><td>8</td><td>Como é o projeto de vida mais importante para você hoje?</td><td>Projeto principal</td><td>Integração total</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 4 — STATUS CICLO 1
+══════════════════════════════════════════════════ -->
+<div id="tab-ciclo1" class="section">
+  <div class="section-header">
+    <h2>Status do Ciclo 1</h2>
+    <p>Todos os itens do backlog do Ciclo 1. Vermelho = bloqueia o fluxo principal. Amarelo = melhoria. Azul = decisão necessária.</p>
+  </div>
+
+  <div class="gap-grid">
+
+    <div class="card">
+      <div class="card-title">Features abertas</div>
+      <table>
+        <tr><th>#</th><th>Item</th><th>Status</th></tr>
+        <tr>
+          <td><strong>F1</strong></td>
+          <td>Sofia onboarding em texto — novo usuário não consegue configurar perfil automaticamente</td>
+          <td><span class="badge b-missing">Não implementado</span></td>
+        </tr>
+        <tr>
+          <td><strong>F3</strong></td>
+          <td>5ª fonte de leads — entrada manual melhorada (dicas, indicações, contatos diretos)</td>
+          <td><span class="badge b-open">Em aberto</span></td>
+        </tr>
+        <tr>
+          <td><strong>F4</strong></td>
+          <td>Carta candidatura — reescrita do fluxo completo</td>
+          <td><span class="badge b-open">Em aberto</span></td>
+        </tr>
+        <tr>
+          <td><strong>F6</strong></td>
+          <td>Varredura: adicionar ciandt.com e empregos.com.br</td>
+          <td><span class="badge b-open">Em aberto</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Decisões de produto pendentes</div>
+      <table>
+        <tr><th>Decisão</th><th>Status</th></tr>
+        <tr>
+          <td>Portais arquivam só um CV — geração dinâmica por vaga?</td>
+          <td><span class="badge b-decide">Aguarda decisão</span></td>
+        </tr>
+        <tr>
+          <td>"Entrada CRM" — remover, Senova deve se auto-atualizar</td>
+          <td><span class="badge b-decide">Aguarda decisão</span></td>
+        </tr>
+        <tr>
+          <td>Plano A, B, C — revisar o que significa hoje antes de exibir nos cards</td>
+          <td><span class="badge b-decide">Aguarda decisão</span></td>
+        </tr>
+        <tr>
+          <td>Entrevista — aba própria no menu ou continuar só no kanban?</td>
+          <td><span class="badge b-decide">Aguarda decisão</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">UX em aberto</div>
+      <table>
+        <tr><th>#</th><th>Item</th></tr>
+        <tr><td>U5</td><td>Multi-select de cards — ações em lote (arrastar, arquivar, mover)</td></tr>
+        <tr><td>U7</td><td>Salvar arquivos gerados no card (CV, carta, email)</td></tr>
+        <tr><td>U9</td><td>Identificar automaticamente a forma de candidatura por portal</td></tr>
+        <tr><td>U12</td><td>Dashboard Pipeline: métricas reais — taxa retorno, tempo médio por estágio</td></tr>
+        <tr><td>U14</td><td>Google Alert: abrir no formato clássico (não mobile)</td></tr>
+        <tr><td>U15</td><td>Responder email avulso sem vaga associada</td></tr>
+        <tr><td>U21</td><td>Perfil: campos outros países e remoto expandido</td></tr>
+        <tr><td>U22</td><td>Perfil: "Otimize para múltiplos portais"</td></tr>
+        <tr><td>U25</td><td>Opção de idioma alemão</td></tr>
+        <tr><td>U26</td><td>Plano A, B, C — atualizar para nova estrutura</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Concluído recentemente</div>
+      <table>
+        <tr><th>Item</th><th>Quando</th></tr>
+        <tr><td>Home redesign — 2 colunas (Para Hoje + O que há de novo)</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>KPI strip nos Processos (Ativos, Retorno, Entrevistas, Propostas)</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>Modal Entrevista — canal, data, hora, evento Outlook, dica Sofia</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>Captura de Aprendizado — modal-arquivar ao encerrar processo</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>Fathom — gravação detectada e exibida na Home com vínculo ao card</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>Google Alerts — artigos individuais com título e link real</td><td><span class="badge b-done">09/jun</span></td></tr>
+        <tr><td>Vagas automáticas vão direto para Processos (sem fila manual)</td><td><span class="badge b-done">10/jun</span></td></tr>
+        <tr><td>Redesign modal Editar Processo — layout 2 colunas, centro de comando</td><td><span class="badge b-done">10/jun</span></td></tr>
+        <tr><td>Extensão Chrome — descrição completa, Greenhouse/Lever, botão flutuante</td><td><span class="badge b-done">10/jun</span></td></tr>
+        <tr><td>Docs — lapidação estratégica: Senova como plataforma de projetos de vida</td><td><span class="badge b-done">10/jun</span></td></tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      background: '#ffffff',
+      mainBkg: '#2E6DA4',
+      primaryColor: '#2E6DA4',
+      primaryTextColor: '#ffffff',
+      primaryBorderColor: '#1A3A5C',
+      secondaryColor: '#F0F4F8',
+      tertiaryColor: '#C9A84C',
+      lineColor: '#1A3A5C',
+      clusterBkg: '#F0F4F8',
+      clusterBorder: '#2E6DA4',
+      titleColor: '#1A3A5C',
+      edgeLabelBackground: '#ffffff',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '14px',
+      nodeTextColor: '#ffffff'
+    },
+    flowchart: {
+      useMaxWidth: false,
+      htmlLabels: true,
+      curve: 'basis'
+    }
+  });
+
+  function showTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senova — Fluxo da Candidatura (v1.3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #F0F4F8; color: #2C2C2A; min-height: 100vh; }
+
+header { background: #1A3A5C; padding: 20px 32px; }
+header h1 { font-family: 'Playfair Display', serif; font-size: 24px; color: #C9A84C; }
+header p { font-size: 14px; color: rgba(255,255,255,0.55); margin-top: 5px; }
+
+.content { padding: 28px 32px; max-width: 1180px; margin: 0 auto; }
+
+.card { background: white; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 22px; }
+.card-title { font-family: 'Playfair Display', serif; font-size: 18px; color: #1A3A5C; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid #C9A84C; }
+.card-sub { font-size: 15px; color: #555; line-height: 1.65; margin-bottom: 18px; }
+
+.mermaid-wrap { overflow-x: auto; padding: 8px 0; text-align: center; }
+.mermaid { display: inline-block; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
+.lg { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: #444; }
+.lg-dot { width: 16px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+.note { background: #F0F4F8; border-left: 4px solid #C9A84C; padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 14.5px; line-height: 1.65; color: #2C2C2A; margin-top: 18px; }
+.note b { color: #1A3A5C; }
+
+.glossary { list-style: none; margin-top: 6px; }
+.glossary li { font-size: 14.5px; line-height: 1.6; padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
+.glossary li:last-child { border-bottom: none; }
+.glossary b { color: #1A3A5C; }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 10px; margin-right: 8px; }
+.p-done { background: #d4edda; color: #155724; }
+.p-new  { background: #fdecc8; color: #8a5a00; }
+
+.two-paths { display: flex; gap: 18px; flex-wrap: wrap; }
+.lane { flex: 1; min-width: 280px; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 18px; }
+.lane h4 { font-size: 15px; color: #1A3A5C; margin-bottom: 8px; }
+.lane.a { border-top: 4px solid #2E6DA4; }
+.lane.b { border-top: 4px solid #C9A84C; }
+.lane p { font-size: 14px; line-height: 1.6; color: #444; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #1A3A5C; color: white; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; line-height: 1.55; }
+tr:last-child td { border-bottom: none; }
+td code { font-size: 12.5px; background: #eef2f7; padding: 1px 6px; border-radius: 4px; color: #1A3A5C; }
+
+footer { text-align: center; padding: 18px; font-size: 12.5px; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Senova — Fluxo da Candidatura</h1>
+  <p>v1.3 · Etapa "da vaga à candidatura" · continuação dos fluxos v1.1 / v1.2 · construído por partes</p>
+</header>
+
+<div class="content">
+
+  <div class="card">
+    <div class="card-title">Da vaga à candidatura — duas entradas, um copiloto</div>
+    <div class="card-sub">
+      Há dois jeitos de chegar à vaga. Se você <b>começa pelo Senova</b>, o card já está analisado — o app leva <b>apenas a análise</b> junto; nada mais.
+      Se você <b>chega por fora</b>, não precisa voltar ao Senova: o processo continua na própria página e só é salvo no Senova <b>no fim</b> —
+      e, como não começou pelo Senova, a extensão <b>analisa a vaga na hora</b>.
+      Daí em diante as duas entradas são iguais: o copiloto <b>cria tudo na vaga, conforme a necessidade</b> — CV, carta, respostas —
+      e <b>dá a mão passo a passo</b>, sempre dentro das regras legais e éticas.
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    classDef navy  fill:#1A3A5C,color:#fff,stroke:#C9A84C,stroke-width:2px
+    classDef blue  fill:#2E6DA4,color:#fff,stroke:none
+    classDef gold  fill:#C9A84C,color:#1A3A5C,stroke:none,font-weight:bold
+    classDef green fill:#2d6a4f,color:#fff,stroke:none
+    classDef red   fill:#9b2335,color:#fff,stroke:none
+
+    E1(["PELO SENOVA<br/>card já analisado ✅"]):::navy
+    E1 --> IR["'Ir para vaga ↗' ✅<br/>🔶 leva só a análise<br/>(nada é pré-criado)"]:::blue
+    IR --> PG
+
+    E2(["POR FORA<br/>chega à vaga sozinho"]):::navy
+    E2 --> AN["🔶 A extensão analisa a vaga na hora<br/>(precisa de análise — não começou no Senova)"]:::blue
+    AN --> PG
+
+    PG{{"PÁGINA DA VAGA<br/>o copiloto acorda"}}:::gold
+    PG --> MAO["🔶 CRIA O QUE A PÁGINA PEDE, NA HORA<br/>• pede CV? → gera e baixa CV .docx<br/>• campo de carta? → gera a carta ✅<br/>• perguntas abertas? → gera resposta<br/>• campos padrão? → preenche p/ você revisar"]:::blue
+    MAO --> GUARD["⚖️ VOCÊ clica ENVIAR<br/>a extensão nunca envia sozinha"]:::red
+    GUARD --> DET["🔶 Detecta a tela 'candidatura enviada'"]:::blue
+    DET --> ORIG{"Veio de onde?"}:::gold
+
+    ORIG -- "Pelo Senova" --> C1["Card move → CV Enviado ✅"]:::green
+    ORIG -- "Por fora" --> C2["🔶 Salva no Senova já como CV Enviado<br/>(com a análise já feita)"]:::green
+    C1 --> FU["+ follow-up em 7 dias ✅"]:::green
+    C2 --> FU
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="lg"><span class="lg-dot" style="background:#1A3A5C;border:2px solid #C9A84C;"></span> Entrada</div>
+      <div class="lg"><span class="lg-dot" style="background:#2E6DA4;"></span> Ação / passo</div>
+      <div class="lg"><span class="lg-dot" style="background:#C9A84C;"></span> Decisão</div>
+      <div class="lg"><span class="lg-dot" style="background:#9b2335;"></span> Linha ética (você decide)</div>
+      <div class="lg"><span class="lg-dot" style="background:#2d6a4f;"></span> Fecha o ciclo</div>
+      <div class="lg">✅ já existe &nbsp;·&nbsp; 🔶 a construir</div>
+    </div>
+
+    <div class="note">
+      <b>A linha ética (Sofia + Segurança):</b> a extensão prepara, baixa, sugere e preenche para revisão —
+      mas <b>quem clica "Enviar" é sempre você</b>. Nada de envio silencioso: isso violaria os termos do LinkedIn
+      e o princípio de honestidade do Senova. Dar a mão não é agir no seu lugar.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Visão de processo — padrão de mercado (UML · sequência)</div>
+    <div class="card-sub">
+      A mesma etapa em notação profissional: quatro atores/sistemas e os <b>handoffs</b> entre eles, numerados.
+      É como times de produto SaaS documentam um processo multi-ator — deixa explícito quem faz o quê, em que ordem, e onde a IA entra.
+    </div>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Usuário
+    participant E as Extensão
+    participant A as App Senova
+    participant W as Worker · IA
+
+    alt Começa pelo Senova (card já analisado)
+        U->>A: Clica "Ir para vaga"
+        A->>E: Passa apenas a análise
+        A-->>U: Abre a página da vaga
+    else Chega por fora (sem card)
+        U->>E: Abre a página da vaga sozinho
+        E->>W: Pede análise da vaga
+        W-->>E: Análise de compatibilidade
+    end
+
+    Note over U,E: Copiloto acorda na página
+
+    loop A cada item que a página pede
+        E->>W: Gera o que falta (CV / carta / resposta)
+        W-->>E: Conteúdo gerado
+        E-->>U: Preenche / oferece para revisar
+    end
+
+    U->>U: Revisa e clica ENVIAR (linha ética)
+    E->>E: Detecta tela "candidatura enviada"
+    E->>A: Avisa: candidatura enviada
+    A-->>U: "Mover para CV Enviado?" [Sim / Desfazer]
+    U->>A: Confirma
+    A->>A: Card → CV Enviado + follow-up 7 dias
+      </div>
+    </div>
+    <div class="note">
+      <b>Por que esta visão importa:</b> ela expõe os <b>contratos entre as peças</b> (o que a extensão pede ao Worker, o que o app
+      recebe da extensão). Cada seta é um ponto de integração a construir e testar — é o que transforma o fluxograma em plano de engenharia.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">O que cada nó quer dizer (em português claro)</div>
+    <ul class="glossary">
+      <li><b>Pelo Senova</b> <span class="pill p-done">existe</span> Você já tem o card da vaga, com a análise de compatibilidade feita. Clica em "Ir para vaga".</li>
+      <li><b>Leva só a análise</b> <span class="pill p-new">novo</span> Ao abrir a vaga, o app passa para a extensão <b>apenas a análise de compatibilidade</b> já feita. Nada de CV ou carta prontos — tudo é criado depois, na vaga, conforme a página pedir.</li>
+      <li><b>Por fora</b> Você achou a vaga sozinho (link, Google, navegando) e está na página dela, sem ter passado pelo Senova.</li>
+      <li><b>Analisa a vaga na hora</b> <span class="pill p-new">novo</span> Como não há card nem análise, a extensão lê a descrição e calcula a compatibilidade ali mesmo, sem você voltar ao app.</li>
+      <li><b>Página da vaga — o copiloto acorda</b> <span class="pill p-new">novo</span> O ponto onde as duas entradas se encontram: a extensão passa a acompanhar o preenchimento.</li>
+      <li><b>Cria o que a página pede, na hora</b> <span class="pill p-new">novo</span> A parte que você aprovou: nada vem pronto — a extensão gera o CV, a carta e as respostas no momento em que cada tela pede, e preenche os campos para você revisar.</li>
+      <li><b>Você clica Enviar</b> A linha ética: a extensão nunca submete por você. Você revisa e envia.</li>
+      <li><b>Detecta "candidatura enviada"</b> <span class="pill p-new">novo</span> A extensão reconhece a tela de confirmação do portal — é o gatilho para fechar o ciclo.</li>
+      <li><b>Veio de onde?</b> Só decide o que registrar: se começou pelo Senova, o card existente muda de coluna; se veio por fora, cria um card novo já como CV Enviado.</li>
+      <li><b>CV Enviado + follow-up</b> <span class="pill p-done">existe</span> O card entra na coluna "CV Enviado" e o Senova já agenda o follow-up em 7 dias.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Quando a candidatura NÃO é por portal</div>
+    <div class="card-sub">Nem toda vaga se candidata por um site. Esses dois caminhos já têm tratamento e ficam fora da espinha acima para não confundir.</div>
+    <div class="two-paths">
+      <div class="lane a">
+        <h4>E-mail / headhunter <span class="pill p-done">existe</span></h4>
+        <p>A vaga pede que você mande o CV por e-mail a um recrutador. O Senova já faz isso pelo Outlook: abre o modal de candidatura, você envia, e o card vai para CV Enviado com follow-up. <code>index.html:7952</code></p>
+      </div>
+      <div class="lane b">
+        <h4>Indicação <span class="pill p-new">a definir</span></h4>
+        <p>Alguém te indica para a vaga. Aqui não há portal: você aciona o contato / pede o encaminhamento. O Senova registra o pedido e a próxima ação no card de Contatos.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Construção por partes — um commit de cada vez</div>
+    <div class="card-sub">Cada parte é testada e aprovada antes da próxima, como sempre.</div>
+    <table>
+      <thead><tr><th>Parte</th><th>O que entrega</th><th>Quando</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Ponte app → extensão: "Ir para vaga" leva apenas a análise (entrada "Pelo Senova")</td><td><b>próximo</b></td></tr>
+        <tr><td>2</td><td>Ponte extensão → app: candidatura enviada move o card para CV Enviado</td><td>depois</td></tr>
+        <tr><td>3</td><td>Gerar CV em .docx — destrava o upload nos portais</td><td>depois</td></tr>
+        <tr><td>4</td><td>Painel copiloto "dá a mão" na página (LinkedIn Easy Apply primeiro)</td><td>depois</td></tr>
+        <tr><td>5</td><td>Entrada "Por fora": análise na hora + salvar no fim como CV Enviado</td><td>depois</td></tr>
+        <tr><td>6</td><td>Detecção de envio + confirmação · expansão de portais (Gupy, GH, Lever, Indeed)</td><td>depois</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Senova · fonte de processo para a etapa de candidatura · revisar antes de codar (FASE 1 — Arquiteto)</footer>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      background: '#ffffff', mainBkg: '#2E6DA4', primaryColor: '#2E6DA4',
+      primaryTextColor: '#ffffff', primaryBorderColor: '#1A3A5C',
+      secondaryColor: '#F0F4F8', tertiaryColor: '#C9A84C', lineColor: '#1A3A5C',
+      clusterBkg: '#F0F4F8', clusterBorder: '#2E6DA4', titleColor: '#1A3A5C',
+      edgeLabelBackground: '#ffffff', fontFamily: 'Inter, sans-serif',
+      fontSize: '14px', nodeTextColor: '#ffffff'
+    },
+    flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="senova_v12" name="Página-1">
+    <mxGraphModel dx="981" dy="2993" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══ TÍTULO ══ -->
+        <mxCell id="99" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#1A3A5C;" value="Senova — Fluxo Candidatura v1.2" vertex="1">
+          <mxGeometry height="40" width="490" x="151" y="-2360" as="geometry" />
+        </mxCell>
+
+        <!-- ══ FONTES ══ -->
+        <mxCell id="3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#ffffff;strokeColor=#C9A84C;strokeWidth=2;fontSize=11;" value="Email de recrutador&#xa;via Outlook" vertex="1">
+          <mxGeometry height="40" width="140" x="50" y="-2270" as="geometry" />
+        </mxCell>
+        <mxCell id="2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#ffffff;strokeColor=#C9A84C;strokeWidth=2;fontSize=11;" value="Varredura automática&#xa;Adzuna · Jobicy" vertex="1">
+          <mxGeometry height="40" width="140" x="200" y="-2270" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#ffffff;strokeColor=#C9A84C;strokeWidth=2;fontSize=11;" value="Google Alerts · RSS&#xa;Novidades de mercado" vertex="1">
+          <mxGeometry height="40" width="140" x="450" y="-2270" as="geometry" />
+        </mxCell>
+        <mxCell id="src4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#ffffff;strokeColor=#C9A84C;strokeWidth=2;fontSize=11;" value="Varreduras abaixo&#xa;do esperado" vertex="1">
+          <mxGeometry height="40" width="140" x="641" y="-2270" as="geometry" />
+        </mxCell>
+
+        <!-- ══ HOMES ══ -->
+        <mxCell id="home1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#C9A84C;strokeColor=#C9A84C;strokeWidth=3;fontSize=13;fontStyle=1;" value="🏠  Home — O que há de novo" vertex="1">
+          <mxGeometry height="55" width="210" x="75" y="-2162" as="geometry" />
+        </mxCell>
+        <mxCell id="home2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#C9A84C;strokeColor=#C9A84C;strokeWidth=3;fontSize=13;fontStyle=1;" value="🏠  Home — O que há de novo" vertex="1">
+          <mxGeometry height="55" width="210" x="314" y="-2162" as="geometry" />
+        </mxCell>
+        <mxCell id="home3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A3A5C;fontColor=#C9A84C;strokeColor=#C9A84C;strokeWidth=3;fontSize=13;fontStyle=1;" value="🏠  Home — Abre detalhe scroll&#xa;(abaixo do limiar)" vertex="1">
+          <mxGeometry height="55" width="220" x="556" y="-2162" as="geometry" />
+        </mxCell>
+
+        <!-- ══ PROCESSOS ABRE CARD ══ -->
+        <mxCell id="proc_card" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=12;" value="PROCESSOS&#xa;Abre card" vertex="1">
+          <mxGeometry height="45" width="155" x="103" y="-2050" as="geometry" />
+        </mxCell>
+
+        <!-- ══ INTERESSA? (apenas para vagas abaixo do limiar) ══ -->
+        <mxCell id="interessa" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#C9A84C;fontColor=#1A3A5C;strokeColor=none;fontSize=13;fontStyle=1;" value="Interessa?" vertex="1">
+          <mxGeometry height="50" width="115" x="620" y="-2055" as="geometry" />
+        </mxCell>
+        <mxCell id="desc_fim" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Descartar&#xa;FIM" vertex="1">
+          <mxGeometry height="50" width="120" x="780" y="-2055" as="geometry" />
+        </mxCell>
+
+        <!-- ══ VISÃO COMPLETA (renomeado de AVALIAR POSIÇÃO) ══ -->
+        <mxCell id="visao_completa" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=12;" value="VISÃO COMPLETA&#xa;Sofia + análise holística&#xa;CV · fit · projeto de vida&#xa;Sofia conversa e ajuda a decidir" vertex="1">
+          <mxGeometry height="86" width="175" x="93" y="-1976" as="geometry" />
+        </mxCell>
+
+        <!-- ══ ABRE PÁGINA DE ORIGEM ══ -->
+        <mxCell id="abre_pag" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=12;" value="Abre página de origem" vertex="1">
+          <mxGeometry height="45" width="155" x="465" y="-1956" as="geometry" />
+        </mxCell>
+
+        <!-- ══ EXTENSÃO CHROME ══ -->
+        <mxCell id="ext_swim" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="EXTENSÃO CHROME" vertex="1">
+          <mxGeometry height="210" width="155" x="485" y="-1900" as="geometry" />
+        </mxCell>
+        <mxCell id="ext1" parent="ext_swim" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Score do CV" vertex="1">
+          <mxGeometry height="30" width="155" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ext2" parent="ext_swim" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Quer Visão Completa? → Senova" vertex="1">
+          <mxGeometry height="30" width="155" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext3" parent="ext_swim" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Preenche formulário · carta&#xa;email · resumo executivo · PDF" vertex="1">
+          <mxGeometry height="60" width="155" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ext4" parent="ext_swim" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Aplica no portal" vertex="1">
+          <mxGeometry height="30" width="155" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="ext5" parent="ext_swim" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Volta ao Senova" vertex="1">
+          <mxGeometry height="30" width="155" y="180" as="geometry" />
+        </mxCell>
+
+        <!-- ══ CANDIDATAR? (nova decisão após Visão Completa) ══ -->
+        <mxCell id="cand_q" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#C9A84C;fontColor=#1A3A5C;strokeColor=none;fontSize=13;fontStyle=1;" value="Candidatar?" vertex="1">
+          <mxGeometry height="65" width="140" x="111" y="-1820" as="geometry" />
+        </mxCell>
+        <mxCell id="desc_cand" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9b2335;fontColor=#ffffff;strokeColor=none;fontSize=12;" value="Descartado" vertex="1">
+          <mxGeometry height="40" width="130" x="320" y="-1810" as="geometry" />
+        </mxCell>
+
+        <!-- ══ NOTA: Extensão auto-atualiza ══ -->
+        <mxCell id="notif_note" parent="1" style="text;html=1;strokeColor=#C9A84C;fillColor=#fff8e6;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontColor=#1A3A5C;" value="⚡ Auto · atualiza card para&#xa;Aplicado e notifica usuário" vertex="1">
+          <mxGeometry height="40" width="170" x="430" y="-115" as="geometry" />
+        </mxCell>
+
+        <!-- ══ NOTA: nós 20-23 incorporados ══ -->
+        <mxCell id="note_old" parent="1" style="text;html=1;strokeColor=#aaaaaa;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontColor=#888888;" value="⟵ Lead · Vale a pena? ·&#xa;Analisar · Score ATS&#xa;incorporados na Visão Completa" vertex="1">
+          <mxGeometry height="55" width="175" x="440" y="-780" as="geometry" />
+        </mxCell>
+
+        <!-- ══ FLUXO DE CANDIDATURA ══ -->
+        <mxCell id="24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="CV Otimizado" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="-385" as="geometry" />
+        </mxCell>
+        <mxCell id="25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Carta de candidatura" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="-290" as="geometry" />
+        </mxCell>
+        <mxCell id="26" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Enviar via Outlook" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="-195" as="geometry" />
+        </mxCell>
+        <mxCell id="27" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2d6a4f;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Aplicado ✓" vertex="1">
+          <mxGeometry height="45" width="180" x="245" y="-100" as="geometry" />
+        </mxCell>
+        <mxCell id="28" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#C9A84C;fontColor=#1A3A5C;strokeColor=none;fontSize=13;fontStyle=1;" value="Retorno?" vertex="1">
+          <mxGeometry height="65" width="150" x="260" y="-5" as="geometry" />
+        </mxCell>
+        <mxCell id="29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Entrevista agendada" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="30" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Preparar com Sofia&#xa;briefing + simulação" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="31" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#C9A84C;fontColor=#1A3A5C;strokeColor=none;fontSize=13;fontStyle=1;" value="Resultado" vertex="1">
+          <mxGeometry height="65" width="150" x="260" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Proposta recebida" vertex="1">
+          <mxGeometry height="45" width="210" x="230" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="33" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#C9A84C;fontColor=#1A3A5C;strokeColor=none;fontSize=13;fontStyle=1;" value="Aceitar?" vertex="1">
+          <mxGeometry height="65" width="150" x="260" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="34" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2d6a4f;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Aceito 🎉" vertex="1">
+          <mxGeometry height="45" width="180" x="245" y="655" as="geometry" />
+        </mxCell>
+        <mxCell id="35" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5c4b8a;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Captura de Aprendizado&#xa;motivo · obs · salário" vertex="1">
+          <mxGeometry height="50" width="210" x="230" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="36" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#5c4b8a;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Insight salvo no histórico" vertex="1">
+          <mxGeometry height="45" width="180" x="245" y="850" as="geometry" />
+        </mxCell>
+
+        <!-- ══ SAÍDAS NEGATIVAS ══ -->
+        <mxCell id="42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E6DA4;fontColor=#ffffff;strokeColor=none;fontSize=12;" value="Follow-up&#xa;+7 dias" vertex="1">
+          <mxGeometry height="45" width="140" x="460" y="3" as="geometry" />
+        </mxCell>
+        <mxCell id="43" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9b2335;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Negado" vertex="1">
+          <mxGeometry height="40" width="140" x="460" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="44" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9b2335;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Negado" vertex="1">
+          <mxGeometry height="40" width="140" x="460" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="45" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9b2335;fontColor=#ffffff;strokeColor=none;fontSize=13;" value="Descartado" vertex="1">
+          <mxGeometry height="40" width="140" x="460" y="548" as="geometry" />
+        </mxCell>
+        <mxCell id="46" parent="1" style="text;html=1;strokeColor=#C9A84C;fillColor=#fff8e6;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontColor=#5c4b8a;" value="⚑  Negado e Descartado&#xa;também acionam a&#xa;Captura de Aprendizado" vertex="1">
+          <mxGeometry height="60" width="185" x="460" y="750" as="geometry" />
+        </mxCell>
+
+        <!-- ════════════════════════════════
+             ARESTAS — SEÇÃO DE ENTRADA
+        ════════════════════════════════ -->
+
+        <!-- Fontes → Homes -->
+        <mxCell id="e_3_h1" edge="1" parent="1" source="3" target="home1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2_h1" edge="1" parent="1" source="2" target="home1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4_h2" edge="1" parent="1" source="4" target="home2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4_h3" edge="1" parent="1" source="src4" target="home3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Homes → PROCESSOS / Interessa? -->
+        <mxCell id="e_h1_pc" edge="1" parent="1" source="home1" target="proc_card" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_h2_pc" edge="1" parent="1" source="home2" target="proc_card" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_h3_int" edge="1" parent="1" source="home3" target="interessa" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Interessa? → SIM → Abre página / NÃO → Descartar FIM -->
+        <mxCell id="e_int_sim" edge="1" parent="1" source="interessa" target="abre_pag" value="SIM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_int_nao" edge="1" parent="1" source="interessa" target="desc_fim" value="NÃO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PROCESSOS → Visão Completa / Abre página -->
+        <mxCell id="e_pc_vc" edge="1" parent="1" source="proc_card" target="visao_completa" value="Análise profunda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pc_ap" edge="1" parent="1" source="proc_card" target="abre_pag" value="Via extensão" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Abre página → Extensão Chrome -->
+        <mxCell id="e_ap_ext" edge="1" parent="1" source="abre_pag" target="ext_swim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Extensão "Quer Visão Completa?" → Visão Completa -->
+        <mxCell id="e_ext_vc" edge="1" parent="1" source="ext2" target="visao_completa" value="Análise profunda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Visão Completa → Candidatar? -->
+        <mxCell id="e_vc_cq" edge="1" parent="1" source="visao_completa" target="cand_q" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Candidatar? → SIM → CV Otimizado / NÃO → Descartado -->
+        <mxCell id="e_cq_sim" edge="1" parent="1" source="cand_q" target="24" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cq_nao" edge="1" parent="1" source="cand_q" target="desc_cand" value="Não" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Extensão aplica → Aplicado ✓ (auto, com notificação) -->
+        <mxCell id="e_ext_aplic" edge="1" parent="1" source="ext_swim" target="27" value="Auto · notifica usuário" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;fontStyle=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ════════════════════════════════
+             ARESTAS — FLUXO CANDIDATURA
+        ════════════════════════════════ -->
+        <mxCell id="e_24_25" edge="1" parent="1" source="24" target="25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_25_26" edge="1" parent="1" source="25" target="26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_26_27" edge="1" parent="1" source="26" target="27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_27_28" edge="1" parent="1" source="27" target="28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Retorno? -->
+        <mxCell id="e_28_29" edge="1" parent="1" source="28" target="29" value="Email positivo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_28_43" edge="1" parent="1" source="28" target="43" value="Negativo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_28_42" edge="1" parent="1" source="28" target="42" value="Silêncio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_42_28" edge="1" parent="1" source="42" target="28" value="+7 dias" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Entrevista → Resultado -->
+        <mxCell id="e_29_30" edge="1" parent="1" source="29" target="30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_30_31" edge="1" parent="1" source="30" target="31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_31_32" edge="1" parent="1" source="31" target="32" value="Avançou" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_31_44" edge="1" parent="1" source="31" target="44" value="Não avançou" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Proposta → Aceitar? -->
+        <mxCell id="e_32_33" edge="1" parent="1" source="32" target="33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_33_34" edge="1" parent="1" source="33" target="34" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_33_45" edge="1" parent="1" source="33" target="45" value="Não" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Aceito → Aprendizado → FIM -->
+        <mxCell id="e_34_35" edge="1" parent="1" source="34" target="35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_35_36" edge="1" parent="1" source="35" target="36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
