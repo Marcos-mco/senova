@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 23/jun/2026 — v3.40 (Sessão 14)*
+*Atualizado: 23/jun/2026 — v3.41 (Sessão 15)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -41,12 +41,30 @@
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 15) — AÇÕES IMEDIATAS
-0. **✅ Sessão 14 (dedup de vagas) NO AR e VALIDADA por Marcos:** fix de duplicata por e-mail-digest + migração `dedup_jobid_v2` (commit `b0155c5`). Oportunidade 4→2; 2 duplicatas arquivadas e recuperáveis. CrowdStrike duplicado resolvido pelo mesmo fix.
-1. **✅ Extensão v2.16 já recarregada** (confirmado nesta sessão). Enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
-2. **🟡 NOVO BUG B11 — botão "Ver arquivados" ausente na UI:** `toggleArquivados()` e `kanban-arquivados-wrap` existem, mas nenhum elemento visível os aciona → Marcos não consegue ver os próprios arquivados. Pequeno, prioridade média.
-3. **🔴 GAP DO PERFIL BASE (segue aberto):** o `PERFIL_MARCOS` base OMITE o setor educacional (EADCon/Expoente) e as competências de marketing digital — que Marcos TEM. Sintoma vivo nesta sessão: FPP (educação+mkt) só chegou a 82% via contexto complementar; vagas de mkt digital puro (Jobgether) seguem baixas (28%). **Revisar e enriquecer o `PERFIL_MARCOS` base.**
+## ⚠️ AO RETOMAR (Sessão 16) — AÇÕES IMEDIATAS
+0. **✅ Sessão 15 (B11) NO AR e VALIDADA por Marcos:** badge da sidebar conta só processos abertos; arquivados acessíveis via link "N arquivadas ↗" no Seu Painel; botão "✕ Ocultar" na seção (commit `3db105d`).
+1. **✅ Extensão v2.16 já recarregada** (confirmado sessão 14). Enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
+2. **🔴 GAP DO PERFIL BASE (segue aberto):** o `PERFIL_MARCOS` base OMITE o setor educacional (EADCon/Expoente) e as competências de marketing digital — que Marcos TEM. Sintoma vivo: FPP (educação+mkt) só chegou a 82% via contexto complementar; vagas de mkt digital puro (Jobgether) seguem baixas (28%). **Revisar e enriquecer o `PERFIL_MARCOS` base.**
+3. **🟡 REDESIGN DO CARD (Fix 1/P2 pendente de teste):** `senova_v3.31_16jun2026.html` tem Fix 1 não-commitado (link único para vaga). Testar com card com URL → só "↗ Ver vaga" no header; sem URL some; digitar URL faz surgir. Se aprovado, commitar e seguir Fix 2 (P4 renome "Dados da vaga").
 4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia. Discutir ao finalizar a Sofia.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 15 (23/jun/2026)
+
+**Tema:** fix B11 — expor arquivados na UI.
+
+### Diagnóstico
+- Causa raiz: JS em `renderCRM` procurava `crm-arquivados-btn` com `getElementById` e fazia guard `if(btnArq)` — elemento nunca existiu no HTML. `toggleArquivados()` e `kanban-arquivados-wrap` estavam 100% prontos mas sem gatilho.
+
+### Fix (commit `3db105d`)
+- **Badge sidebar:** `updateBadge()` passa a contar só vagas ativas (exclui `aceito`/`arquivado` e contatos). Badge: 168 → 18.
+- **Seu Painel:** "N arquivadas" vira link clicável (azul ação ↗) → chama `verArquivados()` → navega para Processos com `_mostrarArquivados=true` e rola até a seção.
+- **Seção Arquivados:** ganha botão "✕ Ocultar" interno para fechar sem sair da página.
+- Removido botão reprovado de baixo do Kanban.
+
+### Validado por Marcos
+- Badge mostra 18. Link "130 arquivadas ↗" no Painel funciona. Seção fecha com "✕ Ocultar".
 
 ---
 
@@ -273,7 +291,7 @@ Marcos quer continuar a conversa sobre a visão civilizacional do Senova. Ler `V
 | B7 | Sofia / Preparar entrevista não funcionando | index.html | **Baixa** (não prioridade agora) |
 | B8 | LinkedIn no card de Contatos: URL sem link clicável | index.html | **Baixa** |
 | B9 | Idioma DE ausente em todos os seletores PT/EN/ES | index.html | **Média** |
-| B11 | Botão "Ver arquivados" não exposto na UI (`toggleArquivados`/`kanban-arquivados-wrap` existem, nada aciona) | index.html | **Média** |
+| ~~B11~~ | ~~Botão "Ver arquivados" não exposto na UI~~ | ✅ resolvido sessão 15 | — |
 
 ---
 
