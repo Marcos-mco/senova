@@ -35,6 +35,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: true });
     return false;
   }
+  if (msg.type === 'GET_ANALISE') {
+    // PULL: o content.js da página da vaga pede a análise que o app já tem para este jobId.
+    buscarAnaliseDoApp(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
   if (msg.type === 'HABILITAR_PORTAL') {
     fetch(WORKER + '/api/whitelist', {
       method: 'POST',
@@ -207,6 +212,24 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
   } else {
     await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', fonte: 'extensao_chrome' }).catch(() => {});
   }
+}
+
+// PULL da análise: encontra a aba do app e pede a Compatibilidade que ele já tem para
+// este jobId (window.__senovaAnaliseDoCard). world:'MAIN' é obrigatório. Retorna null se
+// o app não estiver aberto ou não houver card analisado para a vaga.
+async function buscarAnaliseDoApp(jobId) {
+  if (!jobId) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return null;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (jid) => (typeof window.__senovaAnaliseDoCard === 'function') ? window.__senovaAnaliseDoCard(jid) : null,
+      args: [String(jobId)],
+    });
+    return (out && out[0] && out[0].result) || null;
+  } catch { return null; }
 }
 
 async function salvarSinal({ titulo, empresa, url, resumo }) {

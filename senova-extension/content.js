@@ -608,4 +608,16 @@
     }
   }
 
+  // PULL da análise (D1.1): se esta vaga já tem card com Compatibilidade no app, puxa a
+  // análise para o copiloto. Por ora registra em window.__senovaAnalise + console;
+  // o painel visual que a consome é o Sprint D3.
+  if (host.includes('linkedin.com') && /\/jobs\/view\/(\d+)/.test(url)) {
+    const _jid = (url.match(/\/jobs\/view\/(\d+)/) || [])[1];
+    if (_jid) {
+      chrome.runtime.sendMessage({ type: 'GET_ANALISE', jobId: _jid })
+        .then(an => { if (an) { window.__senovaAnalise = an; console.log('[Senova] Análise puxada do app:', an); } })
+        .catch(() => {});
+    }
+  }
+
 })();

@@ -9024,6 +9024,26 @@ window.__senovaCandidaturaEnviada=function(url){
   return true;
 };
 
+// Exposto para a extensão (modelo PULL): devolve a análise de Compatibilidade de uma
+// vaga já no pipeline, casada por jobId do LinkedIn. A extensão chama isto na página da
+// vaga para mostrar a Compatibilidade — leva SÓ a análise (nunca CV/carta, que nascem
+// na página sob demanda). Retorna null se não houver card com esse jobId ou sem nota.
+window.__senovaAnaliseDoCard=function(jobId){
+  if(!jobId) return null;
+  const v=(vagas||[]).find(x=>_jobIdLinkedIn(x.origemUrl)===String(jobId));
+  if(!v) return null;
+  const _score=(v.atsScore&&parseInt(v.atsScore))||(typeof v.score==='number'?v.score:null);
+  if(!_score) return null; // card existe mas ainda sem análise → nada a entregar
+  return {
+    score:_score,
+    atsScore:v.atsScore||'',
+    compatFortes:Array.isArray(v.compatFortes)?v.compatFortes:[],
+    compatAtencao:Array.isArray(v.compatAtencao)?v.compatAtencao:[],
+    cargo:v.cargo||'',
+    empresa:v.empresa||''
+  };
+};
+
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
 // para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
 window.__senovaPendentesDesc=function(){
