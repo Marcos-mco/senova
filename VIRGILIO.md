@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 22/jun/2026 — v3.38 (Sessão 11)*
+*Atualizado: 23/jun/2026 — v3.39 (Sessão 13)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -41,11 +41,32 @@
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 12) — AÇÕES IMEDIATAS
-1. **Recarregar a extensão**: `chrome://extensions` → Senova → ↻ recarregar. Confirmar **v2.16**.
-2. **Abrir Senova com `Ctrl+Shift+R`** (cache do navegador já enganou testes — sempre forçar). As migrações de dedup/limpeza rodam uma vez no load.
-3. **Validar enriquecimento end-to-end** (logado no LinkedIn, ~1-2 min, SEM filtro/busca ativo na coluna): cards de digest sem descrição preenchem **título real + descrição + Compatibilidade** sozinhos, e aparece o indicador "⚙️ Analisando vagas…". Sem duplicatas da mesma vaga.
-4. **Próxima frente aprovada:** **arquivo de experiências complementares do CV** — JÁ EXISTE o arquivo (usar o existente, não criar outro); falta o **campo de entrada** no Perfil + o **uso na análise** (injetar nas análises de compatibilidade para a IA não ignorar experiências reais, ex.: IES — Expoente/Eadcon, docência).
+## ⚠️ AO RETOMAR (Sessão 13) — AÇÕES IMEDIATAS
+1. **Recarregar extensão v2.16** + abrir Senova com `Ctrl+Shift+R`.
+2. **✅ Sessão 12 VALIDADA end-to-end (card FPP):** após cadastrar contexto (educação + mkt digital), score **72→82%** e os pontos_atencao mudaram — sumiu "sem experiência em IES"; a IA passou a reconhecer o setor educacional ("destacar experiências anteriores em educação"). Feature contexto complementar → análise do Kanban: **FECHADA E PROVADA**.
+3. **🔴 GAP DO PERFIL BASE (importante):** grep no Worker por EADCon/Expoente/ensino/educação/marketing digital/HubSpot/Google Ads deu **zero**. O `PERFIL_MARCOS` base está resumido demais e OMITE o setor educacional inteiro e as competências de marketing digital — que Marcos TEM. A IA não erra; o perfil está incompleto. **Revisar e enriquecer o `PERFIL_MARCOS` base** (EADCon/Expoente são carreira principal, não apêndice de contexto). Marcos vai observar nas próximas análises antes de agir.
+4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia (Marcos tem dúvida sobre a verticalidade da análise da Sofia). Discutir ao finalizar a Sofia.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 13 (23/jun/2026)
+
+**Tema:** recuperação de dado perdido + blindagem contra perda futura.
+
+### Incidente e recuperação
+- Card "TV Integração - Afiliada Globo" (entrevista, ATS 91) sumiu do Kanban.
+- Causa real: **delete acidental** (id em `senova_deleted_ids`), NÃO a migração.
+- Recuperado do `senova_backup_20260616.json` (Downloads) — só esse card,
+  mesclado ao estado atual, sem perder nada recente.
+- Aprendizado: cards vivem só no localStorage; backups .html são código, não dados.
+
+### Fix #1 — Migração não-destrutiva (commit d7f7023)
+- `dedup_jobid` nunca funde/apaga entrevista/proposta/aceito; duplicata comum
+  vira arquivado com timeline em vez de deletada sem rastro.
+
+### Fix #2 — Backup automático (commit d7f7023)
+- Snapshot diário de `senova_vagas_v2` antes das migrações (3 dias), sacrificável
+  sob cota. UI "Pontos de restauração automáticos" em Perfil > Preferências.
 
 ---
 
