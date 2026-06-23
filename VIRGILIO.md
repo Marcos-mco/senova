@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 23/jun/2026 — v3.41 (Sessão 15)*
+*Atualizado: 23/jun/2026 — v3.42 (Sessão 16)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -41,12 +41,37 @@
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 16) — AÇÕES IMEDIATAS
+## ⚠️ AO RETOMAR (Sessão 17) — AÇÕES IMEDIATAS
 0. **✅ Sessão 15 (B11) NO AR e VALIDADA por Marcos:** badge da sidebar conta só processos abertos; arquivados acessíveis via link "N arquivadas ↗" no Seu Painel; botão "✕ Ocultar" na seção (commit `3db105d`).
 1. **✅ Extensão v2.16 já recarregada** (confirmado sessão 14). Enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
-2. **🔴 GAP DO PERFIL BASE (segue aberto):** o `PERFIL_MARCOS` base OMITE o setor educacional (EADCon/Expoente) e as competências de marketing digital — que Marcos TEM. Sintoma vivo: FPP (educação+mkt) só chegou a 82% via contexto complementar; vagas de mkt digital puro (Jobgether) seguem baixas (28%). **Revisar e enriquecer o `PERFIL_MARCOS` base.**
-3. **🟡 REDESIGN DO CARD (Fix 1/P2 pendente de teste):** `senova_v3.31_16jun2026.html` tem Fix 1 não-commitado (link único para vaga). Testar com card com URL → só "↗ Ver vaga" no header; sem URL some; digitar URL faz surgir. Se aprovado, commitar e seguir Fix 2 (P4 renome "Dados da vaga").
+2. **✅ GAP DO PERFIL BASE (resolvido em Sessão 16):** `PERFIL_MARCOS.md` enriquecido com EADCon (Diretor de Marketing, 2006–08), Expoente (Diretor de Vendas, 2004–06), Mestre em Marketing/Évora (2002–04), seção de Competências completa (marketing digital, edtech, IA). Sintoma esperado: vagas de mkt digital e educação com scores mais altos.
+3. **✅ REDESIGN DO CARD — Fix 1/P2 já incorporado:** auditoria na Sessão 16 confirmou que os botões `mv-btn-ir-vaga` e `mv-ver-origem-btn` foram removidos em sessões anteriores; só `mv-link-vaga` "↗ Ver vaga" permanece no header. Fix 1 está em produção — nunca foi um commit isolado.
 4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia. Discutir ao finalizar a Sofia.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 16 (23/jun/2026)
+
+**Tema:** auditoria do redesign do card + enriquecimento do PERFIL_MARCOS base + feature "Acrescentar sobre mim" (reanálise sob demanda).
+
+### Feature "Acrescentar algo sobre mim" (v3.42) — APROVADA por Marcos
+- **Problema real:** não havia como reanalisar uma vaga já pontuada. Não era bug — era feature ausente (os guards da Sessão 10 bloqueiam o auto-recálculo corretamente; nunca houve porta manual). Diagnóstico holístico feito pelo `senova-auditor`.
+- **Princípio que moldou o design (Marcos):** honestidade — se a informação é verdadeira sobre mim, vale para TODAS as vagas, não só uma. Logo, não há "usar só nesta vaga"; o que se acrescenta entra no perfil global.
+- **Onde:** campo discreto "＋ Acrescentar algo sobre mim" na zona Compatibilidade do modal da vaga (fora do corpo que colapsa).
+- **Comportamento:** salva no contexto global (mesmo padrão de `ctxAdicionar`, `usar:true`) → vale para próximas análises. **E** reanalisa a vaga aberta NA HORA — mas só no estágio **Oportunidade (lead)** com descrição ≥400 chars (onde a Compatibilidade ainda serve para decidir). Decisão já tomada (CV Enviado+) → só enriquece, sem gastar chamada paga.
+- **Funções novas:** `mvEnriquecerPerfil`, `mvReanalisarCompat` (caminho manual paralelo que ignora o guard da Sessão 10 SEM relaxá-lo), `_mvReanaliseAplica`, `mvToggleEnriquecer`, `mvAtualizarEnriquecer`, `_mvAtualizarHintEnriquecer`.
+- **Coerência de score:** `mvReanalisarCompat` atualiza `atsScore` E `score` numérico (o card do Kanban prioriza `score`), respeita `filtroAtivo` no re-render.
+- **Backup:** `senova_v3.41_23jun2026_pre-acrescentar.html`.
+
+### Auditoria do redesign do card
+- Revisão das 6 prioridades (P1–P6). P1 (footer por estágio), P2/Fix 1 (link único), P3 (ctx removido) e P5 (auto-preencher) já estão em produção — incorporados em sessões anteriores sem commit isolado. Restam: P4 ("Andamento" → decidir renome) e P6 (dessaturar cards encerrados).
+
+### Enriquecimento do PERFIL_MARCOS base (resolvido)
+- **EADCon (ago/2006–out/2008):** adicionado ao Histórico e Experiência-chave — Diretor de Marketing, setor educacional, 180 parceiros, 120k alunos, R$20mi campanhas, 25 agências.
+- **Expoente Sistema de Ensino (jan/2004–abr/2006):** adicionado — Diretor de Vendas, R$40mi, 300k alunos, 900 escolas, 40 pessoas.
+- **Mestre em Marketing · Universidade de Évora (2002–04):** adicionado à Formação (estava só no CV do app, não no perfil base).
+- **Seção Competências (nova):** marketing digital, growth, comercial/vendas, edtech, IA/SaaS — keywords que o scoring ATS precisava.
+- **Regra setor educacional:** documentada (quando incluir EADCon/Expoente no CV).
 
 ---
 

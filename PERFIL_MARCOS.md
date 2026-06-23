@@ -16,7 +16,9 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 - **Plano C:** Senova SaaS 35+ (médio prazo)
 
 ## Experiência-chave
-- RPC/Globo: Gerente (nov/2008–abr/2012) + Diretor (abr/2012–abr/2019) — 30 pessoas, 8 afiliadas, R$500mi
+- RPC/Globo: Gerente (nov/2008–abr/2012) + Diretor (abr/2012–abr/2019) — 30 pessoas, 8 afiliadas, R$500mi; liderou digital, pesquisa, comunicação institucional e suporte a vendas
+- EADCon: Diretor de Marketing (ago/2006–out/2008) — setor educacional, 180 parceiros, 120 mil alunos, R$20mi em campanhas, 25 agências simultâneas
+- Expoente Sistema de Ensino: Diretor de Vendas (jan/2004–abr/2006) — R$40mi faturamento, 300 mil alunos, 900 escolas conveniadas, 4 equipes regionais, 40 pessoas
 - Popper: Head Expansão (2024–25)
 - Consigliere: Consultor Sênior (dez/2025–atual)
 
@@ -28,6 +30,23 @@ SEMPRE em 2 cargos separados: Gerente (nov/2008–abr/2012) + Diretor (abr/2012�
 ## Histórico completo (cronológico inverso)
 
 > **Regra de uso nos CVs:** O bloco de carreira gráfica (Editel/Abril/Intec/DLS) deve ser incluído APENAS quando a vaga for do setor gráfico, editorial, produção, publishing, workflow, ISO 9000 ou telecom. Para vagas de marketing/comercial, omitir ou usar apenas 1 linha de rodapé.
+
+> **Regra setor educacional:** EADCon e Expoente SEMPRE presentes quando a vaga for de educação, EAD, edtech, ensino, ou marketing em setor educacional. Para vagas de marketing/comercial genéricas, incluir resumido (1–2 bullets por empresa).
+
+**EADCON**
+Edtech nacional — Curitiba, PR
+
+- **Diretor de Marketing** — ago/2006 a out/2008
+  - Responsável pelo marketing nacional com rede de 180 parceiros e 120 mil alunos
+  - Gerenciamento de campanhas de R$ 20 milhões com 25 agências simultâneas
+
+**EXPOENTE SISTEMA DE ENSINO**
+Rede de ensino — Curitiba, PR
+
+- **Diretor de Vendas** — jan/2004 a abr/2006
+  - Faturamento anual de R$ 40 milhões, 300 mil alunos e 900 escolas conveniadas
+  - Liderou 4 equipes regionais com 40 pessoas, cobertura nacional
+  - Docência em UniExpoente Curitiba (2006): Marketing Digital, Planejamento Estratégico
 
 **EDITEL LISTAS TELEFÔNICAS | Grupo Carvajal**
 Multinacional colombiana — US$ 60 mi/ano no Brasil, 1.000+ funcionários
@@ -75,9 +94,22 @@ Multinacional colombiana — US$ 60 mi/ano no Brasil, 1.000+ funcionários
 - **Prêmio:** Troféu Imprensa 2004 — campanha RSE
 
 ## Formação
-- Master em Vendas/Sales · Barcelona (2014–15)
+- Mestre em Direção de Marketing e Vendas · Universitat de Barcelona (2013–14) — chamar de "Master em Vendas/Sales" em inglês; nunca "MBA de Marketing"
 - MBA em Administração de Empresas · FGV Curitiba (1998–2000) — NUNCA associar a Marketing
+- Mestre em Marketing · Universidade de Évora, Portugal (2002–04) — usar quando relevante para mercado ibérico ou cargos acadêmicos
 - FAAP Publicidade (1989–93)
+
+## Competências (para scoring de vagas)
+
+**Marketing & Growth:** Estratégia de Marketing · Growth Strategy · Marketing Digital · Desenvolvimento de Negócios · Gestão de Marcas · P&L Management · Planejamento Estratégico · Business Intelligence · Transformação Digital · Comunicação Institucional · Comportamento do Consumidor
+
+**Comercial & Vendas:** Gestão de Equipes de Vendas · Key Account · Gestão de Carteira · Expansão de Mercado · Canais de Distribuição · Franquias/Parcerias
+
+**Docência:** Marketing Digital · Comportamento do Consumidor · Planejamento Estratégico (ESAMC/ESPM, UniExpoente, 2002–2006)
+
+**Digital & Tech:** IA aplicada a negócios · Prompt Engineering · Produto SaaS B2C · Inteligência de Mercado · Mídia Programática · Gestão de Agências Digitais
+
+**Setor educacional:** EAD · Edtech · Redes de Ensino · Parcerias com Escolas · Gestão de Alunos em escala
 
 ## Idiomas
 - Português: nativo

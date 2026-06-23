@@ -1955,18 +1955,6 @@ select option { background: var(--bg2); }
         <!-- Sofia inline (lead: aparece após análise) -->
         <div id="mv-sofia-inline" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65;"></div>
         </div><!-- fim mv-compat-body -->
-        <!-- Acrescentar sobre mim — enriquece o perfil e reanalisa esta vaga (só estágio Oportunidade) -->
-        <div id="mv-enriquecer-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-          <button id="mv-enriquecer-toggle" onclick="mvToggleEnriquecer()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">＋ Acrescentar algo sobre mim</button>
-          <div id="mv-enriquecer-form" style="display:none;margin-top:10px;">
-            <textarea id="mv-enriquecer-texto" rows="2" placeholder="Ex.: Fiz curso de marcenaria e restauração na Chippendale School (Escócia), uma das melhores do mundo." style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:56px;"></textarea>
-            <div id="mv-enriquecer-hint" style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Vale para todas as próximas vagas.</div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
-              <button onclick="mvToggleEnriquecer()" class="btn btn-ghost" style="font-size:13px;padding:7px 14px;">Cancelar</button>
-              <button onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ANÁLISE HOLÍSTICA — Perguntar à Sofia (só estado Oportunidade) -->
@@ -5519,7 +5507,6 @@ function openVagaModal(id){
   _mvCenterModal();
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
-  mvAtualizarEnriquecer();
   // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
   if(editingVagaId&&editingVagaId!=='new'){
     const _vCheck=vagas.find(x=>String(x.id)===String(editingVagaId));
@@ -6322,94 +6309,6 @@ async function mvAutoCompatCheck(){
     saveVagas();
     mvUpdateScoreDisplay();
   }catch(_){}
-}
-
-// ── ACRESCENTAR SOBRE MIM (enriquece perfil + reanalisa) ─────────────────────
-// Reanálise só faz sentido no estágio Oportunidade (lead) — onde a Compatibilidade
-// ainda serve para decidir. Decisão tomada (CV Enviado+) → só enriquece o perfil.
-function _mvReanaliseAplica(){
-  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
-  if(!v||v.status!=='lead') return false;
-  const desc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  return desc.length>=400;
-}
-function _mvAtualizarHintEnriquecer(){
-  const hint=document.getElementById('mv-enriquecer-hint');
-  if(!hint) return;
-  hint.textContent=_mvReanaliseAplica()
-    ? 'Vale para todas as próximas vagas — e recalculo esta agora.'
-    : 'Vale para todas as próximas vagas.';
-}
-function mvAtualizarEnriquecer(){
-  const wrap=document.getElementById('mv-enriquecer-wrap');
-  if(!wrap) return;
-  wrap.style.display=(editingVagaId&&editingVagaId!=='new')?'':'none';
-  const form=document.getElementById('mv-enriquecer-form');if(form)form.style.display='none';
-  const toggle=document.getElementById('mv-enriquecer-toggle');if(toggle)toggle.style.display='';
-  const ta=document.getElementById('mv-enriquecer-texto');if(ta)ta.value='';
-  _mvAtualizarHintEnriquecer();
-}
-function mvToggleEnriquecer(){
-  const form=document.getElementById('mv-enriquecer-form');
-  const toggle=document.getElementById('mv-enriquecer-toggle');
-  if(!form) return;
-  const open=form.style.display!=='none';
-  form.style.display=open?'none':'';
-  if(toggle) toggle.style.display=open?'':'none';
-  if(!open){ _mvAtualizarHintEnriquecer(); const ta=document.getElementById('mv-enriquecer-texto'); if(ta) ta.focus(); }
-}
-async function mvEnriquecerPerfil(){
-  const ta=document.getElementById('mv-enriquecer-texto');
-  const texto=ta?.value.trim();
-  if(!texto){ if(ta) ta.focus(); return; }
-  // 1) Entra no perfil global — mesmo padrão de ctxAdicionar; vale para todas as próximas análises
-  ctxInicializar();
-  const entries=ctxCarregar()||[];
-  entries.unshift({id:'ctx_'+Date.now(), texto, usar:true, dt:new Date().toISOString().slice(0,10)});
-  ctxSalvarTodos(entries);
-  ctxRenderizar();
-  if(ta) ta.value='';
-  // 2) Fecha o formulário
-  const form=document.getElementById('mv-enriquecer-form');if(form)form.style.display='none';
-  const toggle=document.getElementById('mv-enriquecer-toggle');if(toggle)toggle.style.display='';
-  // 3) Reanálise imediata — só no estágio Oportunidade com descrição completa
-  if(_mvReanaliseAplica()){
-    showToast('Adicionado. Recalculando esta vaga…');
-    await mvReanalisarCompat();
-  } else {
-    showToast('Adicionado ao seu perfil.');
-  }
-}
-// Reanálise manual da Compatibilidade — ignora o guard de "sem score" (Sessão 10),
-// porque foi pedida explicitamente pelo usuário ao acrescentar contexto.
-async function mvReanalisarCompat(){
-  const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return;
-  const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-  if(idx<0) return;
-  const v=vagas[idx];
-  try{
-    const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
-    });
-    if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); return; }
-    const data=await res.json();
-    const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); return; }
-    vagas[idx].atsScore=String(score);
-    if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
-    vagas[idx].compatClass=data.classificacao||'';
-    vagas[idx].compatFortes=data.pontos_fortes||[];
-    vagas[idx].compatAtencao=data.pontos_atencao||[];
-    const _hasRichNow=/^(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
-    if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
-    vagas[idx].updatedAt=Date.now();
-    saveVagas();
-    mvUpdateScoreDisplay();
-    if(filtroAtivo) aplicarFiltros(); else renderCRM();
-    showToast('Compatibilidade recalculada: '+score+'%');
-  }catch(_){ showToast('Não foi possível recalcular. Tente novamente.'); }
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
