@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 23/jun/2026 — v3.42 (Sessão 16)*
+*Atualizado: 23/jun/2026 — v3.43 (Sessão 16 — FECHADA)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.40 (23/jun/2026 — Sessão 14)
+## ESTADO ATUAL — v3.43 (23/jun/2026 — Sessão 16)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -42,11 +42,16 @@
 ---
 
 ## ⚠️ AO RETOMAR (Sessão 17) — AÇÕES IMEDIATAS
-0. **✅ Sessão 15 (B11) NO AR e VALIDADA por Marcos:** badge da sidebar conta só processos abertos; arquivados acessíveis via link "N arquivadas ↗" no Seu Painel; botão "✕ Ocultar" na seção (commit `3db105d`).
-1. **✅ Extensão v2.16 já recarregada** (confirmado sessão 14). Enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
-2. **✅ GAP DO PERFIL BASE (resolvido em Sessão 16):** `PERFIL_MARCOS.md` enriquecido com EADCon (Diretor de Marketing, 2006–08), Expoente (Diretor de Vendas, 2004–06), Mestre em Marketing/Évora (2002–04), seção de Competências completa (marketing digital, edtech, IA). Sintoma esperado: vagas de mkt digital e educação com scores mais altos.
-3. **✅ REDESIGN DO CARD — Fix 1/P2 já incorporado:** auditoria na Sessão 16 confirmou que os botões `mv-btn-ir-vaga` e `mv-ver-origem-btn` foram removidos em sessões anteriores; só `mv-link-vaga` "↗ Ver vaga" permanece no header. Fix 1 está em produção — nunca foi um commit isolado.
-4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia. Discutir ao finalizar a Sofia.
+0. **✅ Sessão 15 (B11) validada:** badge conta só processos abertos; arquivados via "N arquivadas ↗" no Seu Painel (commit `3db105d`).
+1. **✅ Extensão v2.16:** enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
+2. **✅ GAP DO PERFIL BASE (Sessão 16):** `PERFIL_MARCOS.md` enriquecido — EADCon, Expoente, Évora, competências completas.
+3. **✅ REDESIGN DO CARD — todos os Ps concluídos ou descartados:**
+   - P1/P2/P3/P5: já em produção (sessões anteriores)
+   - P4: "Andamento" → "Dados da vaga" — commit `569e93f`
+   - P6: **DESCARTADO** — coluna "Encerrado" não existe no Kanban; arquivados ficam no Seu Painel. Cards com atraso já têm visual próprio.
+4. **✅ "Acrescentar algo sobre mim" (Sessão 16):** campo na zona Compatibilidade — enriquece perfil global e reanalisa na hora (só Oportunidade). Commits `68ef75f`, `917c02c`.
+5. **✅ Sort padrão Kanban por Compatibilidade (Sessão 16):** maior score sobe ao topo de cada coluna automaticamente; tiebreaker = recente. Commit `e8faff3`.
+6. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia.
 
 ---
 
@@ -63,8 +68,12 @@
 - **Coerência de score:** `mvReanalisarCompat` atualiza `atsScore` E `score` numérico (o card do Kanban prioriza `score`), respeita `filtroAtivo` no re-render.
 - **Backup:** `senova_v3.41_23jun2026_pre-acrescentar.html`.
 
-### Auditoria do redesign do card
-- Revisão das 6 prioridades (P1–P6). P1 (footer por estágio), P2/Fix 1 (link único), P3 (ctx removido) e P5 (auto-preencher) já estão em produção — incorporados em sessões anteriores sem commit isolado. Restam: P4 ("Andamento" → decidir renome) e P6 (dessaturar cards encerrados).
+### Redesign do card — concluído (Sessão 16)
+- P4: renomeado "Andamento" → "Dados da vaga" (commit `569e93f`).
+- P6: **DESCARTADO** por Marcos — coluna "Encerrado" não existe (arquivados ficam em "Seu Painel"). Cards com ação atrasada já têm visual próprio. Nada a fazer.
+
+### Sort padrão Kanban por Compatibilidade (commit `e8faff3`)
+- Default do `renderCRM`: score desc, tiebreaker recente. Cards sem score agrupam no final. Menu ⚙ por coluna continua disponível para sobrescrever.
 
 ### Enriquecimento do PERFIL_MARCOS base (resolvido)
 - **EADCon (ago/2006–out/2008):** adicionado ao Histórico e Experiência-chave — Diretor de Marketing, setor educacional, 180 parceiros, 120k alunos, R$20mi campanhas, 25 agências.
