@@ -1449,6 +1449,7 @@ select option { background: var(--bg2); }
       <div id="kanban-arquivados-wrap" style="display:none;">
         <div style="margin-top:14px;padding:8px 4px 6px;border-top:1.5px dashed var(--border);display:flex;align-items:center;gap:6px;">
           <span style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">📁 Arquivados</span>
+          <button onclick="toggleArquivados()" style="margin-left:auto;font-size:12px;font-weight:600;background:none;border:1px solid var(--border);border-radius:16px;cursor:pointer;padding:4px 14px;font-family:var(--font);color:var(--text3);white-space:nowrap;">✕ Ocultar</button>
         </div>
         <div class="kanban" id="kanban-arquivados" style="grid-template-columns:repeat(2,minmax(0,1fr));"></div>
       </div>
@@ -4751,7 +4752,7 @@ function showToast(msg, duration=4000){
 
 function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch(e){ try{ _podarAutoBackups(0); localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas)); }catch(_){} } updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
-function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
+function updateBadge(){ const n=vagas.filter(v=>!['aceito','arquivado'].includes(v.status)).length; document.getElementById('crm-badge').textContent=n; }
 
 const COL_STATUS={lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',arquivado:'Arquivado'};
 const COL_COLOR={lead:'#7C3AED',aplicado:'#2563EB',entrevista:'#8B5CF6',proposta:'#059669',aceito:'#15803D',arquivado:'#6B7280'};
@@ -5008,6 +5009,13 @@ function toggleArquivados(){
   renderCRM();
 }
 
+function verArquivados(){
+  _mostrarArquivados=true;
+  if(crmCurrentTab!=='vagas') crmCurrentTab='vagas';
+  showPage('crm');
+  setTimeout(()=>{ const w=document.getElementById('kanban-arquivados-wrap'); if(w) w.scrollIntoView({behavior:'smooth',block:'start'}); },120);
+}
+
 function abrirLimpezaLote(){
   const painel=document.getElementById('limpeza-lote-painel');
   if(!painel) return;
@@ -5189,8 +5197,6 @@ function renderCRM(){
   if(bannerTxt) bannerTxt.textContent = `⚠ Mostrando apenas cards inativos (${_diasInativo}+ dias sem atualização)`;
   const colsArq=['aceito','arquivado'];
   const nArq=vagas.filter(v=>colsArq.includes(v.status)).length;
-  const btnArq=document.getElementById('crm-arquivados-btn');
-  if(btnArq){ btnArq.style.display=nArq>0?'inline-block':'none'; btnArq.textContent=`${nArq} arquivado${nArq===1?'':'s'}`; btnArq.style.color=_mostrarArquivados?'var(--navy)':'var(--text3)'; btnArq.style.borderColor=_mostrarArquivados?'var(--navy)':'var(--border)'; }
   const arqWrap=document.getElementById('kanban-arquivados-wrap');
   if(arqWrap) arqWrap.style.display=(_mostrarArquivados&&nArq>0)?'block':'none';
   const renderKanbanCols=(cols,kanbanEl)=>{
@@ -8363,7 +8369,7 @@ function renderDashboardPipeline(){
 
     // Totals badge
     const totalsEl=document.getElementById('dash-totals');
-    if(totalsEl) totalsEl.textContent=`${ativas.length} ativas · ${arquivadas.length} arquivadas`;
+    if(totalsEl) totalsEl.innerHTML=`${ativas.length} ativas · `+(arquivadas.length>0?`<a onclick="verArquivados()" style="color:var(--action);font-weight:600;cursor:pointer;text-decoration:underline;">${arquivadas.length} arquivadas ↗</a>`:`${arquivadas.length} arquivadas`);
 
     // Funil
     const funilEl=document.getElementById('dash-funil');
