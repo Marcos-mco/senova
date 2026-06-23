@@ -1205,6 +1205,7 @@ select option { background: var(--bg2); }
           </label>
         </div>
         <div id="backup-info" style="font-size:12px;color:var(--text3);margin-top:10px;"></div>
+        <div id="autobackup-list" style="margin-top:18px;"></div>
       </div>
 
       <!-- Alerta de inatividade -->
@@ -2880,6 +2881,7 @@ function perfilTab(n, btn){
     const panel=document.getElementById('perfil-panel-'+i);
     if(panel) panel.classList.toggle('active', i===n);
   });
+  if(n===5) renderAutoBackups();
   if(n===6) ctxRenderizar();
   document.querySelectorAll('.perfil-tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -4221,7 +4223,9 @@ function isInativo(v){ return nivelInativo(v)>0; }
 
 function loadCRM(){
   try{
-    const sv=localStorage.getItem('senova_vagas_v2'); vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
+    const sv=localStorage.getItem('senova_vagas_v2');
+    _autoBackupVagas(sv); // rede de segurança: snapshot diário ANTES de qualquer migração
+    vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
     vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'arquivado'}:v.status==='negado'?{...v,status:'arquivado'}:v.status==='descartado'?{...v,status:'arquivado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
     vagas=vagas.map(v=>{
       // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
@@ -4293,8 +4297,14 @@ function loadCRM(){
     if(!localStorage.getItem('senova_migration_dedup_jobid_v1')){
       // Junta cards da MESMA vaga do LinkedIn (mesmo /jobs/view/ID), que viravam
       // duplicatas quando a vaga chegava por fontes diferentes (digest de e-mail vs
-      // candidatura). Mantém o "melhor": status mais avançado → com nota → com
-      // descrição → mais recente. Cards sem ID do LinkedIn ficam intactos.
+      // candidatura). NÃO-DESTRUTIVO:
+      //  · Processos reais (entrevista/proposta/aceito) NUNCA são fundidos nem
+      //    descartados — cada um é único e insubstituível.
+      //  · Entre duplicatas de lead/aplicado/arquivado, mantém o "melhor" (status
+      //    mais avançado → com nota → com descrição → mais recente) e ARQUIVA o
+      //    perdedor com timeline — em vez de apagar. Nada some sem rastro.
+      //  · Cards sem ID do LinkedIn ficam intactos.
+      const _PROT=new Set(['entrevista','proposta','aceito']);
       const _ordSt={aceito:6,proposta:5,entrevista:4,aplicado:3,lead:2,arquivado:1};
       const _temNota=v=>(typeof v.score==='number'&&v.score>0)||(v.atsScore&&parseInt(v.atsScore)>0);
       const _melhor=(a,b)=>{
@@ -4303,9 +4313,25 @@ function loadCRM(){
         const da=(a.jobDescription||a.descricao||'').length,db=(b.jobDescription||b.descricao||'').length; if(da!==db) return da>db?a:b;
         return (a.updatedAt||a.createdAt||0)>=(b.updatedAt||b.createdAt||0)?a:b;
       };
-      const _porJob=new Map(); const _semJob=[];
-      vagas.forEach(v=>{ const jid=_jobIdLinkedIn(v.origemUrl); if(!jid){_semJob.push(v);return;} _porJob.set(jid, _porJob.has(jid)?_melhor(_porJob.get(jid),v):v); });
-      vagas=[..._semJob, ...Array.from(_porJob.values())];
+      const _grupos=new Map(); const _resultado=[];
+      vagas.forEach(v=>{ const jid=_jobIdLinkedIn(v.origemUrl); if(!jid){_resultado.push(v);return;} if(!_grupos.has(jid))_grupos.set(jid,[]); _grupos.get(jid).push(v); });
+      _grupos.forEach(grupo=>{
+        // Processos reais: preservados intactos, todos eles.
+        const protegidos=grupo.filter(v=>_PROT.has(v.status));
+        protegidos.forEach(v=>_resultado.push(v));
+        const comuns=grupo.filter(v=>!_PROT.has(v.status));
+        if(!comuns.length) return;
+        // Se já existe um processo real para esta vaga, os comuns são duplicatas →
+        // todos arquivam. Senão, mantém o melhor ativo e arquiva o resto.
+        const vencedor=protegidos.length?null:comuns.reduce((a,b)=>_melhor(a,b));
+        if(vencedor) _resultado.push(vencedor);
+        comuns.filter(v=>v!==vencedor).forEach(v=>{
+          if(v.status==='arquivado'){_resultado.push(v);return;} // já arquivado, sem rastro novo
+          const ts=Date.now();
+          _resultado.push({...v, status:'arquivado', timeline:[...(v.timeline||[]), {ts, texto:'Arquivada automaticamente — duplicata da mesma vaga do LinkedIn'}]});
+        });
+      });
+      vagas=_resultado;
       localStorage.setItem('senova_migration_dedup_jobid_v1','1');
     }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
@@ -4723,7 +4749,7 @@ function showToast(msg, duration=4000){
   t._hide=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; },duration);
 }
 
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{} updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome(); }
+function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch(e){ try{ _podarAutoBackups(0); localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas)); }catch(_){} } updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome(); }
 function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
 function updateBadge(){ document.getElementById('crm-badge').textContent=vagas.length+contatos.length; }
 
@@ -5916,6 +5942,55 @@ function importarDados(input){
   };
   reader.readAsText(file);
   input.value='';
+}
+
+// ── Backup automático (rede de segurança contra perda acidental) ──────────────
+// Snapshots sacrificáveis: se a cota de armazenamento apertar, saveVagas() os
+// descarta para nunca perder o dado ao vivo. Ver saveVagas() e loadCRM().
+function _podarAutoBackups(manter){
+  try{ const ch=Object.keys(localStorage).filter(k=>k.startsWith('senova_autobackup_')).sort(); while(ch.length>manter) localStorage.removeItem(ch.shift()); }catch(_){}
+}
+function _autoBackupVagas(raw){
+  try{
+    if(!raw) return;
+    const key='senova_autobackup_'+new Date().toISOString().slice(0,10); // 1 por dia
+    if(!localStorage.getItem(key)) localStorage.setItem(key, raw);
+    _podarAutoBackups(3); // mantém os 3 dias mais recentes
+  }catch(_){ _podarAutoBackups(1); }
+}
+function _fmtDiaBackup(key){
+  const dia=key.replace('senova_autobackup_','');
+  const hoje=new Date().toISOString().slice(0,10);
+  const ontem=new Date(Date.now()-864e5).toISOString().slice(0,10);
+  const [a,m,d]=dia.split('-');
+  if(dia===hoje) return 'Hoje, '+d+'/'+m;
+  if(dia===ontem) return 'Ontem, '+d+'/'+m;
+  return d+'/'+m+'/'+a;
+}
+function renderAutoBackups(){
+  const el=document.getElementById('autobackup-list'); if(!el) return;
+  let chaves=[];
+  try{ chaves=Object.keys(localStorage).filter(k=>k.startsWith('senova_autobackup_')).sort().reverse(); }catch(_){}
+  if(!chaves.length){ el.innerHTML=''; return; }
+  const linhas=chaves.map(k=>{
+    let n=0; try{ n=JSON.parse(localStorage.getItem(k)||'[]').length; }catch(_){}
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--border);">`
+      +`<span style="font-size:14px;color:var(--text2);">${_fmtDiaBackup(k)} <span style="color:var(--text3);">· ${n} processo${n===1?'':'s'}</span></span>`
+      +`<button class="btn btn-ghost" style="font-size:13px;padding:8px 16px;" onclick="restaurarAutoBackup('${k}')">Restaurar</button></div>`;
+  }).join('');
+  el.innerHTML=`<div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:2px;">Pontos de restauração automáticos</div>`
+    +`<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Cópias guardadas pelo Senova a cada dia de uso. Restaurar substitui seus processos atuais por essa cópia.</div>${linhas}`;
+}
+function restaurarAutoBackup(key){
+  let raw, n=0;
+  try{ raw=localStorage.getItem(key); n=JSON.parse(raw||'[]').length; }catch(_){ showToast('❌ Backup automático inválido'); return; }
+  if(!raw){ showToast('❌ Backup automático não encontrado'); return; }
+  if(!confirm(`Restaurar o ponto de ${_fmtDiaBackup(key)} (${n} processos)?\n\nSeus processos atuais serão substituídos por essa cópia. Esta ação não pode ser desfeita.`)) return;
+  // Antes de sobrescrever, guarda o estado atual como ponto de hoje (permite desfazer).
+  try{ const atual=localStorage.getItem('senova_vagas_v2'); if(atual) localStorage.setItem('senova_autobackup_'+new Date().toISOString().slice(0,10), atual); }catch(_){}
+  try{ localStorage.setItem('senova_vagas_v2', raw); }catch(_){ showToast('❌ Não foi possível restaurar (armazenamento cheio)'); return; }
+  showToast('✅ Processos restaurados — recarregando...');
+  setTimeout(()=>location.reload(),1200);
 }
 
 function limparDuplicatas(){
