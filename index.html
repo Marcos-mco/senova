@@ -1966,6 +1966,7 @@ select option { background: var(--bg2); }
               <button onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
             </div>
           </div>
+          <div id="mv-enriquecer-status" style="display:none;font-size:13px;color:var(--text2);line-height:1.5;margin-top:4px;"></div>
         </div>
       </div>
 
@@ -6347,6 +6348,7 @@ function mvAtualizarEnriquecer(){
   const form=document.getElementById('mv-enriquecer-form');if(form)form.style.display='none';
   const toggle=document.getElementById('mv-enriquecer-toggle');if(toggle)toggle.style.display='';
   const ta=document.getElementById('mv-enriquecer-texto');if(ta)ta.value='';
+  const st=document.getElementById('mv-enriquecer-status');if(st){st.style.display='none';st.innerHTML='';}
   _mvAtualizarHintEnriquecer();
 }
 function mvToggleEnriquecer(){
@@ -6369,34 +6371,47 @@ async function mvEnriquecerPerfil(){
   ctxSalvarTodos(entries);
   ctxRenderizar();
   if(ta) ta.value='';
-  // 2) Fecha o formulário
+  // 2) Fecha o formulário e mostra status inline (avisa o usuário ali mesmo)
   const form=document.getElementById('mv-enriquecer-form');if(form)form.style.display='none';
-  const toggle=document.getElementById('mv-enriquecer-toggle');if(toggle)toggle.style.display='';
+  const toggle=document.getElementById('mv-enriquecer-toggle');if(toggle)toggle.style.display='none';
+  const st=document.getElementById('mv-enriquecer-status');
+  const _reanalisa=_mvReanaliseAplica();
+  if(st){
+    st.style.display='';
+    st.innerHTML=_reanalisa
+      ? '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Recalculando a compatibilidade desta vaga…'
+      : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
+  }
   // 3) Reanálise imediata — só no estágio Oportunidade com descrição completa
-  if(_mvReanaliseAplica()){
-    showToast('Adicionado. Recalculando esta vaga…');
-    await mvReanalisarCompat();
+  if(_reanalisa){
+    showToast('Recalculando esta vaga…');
+    const novoScore=await mvReanalisarCompat();
+    if(st) st.innerHTML=(typeof novoScore==='number')
+      ? '<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+novoScore+'%.</span>'
+      : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
   } else {
     showToast('Adicionado ao seu perfil.');
   }
+  // 4) Após alguns segundos, restaura o gatilho (permite acrescentar mais)
+  setTimeout(()=>{ const s=document.getElementById('mv-enriquecer-status'); if(s){s.style.display='none';s.innerHTML='';} const t=document.getElementById('mv-enriquecer-toggle'); if(t)t.style.display=''; }, 5000);
 }
 // Reanálise manual da Compatibilidade — ignora o guard de "sem score" (Sessão 10),
 // porque foi pedida explicitamente pelo usuário ao acrescentar contexto.
 async function mvReanalisarCompat(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return;
+  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return null;
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-  if(idx<0) return;
+  if(idx<0) return null;
   const v=vagas[idx];
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
     });
-    if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); return; }
+    if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
     const data=await res.json();
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); return; }
+    if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
     vagas[idx].atsScore=String(score);
     if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
     vagas[idx].compatClass=data.classificacao||'';
@@ -6408,8 +6423,8 @@ async function mvReanalisarCompat(){
     saveVagas();
     mvUpdateScoreDisplay();
     if(filtroAtivo) aplicarFiltros(); else renderCRM();
-    showToast('Compatibilidade recalculada: '+score+'%');
-  }catch(_){ showToast('Não foi possível recalcular. Tente novamente.'); }
+    return score;
+  }catch(_){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
