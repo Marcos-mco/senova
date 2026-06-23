@@ -4294,7 +4294,7 @@ function loadCRM(){
       vagas=vagas.filter(v=>!_ehVagaLixo(v));
       localStorage.setItem('senova_migration_remover_lixo_sem_vaga_v1','1');
     }
-    if(!localStorage.getItem('senova_migration_dedup_jobid_v1')){
+    if(!localStorage.getItem('senova_migration_dedup_jobid_v2')){
       // Junta cards da MESMA vaga do LinkedIn (mesmo /jobs/view/ID), que viravam
       // duplicatas quando a vaga chegava por fontes diferentes (digest de e-mail vs
       // candidatura). NÃO-DESTRUTIVO:
@@ -4332,7 +4332,7 @@ function loadCRM(){
         });
       });
       vagas=_resultado;
-      localStorage.setItem('senova_migration_dedup_jobid_v1','1');
+      localStorage.setItem('senova_migration_dedup_jobid_v2','1');
     }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
     const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
@@ -8292,7 +8292,7 @@ async function carregarEmails(forcar){
         const ext=extraidos?.[i];
         if(ext?.multi_vagas){
           showToast(`📋 Email com múltiplas vagas detectado — revisar na aba Emails`,3500);
-        } else if(!jaExiste){
+        } else if(!jaExiste && !_vagaJaExiste({url:linkVaga})){
           const empresa=ext&&!ext.revisar&&ext.empresa?ext.empresa:(assunto||nome);
           const cargo=ext&&ext.cargo?ext.cargo:(assunto||'Vaga sem título');
           const tags=(!ext||ext.revisar)?['Revisar']:[];
