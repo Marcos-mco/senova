@@ -7,7 +7,22 @@
 
 ---
 
-## v3.39 — 23/jun/2026 (ATUAL) — Sessão 13
+## v3.40 — 23/jun/2026 (ATUAL) — Sessão 14
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.16 (sem alteração)
+**Commit estável:** `b0155c5` | **Worker:** sem alteração nesta sessão
+
+Sessão de **eliminação de duplicatas de vaga** — diagnóstico de causa raiz guiado por dados reais do card (console).
+
+- **Sintoma:** card "Diretor de vendas e vagas semelhantes" preso em "Aguardando análise" + CrowdStrike duplicado na coluna Oportunidade.
+- **Causa raiz (provada):** a criação de card por e-mail deduplicava só por **assunto** do e-mail, ignorando o **jobId do LinkedIn** no link → digest "X e vagas semelhantes" recriava vaga já existente. O duplicado nunca enriquecia porque `__senovaAtualizarDesc` casa por jobId com `findIndex` (a descrição sempre caía no primeiro card).
+- **Fix Parte 1 (prevenir):** guard `!_vagaJaExiste({url:linkVaga})` na entrada por e-mail ([index.html:8295]). Vagas sem jobId (Adzuna etc.) não são afetadas — zero regressão.
+- **Fix Parte 2 (limpar):** migração `dedup_jobid` → **v2** (re-roda 1×). Mantém o card de status mais avançado, arquiva a duplicata com timeline — não deleta. Backup automático (Sessão 13) dispara antes.
+- **Validado por Marcos:** Oportunidade 4→2; FPP "Gerente de Marketing e Comercial" (82%) intacta; 2 duplicatas (digest FPP + CrowdStrike) arquivadas e recuperáveis. Bug do CrowdStrike resolvido pelo mesmo fix (era LinkedIn, tinha jobId) — fix separado de dedup não-LinkedIn dispensado.
+- **Descoberto no caminho:** botão "Ver arquivados" não está exposto na UI (função `toggleArquivados` e seção `kanban-arquivados-wrap` existem, nada aciona) → novo bug B11.
+
+---
+
+## v3.39 — 23/jun/2026 — Sessão 13
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.16 (sem alteração)
 **Commit estável:** `5964639` | **Worker:** sem alteração nesta sessão
 

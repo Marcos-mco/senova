@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 23/jun/2026 — v3.39 (Sessão 13)*
+*Atualizado: 23/jun/2026 — v3.40 (Sessão 14)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.38 (22/jun/2026 — Sessão 11)
+## ESTADO ATUAL — v3.40 (23/jun/2026 — Sessão 14)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -34,19 +34,45 @@
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `a6c2c57` (22/jun/2026 — Sessão 11)
+- **Último commit estável:** `b0155c5` (23/jun/2026 — Sessão 14)
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 14) — AÇÕES IMEDIATAS
-0. **✅ Sessão 13 (segurança de dados) NO AR e VALIDADA por Marcos:** Fix #1 migração não-destrutiva + Fix #2 backup automático (commit `d7f7023`). Testes 1 (regressão) e 2 (backup visível em Perfil > Preferências) OK.
-1. **Recarregar extensão v2.16** + abrir Senova com `Ctrl+Shift+R`.
-2. **✅ Sessão 12 VALIDADA end-to-end (card FPP):** após cadastrar contexto (educação + mkt digital), score **72→82%** e os pontos_atencao mudaram — sumiu "sem experiência em IES"; a IA passou a reconhecer o setor educacional ("destacar experiências anteriores em educação"). Feature contexto complementar → análise do Kanban: **FECHADA E PROVADA**.
-3. **🔴 GAP DO PERFIL BASE (importante):** grep no Worker por EADCon/Expoente/ensino/educação/marketing digital/HubSpot/Google Ads deu **zero**. O `PERFIL_MARCOS` base está resumido demais e OMITE o setor educacional inteiro e as competências de marketing digital — que Marcos TEM. A IA não erra; o perfil está incompleto. **Revisar e enriquecer o `PERFIL_MARCOS` base** (EADCon/Expoente são carreira principal, não apêndice de contexto). Marcos vai observar nas próximas análises antes de agir.
-4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia (Marcos tem dúvida sobre a verticalidade da análise da Sofia). Discutir ao finalizar a Sofia.
+## ⚠️ AO RETOMAR (Sessão 15) — AÇÕES IMEDIATAS
+0. **✅ Sessão 14 (dedup de vagas) NO AR e VALIDADA por Marcos:** fix de duplicata por e-mail-digest + migração `dedup_jobid_v2` (commit `b0155c5`). Oportunidade 4→2; 2 duplicatas arquivadas e recuperáveis. CrowdStrike duplicado resolvido pelo mesmo fix.
+1. **✅ Extensão v2.16 já recarregada** (confirmado nesta sessão). Enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
+2. **🟡 NOVO BUG B11 — botão "Ver arquivados" ausente na UI:** `toggleArquivados()` e `kanban-arquivados-wrap` existem, mas nenhum elemento visível os aciona → Marcos não consegue ver os próprios arquivados. Pequeno, prioridade média.
+3. **🔴 GAP DO PERFIL BASE (segue aberto):** o `PERFIL_MARCOS` base OMITE o setor educacional (EADCon/Expoente) e as competências de marketing digital — que Marcos TEM. Sintoma vivo nesta sessão: FPP (educação+mkt) só chegou a 82% via contexto complementar; vagas de mkt digital puro (Jobgether) seguem baixas (28%). **Revisar e enriquecer o `PERFIL_MARCOS` base.**
+4. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia. Discutir ao finalizar a Sofia.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 14 (23/jun/2026)
+
+**Tema:** eliminar duplicatas de vaga — diagnóstico de causa raiz guiado por dados reais (console), não por teoria.
+
+### Investigação (várias hipóteses derrubadas pelos dados)
+- Sintoma na tela: card "Diretor de vendas e vagas semelhantes" preso em "Aguardando análise" + CrowdStrike duplicado.
+- Teste decisivo: `curl` no `jobs-guest/jobPosting/4431155122` → HTTP 200, 2709 chars; o regex da extensão extrai a descrição inteira. Logo, a busca de descrição **funciona** — o problema não era a extensão.
+- Console no navegador de Marcos revelou: **dois cards com o MESMO jobId 4431155122** — um `aplicado` ("Gerente de Marketing e Comercial", FPP, desc 2658) e um `lead` (o digest preso).
+
+### Causa raiz (provada)
+- A criação de card por e-mail ([index.html:8291]) deduplicava só por **assunto** do e-mail, ignorando o **jobId** no link. O digest recriava vaga já existente.
+- O duplicado nunca enriquecia: `__senovaAtualizarDesc` casa por jobId com `findIndex` → a descrição sempre caía no primeiro card (o já enriquecido).
+
+### Fix (commit `b0155c5`)
+- **Parte 1 — prevenir:** guard `!_vagaJaExiste({url:linkVaga})` na entrada por e-mail. Vagas sem jobId (Adzuna) intactas — zero regressão.
+- **Parte 2 — limpar:** migração `dedup_jobid` → **v2** (re-roda 1×, não-destrutiva, backup automático antes). Mantém o status mais avançado, arquiva a duplicata com timeline.
+
+### Validado por Marcos
+- Oportunidade 4→2; FPP (82%) intacta em CV Enviado; 2 duplicatas (digest FPP + CrowdStrike) com `status: arquivado` e timeline "duplicata da mesma vaga do LinkedIn". **Nada deletado.**
+- Bug ① (CrowdStrike duplicado) resolvido pelo mesmo fix — fix separado de dedup não-LinkedIn **dispensado**.
+
+### Descoberto no caminho
+- **B11:** botão "Ver arquivados" não exposto na UI (ver "AO RETOMAR").
 
 ---
 
@@ -247,6 +273,7 @@ Marcos quer continuar a conversa sobre a visão civilizacional do Senova. Ler `V
 | B7 | Sofia / Preparar entrevista não funcionando | index.html | **Baixa** (não prioridade agora) |
 | B8 | LinkedIn no card de Contatos: URL sem link clicável | index.html | **Baixa** |
 | B9 | Idioma DE ausente em todos os seletores PT/EN/ES | index.html | **Média** |
+| B11 | Botão "Ver arquivados" não exposto na UI (`toggleArquivados`/`kanban-arquivados-wrap` existem, nada aciona) | index.html | **Média** |
 
 ---
 
