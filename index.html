@@ -9078,6 +9078,27 @@ window.__senovaAnaliseDoCard=function(jobId){
   };
 };
 
+// Exposto para o copiloto da extensão: MONTA (síncrono) o prompt para responder UMA pergunta
+// de formulário de candidatura, na primeira pessoa, com base no perfil REAL de Marcos —
+// honesto, sem inventar. O fetch é feito pelo background da extensão (evita Promise no
+// executeScript). Retorna o corpo pronto para /api/claude, ou null.
+window.__senovaCopilotoRespostaPrompt=function(pergunta,cargo,empresa){
+  if(!pergunta||!String(pergunta).trim()) return null;
+  const ctx=(typeof ctxTextoAtivos==='function'?ctxTextoAtivos():[]).join('\n');
+  const sys=`Você responde perguntas de formulários de candidatura para Marcos Franco, na primeira pessoa, no tom dele: executivo, direto, honesto.
+
+PERFIL:
+${CV_BASE['PT']}${ctx?('\n\nINFORMAÇÕES ADICIONAIS:\n'+ctx):''}
+
+REGRAS:
+- Responda APENAS o que a pergunta pede, em 1 a 3 frases.
+- Use só fatos do perfil. NUNCA invente formação, experiência, número ou localização.
+- Se a vaga exige algo que o perfil não confirma (ex.: residir em outra cidade), seja honesto e construtivo (disponibilidade para relocação/remoto), sem prometer o que não é verdade.
+- Sem saudação e sem assinatura. Devolva só o texto da resposta.`;
+  return { model:MODELOS.rapido, max_tokens:400, system:sys,
+    messages:[{role:'user',content:`Vaga: ${cargo||'(não informado)'}${empresa?(' na '+empresa):''}.\n\nPergunta do formulário:\n"${String(pergunta).slice(0,500)}"\n\nEscreva a resposta de Marcos.`}] };
+};
+
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
 // para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
 window.__senovaPendentesDesc=function(){
