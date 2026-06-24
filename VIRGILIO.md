@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 23/jun/2026 — v3.43 (Sessão 16 — FECHADA)*
+*Atualizado: 24/jun/2026 — v3.48 (Sessão 17 — FECHADA)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.43 (23/jun/2026 — Sessão 16)
+## ESTADO ATUAL — v3.48 (24/jun/2026 — Sessão 17)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -34,24 +34,55 @@
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `b0155c5` (23/jun/2026 — Sessão 14)
+- **Último commit estável:** `e495271` (24/jun/2026 — Sessão 17)
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 17) — AÇÕES IMEDIATAS
+## ⚠️ AO RETOMAR (Sessão 18) — AÇÕES IMEDIATAS
 0. **✅ Sessão 15 (B11) validada:** badge conta só processos abertos; arquivados via "N arquivadas ↗" no Seu Painel (commit `3db105d`).
 1. **✅ Extensão v2.16:** enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
 2. **✅ GAP DO PERFIL BASE (Sessão 16):** `PERFIL_MARCOS.md` enriquecido — EADCon, Expoente, Évora, competências completas.
-3. **✅ REDESIGN DO CARD — todos os Ps concluídos ou descartados:**
-   - P1/P2/P3/P5: já em produção (sessões anteriores)
-   - P4: "Andamento" → "Dados da vaga" — commit `569e93f`
-   - P6: **DESCARTADO** — coluna "Encerrado" não existe no Kanban; arquivados ficam no Seu Painel. Cards com atraso já têm visual próprio.
-4. **✅ "Acrescentar algo sobre mim" (Sessão 16):** campo na zona Compatibilidade — enriquece perfil global e reanalisa na hora (só Oportunidade). Commits `68ef75f`, `917c02c`.
-5. **✅ Sort padrão Kanban por Compatibilidade (Sessão 16):** maior score sobe ao topo de cada coluna automaticamente; tiebreaker = recente. Commit `e8faff3`.
-6. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia.
+3. **✅ REDESIGN DO CARD — todos os Ps concluídos ou descartados** (Sessão 16).
+4. **✅ "Acrescentar algo sobre mim" (Sessão 16):** commits `68ef75f`, `917c02c`.
+5. **✅ Sort padrão Kanban por Compatibilidade (Sessão 16):** commit `e8faff3`.
+6. **✅ TRAVA ANTI-PERDA + REFORMA DO MODAL (Sessão 17):** ver seção abaixo. Commits `a33598f`→`e495271`.
+7. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 17 (24/jun/2026)
+
+**Tema:** incidente TV Integração (2ª perda) → trava definitiva de dado + reforma completa do fluxo de criação/edição de Oportunidade.
+
+### Incidente e recuperação
+- Card "TV Integração - Afiliada Globo" (id `vaga_179025450`, Entrevista, score 91) sumiu pela **2ª vez** (1ª vez: Sessão 13). Causa confirmada: clique acidental em Remover → `deleteVaga` fazia hard-delete sem distinção de status → id ia para `senova_deleted_ids` (blocklist). Recuperado via console (autobackup).
+
+### Trava anti-perda (commit `a33598f`) — INVIOLÁVEL
+- **`deleteVaga()`**: só elimina Oportunidade (status `lead`). Para qualquer outro status, cancela o diálogo e roteia para Declinar/Arquivar. Botão "Excluir" some do rodapé em não-lead.
+- Reforça a decisão de Sessão 5: **"Excluir ≠ Declinar | Oportunidade: Excluir (sem rastro). Processos ativos: Declinar/Arquivar."**
+
+### Reforma do fluxo de criar/editar Oportunidade (commits `2b8c02c`, `4b2dd3a`, `03ff48a`, `e495271`) — VALIDADO por Marcos
+- **Criar card à mão:** "+ Processo" → preencher Empresa + Cargo → botão **"Criar processo"** (novo: antes não tinha Salvar). Campos Empresa/Cargo têm linha sutil (afordância de campo editável).
+- **Editar Oportunidade existente:** ganhou botão **Salvar** no rodapé. "Ir para vaga ↗" só aparece quando há URL.
+- **"Dados da vaga"** (URL, canal, e-mail, local, notas) recolhido por padrão na Oportunidade; link **"＋ Dados da vaga"** abre sob demanda (`mvToggleDadosVaga`). Card novo abre expandido; card existente abre recolhido.
+- **Descrição da vaga:** aceita texto colado à mão (sem URL). Fix: removido `mvRefreshDescPreview()` do `oninput` (escondia a caixa após 1º caractere).
+- **Rascunho automático REMOVIDO** — "continue de onde parou" sumiu. Card novo começa sempre limpo. Listeners e banner removidos.
+- **Arquivar:** pelo seletor de status (topo direita → ● Arquivado → Salvar), sem botão no rodapé.
+
+### Decisões de produto tomadas nesta sessão
+| Decisão | Detalhe |
+|---------|---------|
+| Trava de dado | Processo real (não-lead) NUNCA é hard-deletado — apagar = perda irreversível |
+| "Dados da vaga" sob demanda | Oportunidade fica limpa por padrão; abre só quando necessário |
+| Rascunho removido | Mais simples e previsível; sem estado fantasma |
+| Arquivar = seletor | Sem botão de ação destrutiva no rodapé |
+| Fluxo de candidatura | NÃO implementado — Marcos encerrou; `candidatarDoModal` (linha ~5638) está completa mas órfã; retomar quando Marcos pedir |
+
+### Backup desta sessão
+- `senova_v3.44_24jun2026_pre-criacao-card.html`
 
 ---
 
