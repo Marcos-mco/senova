@@ -2083,6 +2083,11 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Toggle on-demand de "Dados da vaga" (só Oportunidade) -->
+      <div id="mv-dados-toggle-wrap" style="display:none;padding:2px 0 0;">
+        <button id="mv-dados-toggle" onclick="mvToggleDadosVaga()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">＋ Dados da vaga</button>
+      </div>
+
       <!-- ZONA 8 — GESTÃO (compacta) -->
       <div class="mv-sec">
         <div class="mv-sec-head"><span class="mv-sec-title" id="mv-andamento-title">Dados da vaga</span></div>
@@ -5363,6 +5368,7 @@ function _renderMercadoSinais(){
 // Vaga Modal
 function openVagaModal(id){
   editingVagaId=id;
+  _mvDadosAberto=(id==='new'); // Dados da vaga: aberto ao criar à mão, recolhido ao reabrir
   const isNew=id==='new';
   document.getElementById('modal-vaga-title').value=isNew?'Novo Processo':'Editar Processo';
   document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
@@ -5666,6 +5672,14 @@ function mvToggleCompat(){
   if(chev) chev.textContent=open?'▶':'▼';
 }
 
+let _mvDadosAberto=false;
+function mvToggleDadosVaga(){
+  _mvDadosAberto=!_mvDadosAberto;
+  const sec=document.getElementById('mv-localizacao')?.closest('.mv-sec');
+  if(sec) sec.style.display=_mvDadosAberto?'':'none';
+  const btn=document.getElementById('mv-dados-toggle');
+  if(btn) btn.textContent=_mvDadosAberto?'− Ocultar dados da vaga':'＋ Dados da vaga';
+}
 function mvAjustarSecoesStatus(status){
   const isLead=status==='lead';
 
@@ -5694,14 +5708,14 @@ function mvAjustarSecoesStatus(status){
   const leadRow=document.getElementById('mv-lead-analyze-row');
   if(leadRow) leadRow.style.display='none';
 
-  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Dados (4) → Sofia (5) ──
+  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Sofia (4) → Dados sob demanda (5) ──
   const descSec=document.getElementById('mv-desc-section');
   const scoreSec=document.getElementById('mv-score-section');
   if(isLead){
     if(descSec) descSec.style.order='1';
     if(leadRow) leadRow.style.order='2';
     if(scoreSec) scoreSec.style.order='3';
-    if(sofiaHolistica) sofiaHolistica.style.order='5';
+    if(sofiaHolistica) sofiaHolistica.style.order='4';
   } else {
     if(descSec) descSec.style.order='';
     if(leadRow) leadRow.style.order='';
@@ -5710,9 +5724,13 @@ function mvAjustarSecoesStatus(status){
   }
 
   // ── Seções visíveis/ocultas por estado ──
-  // "Dados da vaga" agora visível também na Oportunidade (criação/edição manual usa esses campos)
+  // "Dados da vaga" na Oportunidade: recolhido por padrão, abre sob demanda (mv-dados-toggle).
   const andamentoSec=document.getElementById('mv-localizacao')?.closest('.mv-sec');
-  if(andamentoSec){ andamentoSec.style.display=''; andamentoSec.style.order=isLead?'4':''; }
+  if(andamentoSec){ andamentoSec.style.display=(!isLead||_mvDadosAberto)?'':'none'; andamentoSec.style.order=isLead?'5':''; }
+  const _dadosToggleWrap=document.getElementById('mv-dados-toggle-wrap');
+  if(_dadosToggleWrap){ _dadosToggleWrap.style.display=isLead?'':'none'; _dadosToggleWrap.style.order=isLead?'5':''; }
+  const _dadosBtn=document.getElementById('mv-dados-toggle');
+  if(_dadosBtn) _dadosBtn.textContent=_mvDadosAberto?'− Ocultar dados da vaga':'＋ Dados da vaga';
   const timelineSec=document.getElementById('mv-timeline-section');
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
