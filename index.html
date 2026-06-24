@@ -5575,8 +5575,8 @@ function atualizarBotoesModal(statusOverride){
     }
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
+    // Arquivar/declinar agora vive no seletor de status (topo, à direita) → opção "Arquivado".
     if(cancelarBtn) cancelarBtn.style.display='';
-    html+=`<button class="btn btn-ghost" style="color:#9B2226;border:1px solid #9B222622;" onclick="declinarVaga()">Declinar e arquivar</button>`;
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     mvAjustarSecoesStatus(status);
   } else {
