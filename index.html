@@ -9058,6 +9058,27 @@ window.__senovaCandidaturaEnviada=function(url){
   return true;
 };
 
+// Exposto para o copiloto: reverte a marcação de candidatura enviada (caso a detecção
+// automática tenha errado). Só age se o card está em "aplicado" (CV Enviado), volta para
+// Oportunidade (lead) e remove as marcas de follow-up/CV enviado. Retorna true se reverteu.
+window.__senovaDesfazerCandidatura=function(url){
+  const tgtId=_jobIdLinkedIn(url);
+  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0) return false;
+  const v=vagas[idx];
+  if(v.status!=='aplicado') return false; // só reverte o que o copiloto acabou de marcar
+  v.status='lead';
+  if(v.proxima==='Follow-up — verificar retorno') v.proxima='';
+  v.data='';
+  v.updatedAt=Date.now();
+  if(Array.isArray(v.timeline)) v.timeline=v.timeline.filter(t=>!/follow-up agendado|cv enviado pela vaga|cv enviado por/i.test(t&&t.texto||''));
+  saveVagas();
+  clearTimeout(window._enriqRenderT);
+  window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} },200);
+  try{ showToast('Candidatura desfeita — voltou para Oportunidade'); }catch{}
+  return true;
+};
+
 // Exposto para a extensão (modelo PULL): devolve a análise de Compatibilidade de uma
 // vaga já no pipeline, casada por jobId do LinkedIn. A extensão chama isto na página da
 // vaga para mostrar a Compatibilidade — leva SÓ a análise (nunca CV/carta, que nascem
