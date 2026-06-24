@@ -5561,13 +5561,20 @@ function atualizarBotoesModal(statusOverride){
   const isClosed=status==='arquivado'||status==='aceito';
   let html='';
   if(status==='lead'){
-    // Footer Oportunidade: [Excluir] [flex] [Cancelar] [Ir para vaga ↗]
+    // Footer Oportunidade: card NOVO → [Cancelar] [Criar processo]
+    //                      card existente → [Excluir] [Cancelar] [Ir para vaga ↗]
     if(cancelarBtn) cancelarBtn.style.display='';
     const deleteBtn=document.getElementById('mv-delete-btn');
     if(deleteBtn){deleteBtn.textContent='Excluir';deleteBtn.style.display=editingVagaId&&editingVagaId!=='new'?'':'none';}
-    const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-    const ativo=!!url;
-    html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
+    if(!editingVagaId||editingVagaId==='new'){
+      // Card manual novo: sem URL não há "Ir para vaga" — precisa de Salvar.
+      // (validarVagaForm desabilita até empresa+cargo preenchidos)
+      html+=`<button class="btn btn-primary" onclick="saveVaga()">Criar processo</button>`;
+    } else {
+      const url=document.getElementById('mv-origem-url')?.value.trim()||'';
+      const ativo=!!url;
+      html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
+    }
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
     if(cancelarBtn) cancelarBtn.style.display='';
@@ -5726,9 +5733,10 @@ function mvAjustarSecoesStatus(status){
   const linkVaga=document.getElementById('mv-link-vaga');
   if(linkVaga) linkVaga.style.display=isLead?'none':(linkVaga.dataset.url?'':'none');
 
-  // ── Label do botão Excluir/Remover ──
+  // ── Botão Excluir: só existe para Oportunidade (lead). Em processo real a ação
+  //    é Declinar (arquiva com rastro), nunca apagar — some o hard-delete da UI. ──
   const deleteBtn=document.getElementById('mv-delete-btn');
-  if(deleteBtn) deleteBtn.textContent=isLead?'Excluir':'Remover';
+  if(deleteBtn){ deleteBtn.textContent='Excluir'; if(!isLead) deleteBtn.style.display='none'; }
 
   // ── Descrição — no estado Oportunidade está SEMPRE visível ──
   const ta=document.getElementById('mv-job-desc');
@@ -6032,7 +6040,18 @@ function limparDuplicatas(){
 }
 function deleteVaga(){
   if(!editingVagaId||editingVagaId==='new')return;
-  // Persiste o ID na blocklist para evitar reimportação do KV
+  // ── TRAVA DE DADO (VIRGILIO Sessão 5: "Excluir ≠ Declinar") ──
+  // Só Oportunidade (lead) pode ser apagada sem rastro — é re-importável e barata.
+  // Processo real (CV Enviado/Entrevista/Proposta/Aceito) NUNCA é hard-deletado:
+  // arquiva com rastro via Declinar. Ponto único — protege o dado venha o clique
+  // de onde vier. Foi a ausência disto que apagou "TV Integração" 2× (23/jun, 24/jun).
+  const _v=vagas.find(x=>String(x.id)===String(editingVagaId));
+  if(_v && _v.status && _v.status!=='lead'){
+    cancelarRemoverVaga();
+    if(_v.status!=='arquivado' && _v.status!=='aceito') declinarVaga();
+    return;
+  }
+  // Oportunidade (lead): persiste o ID na blocklist para evitar reimportação do KV
   try{
     const bl=JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]');
     bl.push(String(editingVagaId));
