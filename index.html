@@ -1886,9 +1886,9 @@ select option { background: var(--bg2); }
         </div>
         <div style="flex:1;min-width:0;">
           <input type="text" id="mv-empresa" placeholder="Empresa" oninput="validarVagaForm();mvAtualizarLogo(this.value)"
-                 style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-radius:0;padding:2px 0 4px;background:transparent;outline:none;">
+                 style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--navy);width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid var(--border);border-radius:0;padding:2px 0 4px;background:transparent;outline:none;">
           <input type="text" id="mv-cargo" placeholder="Cargo" oninput="validarVagaForm()"
-                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-radius:0;padding:2px 0 3px;background:transparent;margin-top:4px;outline:none;">
+                 style="font-size:13px;font-weight:500;color:var(--text2);width:100%;box-sizing:border-box;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:2px 0 3px;background:transparent;margin-top:4px;outline:none;">
         </div>
         <select id="mv-status" onchange="atualizarBotoes()"
                 style="font-size:11px;width:auto;flex-shrink:0;padding:4px 8px;background:var(--bg3);border:1.5px solid var(--border);border-radius:20px;font-family:var(--font);font-weight:600;color:var(--navy);">
@@ -5495,17 +5495,9 @@ function openVagaModal(id){
     document.getElementById('mv-timeline-section').style.display='none';
     document.getElementById('mv-timeline-lista').innerHTML='';
     const di=document.getElementById('mv-datas-info'); if(di) di.style.display='none';
-    // Restaurar rascunho se existir
-    const _draft=JSON.parse(localStorage.getItem(_DRAFT_KEY)||'null');
+    // Rascunho automático removido — card novo sempre começa limpo
     const _draftBanner=document.getElementById('mv-draft-banner');
-    if(_draft&&(_draft['mv-empresa']||_draft['mv-cargo'])){
-      _DRAFT_FIELDS.forEach(fid=>{const el=document.getElementById(fid);if(el&&_draft[fid]!==undefined)el.value=_draft[fid];});
-      if(_draft.prioridade) document.getElementById('mv-prioridade').value=_draft.prioridade;
-      toggleIndicacaoRow(_draft['mv-canal']||'LinkedIn');
-      if(_draftBanner) _draftBanner.style.display='flex';
-    } else {
-      if(_draftBanner) _draftBanner.style.display='none';
-    }
+    if(_draftBanner) _draftBanner.style.display='none';
     mvRenderPipeline('lead');
     mvAjustarSecoesStatus('lead');
     const docsSec2b=document.getElementById('mv-docs-section');if(docsSec2b)docsSec2b.style.display='none';
@@ -5532,7 +5524,7 @@ function openVagaModal(id){
     }
   }
 }
-function closeVagaModal(){ if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;} _saveDraftVaga(); document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
+function closeVagaModal(){ document.getElementById('modal-vaga').style.display='none'; editingVagaId=null; }
 function mvToggleDoc(which,btn){
   const cvEl=document.getElementById('mv-ats-cv-expand');
   const cartaEl=document.getElementById('mv-ats-carta-expand');
@@ -5562,18 +5554,18 @@ function atualizarBotoesModal(statusOverride){
   let html='';
   if(status==='lead'){
     // Footer Oportunidade: card NOVO → [Cancelar] [Criar processo]
-    //                      card existente → [Excluir] [Cancelar] [Ir para vaga ↗]
+    //                      card existente → [Excluir] [Cancelar] [Ir para vaga ↗] [Salvar]
     if(cancelarBtn) cancelarBtn.style.display='';
     const deleteBtn=document.getElementById('mv-delete-btn');
     if(deleteBtn){deleteBtn.textContent='Excluir';deleteBtn.style.display=editingVagaId&&editingVagaId!=='new'?'':'none';}
     if(!editingVagaId||editingVagaId==='new'){
-      // Card manual novo: sem URL não há "Ir para vaga" — precisa de Salvar.
-      // (validarVagaForm desabilita até empresa+cargo preenchidos)
+      // Card manual novo: precisa de Salvar (validarVagaForm desabilita até empresa+cargo)
       html+=`<button class="btn btn-primary" onclick="saveVaga()">Criar processo</button>`;
     } else {
+      // Oportunidade existente: "Ir para vaga" só se houver URL; Salvar persiste edições
       const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-      const ativo=!!url;
-      html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()" ${!ativo?'disabled style="opacity:0.45;cursor:not-allowed;"':''}>Ir para vaga ↗</button>`;
+      if(url) html+=`<button class="btn btn-ghost" id="mv-btn-ir-vaga" onclick="irParaVaga()">Ir para vaga ↗</button>`;
+      html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     }
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
@@ -5702,14 +5694,14 @@ function mvAjustarSecoesStatus(status){
   const leadRow=document.getElementById('mv-lead-analyze-row');
   if(leadRow) leadRow.style.display='none';
 
-  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Sofia (4) ──
+  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Dados (4) → Sofia (5) ──
   const descSec=document.getElementById('mv-desc-section');
   const scoreSec=document.getElementById('mv-score-section');
   if(isLead){
     if(descSec) descSec.style.order='1';
     if(leadRow) leadRow.style.order='2';
     if(scoreSec) scoreSec.style.order='3';
-    if(sofiaHolistica) sofiaHolistica.style.order='4';
+    if(sofiaHolistica) sofiaHolistica.style.order='5';
   } else {
     if(descSec) descSec.style.order='';
     if(leadRow) leadRow.style.order='';
@@ -5718,8 +5710,9 @@ function mvAjustarSecoesStatus(status){
   }
 
   // ── Seções visíveis/ocultas por estado ──
+  // "Dados da vaga" agora visível também na Oportunidade (criação/edição manual usa esses campos)
   const andamentoSec=document.getElementById('mv-localizacao')?.closest('.mv-sec');
-  if(andamentoSec) andamentoSec.style.display=isLead?'none':'';
+  if(andamentoSec){ andamentoSec.style.display=''; andamentoSec.style.order=isLead?'4':''; }
   const timelineSec=document.getElementById('mv-timeline-section');
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
@@ -5756,16 +5749,20 @@ function mvAjustarSecoesStatus(status){
         mvRefreshDescPreview();
         if(editBtn){editBtn.style.display='';editBtn.textContent='Editar';editBtn.style.color='var(--text3)';editBtn.onclick=mvEditarDesc;}
       } else {
-        // Sem conteúdo útil: buscar automaticamente via URL
-        ta.style.display='none';
-        if(hint) hint.style.display='none';
-        if(editBtn) editBtn.style.display='none';
         const _origemUrl=document.getElementById('mv-origem-url')?.value.trim()||'';
         if(_origemUrl&&editingVagaId&&editingVagaId!=='new'){
+          // Card existente com URL: extensão busca a descrição automaticamente
+          ta.style.display='none';
+          if(hint) hint.style.display='none';
+          if(editBtn) editBtn.style.display='none';
           _mvRenderDescGuide('loading');
           _mvAutoFetchDesc();
         } else {
-          _mvRenderDescGuide('none');
+          // Card manual / sem URL: deixa colar a descrição à mão
+          ta.style.display='';
+          if(hint) hint.style.display='';
+          if(editBtn) editBtn.style.display='none';
+          _mvRenderDescGuide(null);
         }
       }
     } else {
@@ -9267,15 +9264,8 @@ function _mvCenterModal(){
   document.addEventListener('mouseup',()=>{dragging=false;resizing=false;});
 })();
 
-// Listener único para salvar rascunho de Novo Processo (B6)
-(function(){
-  const m=document.getElementById('modal-vaga');
-  if(m){
-    m.addEventListener('input',_scheduleDraftVaga);
-    m.addEventListener('change',_scheduleDraftVaga);
-  }
-  window.addEventListener('beforeunload',_saveDraftVaga);
-})();
+// Rascunho automático de Novo Processo (B6) — REMOVIDO a pedido de Marcos (24/jun).
+// Card novo começa sempre limpo; sem restauração nem banner.
 </script>
 </body>
 </html>
