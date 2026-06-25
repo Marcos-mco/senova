@@ -9143,14 +9143,15 @@ window.__senovaCopilotoCV=function(url){
   if(idx<0) return {ok:false,motivo:'sem_card'};
   const v=vagas[idx];
   if(!v.atsCV) return {ok:false,motivo:'sem_cv'};
-  const _prevCV=lastCV, _prevFn=lastCVFilename;
   try{
-    lastCV=v.atsCV;
-    lastCVFilename=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
-    downloadDoc();
-    return {ok:true};
+    const fn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1.doc`;
+    const esc=(v.atsCV||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
+    // dataURL síncrono (sem FileReader) → o background baixa via chrome.downloads na aba do
+    // portal. Word abre .doc HTML normalmente; portais aceitam .doc para upload.
+    const dataUrl='data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html)));
+    return {ok:true,dataUrl,filename:fn};
   }catch(e){ console.error('copilotoCV:',e); return {ok:false,motivo:'erro'}; }
-  finally{ lastCV=_prevCV; lastCVFilename=_prevFn; }
 };
 
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
