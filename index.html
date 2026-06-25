@@ -9139,21 +9139,45 @@ window.__senovaCartaoCandidatura=function(){
 // Exposto para o copiloto: baixa o CV (.docx) da vaga para o usuário subir no portal (o
 // navegador não permite preencher campos de arquivo por código). Reusa o atsCV já gerado no
 // card. Retorna {ok} se baixou, {ok:false,motivo} se ainda não há CV gerado para a vaga.
-window.__senovaCopilotoCV=function(url){
+// Copiloto — CV desta vaga. Regra de ouro: SEM reprocessar.
+// Se o card já tem CV (gerado aqui ou pelo Anti-ATS) → devolve o dataUrl direto.
+// Se não tem → devolve o prompt para o background gerar via Worker.
+// Após a geração, o background chama __senovaCopilotoSalvarCV para persistir no card.
+window.__senovaCopilotoGerarCV=function(url){
   const tgtId=_jobIdLinkedIn(url);
   const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
   if(idx<0) return {ok:false,motivo:'sem_card'};
   const v=vagas[idx];
-  if(!v.atsCV) return {ok:false,motivo:'sem_cv'};
-  try{
-    const fn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1.doc`;
-    const esc=(v.atsCV||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1.doc`;
+  if(v.atsCV&&v.atsCV.trim()){
+    // CV já existe no card — devolve pronto, sem reprocessar
+    const esc=v.atsCV.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
-    // dataURL síncrono (sem FileReader) → o background baixa via chrome.downloads na aba do
-    // portal. Word abre .doc HTML normalmente; portais aceitam .doc para upload.
-    const dataUrl='data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html)));
-    return {ok:true,dataUrl,filename:fn};
-  }catch(e){ console.error('copilotoCV:',e); return {ok:false,motivo:'erro'}; }
+    return {ok:true,dataUrl:'data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html))),filename:fn};
+  }
+  // Precisa gerar — devolve o prompt (síncrono), background faz o fetch
+  const desc=(v.jobDescription||v.descricao||'').slice(0,4000);
+  if(!desc) return {ok:false,motivo:'sem_descricao'};
+  return {ok:false,motivo:'precisa_gerar',
+    prompt:{model:MODELOS.analise,max_tokens:2000,system:ATS_SYSTEM('PT'),
+      messages:[{role:'user',content:`Descrição da vaga:\n\n${desc}`}]},
+    filename:fn, empresa:v.empresa||'', cargo:v.cargo||''};
+};
+
+// Salva o CV gerado pelo copiloto de volta no card — única fonte de verdade.
+// Atualiza a aba "CV Plataforma" do card se estiver aberto.
+window.__senovaCopilotoSalvarCV=function(url,cvText){
+  if(!cvText) return false;
+  const tgtId=_jobIdLinkedIn(url);
+  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0) return false;
+  vagas[idx].atsCV=cvText;
+  saveVagas();
+  const cvTxt=document.getElementById('mv-ats-cv-txt');
+  if(cvTxt) cvTxt.value=cvText;
+  const docsSec=document.getElementById('mv-docs-section');
+  if(docsSec) docsSec.style.display='';
+  return true;
 };
 
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
