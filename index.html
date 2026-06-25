@@ -9134,6 +9134,25 @@ window.__senovaCartaoCandidatura=function(){
   return { nome, email, telefone, linkedin, cidade };
 };
 
+// Exposto para o copiloto: baixa o CV (.docx) da vaga para o usuário subir no portal (o
+// navegador não permite preencher campos de arquivo por código). Reusa o atsCV já gerado no
+// card. Retorna {ok} se baixou, {ok:false,motivo} se ainda não há CV gerado para a vaga.
+window.__senovaCopilotoCV=function(url){
+  const tgtId=_jobIdLinkedIn(url);
+  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0) return {ok:false,motivo:'sem_card'};
+  const v=vagas[idx];
+  if(!v.atsCV) return {ok:false,motivo:'sem_cv'};
+  const _prevCV=lastCV, _prevFn=lastCVFilename;
+  try{
+    lastCV=v.atsCV;
+    lastCVFilename=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
+    downloadDoc();
+    return {ok:true};
+  }catch(e){ console.error('copilotoCV:',e); return {ok:false,motivo:'erro'}; }
+  finally{ lastCV=_prevCV; lastCVFilename=_prevFn; }
+};
+
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
 // para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
 window.__senovaPendentesDesc=function(){
