@@ -2040,13 +2040,14 @@ select option { background: var(--bg2); }
         </div>
         <!-- CV Plataforma -->
         <div id="mv-doctab-ats">
+          <button class="btn btn-primary" id="mv-gerar-cv-btn" onclick="mvGerarCV()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:13px;">Gerar CV</button>
           <textarea id="mv-ats-cv-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)">📋 Copiar</button>
-            <button class="copy-btn" onclick="downloadDocFromModal()">📁 Word</button>
-            <button class="copy-btn" onclick="downloadPDFFromModal()">📄 PDF</button>
-            <button class="copy-btn" onclick="downloadPDFExecFromModal()" style="background:var(--navy);color:#fff;border-color:var(--navy);">🏆 PDF Premium</button>
-            <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">↺ Regenerar</button>
+          <div id="mv-cv-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)">Copiar</button>
+            <button class="copy-btn" onclick="downloadDocFromModal()">Word</button>
+            <button class="copy-btn" onclick="downloadPDFFromModal()">PDF</button>
+            <button class="copy-btn" onclick="downloadPDFExecFromModal()" style="background:var(--navy);color:#fff;border-color:var(--navy);">PDF Executivo</button>
+            <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">Regenerar</button>
           </div>
           <div id="mv-ctx-ats-row" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);">
             <label class="field-label" style="margin-bottom:6px;">Informação importante para esta regeneração</label>
@@ -2065,7 +2066,7 @@ select option { background: var(--bg2); }
           </div>
           <button class="btn btn-primary" id="mv-gerar-carta-btn" onclick="gerarDocModal('carta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Gerar carta de apresentação</button>
           <textarea id="mv-ats-carta-modal-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
-          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">📋 Copiar carta</button></div>
+          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">Copiar carta</button></div>
         </div>
         <!-- Resposta -->
         <div id="mv-doctab-resposta" style="display:none;">
@@ -2079,7 +2080,7 @@ select option { background: var(--bg2); }
           </div>
           <button class="btn btn-primary" id="mv-gerar-resposta-btn" onclick="gerarDocModal('resposta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Sugerir resposta</button>
           <textarea id="mv-resposta-txt" rows="7" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
-          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-resposta-txt',this)">📋 Copiar resposta</button></div>
+          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-resposta-txt',this)">Copiar resposta</button></div>
         </div>
       </div>
 
@@ -5568,10 +5569,15 @@ function atualizarBotoesModal(statusOverride){
       // Card manual novo: precisa de Salvar (validarVagaForm desabilita até empresa+cargo)
       html+=`<button class="btn btn-primary" onclick="saveVaga()">Criar processo</button>`;
     } else {
-      // Oportunidade existente: "Ir para vaga" só se houver URL; Salvar persiste edições
+      // Oportunidade existente: ação principal = Ir para vaga (navy). Salvar é secundário
+      // (raro: anotar algo sem ir à vaga agora). Sem URL → Salvar vira o principal.
       const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-      if(url) html+=`<button class="btn btn-ghost" id="mv-btn-ir-vaga" onclick="irParaVaga()">Ir para vaga ↗</button>`;
-      html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
+      if(url){
+        html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
+        html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()">Ir para vaga ↗</button>`;
+      } else {
+        html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
+      }
     }
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
@@ -5660,7 +5666,7 @@ function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; 
 
 function irParaVaga(){
   const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-  if(url) window.open(url,'_blank','noopener');
+  if(url){ saveVagaSilent(); window.open(url,'_blank','noopener'); }
 }
 
 function mvToggleCompat(){
@@ -5726,17 +5732,29 @@ function mvAjustarSecoesStatus(status){
   // ── Seções visíveis/ocultas por estado ──
   // "Dados da vaga" na Oportunidade: recolhido por padrão, abre sob demanda (mv-dados-toggle).
   const andamentoSec=document.getElementById('mv-localizacao')?.closest('.mv-sec');
-  if(andamentoSec){ andamentoSec.style.display=(!isLead||_mvDadosAberto)?'':'none'; andamentoSec.style.order=isLead?'5':''; }
+  // "Dados da vaga" não vive na Oportunidade JÁ IMPORTADA: o que gera valor para decidir
+  //  candidatar-se já está nos pills do cabeçalho; o operacional reaparece a partir de CV Enviado.
+  //  Exceção: criação manual de card (novo) precisa dos campos para digitar.
+  const _isNovoCard=!editingVagaId||editingVagaId==='new';
+  if(andamentoSec){ andamentoSec.style.display=(isLead&&!_isNovoCard)?'none':''; andamentoSec.style.order=''; }
   const _dadosToggleWrap=document.getElementById('mv-dados-toggle-wrap');
-  if(_dadosToggleWrap){ _dadosToggleWrap.style.display=isLead?'':'none'; _dadosToggleWrap.style.order=isLead?'5':''; }
-  const _dadosBtn=document.getElementById('mv-dados-toggle');
-  if(_dadosBtn) _dadosBtn.textContent=_mvDadosAberto?'− Ocultar dados da vaga':'＋ Dados da vaga';
+  if(_dadosToggleWrap) _dadosToggleWrap.style.display='none';
   const timelineSec=document.getElementById('mv-timeline-section');
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
   if(analiseSec) analiseSec.style.display=isLead?'none':'';
+  // Documentos = zona AGIR (sob demanda). No lead fica visível e ordenada após a Compatibilidade.
   const _docsSec=document.getElementById('mv-docs-section');
-  if(_docsSec&&isLead) _docsSec.style.display='none';
+  if(_docsSec){
+    if(isLead){ _docsSec.style.display=''; _docsSec.style.order='5'; mvSyncDocsCV(); }
+    else {
+      _docsSec.style.order='';
+      // "Gerar CV" é exclusivo do lead; não-lead usa o fluxo próprio de análise.
+      const _gb=document.getElementById('mv-gerar-cv-btn'); if(_gb) _gb.style.display='none';
+      const _cvt=document.getElementById('mv-ats-cv-txt'); if(_cvt) _cvt.style.display='';
+      const _act=document.getElementById('mv-cv-actions'); if(_act) _act.style.display='';
+    }
+  }
   const sofiaInline=document.getElementById('mv-sofia-inline');
   if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
 
@@ -5838,7 +5856,7 @@ function _mvRenderDescGuide(tipo,portal){
   guide.style.display='';
 }
 
-async function _mvAutoFetchDesc(){
+async function _mvAutoFetchDesc(modo){
   const cardId=String(editingVagaId||'');
   if(!cardId||cardId==='new'||_mvFetchAttempted.has(cardId)) return;
   const url=document.getElementById('mv-origem-url')?.value.trim()||'';
@@ -5888,7 +5906,8 @@ async function _mvAutoFetchDesc(){
     mvAtualizarBtnAnalise();
     // Parcial = Worker sinalizou explicitamente OU descrição curta
     _mvRenderDescGuide((data.parcial||_desc.length<500)?'partial':null);
-    analisarInline();
+    // Automático = só Compatibilidade (não gera documento). CV só sob comando explícito.
+    if(modo==='gerar') analisarInline(); else mvAutoCompatCheck();
   }catch{
     _mvFetchAttempted.delete(cardId);
     const _urlFail=document.getElementById('mv-origem-url')?.value.trim()||'';
@@ -6182,6 +6201,27 @@ function mvDocTab(which,btn){
   document.querySelectorAll('.mv-doc-tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   else{const b=document.querySelector(`.mv-doc-tab-btn[data-tab="${which}"]`);if(b)b.classList.add('active');}
+}
+
+// Sincroniza a aba CV com o estado real do card: sem CV → só o botão "Gerar CV"
+// (nada de textarea vazia ou downloads de um CV inexistente). Com CV → resultado + downloads.
+function mvSyncDocsCV(){
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  const has=!!(v&&v.atsCV);
+  const gerarBtn=document.getElementById('mv-gerar-cv-btn');
+  const cvTxt=document.getElementById('mv-ats-cv-txt');
+  const actions=document.getElementById('mv-cv-actions');
+  if(gerarBtn){ gerarBtn.style.display=has?'none':''; gerarBtn.disabled=false; gerarBtn.textContent='Gerar CV'; }
+  if(cvTxt){ cvTxt.style.display=has?'':'none'; if(has&&!cvTxt.value) cvTxt.value=v.atsCV; }
+  if(actions) actions.style.display=has?'':'none';
+  if(!has){ const a=document.querySelector('.mv-doc-tab-btn[data-tab="ats"]'); mvDocTab('ats',a); }
+}
+// Geração explícita do CV pelo card (estado Oportunidade). Único caminho que gera o CV no lead.
+async function mvGerarCV(){
+  const gerarBtn=document.getElementById('mv-gerar-cv-btn');
+  if(gerarBtn){ gerarBtn.disabled=true; gerarBtn.textContent='Gerando…'; }
+  await analisarInline();
+  mvSyncDocsCV();
 }
 
 function mvAtualizarBtnAnalise(){
@@ -6617,7 +6657,7 @@ async function analisarInline(){
       // Sem descrição mas tem URL: buscar primeiro, depois analisar
       _mvRenderDescGuide('loading');
       _mvFetchAttempted.delete(String(editingVagaId));
-      _mvAutoFetchDesc(); // chama analisarInline() no sucesso
+      _mvAutoFetchDesc('gerar'); // pedido explícito de CV → gera após buscar a descrição
       return;
     }
     showToast('⚠️ Adicione a URL da vaga para carregar a descrição automaticamente');
@@ -6667,6 +6707,10 @@ async function analisarInline(){
         sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${veredicto}</span>`;
         sofiaInline.style.display='';
       }
+      // Revela o CV recém-gerado na zona Documentos (lead) e mostra os downloads sob demanda
+      const _cvTxtLead=document.getElementById('mv-ats-cv-txt');
+      if(_cvTxtLead) _cvTxtLead.value=cv;
+      mvSyncDocsCV();
       atualizarBotoesModal();
     } else {
       // Outros estados: fluxo original — mostrar compatibilidade + docs
@@ -6683,7 +6727,7 @@ async function analisarInline(){
         const body=document.querySelector('#modal-vaga .modal-body');
         if(docsSec&&body) body.scrollTop=docsSec.offsetTop-16;
       },120);
-      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">↓ CV gerado — copie ou baixe em PDF Premium abaixo</div>`;
+      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">CV gerado — copie ou baixe em PDF Executivo abaixo</div>`;
     }
   }catch(e){
     if(resultEl&&!isLeadAnalise) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
