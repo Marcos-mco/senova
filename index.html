@@ -9095,7 +9095,9 @@ window.__senovaAnaliseDoCard=function(jobId){
     compatFortes:Array.isArray(v.compatFortes)?v.compatFortes:[],
     compatAtencao:Array.isArray(v.compatAtencao)?v.compatAtencao:[],
     cargo:v.cargo||'',
-    empresa:v.empresa||''
+    empresa:v.empresa||'',
+    status:v.status||'lead',      // copiloto usa para avisar se já candidatou
+    temCV:!!(v.atsCV&&v.atsCV.trim()) // copiloto usa para oferecer o download
   };
 };
 
