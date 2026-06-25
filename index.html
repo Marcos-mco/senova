@@ -5735,8 +5735,13 @@ function mvAjustarSecoesStatus(status){
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
   if(analiseSec) analiseSec.style.display=isLead?'none':'';
+  // Documentos no lead: progressive disclosure — aparece QUANDO há CV gerado (o card é a
+  // fonte de verdade). Sem CV ainda → oculto; após a análise gerar o CV → revelado.
   const _docsSec=document.getElementById('mv-docs-section');
-  if(_docsSec&&isLead) _docsSec.style.display='none';
+  if(_docsSec&&isLead){
+    const _temCV=(document.getElementById('mv-ats-cv-txt')?.value||'').trim().length>0;
+    _docsSec.style.display=_temCV?'':'none';
+  }
   const sofiaInline=document.getElementById('mv-sofia-inline');
   if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
 
@@ -6661,12 +6666,17 @@ async function analisarInline(){
     if(badge&&score){badge.style.cssText+=`;color:${scoreCol};background:${scoreBg};border:1px solid ${scoreCol}33;`;badge.textContent='Score: '+score+'/100';badge.style.display='';}
     mvUpdateScoreDisplay();
     if(isLeadAnalise){
-      // Lead: resultado no painel de score + habilita "Ir para vaga"
+      // Lead: veredicto da Sofia + revela Documentos (o CV acabou de ser gerado e salvo no card)
       const sofiaInline=document.getElementById('mv-sofia-inline');
       if(sofiaInline&&veredicto){
         sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${veredicto}</span>`;
         sofiaInline.style.display='';
       }
+      const cvTxtL=document.getElementById('mv-ats-cv-txt');
+      if(cvTxtL) cvTxtL.value=cv;
+      const docsSecL=document.getElementById('mv-docs-section');
+      if(docsSecL) docsSecL.style.display='';
+      mvDocTab('ats');
       atualizarBotoesModal();
     } else {
       // Outros estados: fluxo original — mostrar compatibilidade + docs
