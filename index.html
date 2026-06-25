@@ -9120,6 +9120,20 @@ REGRAS:
     messages:[{role:'user',content:`Vaga: ${cargo||'(não informado)'}${empresa?(' na '+empresa):''}.\n\nPergunta do formulário:\n"${String(pergunta).slice(0,500)}"\n\nEscreva a resposta de Marcos.`}] };
 };
 
+// Exposto para o copiloto: "Cartão de candidatura" — dados fixos de Marcos para autofill de
+// formulários (nome, e-mail, telefone, LinkedIn, cidade). Extraídos do CV_BASE para manter
+// uma única fonte de verdade. Campos não encontrados voltam vazios (o copiloto os ignora).
+window.__senovaCartaoCandidatura=function(){
+  const t=CV_BASE['PT']||'';
+  const email=(t.match(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i)||[])[0]||'';
+  const telefone=(t.match(/\(?\d{2}\)?\s*9?\d{4}[-\s.]?\d{4}/)||[])[0]||'';
+  const linkedin=(t.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w-]+/i)||[])[0]||'';
+  const nome=((t.split('\n')[0])||'').trim();
+  const cm=t.match(/\b([A-ZÀ-Ú][a-zà-ú]+(?:\s[A-ZÀ-Ú][a-zà-ú]+)*),\s*([A-Z]{2})\b/);
+  const cidade=cm?(cm[1]+', '+cm[2]):'';
+  return { nome, email, telefone, linkedin, cidade };
+};
+
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
 // para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
 window.__senovaPendentesDesc=function(){
