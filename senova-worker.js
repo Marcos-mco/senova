@@ -161,6 +161,20 @@ function json(data, status=200) {
   });
 }
 
+// Rate limit por IP — protege o proxy de IA contra abuso (a URL do Worker é pública).
+// Janela fixa simples via KV. Fail-open: se o KV falhar, não bloqueia o usuário legítimo.
+async function rateLimit(request, env, limite = 40, janelaSeg = 60) {
+  try {
+    const ip = request.headers.get('CF-Connecting-IP') || 'desconhecido';
+    const bucket = Math.floor(Date.now() / (janelaSeg * 1000));
+    const key = `rl:${ip}:${bucket}`;
+    const atual = parseInt(await env.SENOVA_KV.get(key) || '0', 10) || 0;
+    if (atual >= limite) return false;
+    await env.SENOVA_KV.put(key, String(atual + 1), { expirationTtl: janelaSeg * 2 });
+    return true;
+  } catch { return true; }
+}
+
 function htmlResp(content, status=200) {
   return new Response(content, {
     status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' }
@@ -423,6 +437,7 @@ export default {
 
     // ── Claude proxy ─────────────────────────────────────────────────
     if (path === '/api/claude' && request.method === 'POST') {
+      if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const body = await request.json();
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -434,6 +449,7 @@ export default {
 
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
+      if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const { titulo, empresa, descricao, contexto } = await request.json();
       return json(await analisarVaga(titulo, empresa, descricao, env, contexto));
     }
