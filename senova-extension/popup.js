@@ -4,6 +4,7 @@ const APP_URL = 'https://marcos-mco.github.io/senova';
 
 let _dadosVaga = null;
 let _analise   = null;
+let _tab       = null;
 
 // ── INIT ────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) { mostrarEstado('generico'); return; }
+  _tab = tab;
 
   // Botão "Habilitar emails deste portal" — aparece em qualquer site fora do Senova
   try {
@@ -87,6 +89,29 @@ function renderVaga(d) {
   el('btn-salvar').addEventListener('click', salvarVaga);
   el('btn-analisar').addEventListener('click', abrirAnalisar);
   el('btn-ver-processos').addEventListener('click', abrirProcessos);
+
+  // Entrada "Por fora": ativa o copiloto na própria página da vaga, com a análise feita aqui.
+  const bcop = el('btn-copiloto');
+  if (bcop) { bcop.style.display = 'block'; bcop.addEventListener('click', iniciarCopiloto); }
+}
+
+async function iniciarCopiloto() {
+  if (!_dadosVaga || !_tab) return;
+  const btn = el('btn-copiloto');
+  if (btn) { btn.disabled = true; btn.textContent = 'Ativando…'; }
+  const analise = {
+    score: _analise?.score,
+    compatFortes: _analise?.pontos_fortes || [],
+    compatAtencao: _analise?.pontos_atencao || [],
+    cargo: _dadosVaga.cargo || '',
+    empresa: _dadosVaga.empresa || '',
+  };
+  try {
+    // grava o passe e manda o content script (já rodando na página) acordar o copiloto
+    await chrome.storage.local.set({ senova_passe: { ...analise, porFora: true, ts: Date.now() } });
+    await chrome.tabs.sendMessage(_tab.id, { type: 'ATIVAR_COPILOTO', analise });
+  } catch (_) {}
+  window.close();
 }
 
 // ── SCORE COM CACHE ──────────────────────────────────────────────────

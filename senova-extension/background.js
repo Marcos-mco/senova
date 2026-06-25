@@ -40,6 +40,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     buscarAnaliseDoApp(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
+  if (msg.type === 'COPILOTO_RESPOSTA') {
+    // O copiloto pede ao app que gere a resposta de uma pergunta de candidatura (perfil + IA).
+    copilotoResposta(msg.pergunta, msg.cargo, msg.empresa).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (msg.type === 'COPILOTO_CARTAO') {
+    // O copiloto pede os dados fixos de Marcos (nome, e-mail, telefone…) para o autofill.
+    copilotoCartao().then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (msg.type === 'COPILOTO_CV') {
+    // O copiloto pede para baixar o CV (.docx) da vaga, para o usuário subir no portal.
+    copilotoCV(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (msg.type === 'COPILOTO_CANDIDATEI') {
+    // O copiloto confirma o envio → o app move o card para CV Enviado + follow-up 7 dias.
+    copilotoCandidatei(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (msg.type === 'COPILOTO_DESFAZER') {
+    // "Não enviei" — reverte a marcação (detecção automática errou).
+    copilotoDesfazer(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
   if (msg.type === 'HABILITAR_PORTAL') {
     fetch(WORKER + '/api/whitelist', {
       method: 'POST',
@@ -229,6 +254,141 @@ async function buscarAnaliseDoApp(jobId) {
       args: [String(jobId)],
     });
     return (out && out[0] && out[0].result) || null;
+  } catch { return null; }
+}
+
+// Gera a resposta de uma pergunta de candidatura: o app (cérebro) monta o prompt com o perfil
+// real de Marcos e o background faz a chamada ao Worker. Retorna o texto, null em falha, ou
+// { erro:'app_fechado' } quando o Senova não está aberto numa aba.
+async function copilotoResposta(pergunta, cargo, empresa) {
+  if (!pergunta) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  let prompt = null;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (p, c, e) => (typeof window.__senovaCopilotoRespostaPrompt === 'function') ? window.__senovaCopilotoRespostaPrompt(p, c, e) : null,
+      args: [pergunta, cargo || '', empresa || ''],
+    });
+    prompt = (out && out[0] && out[0].result) || null;
+  } catch { return null; }
+  if (!prompt) return { erro: 'sem_funcao' };
+  try {
+    const res = await fetch(WORKER + '/api/claude', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prompt),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return ((data.content && data.content[0] && data.content[0].text) || '').trim() || null;
+  } catch { return null; }
+}
+
+// Confirma a candidatura no app: reusa __senovaCandidaturaEnviada (que casa por jobId do
+// LinkedIn) passando a URL canônica reconstruída a partir do jobId do passe.
+async function copilotoCandidatei(jobId) {
+  if (!jobId) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  const urlCanonica = 'https://www.linkedin.com/jobs/view/' + jobId;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u) => (typeof window.__senovaCandidaturaEnviada === 'function') ? window.__senovaCandidaturaEnviada(u) : null,
+      args: [urlCanonica],
+    });
+    return { ok: !!(out && out[0] && out[0].result) };
+  } catch { return null; }
+}
+
+// Busca o "Cartão de candidatura" (dados fixos de Marcos) no app, para o autofill.
+async function copilotoCartao() {
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: () => (typeof window.__senovaCartaoCandidatura === 'function') ? window.__senovaCartaoCandidatura() : null,
+    });
+    return (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
+  } catch { return null; }
+}
+
+// CV da vaga: sem reprocessar. Se o card já tem CV → baixa direto.
+// Se não tem → gera via Worker (ATS_SYSTEM), salva no card, baixa.
+// Card e copiloto ficam sempre em sincronia — fonte de verdade única.
+async function copilotoCV(jobId) {
+  if (!jobId) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  const url = 'https://www.linkedin.com/jobs/view/' + jobId;
+
+  // Passo 1: tenta o CV existente no card (ou recebe o prompt para gerar)
+  let r = null;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u) => (typeof window.__senovaCopilotoGerarCV === 'function') ? window.__senovaCopilotoGerarCV(u) : { erro: 'sem_funcao' },
+      args: [url],
+    });
+    r = (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
+  } catch { return null; }
+
+  if (r && r.ok) {
+    try { await chrome.downloads.download({ url: r.dataUrl, filename: r.filename, saveAs: false }); return { ok: true }; }
+    catch { return { erro: 'download_falhou' }; }
+  }
+  if (!r || r.motivo !== 'precisa_gerar') return r;
+
+  // Passo 2: gera via Worker
+  let cvText = null;
+  try {
+    const res = await fetch(WORKER + '/api/claude', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(r.prompt),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    cvText = ((data.content && data.content[0] && data.content[0].text) || '').trim();
+  } catch { return null; }
+  if (!cvText) return null;
+
+  // Passo 3: salva de volta no card (fonte de verdade única)
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u, cv) => (typeof window.__senovaCopilotoSalvarCV === 'function') ? window.__senovaCopilotoSalvarCV(u, cv) : null,
+      args: [url, cvText],
+    });
+  } catch {}
+
+  // Passo 4: baixa
+  const esc = cvText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
+  const dataUrl = 'data:application/msword;base64,' + btoa(unescape(encodeURIComponent(html)));
+  try { await chrome.downloads.download({ url: dataUrl, filename: r.filename, saveAs: false }); return { ok: true, gerou: true }; }
+  catch { return { erro: 'download_falhou' }; }
+}
+
+// "Não enviei" — pede ao app que reverta a marcação de candidatura enviada.
+async function copilotoDesfazer(jobId) {
+  if (!jobId) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  const urlCanonica = 'https://www.linkedin.com/jobs/view/' + jobId;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u) => (typeof window.__senovaDesfazerCandidatura === 'function') ? window.__senovaDesfazerCandidatura(u) : null,
+      args: [urlCanonica],
+    });
+    return { ok: !!(out && out[0] && out[0].result) };
   } catch { return null; }
 }
 
