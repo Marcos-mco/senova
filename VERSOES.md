@@ -7,7 +7,23 @@
 
 ---
 
-## v3.40 — 23/jun/2026 (ATUAL) — Sessão 14
+## Sessão 18 — 25/jun/2026 (ATUAL)
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.33** · Worker deploy `a5a11b89`
+**Commits-chave:** copiloto `4121adb` · worker `7dda6e4` · index até `8bd751d`
+
+Sessão de **Copiloto de Candidatura + fundação de skills + estabilização**.
+- **Copiloto (extensão v2.33):** lê a vaga, acompanha ao site, preenche dados+perguntas, CV
+  on-demand (card=fonte de verdade), candidatura auto/manual, entrada "Por fora", cobertura
+  universal de portais. Funções de ponte no app: `__senovaCartaoCandidatura`,
+  `__senovaCopilotoRespostaPrompt`, `__senovaCopilotoGerarCV/SalvarCV`, `__senovaDesfazerCandidatura`.
+- **Fundação:** 2 skills novos — `skill_arquitetura_cognitiva` v2.0 (cognição+ética) e
+  `skill_engenharia_senova` (técnica). Doc `docs/fluxo_definitivo_card_copiloto.md`.
+- **Estabilização (caminho C):** rate limit por IP no Worker (`/api/claude`, `/api/analisar-vaga`).
+- **Revertido:** fix 1 do card (ações no lead) — será refeito sob o crivo cognitivo (ver SESSAO.md).
+
+---
+
+## v3.40 — 23/jun/2026 — Sessão 14
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão v2.16 (sem alteração)
 **Commit estável:** `b0155c5` | **Worker:** sem alteração nesta sessão
 
