@@ -5736,7 +5736,8 @@ function mvAjustarSecoesStatus(status){
   //  candidatar-se já está nos pills do cabeçalho; o operacional reaparece a partir de CV Enviado.
   //  Exceção: criação manual de card (novo) precisa dos campos para digitar.
   const _isNovoCard=!editingVagaId||editingVagaId==='new';
-  if(andamentoSec){ andamentoSec.style.display=(isLead&&!_isNovoCard)?'none':''; andamentoSec.style.order=''; }
+  // order '5' no lead: na criação manual (novo) "Dados" fica abaixo da descrição, não no topo.
+  if(andamentoSec){ andamentoSec.style.display=(isLead&&!_isNovoCard)?'none':''; andamentoSec.style.order=isLead?'5':''; }
   const _dadosToggleWrap=document.getElementById('mv-dados-toggle-wrap');
   if(_dadosToggleWrap) _dadosToggleWrap.style.display='none';
   const timelineSec=document.getElementById('mv-timeline-section');
@@ -5746,7 +5747,7 @@ function mvAjustarSecoesStatus(status){
   // Documentos = zona AGIR (sob demanda). No lead fica visível e ordenada após a Compatibilidade.
   const _docsSec=document.getElementById('mv-docs-section');
   if(_docsSec){
-    if(isLead){ _docsSec.style.display=''; _docsSec.style.order='5'; mvSyncDocsCV(); }
+    if(isLead&&!_isNovoCard){ _docsSec.style.display=''; _docsSec.style.order='6'; mvSyncDocsCV(); }
     else {
       _docsSec.style.order='';
       // "Gerar CV" é exclusivo do lead; não-lead usa o fluxo próprio de análise.
