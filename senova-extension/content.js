@@ -657,12 +657,22 @@
     if (el.tagName === 'TEXTAREA') return { grupo: 'pergunta', label: _rotuloCampo(el) || 'Pergunta aberta' };
     const r = _rotuloCampo(el).toLowerCase();
     if (!r) return null;
-    if (/nome|name\b|full.?name/.test(r) && !/empresa|company|usu[aá]rio|user/.test(r)) return { grupo: 'pessoal', label: 'Nome', chave: 'nome' };
+    // Campos pessoais específicos ANTES do nome: um label "Nome e e-mail" casa e-mail aqui;
+    // "Nome da cidade" casa cidade — evita que o genérico de nome capture esses por engano.
     if (/e-?mail/.test(r)) return { grupo: 'pessoal', label: 'E-mail', chave: 'email' };
     if (/telefone|phone|celular|whats|fone|mobile/.test(r)) return { grupo: 'pessoal', label: 'Telefone', chave: 'telefone' };
-    if (/cidade|city|localidade|munic[ií]pio|endere/.test(r)) return { grupo: 'pessoal', label: 'Cidade', chave: 'cidade' };
     if (/linkedin/.test(r)) return { grupo: 'pessoal', label: 'LinkedIn', chave: 'linkedin' };
+    if (/cidade|city|localidade|munic[ií]pio|endere/.test(r)) return { grupo: 'pessoal', label: 'Cidade', chave: 'cidade' };
     if (/sal[aá]r|pretens|remunera|salary/.test(r)) return { grupo: 'pessoal', label: 'Pretensão' };
+    // Nome — sobrenome / primeiro / completo / ambíguo. Ordem: específicos antes do genérico
+    // ("Sobrenome" contém "nome", "First name" contém "name"). "nombre" (ES) é ambíguo como
+    // "nome" — a resolução de contexto decide se é primeiro nome (há Apellido) ou nome inteiro.
+    if (!/empresa|company|usu[aá]rio|user|arquivo|file/.test(r)) {
+      if (/sobrenome|last\s*name|surname|family\s*name|apellido/.test(r)) return { grupo: 'pessoal', label: 'Sobrenome', chave: 'sobrenome' };
+      if (/primeiro\s*nome|first\s*name|given\s*name|forename/.test(r)) return { grupo: 'pessoal', label: 'Nome', chave: 'primeiroNome' };
+      if (/nome\s*completo|full\s*name|nome\s+e\s+sobrenome/.test(r)) return { grupo: 'pessoal', label: 'Nome completo', chave: 'nome' };
+      if (/\bnome\b|\bname\b|\bnombre\b/.test(r)) return { grupo: 'pessoal', label: 'Nome', chave: 'nome', nomeAmbiguo: true };
+    }
     if (/\?\s*$/.test(r) || r.length > 45) return { grupo: 'pergunta', label: r.slice(0, 60) };
     return { grupo: 'outro', label: r.slice(0, 40) };
   }
@@ -711,7 +721,14 @@
     const out = [];
     for (const el of els) {
       const c = _classificarCampo(el);
-      if (c) out.push({ el, grupo: c.grupo, label: c.label, chave: c.chave });
+      if (c) out.push({ el, grupo: c.grupo, label: c.label, chave: c.chave, nomeAmbiguo: c.nomeAmbiguo });
+    }
+    // Resolução de contexto: se o form tem um campo "Sobrenome", então um "Nome" ambíguo
+    // é o PRIMEIRO nome (ex.: Nome + Sobrenome separados). Sem sobrenome, "Nome" = nome inteiro.
+    if (out.some(c => c.chave === 'sobrenome')) {
+      for (const c of out) {
+        if (c.chave === 'nome' && c.nomeAmbiguo) { c.chave = 'primeiroNome'; c.label = 'Nome'; }
+      }
     }
     return out;
   }

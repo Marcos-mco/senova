@@ -9190,10 +9190,18 @@ window.__senovaCartaoCandidatura=function(){
   const email=(t.match(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i)||[])[0]||'';
   const telefone=(t.match(/\(?\d{2}\)?\s*9?\d{4}[-\s.]?\d{4}/)||[])[0]||'';
   const linkedin=(t.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w-]+/i)||[])[0]||'';
-  const nome=((t.split('\n')[0])||'').trim();
+  // Nome do CV (1ª linha). Corta título/cargo após separador comum (| / • – — , -) e mantém só
+  // tokens de nome (letras) — evita que nome/sobrenome engulam "| Gerente de Projetos" quando a
+  // 1ª linha não é só o nome. Fonte única: CV_BASE. primeiroNome/sobrenome p/ campos separados.
+  const _linha1=((t.split('\n')[0])||'').trim();
+  const _semTitulo=_linha1.split(/\s*[|/•·–—]\s*|\s+-\s+|,/)[0].trim();
+  const _np=_semTitulo.split(/\s+/).filter(w=>/^[\p{L}'’.-]+$/u.test(w));
+  const nome=_np.join(' ')||_linha1;
+  const primeiroNome=_np[0]||'';
+  const sobrenome=_np.length>1?_np.slice(1).join(' '):'';
   const cm=t.match(/\b([A-ZÀ-Ú][a-zà-ú]+(?:\s[A-ZÀ-Ú][a-zà-ú]+)*),\s*([A-Z]{2})\b/);
   const cidade=cm?(cm[1]+', '+cm[2]):'';
-  return { nome, email, telefone, linkedin, cidade };
+  return { nome, primeiroNome, sobrenome, email, telefone, linkedin, cidade };
 };
 
 // Exposto para o copiloto: baixa o CV (.docx) da vaga para o usuário subir no portal (o
