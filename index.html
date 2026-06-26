@@ -9182,6 +9182,28 @@ REGRAS:
     messages:[{role:'user',content:`Vaga: ${cargo||'(não informado)'}${empresa?(' na '+empresa):''}.\n\nPergunta do formulário:\n"${String(pergunta).slice(0,500)}"\n\nEscreva a resposta de Marcos.`}] };
 };
 
+// Exposto para o copiloto: escolhe as N habilidades MAIS RELEVANTES para a vaga, ENTRE as opções
+// da página. Decisão profissional (não dado sensível): o copiloto seleciona, Marcos revisa.
+// Saída constrita — só os nomes, um por linha — para o copiloto casar e clicar o chip certo.
+window.__senovaCopilotoEscolherHabilidadesPrompt=function(skills,cargo,empresa,max){
+  if(!Array.isArray(skills)) return null;
+  const lista=skills.map(s=>String(s).trim()).filter(Boolean);
+  if(!lista.length) return null;
+  const m=Math.max(1,Math.min(parseInt(max)||3,lista.length));
+  const ctx=(typeof ctxTextoAtivos==='function'?ctxTextoAtivos():[]).join('\n');
+  const sys=`Você seleciona, para Marcos Franco, as ${m} habilidades MAIS RELEVANTES para uma vaga, escolhendo APENAS entre as opções fornecidas.
+
+PERFIL:
+${CV_BASE['PT']}${ctx?('\n\nINFORMAÇÕES ADICIONAIS:\n'+ctx):''}
+
+REGRAS:
+- Escolha no máximo ${m}, copiando os nomes EXATAMENTE como aparecem na lista.
+- Use só nomes da lista. NÃO invente, NÃO explique, NÃO numere.
+- Responda APENAS os nomes escolhidos, um por linha. Nada além disso.`;
+  return { model:MODELOS.rapido, max_tokens:120, system:sys,
+    messages:[{role:'user',content:`Vaga: ${cargo||'(não informado)'}${empresa?(' na '+empresa):''}.\n\nOpções de habilidades:\n${lista.map(s=>'- '+s).join('\n')}\n\nDevolva as ${m} mais relevantes para esta vaga (uma por linha, nome exato).`}] };
+};
+
 // Exposto para o copiloto: "Cartão de candidatura" — dados fixos de Marcos para autofill de
 // formulários (nome, e-mail, telefone, LinkedIn, cidade). Extraídos do CV_BASE para manter
 // uma única fonte de verdade. Campos não encontrados voltam vazios (o copiloto os ignora).

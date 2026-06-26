@@ -45,6 +45,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     copilotoResposta(msg.pergunta, msg.cargo, msg.empresa).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
+  if (msg.type === 'COPILOTO_HABILIDADES') {
+    // O copiloto pede as N habilidades mais relevantes para a vaga, dentre as opções da página.
+    copilotoHabilidades(msg.skills, msg.cargo, msg.empresa, msg.max).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
   if (msg.type === 'COPILOTO_CARTAO') {
     // O copiloto pede os dados fixos de Marcos (nome, e-mail, telefone…) para o autofill.
     copilotoCartao().then(sendResponse).catch(() => sendResponse(null));
@@ -271,6 +276,34 @@ async function copilotoResposta(pergunta, cargo, empresa) {
       target: { tabId: senovaTab.id }, world: 'MAIN',
       func: (p, c, e) => (typeof window.__senovaCopilotoRespostaPrompt === 'function') ? window.__senovaCopilotoRespostaPrompt(p, c, e) : null,
       args: [pergunta, cargo || '', empresa || ''],
+    });
+    prompt = (out && out[0] && out[0].result) || null;
+  } catch { return null; }
+  if (!prompt) return { erro: 'sem_funcao' };
+  try {
+    const res = await fetch(WORKER + '/api/claude', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prompt),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return ((data.content && data.content[0] && data.content[0].text) || '').trim() || null;
+  } catch { return null; }
+}
+
+// Escolhe as N habilidades mais relevantes para a vaga, dentre as opções da página. Reusa o
+// padrão de copilotoResposta: o app monta o prompt constrito, o background chama o Worker.
+async function copilotoHabilidades(skills, cargo, empresa, max) {
+  if (!Array.isArray(skills) || !skills.length) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  let prompt = null;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (s, c, e, m) => (typeof window.__senovaCopilotoEscolherHabilidadesPrompt === 'function') ? window.__senovaCopilotoEscolherHabilidadesPrompt(s, c, e, m) : null,
+      args: [skills, cargo || '', empresa || '', max || 3],
     });
     prompt = (out && out[0] && out[0].result) || null;
   } catch { return null; }

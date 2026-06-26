@@ -623,6 +623,7 @@
   let _respondido = false;
   let _candidatado = false;
   let _viuForm = false;
+  let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
 
   function _esc(s) {
     return String(s == null ? '' : s)
@@ -883,8 +884,10 @@
         ? `<button id="snv-cop-candidatei" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Já me candidatei</button>`
         : '';
 
+    const _habTxt = (_respondido && _habilidadesSel && _habilidadesSel.length)
+      ? ` <span style="color:#2C2C2A;">Destaquei: <b>${_esc(_habilidadesSel.join(', '))}</b> — ajuste se quiser.</span>` : '';
     const rodapeHTML = _respondido
-      ? '<b style="color:#1A6840;">✓ Preenchido.</b> Revise e ajuste antes de enviar.'
+      ? '<b style="color:#1A6840;">✓ Preenchido.</b> Revise e ajuste antes de enviar.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
     corpo.innerHTML = `
@@ -1014,6 +1017,72 @@
 
   // Preenche o formulário para revisão: dados fixos (Cartão) + respostas das perguntas abertas
   // (perfil + IA). Pausa o observer durante o preenchimento. NUNCA envia — só preenche.
+  // ── HABILIDADES (chips de múltipla escolha, ex.: Gupy "Escolha até N") ───────────────
+  // Escolher habilidades do próprio CV para destacar é decisão PROFISSIONAL (não dado sensível):
+  // o copiloto seleciona as mais aderentes (IA) e Marcos revisa. NUNCA envia.
+  const _ACAO_BTN = /enviar|submit|pr[oó]xim|continuar|avan[çc]ar|voltar|cancelar|salvar|anexar|upload|adicionar\s+arquivo|candidatar|fechar|sair|limpar|remover|anterior|finalizar|concluir|\bok\b/i;
+  function _chipLabel(c) { return (c.innerText || '').replace(/\s+/g, ' ').replace(/\s*[+−–—×✕✓]\s*$/, '').trim(); }
+  function _chipSelecionado(c) {
+    if (c.getAttribute('aria-pressed') === 'true' || c.getAttribute('aria-selected') === 'true' || c.getAttribute('aria-checked') === 'true') return true;
+    const cl = (typeof c.className === 'string' ? c.className : '').toLowerCase();
+    return /selected|active|checked|ativo|marcad|selecionad/.test(cl);
+  }
+  // Acha o enunciado "Escolha até N habilidades…" + um container com vários botões-chip curtos
+  // (exclui botões de AÇÃO). Conservador: só retorna se houver >=3 chips de verdade.
+  function _acharChipsHabilidades() {
+    const els = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6,label,legend,p,span,strong,div'));
+    let prompt = null;
+    for (const el of els) {
+      if (el.children.length > 3) continue;
+      const t = (el.innerText || '').replace(/\s+/g, ' ').trim();
+      if (t.length > 10 && t.length < 220 && /habilidade|compet[êe]ncia|skill/i.test(t) && /(escolha|selecione|destaque|adicione|marque|at[ée]\s+\d)/i.test(t)) { prompt = el; break; }
+    }
+    if (!prompt) return null;
+    const mm = (prompt.innerText || '').match(/at[ée]\s+(\d+)/i);
+    const max = mm ? parseInt(mm[1]) : 3;
+    const ehChip = b => {
+      if (b.closest('nav,header,footer,[role=navigation],#snv-copiloto')) return false;
+      if ((b.getAttribute('type') || '').toLowerCase() === 'submit') return false; // nunca um botão de envio
+      const meta = ((b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '')).toLowerCase();
+      if (_ACAO_BTN.test(meta)) return false; // ação escondida em aria-label/title (innerText neutro)
+      const t = _chipLabel(b);
+      return t.length >= 2 && t.length <= 50 && !_ACAO_BTN.test(t);
+    };
+    // Sobe procurando o nível mais próximo com >=3 chips — sem chegar ao body (evita pegar a página toda).
+    let cont = prompt.parentElement, chips = [];
+    for (let i = 0; i < 6 && cont && cont !== document.body && cont !== document.documentElement; i++) {
+      chips = Array.from(cont.querySelectorAll('button,[role="button"]')).filter(b => _visivel(b) && ehChip(b));
+      if (chips.length >= 3) break;
+      cont = cont.parentElement;
+    }
+    return chips.length >= 3 ? { max, chips } : null;
+  }
+  // Só clica chip cujo rótulo a IA escolheu DENTRE os que coletamos — nunca um botão de ação.
+  async function _selecionarHabilidades() {
+    const found = _acharChipsHabilidades();
+    if (!found) return null;
+    const pares = found.chips.map(c => ({ c, l: _chipLabel(c) })).filter(x => x.l);
+    const labels = [...new Set(pares.map(x => x.l))];
+    if (!labels.length) return null;
+    const an = _copilotoAnalise || {};
+    let resp = null;
+    try { resp = await chrome.runtime.sendMessage({ type: 'COPILOTO_HABILIDADES', skills: labels, cargo: an.cargo || '', empresa: an.empresa || '', max: found.max }); } catch (_) {}
+    if (!resp || resp.erro || typeof resp !== 'string') return null;
+    const labelsLower = labels.map(l => l.toLowerCase());
+    // Só aceita linhas que SÃO um rótulo coletado (igualdade exata) — descarta prosa/lixo da IA e
+    // impede clicar qualquer coisa que não seja um chip que nós mesmos listamos. Sem includes frouxo.
+    const escolhidas = resp.split('\n')
+      .map(s => s.replace(/^[-•*\d.\)\s]+/, '').trim().toLowerCase())
+      .filter(nome => labelsLower.includes(nome));
+    const feitas = [], usados = new Set();
+    for (const alvo of escolhidas) {
+      if (feitas.length >= found.max) break;
+      const hit = pares.find(x => !usados.has(x.c) && x.l.toLowerCase() === alvo);
+      if (hit && !_chipSelecionado(hit.c)) { usados.add(hit.c); try { hit.c.click(); feitas.push(hit.l); } catch (_) {} }
+    }
+    return feitas.length ? feitas : null;
+  }
+
   async function _preencher() {
     const btn = document.getElementById('snv-cop-preencher');
     const campos = _coletarCampos();
@@ -1021,6 +1090,7 @@
     const perguntas = campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim());
     if (!pessoais.length && !perguntas.length) return;
     _preenchendo = true;
+    _habilidadesSel = null;
     if (_copilotoObserver) _copilotoObserver.disconnect();
     const an = _copilotoAnalise || {};
     let algum = false, erroMsg = '';
@@ -1053,6 +1123,12 @@
         if (resp && resp.erro) { erroMsg = _falha(resp.erro); break; }
         if (typeof resp === 'string' && resp.trim()) { _preencherCampo(c.el, resp.trim()); algum = true; }
       }
+    }
+
+    // 3) Habilidades (chips de múltipla escolha) — auto-seleciona as mais relevantes para revisão.
+    if (!erroMsg) {
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Selecionando habilidades…'; }
+      try { const h = await _selecionarHabilidades(); if (h && h.length) { algum = true; _habilidadesSel = h; } } catch (_) {}
     }
 
     _preenchendo = false;
