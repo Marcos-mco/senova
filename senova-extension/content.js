@@ -950,8 +950,23 @@
     if (_candidatado || _preenchendo) return;
     const an = _copilotoAnalise;
     if (!an || !an.jobId) return;
-    if (_acharContainerCandidatura()) { _viuForm = true; return; } // ainda há formulário aberto
-    if (_viuForm && _temConfirmacaoEnvio()) _autoMarcarCandidatura();
+    if (_acharContainerCandidatura()) {
+      _viuForm = true;
+      // Persiste "vi o formulário desta vaga" — sobrevive à navegação para a página de "obrigado"
+      // (portais como Teamtailor enviam e redirecionam para outra URL, zerando o estado em memória).
+      try { chrome.storage.local.set({ senova_form_visto: { jobId: an.jobId, ts: Date.now() } }); } catch (_) {}
+      return; // ainda há formulário aberto
+    }
+    if (!_temConfirmacaoEnvio()) return;
+    if (_viuForm) { _autoMarcarCandidatura(); return; } // confirmação na MESMA página (SPA)
+    // Confirmação numa página NOVA (ex.: /thanks): só marca se vimos o form DESTA vaga há pouco —
+    // jobId-scoped + janela de 45min evita falso positivo ao cair numa página de obrigado qualquer.
+    try {
+      chrome.storage.local.get('senova_form_visto').then(s => {
+        const fv = s.senova_form_visto;
+        if (fv && fv.jobId === an.jobId && (Date.now() - fv.ts) < 45 * 60 * 1000) _autoMarcarCandidatura();
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   async function _autoMarcarCandidatura() {
@@ -961,7 +976,7 @@
     _candidatado = true; // trava otimista — não repete
     let res = null;
     try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', jobId: an.jobId }); } catch (_) {}
-    if (res && res.ok) { _atualizarCorpo(); }
+    if (res && res.ok) { try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {} _atualizarCorpo(); }
     else { _candidatado = false; } // falhou — mantém o caminho manual disponível
   }
 
@@ -973,6 +988,9 @@
     try { await chrome.runtime.sendMessage({ type: 'COPILOTO_DESFAZER', jobId: an.jobId }); } catch (_) {}
     _candidatado = false;
     _viuForm = false; // evita re-disparo imediato da detecção
+    // Limpa o marcador persistente: sem isto, um re-scan na página de "obrigado" re-marcaria
+    // a candidatura e desfaria o "Não enviei" do usuário.
+    try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {}
     _atualizarCorpo();
   }
 
@@ -1057,6 +1075,7 @@
     });
 
     _atualizarCorpo();
+    _checarEnvioAuto(); // checa já no load — a página estática de "obrigado" pode não gerar mutação
 
     // Reescaneia quando a página muda (modal abre / avança de etapa / confirmação de envio).
     _copilotoObserver = new MutationObserver(() => {
