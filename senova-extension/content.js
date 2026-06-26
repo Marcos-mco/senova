@@ -788,8 +788,10 @@
         return t.length < 40 && /\b(candidatar-se|candidate-se|candidatar|apply|aplicar)\b/.test(t);
       }) || null;
     }
-    const btnTxt = ((btn && (btn.innerText || btn.getAttribute('aria-label'))) || '').toLowerCase();
-    if (/simpl|easy/.test(btnTxt)) return 'easyapply';
+    // Combina texto E aria-label: o botão Easy Apply costuma exibir "Candidatar-se" mas traz
+    // "Candidatura simplificada" no aria-label — usar só o innerText classificava errado (externa).
+    const btnTxt = (btn ? ((btn.innerText || '') + ' ' + (btn.getAttribute('aria-label') || '')) : '').toLowerCase();
+    if (/simpl|easy\s*apply/.test(btnTxt)) return 'easyapply';
     if (/gerenciadas fora|managed outside/i.test(document.body.innerText)) return 'externa';
     if (btn) return 'externa';
     return 'desconhecida';
