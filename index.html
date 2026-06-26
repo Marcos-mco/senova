@@ -6269,16 +6269,17 @@ function mvRefreshDescPreview(){
       const _esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const maisLink='<a onclick="irParaVaga()" style="color:var(--action);cursor:pointer;font-weight:600;"> ... mais ↗</a>';
       const html=_esc(base)+maisLink;
-      if(preview){preview.innerHTML=html;preview.style.display='';preview.style.whiteSpace='pre-wrap';}
+      if(preview){preview.innerHTML=html;preview.style.display='';preview.style.whiteSpace='pre-wrap';preview.style.maxHeight='';preview.style.overflow='';}
       if(full){full.innerHTML=html;full.style.display='none';full.style.whiteSpace='pre-wrap';}
       if(expandBtn) expandBtn.style.display='none';
     } else {
-      // Descrição completa — preview 300 chars + botão expandir dentro do Senova
-      if(preview){preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');preview.style.whiteSpace='pre-wrap';}
+      // Descrição completa — preview compacto (~3 linhas) + "Ver completo" sob demanda
+      // (libera espaço para a zona Documentos aparecer sem scroll).
+      if(preview){preview.textContent=desc.slice(0,300)+(desc.length>300?'…':'');preview.style.whiteSpace='pre-wrap';preview.style.maxHeight='4.8em';preview.style.overflow='hidden';}
       if(full){full.textContent=desc;full.style.whiteSpace='pre-wrap';}
       if(preview) preview.style.display='';
       if(full) full.style.display='none';
-      if(expandBtn) expandBtn.style.display=desc.length>300?'':'none';
+      if(expandBtn) expandBtn.style.display=desc.length>150?'':'none';
     }
     if(ta) ta.style.display='none';
     if(editBtn){ editBtn.style.display=''; editBtn.textContent='Editar'; editBtn.onclick=mvEditarDesc; }
