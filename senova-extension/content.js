@@ -730,9 +730,16 @@
 
   // Forma de candidatura desta vaga no LinkedIn.
   function _detectarForma() {
-    const btn = document.querySelector(
-      'button[aria-label*="Candidatura simplificada"], button[aria-label*="Easy Apply"], .jobs-apply-button'
+    let btn = document.querySelector(
+      'button[aria-label*="Candidatura simplificada" i], button[aria-label*="Easy Apply" i], .jobs-apply-button'
     );
+    // Fallback: botão/link "Candidate-se / Candidatar-se / Apply" (external apply, PT/EN).
+    if (!btn) {
+      btn = Array.from(document.querySelectorAll('.jobs-apply-button, button, a')).find(b => {
+        const t = (((b.innerText || '') + ' ' + (b.getAttribute('aria-label') || '')).trim().toLowerCase());
+        return t.length < 40 && /\b(candidatar-se|candidate-se|candidatar|apply|aplicar)\b/.test(t);
+      }) || null;
+    }
     const btnTxt = ((btn && (btn.innerText || btn.getAttribute('aria-label'))) || '').toLowerCase();
     if (/simpl|easy/.test(btnTxt)) return 'easyapply';
     if (/gerenciadas fora|managed outside/i.test(document.body.innerText)) return 'externa';
@@ -747,10 +754,11 @@
     const { grupos, total } = _escanearCampos();
     const li = t => `<div style="font-size:13px;color:#2C2C2A;display:flex;gap:7px;margin-top:6px;line-height:1.4;"><span style="color:#C9A84C;flex-shrink:0;font-weight:700;">›</span><span>${_esc(t)}</span></div>`;
 
+    // No LinkedIn, a página da vaga é só descrição — a candidatura abre fora ou no
+    // modal Easy Apply. Nunca afirmar "Formulário de candidatura" aqui (não há um).
     const primeira = !noLinkedIn ? 'Formulário no site da empresa'
       : forma === 'easyapply' ? 'Candidatura Simplificada (LinkedIn)'
-      : forma === 'externa' ? 'Candidatura no site da empresa'
-      : 'Formulário de candidatura';
+      : 'Candidatura no site da empresa';
     let linhas = li(primeira);
     if (grupos.pessoal.length) linhas += li('Dados: ' + grupos.pessoal.join(', '));
     if (grupos.pergunta.length) linhas += li(grupos.pergunta.length + (grupos.pergunta.length === 1 ? ' pergunta aberta' : ' perguntas abertas'));
