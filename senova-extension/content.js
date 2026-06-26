@@ -716,8 +716,23 @@
   // Coleta os campos do formulário de candidatura COM referência ao elemento (para preencher).
   function _coletarCampos() {
     const cont = _acharContainerCandidatura();
-    if (!cont) return [];
-    const els = Array.from(cont.querySelectorAll(_CAMPO_SEL)).filter(_visivel);
+    let els;
+    if (cont) {
+      els = Array.from(cont.querySelectorAll(_CAMPO_SEL)).filter(_visivel);
+    } else {
+      // ATS sem <form> (Gupy etc.): varre a página JÁ injetada, excluindo ruído por campo
+      // (nav/header/footer/busca/login) e o próprio painel. A injeção segue estrita (Google
+      // não injeta), então este fallback só roda onde o copiloto já apareceu.
+      const _ruidoRe = /search|busca|pesquis|newsletter|mensagem|\bmessage\b|\bchat\b|coment|login|sign.?in|entrar|cookie|consent/;
+      els = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(el => {
+        if (!_visivel(el)) return false;
+        if (el.closest('nav,header,footer,[role=banner],[role=navigation],[role=search],#snv-copiloto')) return false;
+        // Inclui o rótulo (que cobre placeholder e label) na checagem de ruído — pega caixas de
+        // busca/comentário/chat/newsletter cujo aria-label/name esteja vazio.
+        const a = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + _rotuloCampo(el)).toLowerCase();
+        return !_ruidoRe.test(a);
+      });
+    }
     const out = [];
     for (const el of els) {
       const c = _classificarCampo(el);
@@ -950,6 +965,9 @@
     if (_candidatado || _preenchendo) return;
     const an = _copilotoAnalise;
     if (!an || !an.jobId) return;
+    // "Form aberto" pelo container <form>/dialog (estrito): numa /thanks sem <form> a checagem
+    // segue para a confirmação. Não usar a coleta com fallback aqui — um input residual de
+    // "referência" na página de obrigado pareceria form aberto e travaria a auto-detecção.
     if (_acharContainerCandidatura()) {
       _viuForm = true;
       // Persiste "vi o formulário desta vaga" — sobrevive à navegação para a página de "obrigado"
@@ -1056,7 +1074,7 @@
     wrap.style.cssText = 'position:fixed;top:72px;right:20px;z-index:2147483647;width:300px;font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;filter:drop-shadow(0 6px 24px rgba(26,58,92,0.20));opacity:0;transition:opacity 0.25s;';
     wrap.innerHTML = `
       <div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #D0D9E4;">
-        <div style="background:#1A3A5C;padding:9px 12px;display:flex;align-items:center;gap:9px;">
+        <div id="snv-cop-header" title="Arraste para mover" style="background:#1A3A5C;padding:9px 12px;display:flex;align-items:center;gap:9px;cursor:move;user-select:none;">
           <div style="background:#C9A84C;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#1A3A5C;flex-shrink:0;font-family:Georgia,serif;">S</div>
           <div style="flex:1;line-height:1.15;min-width:0;">
             <div style="color:#fff;font-size:13px;font-weight:700;letter-spacing:0.02em;">Senova · Copiloto</div>
@@ -1073,6 +1091,26 @@
       wrap.remove();
       if (_copilotoObserver) { _copilotoObserver.disconnect(); _copilotoObserver = null; }
     });
+
+    // Painel arrastável pela barra do título — pode estar cobrindo conteúdo importante da página.
+    const _hdr = document.getElementById('snv-cop-header');
+    if (_hdr) {
+      let _ax = 0, _ay = 0, _arr = false;
+      _hdr.addEventListener('mousedown', e => {
+        if (e.target.closest('#snv-cop-fechar')) return; // o × fecha, não arrasta
+        const r = wrap.getBoundingClientRect();
+        wrap.style.left = r.left + 'px'; wrap.style.top = r.top + 'px'; wrap.style.right = 'auto';
+        _ax = e.clientX - r.left; _ay = e.clientY - r.top; _arr = true;
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', e => {
+        if (!_arr) return;
+        const x = Math.max(0, Math.min(e.clientX - _ax, window.innerWidth - wrap.offsetWidth));
+        const y = Math.max(0, Math.min(e.clientY - _ay, window.innerHeight - wrap.offsetHeight));
+        wrap.style.left = x + 'px'; wrap.style.top = y + 'px';
+      });
+      window.addEventListener('mouseup', () => { _arr = false; });
+    }
 
     _atualizarCorpo();
     _checarEnvioAuto(); // checa já no load — a página estática de "obrigado" pode não gerar mutação
