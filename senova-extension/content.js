@@ -671,14 +671,29 @@
   // não confundir a barra de busca e o chat do LinkedIn com campos de candidatura.
   function _acharContainerCandidatura() {
     const nCampos = el => el.querySelectorAll('input:not([type=hidden]),textarea,select').length;
-    const dialogs = Array.from(document.querySelectorAll('[role="dialog"], .jobs-easy-apply-modal, .artdeco-modal')).filter(_visivel);
+    // Ruído: busca, navegação, login, newsletter, chat, cookies — NÃO é candidatura.
+    const ehRuido = el => {
+      if (el.matches('[role=search]')) return true;
+      if (el.closest('nav,header,[role=banner],[role=navigation],[role=search]')) return true;
+      const a = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '')).toLowerCase();
+      return /search|busca|pesquis|newsletter|mensagem|\bmessage\b|\bchat\b|login|sign.?in|entrar|cookie|consent/.test(a);
+    };
+    // Sinal de candidatura: tem upload de CV/textarea OU um campo pessoal reconhecível
+    // (nome/e-mail/telefone/currículo/LinkedIn/pretensão). Só ≥3 inputs NÃO basta — o
+    // form de busca do Google/portais cai nisso e dava falso positivo em todo site.
+    const temCampoApply = el => !!el.querySelector('input[type=file], textarea') ||
+      Array.from(el.querySelectorAll('input,select')).some(i => {
+        const l = _rotuloCampo(i).toLowerCase();
+        return /nome|name\b|e-?mail|telefone|phone|celular|curr[ií]cul|\bcv\b|linkedin|sal[aá]r|pretens/.test(l);
+      });
+    const dialogs = Array.from(document.querySelectorAll('.jobs-easy-apply-modal, [role="dialog"], .artdeco-modal')).filter(_visivel);
     for (const d of dialogs) {
-      if (/candidat|apply|aplicar/i.test(d.innerText || '') || nCampos(d)) return d;
+      if (d.matches('.jobs-easy-apply-modal')) return d;
+      if (/candidat|apply|aplicar/i.test(d.innerText || '') && temCampoApply(d)) return d;
     }
-    // entre os <form> com cara de candidatura, escolhe o que tem MAIS campos (o principal) —
-    // evita pegar um form parcial e perder campos que ficam mais abaixo (scroll).
+    // entre os <form> de candidatura, escolhe o que tem MAIS campos (o principal).
     const forms = Array.from(document.querySelectorAll('form')).filter(_visivel)
-      .filter(f => f.querySelector('input[type=file], textarea') || nCampos(f) >= 3);
+      .filter(f => !ehRuido(f) && temCampoApply(f));
     if (forms.length) {
       forms.sort((a, b) => nCampos(b) - nCampos(a));
       return forms[0];
