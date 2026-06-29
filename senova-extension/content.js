@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.52
+// Content script — Senova Extension v2.53
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -843,10 +843,9 @@
   // inferimos outra categoria. Sem correspondência segura (0 ou ambígua) → deixa em branco.
   function _norm(s) { return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
   function _ehPlaceholder(t) { return !_norm(t) || /\b(selecione|escolha|prefiro nao|nao informar|nao declarar|select|choose|none)\b/.test(_norm(t)); }
-  // Variantes aprovadas por categoria canônica. Só formas da MESMA categoria (gramaticais/idioma/
-  // sigla) — jamais cruzam categorias. Negro(a) só entra para Preta/Parda se o usuário autorizou.
+  // Variantes aprovadas por categoria canônica (raça/orientação). Só formas da MESMA categoria
+  // (gramaticais/idioma) — jamais cruzam. Negro(a) só entra p/ Preta/Parda se o usuário autorizou.
   const _VAR = {
-    genero: { homem: /\b(homem|masculino|masc|male|cis ?masculino)\b/, mulher: /\b(mulher|feminino|fem|female|cis ?feminino)\b/, 'nao-binario': /\b(nao binari\w*|nao bin|nonbinary|non binary)\b/, outro: /\b(outr[oa]s?|other)\b/ },
     raca: { branca: /\bbranc[oa]\b/, preta: /\bpret[oa]\b/, parda: /\bpard[oa]\b/, amarela: /\bamarel[oa]\b/, indigena: /\bindigena\b/ },
     orientacao: { heterossexual: /\b(heteross?exual|hetero|straight)\b/, homossexual: /\b(homoss?exual|gay|lesbic[ao]|lesbian)\b/, bissexual: /\b(bissexual|bisexual|bi)\b/, outra: /\b(outr[oa]s?|other)\b/ }
   };
@@ -856,26 +855,59 @@
     if (chave === 'raca' && racaNegro && (canon === 'preta' || canon === 'parda')) re = new RegExp(re.source + '|\\bnegr[oa]\\b');
     return re;
   }
+  // Gênero precisa de regra própria por causa do par identidade × (cis/trans). `spec` casa a opção
+  // EXPLÍCITA. `base` (só p/ cis) é a queda para "Masculino/Feminino" quando NÃO há opção marcada
+  // cis/trans/NB. Trans e não-bináries NÃO têm base: sem opção equivalente → branco (decisão de
+  // Marcos: nunca reclassificar identidade numa caixa binária). Devolve a <option> ou null.
+  const _GEN = {
+    'homem-cis': { spec: /\b(homem cis\w*|cis ?(genero )?masculino|homem cisgenero)\b/, base: /\b(homem|masculino|male)\b/ },
+    'mulher-cis': { spec: /\b(mulher cis\w*|cis ?(genero )?feminino|mulher cisgenero)\b/, base: /\b(mulher|feminino|female)\b/ },
+    'homem-trans': { spec: /\b(homem trans\w*|trans ?(genero )?masculino|homem transgenero|ftm)\b/ },
+    'mulher-trans': { spec: /\b(mulher trans\w*|trans ?(genero )?feminino|mulher transgenero|mtf)\b/ },
+    'nao-binario': { spec: /\b(nao binari\w*|nao bin|nonbinary|non binary|enby)\b/ },
+    'agenero': { spec: /\b(agenero|agender)\b/ },
+    'genero-fluido': { spec: /\b(genero fluido|fluido|genderfluid)\b/ },
+    'bigenero': { spec: /\b(bigenero|bigender)\b/ },
+    'outro': { spec: /\b(outr[oa]s?|other)\b/ }
+  };
+  const _GEN_QUALIF = /\b(cis\w*|trans\w*|nao binari\w*|nonbinary|non binary|agenero|fluido|bigenero|enby)\b/;
+  function _casarGenero(opts, canon) {
+    const g = _GEN[canon]; if (!g) return null;
+    const norm = opts.map(o => ({ o, n: _norm(o.textContent) }));
+    let m = norm.filter(x => g.spec.test(x.n));
+    if (m.length === 1) return m[0].o;
+    if (m.length > 1) return null; // ambígua → não arrisca
+    if (g.base) { // só cis cai para Masculino/Feminino, e só entre opções NÃO marcadas cis/trans/NB
+      const cand = norm.filter(x => !_GEN_QUALIF.test(x.n));
+      m = cand.filter(x => g.base.test(x.n));
+      if (m.length === 1) return m[0].o;
+    }
+    return null;
+  }
   // Um <select> é "vazio" se não há seleção real (placeholder/em branco). Texto: sem valor.
   function _seleVazia(el) {
     if (el.tagName === 'SELECT') { const o = el.options[el.selectedIndex]; return !o || !o.value || _ehPlaceholder(o.textContent); }
     return !el.value.trim();
   }
-  // Marca a opção equivalente à autodeclaração. Devolve true só se REALMENTE marcou.
+  // Marca a opção equivalente à autodeclaração. Só <select> (categoria fechada); campo de texto
+  // livre fica para o usuário (não despeja token). Devolve true só se REALMENTE marcou.
   function _preencherSelecao(el, chave, canon, racaNegro) {
-    const re = _variantePadrao(chave, canon, racaNegro); if (!re) return false;
-    if (el.tagName === 'SELECT') {
-      if (!_seleVazia(el)) return false; // não sobrescreve escolha já feita
-      const opts = Array.from(el.options).filter(o => o.value !== '' && !_ehPlaceholder(o.textContent));
+    if (el.tagName !== 'SELECT') return false;
+    if (!_seleVazia(el)) return false; // não sobrescreve escolha já feita
+    const opts = Array.from(el.options).filter(o => o.value !== '' && !_ehPlaceholder(o.textContent));
+    let alvo = null;
+    if (chave === 'genero') {
+      alvo = _casarGenero(opts, canon);
+    } else {
+      const re = _variantePadrao(chave, canon, racaNegro); if (!re) return false;
       const casam = opts.filter(o => re.test(_norm(o.textContent)));
-      if (casam.length !== 1) return false; // 0 ou ambígua → não arrisca categoria errada
-      el.value = casam[0].value;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      return el.value === casam[0].value;
+      alvo = casam.length === 1 ? casam[0] : null; // 0 ou ambígua → não arrisca
     }
-    if (el.value.trim()) return false; // texto livre já preenchido
-    _preencherCampo(el, canon); return true;
+    if (!alvo) return false;
+    el.value = alvo.value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return el.value === alvo.value;
   }
 
   // Forma de candidatura desta vaga no LinkedIn.
@@ -993,7 +1025,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.52',
+      'SENOVA DIAG v2.53',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'container do formulário: ' + d.container,
