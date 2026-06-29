@@ -91,8 +91,17 @@ function renderVaga(d) {
   el('btn-ver-processos').addEventListener('click', abrirProcessos);
 
   // Entrada "Por fora": ativa o copiloto na própria página da vaga, com a análise feita aqui.
+  // Se você VEIO DO SENOVA (passe fresco com card), o copiloto já abre sozinho na página —
+  // não mostramos este botão (seria redundante e poderia rebaixar o card a "sem-card").
   const bcop = el('btn-copiloto');
-  if (bcop) { bcop.style.display = 'block'; bcop.addEventListener('click', iniciarCopiloto); }
+  if (bcop) {
+    const _mostrarBtnCop = () => { bcop.style.display = 'block'; bcop.addEventListener('click', iniciarCopiloto); };
+    chrome.storage.local.get('senova_passe').then(s => {
+      const p = s.senova_passe;
+      const veioDoSenova = p && p.jobId && !p.porFora && (Date.now() - p.ts) < 45 * 60 * 1000;
+      if (!veioDoSenova) _mostrarBtnCop();
+    }).catch(_mostrarBtnCop);
+  }
 }
 
 async function iniciarCopiloto() {
@@ -124,7 +133,7 @@ async function analisarComCache(d) {
     sw.style.display = 'block';
     sw.style.background = '#F8F9FB';
     sw.style.borderColor = '#D0D9E4';
-    sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">🔍 Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
+    sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
     return;
   }
 
@@ -177,17 +186,17 @@ function esconderScore() {
   sw.style.display = 'block';
   sw.style.background = '#F8F9FB';
   sw.style.borderColor = '#D0D9E4';
-  sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">🔍 Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
+  sw.innerHTML = '<div style="font-size:12.5px;color:#5A6A7A;padding:4px 0;line-height:1.7;">Abra a página completa da vaga para que o Senova avalie se vale a pena para você.</div>';
 }
 
 function renderScore(r) {
   const score = r.score || 0;
 
   const v = score >= 75
-    ? { icon: '✨', titulo: 'Ótima oportunidade', sub: 'Vale uma análise completa — alto alinhamento com seu perfil.', cor: '#1A7A4A', bg: '#EAF7EF', bc: '#1A7A4A33' }
+    ? { titulo: 'Ótima oportunidade', sub: 'Vale uma análise completa — alto alinhamento com seu perfil.', cor: '#1A7A4A', bg: '#EAF7EF', bc: '#1A7A4A33' }
     : score >= 55
-    ? { icon: '🔍', titulo: 'Pode valer a pena', sub: 'Alinhamento parcial — analise antes de se candidatar.', cor: '#B8670A', bg: '#FFF8EC', bc: '#C9A84C44' }
-    : { icon: '⚡', titulo: 'Fora do seu perfil', sub: 'Provavelmente não vale o tempo — mas você decide.', cor: '#C0281E', bg: '#FEF0EF', bc: '#C0281E33' };
+    ? { titulo: 'Pode valer a pena', sub: 'Alinhamento parcial — analise antes de se candidatar.', cor: '#B8670A', bg: '#FFF8EC', bc: '#C9A84C44' }
+    : { titulo: 'Fora do seu perfil', sub: 'Provavelmente não vale o tempo — mas você decide.', cor: '#C0281E', bg: '#FEF0EF', bc: '#C0281E33' };
 
   const sw = el('score-wrap');
   sw.style.display = 'block';
@@ -203,12 +212,12 @@ function renderScore(r) {
   });
 
   const conselho = r.resumo
-    ? `<div style="margin-top:8px;padding:7px 9px;background:#F0F4F8;border-radius:6px;border-left:3px solid ${v.cor};font-size:11.5px;color:#3A4A5A;line-height:1.5;">💡 ${r.resumo}</div>`
+    ? `<div style="margin-top:8px;padding:7px 9px;background:#F0F4F8;border-radius:6px;border-left:3px solid ${v.cor};font-size:11.5px;color:#3A4A5A;line-height:1.5;">${r.resumo}</div>`
     : '';
 
   sw.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;">
-      <span style="font-size:18px;line-height:1;">${v.icon}</span>
+      <span style="width:9px;height:9px;border-radius:50%;background:${v.cor};margin-top:4px;flex-shrink:0;"></span>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:700;color:${v.cor};line-height:1.2;">${v.titulo}</div>
         <div style="font-size:11px;color:#5A6A7A;margin-top:1px;line-height:1.4;">${v.sub}</div>
@@ -336,13 +345,13 @@ function mostrarEstadoGenerico(isLinkedIn) {
   const ico = el('generico-ico');
   const txt = el('generico-txt');
   if (isLinkedIn) {
-    if (ico) ico.textContent = '💼';
+    if (ico) ico.textContent = '';
     if (txt) txt.innerHTML =
       '<strong style="color:#1A3A5C;">LinkedIn detectado</strong><br><br>' +
       'Selecione todo o texto da vaga (Ctrl+A dentro do painel ou arraste o mouse)<br>' +
       'e clique no ícone Senova novamente.';
   } else {
-    if (ico) ico.textContent = '🔍';
+    if (ico) ico.textContent = '';
     if (txt) txt.innerHTML =
       'Selecione o texto de uma vaga ou notícia<br>e clique no ícone Senova novamente.';
   }

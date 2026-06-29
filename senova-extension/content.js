@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.53
+// Content script — Senova Extension v2.54
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -626,6 +626,7 @@
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
   let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
   let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
+  let _ultimoPasse = undefined; // estado do passe lido nesta página externa (instrumentação do diag)
   let _lastDiagSig = '';      // último diagnóstico logado (evita repetir no console a cada mutação)
 
   function _esc(s) {
@@ -1018,6 +1019,8 @@
       fileN, fileVis,
       classificados: campos.length, pessoal: porGrupo('pessoal'), perguntas: porGrupo('pergunta'),
       selecao: porGrupo('selecao'),
+      passe: _ultimoPasse === undefined ? 'não lido' : !_ultimoPasse ? 'nenhum'
+        : `jobId ${_ultimoPasse.jobId} · há ${Math.round((Date.now() - _ultimoPasse.ts) / 60000)}min`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma
     };
@@ -1025,9 +1028,10 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.53',
+      'SENOVA DIAG v2.54',
       'site: ' + host,
       'origem do painel: ' + d.origem,
+      'passe (card): ' + d.passe,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
@@ -1104,11 +1108,11 @@
     }
 
     const btnHTML = _nPreencher
-      ? `<button id="snv-cop-preencher" style="width:100%;margin-top:11px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✍️ Preencher para revisar</button>`
+      ? `<button id="snv-cop-preencher" style="width:100%;margin-top:11px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Preencher para revisar</button>`
       : '';
 
     const btnCvHTML = _temCV
-      ? `<button id="snv-cop-cv" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">📄 ${an.temCV ? 'Baixar meu CV (.docx)' : 'Gerar e baixar CV (.docx)'}</button>`
+      ? `<button id="snv-cop-cv" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${an.temCV ? 'Baixar meu CV (.docx)' : 'Gerar e baixar CV (.docx)'}</button>`
       : '';
 
     // Candidatura: o automático marca ao detectar o envio; o manual é a rede de segurança.
@@ -1152,9 +1156,9 @@
     const _leuNada = _campos.length === 0;
     const diagHTML = `
       <details ${_leuNada ? 'open' : ''} style="margin-top:11px;border-top:1px solid #E5ECF2;padding-top:9px;">
-        <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:0.03em;color:#98989D;">🔍 Diagnóstico Senova${_leuNada ? ' — não achei campos' : ''}</summary>
+        <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:0.03em;color:#98989D;">Diagnóstico Senova${_leuNada ? ' — não achei campos' : ''}</summary>
         <pre id="snv-cop-diagtxt" style="margin:8px 0 0;padding:9px 11px;background:#0F2236;color:#CFE0F0;border-radius:7px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;">${_esc(_diagTxt)}</pre>
-        <button id="snv-cop-copiardiag" style="width:100%;margin-top:7px;background:#2E6DA4;color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📋 Copiar para enviar ao Bruno</button>
+        <button id="snv-cop-copiardiag" style="width:100%;margin-top:7px;background:#2E6DA4;color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Copiar para enviar ao Bruno</button>
       </details>`;
 
     const _html = `
@@ -1446,6 +1450,11 @@
   }
 
   function injetarCopiloto(an) {
+    // NÃO REBAIXAR: se já há copiloto COM card (jobId — veio do passe/LinkedIn) e chega uma análise
+    // SEM card (ex.: clique no popup nesta mesma página), preserva o card — senão perde score e CV.
+    if (_copilotoAnalise && _copilotoAnalise.jobId && (!an || !an.jobId) && document.getElementById('snv-copiloto')) {
+      _atualizarCorpo(); return;
+    }
     _copilotoAnalise = an;
     if (document.getElementById('snv-copiloto')) { _atualizarCorpo(); return; }
 
@@ -1535,6 +1544,7 @@
   if (!host.includes('linkedin.com')) {
     chrome.storage.local.get('senova_passe').then(s => {
       const passe = s.senova_passe;
+      _ultimoPasse = passe || null; // instrumentação: registra o que existe (mesmo velho)
       if (!passe || (Date.now() - passe.ts) > 45 * 60 * 1000) return;
       const pareceCandidatura = /apply|candidat|job|career|vaga|position|opening|recruit/i.test(url + ' ' + document.title);
       const inject = () => {
@@ -1545,15 +1555,23 @@
         });
       };
       if (document.body) inject(); else window.addEventListener('DOMContentLoaded', inject);
-    }).catch(() => {});
+    }).catch(() => { _ultimoPasse = null; });
   }
 
   // Entrada "Por fora": o usuário chegou direto à vaga e clicou na extensão. O popup analisa a
-  // vaga na hora e manda acordar o copiloto AQUI. Sem jobId de card → preenche dados e perguntas;
-  // CV e "já me candidatei" dependem de um card e são a fatia seguinte.
+  // vaga na hora e manda acordar o copiloto AQUI. Se houver passe FRESCO (você veio do Senova),
+  // enriquece o popup com o card (jobId/score/compat) — assim não perde score/CV virando sem-card.
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg && msg.type === 'ATIVAR_COPILOTO' && msg.analise) {
-      try { injetarCopiloto(msg.analise); } catch (_) {}
+      let an = msg.analise;
+      if (!an.jobId && _ultimoPasse && _ultimoPasse.jobId && (Date.now() - _ultimoPasse.ts) < 45 * 60 * 1000) {
+        an = Object.assign({}, an, {
+          jobId: _ultimoPasse.jobId, score: _ultimoPasse.score,
+          compatFortes: _ultimoPasse.compatFortes, compatAtencao: _ultimoPasse.compatAtencao,
+          cargo: an.cargo || _ultimoPasse.cargo, empresa: an.empresa || _ultimoPasse.empresa
+        });
+      }
+      try { injetarCopiloto(an); } catch (_) {}
     }
   });
 
