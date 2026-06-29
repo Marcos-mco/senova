@@ -7,7 +7,24 @@
 
 ---
 
-## Sessão 19 — 29/jun/2026 (ATUAL)
+## Sessão 20 — 29/jun/2026 (ATUAL)
+**Status:** Funcional · App **sem alteração** · Extensão **v2.50** · Worker `a5a11b89` (sem alteração)
+**Commits-chave:** extensão `content.js`/`manifest.json` v2.40→v2.50
+
+Sessão de **destravar o copiloto em candidaturas reais (DHL/Lumesse) por DIAGNÓSTICO instrumentado**, não por chute.
+- **Método:** a extensão virou o próprio sensor — painel mostra o que enxerga + botão "Copiar para enviar ao Bruno".
+  Princípio de Marcos: **anti-gambiarra** (só fix geral, nunca específico de portal).
+- **v2.41** diagnóstico · **v2.42** rótulo por posição (+ trava: pergunta só com "?") · **v2.43** diagnóstico turbinado
+  (provou container errado) · **v2.44** amplia container quando `<form>` é pequeno · **v2.45** nunca falha calado ·
+  **v2.46** mensagem honesta ("Preenchi X, faltam Y") · **v2.47** diagnóstico de upload · **v2.48** anti-pisca (dedup
+  de innerHTML) · **v2.49** Baixar CV geral (DHL tem 0 file inputs → só entregar o CV, você sobe) · **v2.50** painel
+  com altura máx/rolagem + arrasto vertical.
+- **Validado:** CV gerado + arrastar ✅ · lê formulário inteiro ✅ · mensagem honesta ✅. Painel v2.50 teste final pendente.
+- **Backlog:** consentimento de sensíveis no Perfil · preencher dropdowns (delicado) · esconder/decidir o Modo Diagnóstico.
+
+---
+
+## Sessão 19 — 29/jun/2026
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.40** · Worker `a5a11b89` (sem alteração)
 **Commits-chave:** card `f67dd2b`→`2e5b0ee` · extensão `203f892`→`6b71678` (v2.34→v2.40)
 

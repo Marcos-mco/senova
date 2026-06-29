@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 29/jun/2026 — Sessão 19 — FECHADA (extensão v2.40)*
+*Atualizado: 29/jun/2026 — Sessão 20 — FECHADA (extensão v2.50)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — 29/jun/2026 (Sessão 19)
+## ESTADO ATUAL — 29/jun/2026 (Sessão 20)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -29,31 +29,75 @@
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — sem alteração na Sessão 11)
-- **Extensão Chrome:** **v2.40** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
+- **Extensão Chrome:** **v2.50** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `0e76686` (29/jun/2026 — Sessão 19)
+- **Último commit estável:** `27c734e` (29/jun/2026 — Sessão 20 — extensão v2.50)
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 20) — AÇÕES IMEDIATAS
-1. **PRÓXIMO A CONSTRUIR — score + Gerar CV indo direto no LinkedIn.** DECISÃO de Marcos: copiloto
-   **automático em TODA vaga** (`/jobs/view/`) com botão **"Analisar esta vaga"** → lê a descrição,
-   **cria card + pontua Compatibilidade**, mostra o score e libera **Gerar CV**. Hoje `__senovaAnaliseDoCard`
-   ([index.html:9146]) retorna null sem card pontuado, então indo direto o painel vem "pelado".
-2. **VALIDAR/AJUSTAR — auto-seleção de habilidades (v2.39)** pode não pegar os chips do Gupy real
-   (Marcos viu "0/3" no print da Rodobens). Confirmar reload + DOM real; ajustar `_acharChipsHabilidades`.
-3. **A CONSTRUIR — CV arrastável no painel** (ideia de Marcos): gerar e arrastar do painel pro upload; download fallback.
-4. **A CONSTRUIR — consentimento de dados sensíveis NO PERFIL** (raça/gênero/orientação: declarar + autorizar,
-   "prefiro não informar"). Até lá o copiloto pula sensíveis. Ver [[feedback_auditar_antes_do_teste]].
-5. **Limpeza:** aposentar FAB legado · unificar passe + `temCV` · retry de DOM tardio.
-6. **PENDENTE TESTE DE MARCOS:** card em produção (Documentos sem scroll, Gerar CV, Ir para vaga grava; +Processo)
-   e extensão **v2.40** (Easy Apply, Gupy, habilidades, arrastar).
+## ⚠️ AO RETOMAR (Sessão 21) — AÇÕES IMEDIATAS
+1. **CONFIRMAR — painel v2.50** (altura máx 85vh + rolagem interna + arrasto vertical; diagnóstico fechado
+   por padrão). Marcos ia fazer o teste final no fechamento.
+2. **A CONSTRUIR — consentimento de dados sensíveis NO PERFIL** (CPF/PIS/nascimento/raça/gênero/orientação:
+   declarar + autorizar, "prefiro não informar"). Até lá o copiloto **lê e mostra**, mas **não preenche**
+   sensível. Ver [[feedback_auditar_antes_do_teste]].
+3. **A AVALIAR — preencher dropdowns/selects** ("Você trabalha na DHL?", "Por onde encontrou a vaga?").
+   Hoje o copiloto só preenche **texto**. Delicado: escolher a opção errada é pior que deixar em branco.
+4. **A CONSTRUIR — score + Gerar CV direto no LinkedIn** (copiloto automático em toda vaga `/jobs/view/`
+   com "Analisar esta vaga" → cria card + pontua + libera Gerar CV). Herdado da Sessão 19.
+5. **DECISÃO — Modo Diagnóstico:** está embutido na extensão (discreto, fechado por padrão, botão
+   "📋 Copiar para enviar ao Bruno"). Manter como ferramenta de campo ou esconder atrás de toggle.
+   Suavizar o flash inicial do diagnóstico no load.
+6. **Limpeza:** aposentar FAB legado · unificar passe + `temCV`.
+
+---
+
+## O QUE FOI FEITO — SESSÃO 20 (29/jun/2026)
+
+**Tema:** o copiloto não preenchia candidaturas reais (caso **DHL** / plataforma **Lumesse**). Em vez de chutar,
+**instrumentamos o diagnóstico DENTRO da extensão** e corrigimos cada causa **por dado**. Extensão **v2.40 → v2.50**.
+App e Worker **intocados**.
+
+### A virada de método
+- **A ferramenta virou o sensor.** Marcos (não-técnico) não precisa traduzir termos: o copiloto mede o que enxerga e
+  oferece **"📋 Copiar para enviar ao Bruno"**. Marcos clica → cola → o Bruno lê o fato. Foi assim que achamos cada causa.
+- **Princípio acatado de Marcos — ANTI-GAMBIARRA:** não perseguir campo/upload de cada ATS. Só entra fix **geral**
+  (vale pra qualquer portal). Instrumentar → ver a verdade → consertar com dado. Marcos pegou o Bruno driftando 2×
+  (detecção por texto "adicionar arquivo") e corrigiu o rumo — registrado.
+
+### Extensão / Copiloto v2.41 → v2.50
+- **v2.41** Modo Diagnóstico (origem, container, inputs, campos/grupos, iframes, forma + botão copiar; log throttled).
+- **v2.42** lê rótulo por **POSIÇÃO** (texto ao redor — ATS sem `for`). **Trava:** pergunta aberta só termina em "?"
+  (PIS/CPF não viram prosa da IA).
+- **v2.43** diagnóstico turbinado (visíveis/no container/sem rótulo/amostra) → **provou** o container errado.
+- **v2.44** **amplia o container** quando o `<form>` é pequeno e a página tem mais campos (DHL: 2→16/18 lidos);
+  modais (Easy Apply) NÃO ampliam.
+- **v2.45** `_preencher` **nunca falha calado** (app fechado / nada vazio / não consegui).
+- **v2.46** **mensagem honesta**: "✓ Preenchi Nome, Sobrenome. Faltam 12 campos que só você informa (CPF, datas…)".
+- **v2.47** diagnóstico de **upload** (conta `input[type=file]` visíveis/ocultos).
+- **v2.48** **anti-pisca**: dedup de `innerHTML` (não re-renderiza se idêntico) → painel para de piscar, diagnóstico copiável.
+- **v2.49** **Baixar CV geral**, sem caçar campo de upload — DHL tem **0** file inputs (widget próprio); atachar em
+  input de outro site é proibido pelo navegador → **baixar e você sobe** é o único caminho. Vale pra qualquer portal.
+- **v2.50** **painel**: `max-height:85vh` + rolagem interna, arrasto **vertical** (clamp corrigido), diagnóstico fechado por padrão.
+
+### Validado por Marcos
+- ✅ **CV gerado + arrastar** (objetivo principal do dia) · ✅ **lê o formulário inteiro** (Nome/Sobrenome/Cidade no topo) ·
+  ✅ **mensagem honesta** aparecendo · 🧪 **painel v2.50** corrigido, teste final pendente.
+
+### Decisões de produto
+- **O copiloto entrega o CV certo; o portal importa dele** (insight de Marcos: "Reutilizar inscrição" / "Importar do currículo").
+- **Honestidade inviolável:** nunca dizer "pronto" sem estar; nunca falhar em silêncio.
+- **Dados sensíveis** (CPF/PIS/nascimento/gênero): o copiloto **lê e mostra, não preenche** sem consentimento no Perfil.
+
+### Processo
+- Diagnóstico instrumentado substituiu o chute — coerente com a Sessão 14 (dado derruba teoria) e com
+  [[feedback_auditar_antes_do_teste]]. Marcos reforçou o filtro anti-gambiarra como regra de desenvolvimento.
 
 ---
 

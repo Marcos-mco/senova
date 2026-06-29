@@ -1,10 +1,54 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 29/jun/2026 — Sessão 19 (FECHADA)
+> Última atualização: 29/jun/2026 — Sessão 20 (FECHADA)
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **último commit: `6b71678`** · working tree limpo
-Extensão **v2.40** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store)
+Senova app — produção em marcos-mco.github.io/senova · **sem alteração nesta sessão** · working tree limpo no fechamento
+Extensão **v2.50** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store)
 Worker — sem alteração nesta sessão (rate limit da Sessão 18 segue no ar, deploy `a5a11b89`)
+
+## O QUE FOI FEITO — SESSÃO 20 (29/jun/2026)
+
+**Tema:** o copiloto não preenchia candidaturas reais (caso DHL / plataforma Lumesse). Em vez de chutar, **instrumentamos o diagnóstico DENTRO da extensão** e corrigimos cada causa por DADO. Extensão **v2.40 → v2.50**. App e Worker intocados.
+
+### Método (a virada da sessão)
+- **A ferramenta virou o sensor.** Marcos (não-técnico) não precisa traduzir termos: o copiloto mede o que enxerga e mostra um botão **"📋 Copiar para enviar ao Bruno"**. Marcos clica, cola, o Bruno lê o fato.
+- **Princípio de Marcos acatado:** não perseguir campo/upload de cada ATS — isso é **gambiarra**. Só entra fix **geral** (vale pra qualquer portal). Instrumentar → ver a verdade → consertar com dado.
+
+### Extensão / Copiloto v2.41 → v2.50
+- **v2.41 — Modo Diagnóstico:** painel reporta origem, container, nº de inputs, campos lidos/grupos, iframes, forma + botão copiar; log throttled no console.
+- **v2.42 — Lê rótulo por POSIÇÃO:** `_rotuloCampo` acha o rótulo pelo texto ao redor (padrão ATS sem `for`). **Trava:** pergunta aberta só quando termina em "?" — PIS/CPF não viram prosa da IA.
+- **v2.43 — Diagnóstico turbinado:** reporta visíveis na página / no container / sem rótulo / amostra de rótulos. **Provou** que o `<form>` da DHL tinha só 2 campos (resto fora dele).
+- **v2.44 — Ampliação do container:** `<form>` pequeno demais → varre a página inteira (filtro de ruído reaproveitado). Lê 49→16/18 campos. Modais (Easy Apply) NÃO ampliam (confiáveis).
+- **v2.45 — Nunca falha calado:** `_preencher` sempre avisa (app fechado / nada vazio / não consegui) — antes emudecia.
+- **v2.46 — Mensagem honesta:** "✓ Preenchi Nome, Sobrenome. Faltam 12 campos que só você informa (CPF, datas, etc.)" — nunca só "✓ Preenchido".
+- **v2.47 — Diagnóstico de upload:** conta `<input type=file>` (visíveis/ocultos).
+- **v2.48 — Anti-pisca:** dedup de `innerHTML` (não re-renderiza se idêntico) → painel para de piscar em forms que mudam o DOM; diagnóstico fica aberto e copiável.
+- **v2.49 — Baixar CV geral:** CV liberado em qualquer site de candidatura externo com card conhecido, **sem caçar campo de upload** (DHL tem **0** file inputs — widget próprio; atachar em input de outro site é proibido pelo navegador → baixar-e-você-sobe é o único caminho).
+- **v2.50 — Painel:** `max-height:85vh` + rolagem interna, arrasto **vertical** funciona (clamp corrigido p/ painel alto), diagnóstico **fechado por padrão** (abre só quando não lê nada).
+
+### Validado por Marcos
+- ✅ **CV gerado + arrastar** funcionando (caminho principal do dia).
+- ✅ **Lê o formulário inteiro** — Nome/Sobrenome/Cidade preenchidos no topo da DHL.
+- ✅ **Mensagem honesta** aparecendo ("✓ Preenchi… Faltam 12…").
+- 🧪 **Painel v2.50** (altura/rolagem/arrasto) — corrigido; teste final pendente.
+
+## PRÓXIMAS PRIORIDADES (retomar aqui)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Consentimento de dados sensíveis NO PERFIL** — CPF/PIS/nascimento/gênero: declarar + autorizar, "prefiro não informar". Até lá o copiloto lê e mostra, mas não preenche sensível. | A construir |
+| 2 | **Preencher dropdowns/selects** ("Você trabalha na DHL?", "Por onde encontrou?") — feature nova e **delicada** (escolher errado é pior que deixar em branco). Hoje só preenche texto. | A avaliar |
+| 3 | **Score + Gerar CV indo direto no LinkedIn** — copiloto automático em toda vaga (/jobs/view/) com "Analisar esta vaga" (herdado da Sessão 19). | A construir |
+| 4 | **Modo Diagnóstico** — está embutido na extensão (discreto, fechado por padrão). Decidir: manter como ferramenta de campo ou esconder atrás de um toggle. | Decisão |
+| 5 | Suavizar o flash inicial do diagnóstico no load · aposentar FAB legado | Limpeza |
+
+## DECISÕES DE PRODUTO DESTA SESSÃO
+- **O copiloto entrega o CV certo; o portal importa dele** (insight de Marcos). Não persegue campo/upload de cada ATS.
+- **Anti-gambiarra:** só entra fix geral (qualquer portal). Fix portal-específico não entra.
+- **Honestidade inviolável:** o copiloto nunca diz "pronto" quando não está, nem falha em silêncio.
+- **Dados sensíveis** (CPF/PIS/nascimento/gênero) o copiloto **lê e mostra, mas não preenche** sem consentimento no Perfil.
+
+---
 
 ## O QUE FOI FEITO — SESSÃO 19 (25→29/jun/2026)
 
@@ -34,31 +78,10 @@ Worker — sem alteração nesta sessão (rate limit da Sessão 18 segue no ar, 
 - **v2.40:** reconhece **Easy Apply** pelo aria-label (não classifica como externa).
 - **Bridges novas no app:** `__senovaCopilotoEscolherHabilidadesPrompt`; Cartão ganhou `primeiroNome`/`sobrenome`.
 
-### Processo desta sessão
-- **senova-auditor usado 7×** (verificação independente read-only ANTES de cada deploy de risco — pegou
-  perda de dado no `saveVagaSilent`, CV de snippet, over-trigger do Google, cliques errados em chips).
-- **Memória nova:** `feedback_auditar_antes_do_teste` — entrega incompleta queima o QA de Marcos; varrer
-  todos os estados/edge cases e entregar a lista verificada ANTES de pedir teste.
-
-## PRÓXIMAS PRIORIDADES (retomar aqui)
-
-| # | Item | Status |
-|---|------|--------|
-| 1 | **Score + Gerar CV indo direto no LinkedIn** — DECIDIDO: copiloto **automático em toda vaga** (/jobs/view/) com botão **"Analisar esta vaga"** → lê descrição, **cria card + pontua Compatibilidade**, mostra score + libera Gerar CV. Hoje só aparece se já há card pontuado (`__senovaAnaliseDoCard` retorna null sem card). | **A CONSTRUIR (próximo)** |
-| 2 | **Auto-seleção de habilidades (v2.39) pode não pegar os chips do Gupy** — Marcos viu "0/3" no print da Rodobens. Confirmar se recarregou v2.39 e se o detector acha os chips reais; ajustar com o DOM real se falhar. | Validar/ajustar |
-| 3 | **CV arrastável no painel** (ideia do Marcos) — gerar e arrastar do painel pro campo de upload; download como fallback. | A construir |
-| 4 | **Consentimento de dados sensíveis NO PERFIL** — declarar raça/gênero/orientação + autorizar, "prefiro não informar" sempre. Até lá o copiloto pula sensíveis. | A construir |
-| 5 | Aposentar FAB legado · unificar passe + `temCV` · retry de DOM tardio | Limpeza |
-
-## PENDÊNCIAS DE VALIDAÇÃO (Marcos testar)
-- **Card (produção, Ctrl+Shift+R):** Oportunidade — Documentos sem scroll, Compatibilidade automática, "Gerar CV" sob demanda, "Ir para vaga" grava ao sair; "+ Processo" manual com Dados abaixo da descrição.
-- **Extensão v2.40 (recarregar):** Easy Apply classificado certo · Gupy preenche a pergunta aberta · habilidades auto-selecionadas (3) · painel arrastável.
-
-## DECISÕES DE PRODUTO DESTA SESSÃO
-- Copiloto **automático em toda vaga do LinkedIn** (escolha de Marcos) — com "Analisar esta vaga".
-- Habilidades = decisão **profissional** (o copiloto seleciona, Marcos revisa) — DIFERENTE de dado sensível (esse o usuário declara no Perfil).
-- "Dados da vaga" não vive na Oportunidade importada — só valor no cabeçalho.
+### Processo da Sessão 19
+- **senova-auditor usado 7×** (verificação independente read-only ANTES de cada deploy de risco).
+- **Memória:** `feedback_auditar_antes_do_teste` — varrer todos os estados/edge cases e entregar a lista verificada ANTES de pedir teste.
 
 ## GIT
-Branch `main`. Sessão 19 = commits `f67dd2b` → `6b71678` (card em produção + extensão v2.34–v2.40).
-Working tree limpo no fechamento.
+Branch `main`. Sessão 20 = extensão `content.js`/`manifest.json` (v2.40→v2.50) + docs de fechamento.
+Sessão 19 = commits `f67dd2b` → `6b71678`.
