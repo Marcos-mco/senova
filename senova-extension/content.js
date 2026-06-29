@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.31
+// Content script — Senova Extension v2.50
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -624,6 +624,7 @@
   let _candidatado = false;
   let _viuForm = false;
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
+  let _lastDiagSig = '';      // último diagnóstico logado (evita repetir no console a cada mutação)
 
   function _esc(s) {
     return String(s == null ? '' : s)
@@ -637,7 +638,35 @@
     return r.width > 0 && r.height > 0;
   }
 
-  // Rótulo de um campo: <label for>, label ancestral, aria-label/labelledby, placeholder, name
+  // Um elemento "parece rótulo": texto curto, não é um controle e não embrulha campos.
+  function _textoRotulo(el) {
+    if (!el || !el.tagName) return '';
+    if (!/^(LABEL|LEGEND|SPAN|DIV|P|STRONG|B|EM|H[1-6]|TD|TH|DT)$/.test(el.tagName)) return '';
+    // se contém um campo, é um container (linha do form) e não o rótulo em si
+    if (el.querySelector && el.querySelector('input,textarea,select,button')) return '';
+    const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    return (t.length >= 2 && t.length <= 90) ? t : '';
+  }
+
+  // Rótulo pela POSIÇÃO: o texto que antecede o campo. A maioria dos ATS (DHL, Lumesse, etc.)
+  // põe o rótulo ACIMA/AO LADO do input, sem o vínculo formal "for" — sem isto o copiloto lia
+  // só os poucos campos "colados" (2 de 49 no form da DHL). Sobe poucos níveis, conservador.
+  function _rotuloPorPosicao(el) {
+    let node = el;
+    for (let nivel = 0; nivel < 4 && node && node !== document.body; nivel++) {
+      let sib = node.previousElementSibling, hops = 0;
+      while (sib && hops < 4) {
+        const t = _textoRotulo(sib);
+        if (t) return t;
+        sib = sib.previousElementSibling; hops++;
+      }
+      node = node.parentElement;
+    }
+    return '';
+  }
+
+  // Rótulo de um campo: <label for> → label ancestral → aria → placeholder → POSIÇÃO (texto ao
+  // redor) → name. A leitura por posição destrava os ATS que não "colam" o rótulo no campo.
   function _rotuloCampo(el) {
     let t = '';
     if (el.id) { try { const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`); if (l) t = l.innerText; } catch (_) {} }
@@ -648,6 +677,7 @@
       if (ref) t = ref.innerText;
     }
     if (!t && el.placeholder) t = el.placeholder;
+    if (!t) t = _rotuloPorPosicao(el);
     if (!t && el.name) t = el.name;
     return (t || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   }
@@ -674,8 +704,11 @@
       if (/nome\s*completo|full\s*name|nome\s+e\s+sobrenome/.test(r)) return { grupo: 'pessoal', label: 'Nome completo', chave: 'nome' };
       if (/\bnome\b|\bname\b|\bnombre\b/.test(r)) return { grupo: 'pessoal', label: 'Nome', chave: 'nome', nomeAmbiguo: true };
     }
-    if (/\?\s*$/.test(r) || r.length > 45) return { grupo: 'pergunta', label: r.slice(0, 60) };
-    return { grupo: 'outro', label: r.slice(0, 40) };
+    // Pergunta aberta só quando é DE FATO uma pergunta (termina em "?"). Rótulos longos de
+    // instrução (PIS, CPF, "código…") NÃO são pergunta — senão a IA escreveria prosa num campo
+    // de formato fixo. Caixa de texto grande (textarea) já caiu como pergunta lá em cima.
+    if (/\?\s*$/.test(r)) return { grupo: 'pergunta', label: r.slice(0, 60) };
+    return { grupo: 'outro', label: r.slice(0, 45) };
   }
 
   // Acha o container do formulário de candidatura — só dentro dele escaneamos, para
@@ -714,25 +747,36 @@
 
   const _CAMPO_SEL = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea, select';
 
+  // Varre a página inteira por campos de candidatura, excluindo ruído por campo (nav/header/
+  // footer/busca/login/newsletter/chat) e o próprio painel. A injeção do copiloto é estrita
+  // (Google etc. não injeta), então isto só roda onde o copiloto já apareceu.
+  function _scanPaginaCampos() {
+    const _ruidoRe = /search|busca|pesquis|newsletter|mensagem|\bmessage\b|\bchat\b|coment|login|sign.?in|entrar|cookie|consent/;
+    return Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(el => {
+      if (!_visivel(el)) return false;
+      if (el.closest('nav,header,footer,[role=banner],[role=navigation],[role=search],#snv-copiloto')) return false;
+      // Inclui o rótulo (que cobre placeholder e label) na checagem de ruído — pega caixas de
+      // busca/comentário/chat/newsletter cujo aria-label/name esteja vazio.
+      const a = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + _rotuloCampo(el)).toLowerCase();
+      return !_ruidoRe.test(a);
+    });
+  }
+
   // Coleta os campos do formulário de candidatura COM referência ao elemento (para preencher).
   function _coletarCampos() {
     const cont = _acharContainerCandidatura();
     let els;
     if (cont) {
       els = Array.from(cont.querySelectorAll(_CAMPO_SEL)).filter(_visivel);
+      // Container <form> pequeno demais: ATS como DHL/Lumesse espalham os campos em vários <form>
+      // (ou fora de <form>). Se a página tem bem mais campos de candidatura que o form escolhido,
+      // varre a página inteira. Modais/dialogs (LinkedIn Easy Apply) são confiáveis — não ampliar.
+      if (cont.tagName === 'FORM') {
+        const pagina = _scanPaginaCampos();
+        if (pagina.length >= els.length + 3) els = pagina;
+      }
     } else {
-      // ATS sem <form> (Gupy etc.): varre a página JÁ injetada, excluindo ruído por campo
-      // (nav/header/footer/busca/login) e o próprio painel. A injeção segue estrita (Google
-      // não injeta), então este fallback só roda onde o copiloto já apareceu.
-      const _ruidoRe = /search|busca|pesquis|newsletter|mensagem|\bmessage\b|\bchat\b|coment|login|sign.?in|entrar|cookie|consent/;
-      els = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(el => {
-        if (!_visivel(el)) return false;
-        if (el.closest('nav,header,footer,[role=banner],[role=navigation],[role=search],#snv-copiloto')) return false;
-        // Inclui o rótulo (que cobre placeholder e label) na checagem de ruído — pega caixas de
-        // busca/comentário/chat/newsletter cujo aria-label/name esteja vazio.
-        const a = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + _rotuloCampo(el)).toLowerCase();
-        return !_ruidoRe.test(a);
-      });
+      els = _scanPaginaCampos();
     }
     const out = [];
     for (const el of els) {
@@ -825,6 +869,100 @@
     return { linhas, rodape };
   }
 
+  // ── DIAGNÓSTICO (modo de campo) ─────────────────────────────────────
+  // O copiloto relata o que ENXERGA do formulário desta página, para o Bruno consertar a causa
+  // real sem depender de Marcos descrever termos técnicos. Pequeno, reversível, sem chamada paga.
+  function _diagnostico() {
+    let cont = null;
+    try { cont = _acharContainerCandidatura(); } catch (_) {}
+    let campos = [];
+    try { campos = _coletarCampos(); } catch (_) {}
+    const porGrupo = g => campos.filter(c => c.grupo === g).length;
+    const vazios = campos.filter(c =>
+      ((c.grupo === 'pessoal' && c.chave) || c.grupo === 'pergunta') && c.el && !c.el.value.trim()
+    ).length;
+    let inputs = 0;
+    try { inputs = document.querySelectorAll(_CAMPO_SEL).length; } catch (_) {}
+    // Por que campos não são lidos? Conta visíveis na página e dentro do container, quantos
+    // ficam SEM rótulo, e mostra uma amostra dos rótulos achados. Diz se o container está errado
+    // (campos fora dele) ou se a leitura de rótulo é que falha neste DOM.
+    let visDoc = 0, visEsc = 0, semRotulo = 0; const amostra = [];
+    try {
+      visDoc = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(_visivel).length;
+      const vis = Array.from((cont || document).querySelectorAll(_CAMPO_SEL)).filter(_visivel);
+      visEsc = vis.length;
+      for (const el of vis) {
+        const r = _rotuloCampo(el);
+        if (!r) semRotulo++;
+        else if (amostra.length < 8) amostra.push(r.slice(0, 22));
+      }
+    } catch (_) {}
+    // Upload: quantos <input type=file> existem no escopo e quantos estão VISÍVEIS. Diz a verdade
+    // sobre o "adicionar arquivo" — campo escondido atrás de botão (fileN>0, fileVis=0) vs. outra
+    // coisa (fileN=0: drag-drop, iframe, widget) — sem supor.
+    let fileN = 0, fileVis = 0;
+    try {
+      const fl = Array.from((cont || document).querySelectorAll('input[type=file]'));
+      fileN = fl.length; fileVis = fl.filter(_visivel).length;
+    } catch (_) {}
+    // iframes: um formulário de candidatura dentro de iframe cross-origin é invisível para nós.
+    const ifr = Array.from(document.querySelectorAll('iframe'));
+    let semAcesso = 0; const hosts = [];
+    for (const f of ifr) {
+      let ok = false;
+      try { ok = !!f.contentDocument; } catch (_) { ok = false; }
+      if (!ok) { semAcesso++; try { hosts.push(new URL(f.src, location.href).hostname); } catch (_) {} }
+    }
+    const an = _copilotoAnalise || {};
+    const origem = !an.jobId ? 'popup/sem-card'
+      : host.includes('linkedin.com') ? 'card-linkedin' : 'passe-externo';
+    const container = !cont ? 'NÃO ENCONTRADO'
+      : (cont.matches && cont.matches('.jobs-easy-apply-modal')) ? 'easy-apply-modal'
+      : (cont.tagName === 'FORM') ? 'form' : 'dialog';
+    let forma = '';
+    try { forma = _detectarForma(); } catch (_) { forma = '?'; }
+    return {
+      origem, container, inputs, visDoc, visEsc, semRotulo, amostra: amostra.join(' | '),
+      fileN, fileVis,
+      classificados: campos.length, pessoal: porGrupo('pessoal'), perguntas: porGrupo('pergunta'),
+      upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
+      iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma
+    };
+  }
+
+  function _formatarDiag(d) {
+    return [
+      'SENOVA DIAG v2.50',
+      'site: ' + host,
+      'origem do painel: ' + d.origem,
+      'container do formulário: ' + d.container,
+      'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
+      'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
+      'rótulos vistos: ' + (d.amostra || '—'),
+      'campos lidos: ' + d.classificados + ' (pessoal ' + d.pessoal + ' · perguntas ' + d.perguntas + ' · upload ' + d.upload + ')',
+      'campos de arquivo (upload): ' + d.fileN + ' (visíveis: ' + d.fileVis + ')',
+      'vazios p/ preencher: ' + d.vazios,
+      'iframes: ' + d.iframes + ' (sem acesso: ' + d.iframesSemAcesso + (d.iframeHosts ? ' → ' + d.iframeHosts : '') + ')',
+      'forma: ' + d.forma,
+      'url: ' + location.href
+    ].join('\n');
+  }
+
+  async function _copiarDiag(btn, txt) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(txt); ok = true; } catch (_) {}
+    if (!ok) {
+      try {
+        const pre = document.getElementById('snv-cop-diagtxt');
+        const r = document.createRange(); r.selectNodeContents(pre);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        ok = document.execCommand('copy'); sel.removeAllRanges();
+      } catch (_) {}
+    }
+    btn.textContent = ok ? '✓ Copiado — cole no chat com o Bruno' : 'Selecione o texto acima e copie';
+    btn.style.background = ok ? '#1A6840' : '#9C5800';
+  }
+
   function _atualizarCorpo() {
     const corpo = document.getElementById('snv-cop-corpo');
     if (!corpo || _preenchendo) return;
@@ -852,7 +990,13 @@
     const _nPerg = _campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim()).length;
     const _nPreencher = _nPessoal + _nPerg;
     const _temUpload = _campos.some(c => c.grupo === 'cv');
-    const _temCV = _temUpload && !!(an && an.jobId); // mostra quando há upload + card conhecido
+    // O CV NÃO depende de "enxergar" o campo de upload: portais como a DHL usam um widget próprio
+    // (campos de arquivo: 0) e cada ATS é diferente — caçar isso seria gambiarra. O papel do
+    // copiloto é te ENTREGAR o CV certo; você sobe (ou usa o "Importar do currículo" do portal).
+    // Regra geral (zero código por portal): oferece o CV quando há card conhecido E estamos no
+    // site de candidatura externo, OU quando há um upload de fato detectado (ex.: Easy Apply).
+    const _emCandExterna = !!(an && an.jobId) && !host.includes('linkedin.com');
+    const _temCV = !!(an && an.jobId) && (_temUpload || _emCandExterna);
 
     let scoreHTML = '';
     const score = an ? (parseInt(an.score) || 0) : 0;
@@ -888,11 +1032,32 @@
 
     const _habTxt = (_respondido && _habilidadesSel && _habilidadesSel.length)
       ? ` <span style="color:#2C2C2A;">Destaquei: <b>${_esc(_habilidadesSel.join(', '))}</b> — ajuste se quiser.</span>` : '';
+    // Mensagem HONESTA: diz O QUE preencheu e QUANTO falta com você (CPF, datas, dados sensíveis).
+    // Nunca só "✓ Preenchido" — o usuário precisa saber que ainda há campos por fazer.
+    const _feito = [...new Set(_campos.filter(c => c.grupo === 'pessoal' && c.el && c.el.value.trim()).map(c => c.label))].join(', ');
+    const _nOutro = new Set(_campos.filter(c => c.grupo === 'outro').map(c => c.label)).size;
     const rodapeHTML = _respondido
-      ? '<b style="color:#1A6840;">✓ Preenchido.</b> Revise e ajuste antes de enviar.' + _habTxt
+      ? `<b style="color:#1A6840;">✓ Preenchi ${_esc(_feito || 'o que reconheci')}.</b> `
+        + (_nOutro ? `Faltam <b>${_nOutro}</b> ${_nOutro === 1 ? 'campo' : 'campos'} que só você informa (CPF, datas, etc.). ` : '')
+        + 'Revise e envie.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
-    corpo.innerHTML = `
+    const _diagTxt = _formatarDiag(_diagnostico());
+    // Console: registra 1× por mudança (ajuda quando o DevTools está aberto; não polui).
+    if (_diagTxt !== _lastDiagSig) {
+      _lastDiagSig = _diagTxt;
+      try { console.log('%c[SENOVA DIAG]', 'color:#C9A84C;font-weight:700', '\n' + _diagTxt); } catch (_) {}
+    }
+    // Bloco visível: aberto automaticamente quando NÃO há campos para preencher (o caso que falha).
+    const _leuNada = _campos.length === 0;
+    const diagHTML = `
+      <details ${_leuNada ? 'open' : ''} style="margin-top:11px;border-top:1px solid #E5ECF2;padding-top:9px;">
+        <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:0.03em;color:#98989D;">🔍 Diagnóstico Senova${_leuNada ? ' — não achei campos' : ''}</summary>
+        <pre id="snv-cop-diagtxt" style="margin:8px 0 0;padding:9px 11px;background:#0F2236;color:#CFE0F0;border-radius:7px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;">${_esc(_diagTxt)}</pre>
+        <button id="snv-cop-copiardiag" style="width:100%;margin-top:7px;background:#2E6DA4;color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📋 Copiar para enviar ao Bruno</button>
+      </details>`;
+
+    const _html = `
       ${scoreHTML}
       <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#98989D;margin-bottom:4px;">O que esta vaga pede</div>
       ${linhas}
@@ -901,7 +1066,15 @@
       ${btnCandHTML}
       <div style="margin-top:12px;padding:9px 11px;background:#F0F4F8;border-radius:7px;font-size:12.5px;color:#3A4A5A;line-height:1.55;">
         ${rodapeHTML}
-      </div>`;
+      </div>
+      ${diagHTML}`;
+
+    // Anti-pisca: formulários que mudam o DOM o tempo todo fazem o observer chamar isto a cada
+    // 0,4s. Se o conteúdo é idêntico, NÃO re-renderiza — senão o painel "pula" e o <details> do
+    // diagnóstico fecha sozinho, impossível de abrir/copiar. Re-renderiza só quando algo muda.
+    if (corpo._snvHTML === _html) return;
+    corpo._snvHTML = _html;
+    corpo.innerHTML = _html;
 
     const bp = document.getElementById('snv-cop-preencher');
     if (bp) bp.addEventListener('click', _preencher);
@@ -911,6 +1084,8 @@
     if (bc) bc.addEventListener('click', _marcarCandidatei);
     const bn = document.getElementById('snv-cop-naoenviei');
     if (bn) bn.addEventListener('click', _desfazerCandidatura);
+    const bcd = document.getElementById('snv-cop-copiardiag');
+    if (bcd) bcd.addEventListener('click', () => _copiarDiag(bcd, _diagTxt));
   }
 
   // Baixa o CV (.docx) da vaga pelo app, para o usuário subir no campo de upload do portal.
@@ -1090,7 +1265,11 @@
     const campos = _coletarCampos();
     const pessoais = campos.filter(c => c.grupo === 'pessoal' && c.chave && c.el && !c.el.value.trim());
     const perguntas = campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim());
-    if (!pessoais.length && !perguntas.length) return;
+    if (!pessoais.length && !perguntas.length) {
+      // Nunca falhar calado: o botão apareceu, mas no clique não há nada vazio a preencher.
+      if (btn) { btn.style.background = '#9C5800'; btn.textContent = 'Nada vazio para preencher aqui'; setTimeout(() => _atualizarCorpo(), 2200); }
+      return;
+    }
     _preenchendo = true;
     _habilidadesSel = null;
     if (_copilotoObserver) _copilotoObserver.disconnect();
@@ -1111,6 +1290,10 @@
           const v = cartao[c.chave];
           if (v) { _preencherCampo(c.el, v); algum = true; }
         }
+      } else {
+        // Resposta vazia (null): o app não respondeu. NÃO confundir com "preencheu nada" —
+        // avisa em vez de silenciar (causa comum: aba do Senova fechada ou recém-recarregada).
+        erroMsg = 'Abra o Senova numa aba e recarregue esta página (Ctrl+Shift+R)';
       }
     }
 
@@ -1136,6 +1319,9 @@
     _preenchendo = false;
     if (erroMsg) {
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#B52419'; btn.textContent = erroMsg; }
+    } else if (!algum) {
+      // Tentou e não preencheu NADA — jamais dizer "✓ Preenchido". Avisa e mantém o botão.
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#9C5800'; btn.textContent = 'Não consegui preencher — preencha à mão'; }
     } else {
       _respondido = algum;
       _atualizarCorpo();
@@ -1160,7 +1346,7 @@
           </div>
           <button id="snv-cop-fechar" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:19px;padding:0 2px;line-height:1;flex-shrink:0;" title="Fechar">×</button>
         </div>
-        <div id="snv-cop-corpo" style="padding:13px 14px;"></div>
+        <div id="snv-cop-corpo" style="padding:13px 14px;max-height:calc(85vh - 52px);overflow-y:auto;"></div>
       </div>`;
     document.body.appendChild(wrap);
     const _fab = document.getElementById('snv-fab'); if (_fab) _fab.remove(); // copiloto substitui o FAB
@@ -1183,8 +1369,12 @@
       });
       window.addEventListener('mousemove', e => {
         if (!_arr) return;
-        const x = Math.max(0, Math.min(e.clientX - _ax, window.innerWidth - wrap.offsetWidth));
-        const y = Math.max(0, Math.min(e.clientY - _ay, window.innerHeight - wrap.offsetHeight));
+        const maxX = Math.max(0, window.innerWidth - wrap.offsetWidth);
+        const maxY = window.innerHeight - wrap.offsetHeight;
+        const alvoX = e.clientX - _ax, alvoY = e.clientY - _ay;
+        const x = Math.max(0, Math.min(alvoX, maxX));
+        // se o painel for mais alto que a tela (maxY<0), ainda permite subir (top negativo)
+        const y = maxY >= 0 ? Math.max(0, Math.min(alvoY, maxY)) : Math.min(0, Math.max(alvoY, maxY));
         wrap.style.left = x + 'px'; wrap.style.top = y + 'px';
       });
       window.addEventListener('mouseup', () => { _arr = false; });
