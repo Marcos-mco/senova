@@ -7,7 +7,24 @@
 
 ---
 
-## Sessão 18 — 25/jun/2026 (ATUAL)
+## Sessão 19 — 29/jun/2026 (ATUAL)
+**Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.40** · Worker `a5a11b89` (sem alteração)
+**Commits-chave:** card `f67dd2b`→`2e5b0ee` · extensão `203f892`→`6b71678` (v2.34→v2.40)
+
+Sessão de **refazer o card de Oportunidade sob o crivo cognitivo** + **destravar o copiloto** em portais reais.
+- **Card (produção):** análise automática = só Compatibilidade; Documentos sob demanda ("Gerar CV"); "Dados da vaga"
+  fora do lead importado; rodapé com "Ir para vaga" navy gravando ao sair; **anti-perda** (salvar mescla, nunca descarta
+  análise); Gerar CV nunca de snippet (piso 400); vocabulário (Compatibilidade, PDF Executivo, sem "Score"); descrição
+  compacta sem scroll.
+- **Extensão v2.34→v2.40:** LinkedIn não inventa formulário; não invade Google; first/last name; auto-detecta envio
+  em /thanks; preenche Gupy (sem `<form>`); painel arrastável; auto-seleciona habilidades; reconhece Easy Apply.
+- **Processo:** senova-auditor 7× (verificação independente antes de cada deploy de risco). Memória nova
+  `feedback_auditar_antes_do_teste`.
+- **Próximo:** score + Gerar CV indo direto no LinkedIn (copiloto automático em toda vaga).
+
+---
+
+## Sessão 18 — 25/jun/2026
 **Status:** Funcional · Deploy GitHub Pages ✅ · Extensão **v2.33** · Worker deploy `a5a11b89`
 **Commits-chave:** copiloto `4121adb` · worker `7dda6e4` · index até `8bd751d`
 

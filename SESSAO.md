@@ -1,68 +1,64 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 25/jun/2026 — encerramento (ir para nova sessão)
+> Última atualização: 29/jun/2026 — Sessão 19 (FECHADA)
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · último commit de código: `7dda6e4`
-Extensão **v2.33** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store)
-Worker **senova-proxy** — deploy `a5a11b89` (rate limit no ar)
+Senova app — produção em marcos-mco.github.io/senova · **último commit: `6b71678`** · working tree limpo
+Extensão **v2.40** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store)
+Worker — sem alteração nesta sessão (rate limit da Sessão 18 segue no ar, deploy `a5a11b89`)
 
-## O QUE FOI FEITO HOJE (25/jun/2026 — Sessão 18)
+## O QUE FOI FEITO — SESSÃO 19 (25→29/jun/2026)
 
-### Copiloto de Candidatura — fluxo completo (extensão v2.18 → v2.33)
-- Lê a vaga (LinkedIn) → painel; acompanha o usuário ao site de candidatura via "passe"
-  (chrome.storage.local); cobertura **universal** de portais (matches `https://*/*`).
-- Preenche **dados fixos** (Cartão: `__senovaCartaoCandidatura`) + **perguntas abertas**
-  (IA via `__senovaCopilotoRespostaPrompt`, CV_BASE + notas, honesto). Padrão: app monta
-  prompt síncrono / background faz o fetch.
-- **CV on-demand** sem reprocessar (`__senovaCopilotoGerarCV/SalvarCV`) — card = fonte de verdade.
-- **Candidatura** automática (detecta envio) + manual reversível ("Não enviei"); reusa
-  `__senovaCandidaturaEnviada`/`__senovaDesfazerCandidatura`.
-- Entrada **"Por fora"** (ativar pelo popup quando se chega direto na vaga).
-- Commits index.html em produção: `218acef` (cartão), `027dbec` (status/temCV), `b0d093f` (CV
-  on-demand), `fafce1d` (download dataURL), `07f05ef`, `2224e80`, `6d80c15`.
+### Card de Oportunidade — refeito sob o crivo cognitivo (produção)
+- **Fix 1 (refeito, `f67dd2b`):** análise automática do lead = **só Compatibilidade** (`mvAutoCompatCheck`),
+  nunca gera CV sozinho. Zona **Documentos** visível no lead com **"Gerar CV"** sob demanda
+  (`mvSyncDocsCV`/`mvGerarCV`). Estado vazio mostra só o botão (sem textarea vazia/download fantasma).
+- **"Dados da vaga" sai do lead importado** (`85263e9`) — valor vai aos pills do cabeçalho; mantido
+  na criação manual (+ Processo) e nos estados ≥ CV Enviado.
+- **Rodapé:** "Ir para vaga" vira navy/principal e **grava antes** de navegar; "Salvar" secundário (ghost).
+- **Anti-perda (`582764e`):** `saveVaga`/`saveVagaSilent` agora começam com `...(existing||{})` — nunca
+  descartam campos já gravados (compatFortes/atencao/emailAssunto/entrevistaData/descricao). Era perda
+  latente, agravada por "Ir para vaga" salvar.
+- **Gerar CV nunca de snippet (`582764e`):** piso de 400 chars unificado (compat/reanálise/geração);
+  não grava atsCV vazio; fetch parcial libera nova tentativa.
+- **Vocabulário (`05e38df`,`451ea0a`):** "Análise"→**Compatibilidade**, "Pontuação ao Projeto"→
+  Compatibilidade, aba **CV**, badge "Score" suprimido, **PDF Executivo** (sem 🏆/emojis).
+- **Descrição compacta (`2e5b0ee`):** preview ~3 linhas (max-height) → "Documentos" aparece sem scroll.
 
-### Reunião de arquitetura + fundação de skills
-- **Fluxo definitivo card↔copiloto** (auditoria senova-auditor): `docs/fluxo_definitivo_card_copiloto.md`.
-  Causa raiz dos bugs = obra inacabada do card (ações de documento removidas e não recolocadas).
-- **2 skills novos** (pesquisa de estado da arte + síntese):
-  - `skill_arquitetura_cognitiva.md` v2.0 — cognição + ética (primeiro crivo de qualquer tela).
-  - `skill_engenharia_senova.md` v1.0 — front/back/arquitetura (25 regras + 5 riscos reais).
+### Extensão / Copiloto — v2.34 → v2.40 (Marcos recarrega)
+- **v2.34:** LinkedIn external-apply não diz mais "Formulário de candidatura" falso → "Candidatura no site da empresa".
+- **v2.35:** copiloto **não invade** Google/sites sem candidatura — `_acharContainerCandidatura` exige campo de apply REAL.
+- **v2.36:** **first/last name** no autofill (fim do "Marcos Franco" duplicado) — Cartão expõe `primeiroNome`/`sobrenome`; classificador distingue Sobrenome/Primeiro/Completo/ambíguo; resolução de contexto.
+- **v2.37:** **auto-detecta envio** mesmo quando o portal redireciona para /thanks (`senova_form_visto` persistido por jobId, janela 45min). Limpa no envio e no "Não enviei".
+- **v2.38:** **preenche ATS sem `<form>` (Gupy)** — fallback de coleta com filtro de ruído; **painel arrastável** pela barra do título.
+- **v2.39:** **auto-seleciona habilidades** (chips) mais relevantes via IA — só clica chip que coletou E a IA escolheu (igualdade exata); `ehChip` barra submit/ação; NUNCA envia.
+- **v2.40:** reconhece **Easy Apply** pelo aria-label (não classifica como externa).
+- **Bridges novas no app:** `__senovaCopilotoEscolherHabilidadesPrompt`; Cartão ganhou `primeiroNome`/`sobrenome`.
 
-### Estabilização (caminho C — só o essencial)
-- **Worker:** rate limit por IP (40/min, fail-open) em `/api/claude` e `/api/analisar-vaga` —
-  protege a cota Anthropic (a URL do Worker é pública). Commit `7dda6e4`, deploy `a5a11b89`.
-
-### Revertido (a refazer)
-- **Fix 1 do card** (ações de documento no lead) foi feito e **revertido** (`8bd751d`) por ter
-  ficado remendo (ordem errada, CV automático, ícone infantil). **Será refeito sob o crivo.**
+### Processo desta sessão
+- **senova-auditor usado 7×** (verificação independente read-only ANTES de cada deploy de risco — pegou
+  perda de dado no `saveVagaSilent`, CV de snippet, over-trigger do Google, cliques errados em chips).
+- **Memória nova:** `feedback_auditar_antes_do_teste` — entrega incompleta queima o QA de Marcos; varrer
+  todos os estados/edge cases e entregar a lista verificada ANTES de pedir teste.
 
 ## PRÓXIMAS PRIORIDADES (retomar aqui)
 
-| # | Item | Tipo |
-|---|------|------|
-| 1 | **Fix 1 do card — REFAZER sob o crivo cognitivo + gates de engenharia** | Fix definitivo |
-| 2 | Fixes 2–6 do fluxo (FAB legado; first/last name; feedback CV; "já me candidatei"; passe+temCV) | Fixes |
-| 3 | Testar a v2.33 do copiloto ponta a ponta (Marcos relatou: ok no LinkedIn/Greenhouse) | Validação |
-| 4 | Decisão de Marcos: dívida single-file → ES Modules nativos (sem build) ou só mitigar | Arquitetura |
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Score + Gerar CV indo direto no LinkedIn** — DECIDIDO: copiloto **automático em toda vaga** (/jobs/view/) com botão **"Analisar esta vaga"** → lê descrição, **cria card + pontua Compatibilidade**, mostra score + libera Gerar CV. Hoje só aparece se já há card pontuado (`__senovaAnaliseDoCard` retorna null sem card). | **A CONSTRUIR (próximo)** |
+| 2 | **Auto-seleção de habilidades (v2.39) pode não pegar os chips do Gupy** — Marcos viu "0/3" no print da Rodobens. Confirmar se recarregou v2.39 e se o detector acha os chips reais; ajustar com o DOM real se falhar. | Validar/ajustar |
+| 3 | **CV arrastável no painel** (ideia do Marcos) — gerar e arrastar do painel pro campo de upload; download como fallback. | A construir |
+| 4 | **Consentimento de dados sensíveis NO PERFIL** — declarar raça/gênero/orientação + autorizar, "prefiro não informar" sempre. Até lá o copiloto pula sensíveis. | A construir |
+| 5 | Aposentar FAB legado · unificar passe + `temCV` · retry de DOM tardio | Limpeza |
 
-### Handoff do Fix 1 — wireframe APROVADO do card de Oportunidade (lead)
-Ordem = raciocínio (ENTENDER → JULGAR → AGIR). **Documentos só sob demanda; análise automática = só score.**
-```
-DESCRIÇÃO DA VAGA      ← ① ENTENDER (topo; texto formatado; fonte única)
-COMPATIBILIDADE        ← ② JULGAR (automática: SÓ score + veredicto Sofia; é leitura)
-DOCUMENTOS             ← ③ AGIR (sob demanda: [Gerar CV][Gerar carta][Gerar resposta])
-+ Dados da vaga        ← detalhe secundário (progressive disclosure)
-[Remover]   [Cancelar] [Ir p/ vaga] [Salvar]
-```
-6 regras: (1) ordem fixa; (2) automático = só Compatibilidade, nunca gera documento;
-(3) documentos = 3 botões de ação, geram só ao clicar, salvam no card; (4) descrição formatada,
-"Dados" separado sem duplicar; (5) sem ícones infantis (skill_design/cognitiva); (6) "PDF
-Executivo" não "Premium". Pontos técnicos: `mvAjustarSecoesStatus` (~5739) + ramo lead
-(~6663) em index.html. **Rodar o CRIVO de 13 perguntas (skill_arquitetura_cognitiva §11) antes de codar.**
+## PENDÊNCIAS DE VALIDAÇÃO (Marcos testar)
+- **Card (produção, Ctrl+Shift+R):** Oportunidade — Documentos sem scroll, Compatibilidade automática, "Gerar CV" sob demanda, "Ir para vaga" grava ao sair; "+ Processo" manual com Dados abaixo da descrição.
+- **Extensão v2.40 (recarregar):** Easy Apply classificado certo · Gupy preenche a pergunta aberta · habilidades auto-selecionadas (3) · painel arrastável.
 
-## ESTADO DO WORKER
-`senova-worker.js` — rate limit adicionado (commit `7dda6e4`, deploy `a5a11b89`). Saudável (/health ok).
+## DECISÕES DE PRODUTO DESTA SESSÃO
+- Copiloto **automático em toda vaga do LinkedIn** (escolha de Marcos) — com "Analisar esta vaga".
+- Habilidades = decisão **profissional** (o copiloto seleciona, Marcos revisa) — DIFERENTE de dado sensível (esse o usuário declara no Perfil).
+- "Dados da vaga" não vive na Oportunidade importada — só valor no cabeçalho.
 
 ## GIT
-Branch `main`. Commits de hoje: copiloto `4121adb`, skills/docs (este), worker `7dda6e4`,
-index em produção até `8bd751d`. Push pendente no encerramento.
+Branch `main`. Sessão 19 = commits `f67dd2b` → `6b71678` (card em produção + extensão v2.34–v2.40).
+Working tree limpo no fechamento.
