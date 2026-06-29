@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.51
+// Content script — Senova Extension v2.52
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -624,6 +624,8 @@
   let _candidatado = false;
   let _viuForm = false;
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
+  let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
+  let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
   let _lastDiagSig = '';      // último diagnóstico logado (evita repetir no console a cada mutação)
 
   function _esc(s) {
@@ -704,6 +706,12 @@
     // Só DATA de nascimento — exclui "local/cidade/naturalidade de nascimento" (lugar, não data),
     // que não devem receber a data. Lugar não preenchido é melhor que lugar preenchido errado.
     if (!/local|cidade|munic|natural|cidad/.test(r) && /nascimento|nasc\.|data\s*de\s*nasc|date\s*of\s*birth|birth\s*date|birthdate/.test(r)) return { grupo: 'pessoal', label: 'Data de nascimento', chave: 'nascimento' };
+    // Autodeclaração sensível (LGPD): só MARCAMOS a opção equivalente à escolha do Perfil, nunca
+    // inferimos (ver _preencherSelecao). Orientação ANTES de gênero (evita "orientação sexual"
+    // cair em gênero). Raça por "raça/cor/etnia". Vão para o grupo 'selecao'.
+    if (/orienta[çc][ãa]o|sexual\s*orientation/.test(r)) return { grupo: 'selecao', label: 'Orientação', chave: 'orientacao' };
+    if (/ra[çc]a|etnia|ethnic/.test(r)) return { grupo: 'selecao', label: 'Raça/cor', chave: 'raca' };
+    if (/\bg[êe]nero\b|gender|identidade\s*de\s*g[êe]nero|\bsexo\b/.test(r)) return { grupo: 'selecao', label: 'Gênero', chave: 'genero' };
     // Nome — sobrenome / primeiro / completo / ambíguo. Ordem: específicos antes do genérico
     // ("Sobrenome" contém "nome", "First name" contém "name"). "nombre" (ES) é ambíguo como
     // "nome" — a resolução de contexto decide se é primeiro nome (há Apellido) ou nome inteiro.
@@ -804,7 +812,7 @@
 
   // Agrupa os campos para exibição (rótulos sem repetição).
   function _escanearCampos() {
-    const grupos = { pessoal: [], pergunta: [], cv: [], outro: [] };
+    const grupos = { pessoal: [], pergunta: [], selecao: [], cv: [], outro: [] };
     const vistos = new Set();
     for (const c of _coletarCampos()) {
       const k = c.grupo + '|' + c.label;
@@ -812,7 +820,7 @@
       vistos.add(k);
       grupos[c.grupo].push(c.label);
     }
-    const total = grupos.pessoal.length + grupos.pergunta.length + grupos.cv.length + grupos.outro.length;
+    const total = grupos.pessoal.length + grupos.pergunta.length + grupos.selecao.length + grupos.cv.length + grupos.outro.length;
     return { grupos, total };
   }
 
@@ -827,6 +835,47 @@
     } catch (_) { el.value = valor; }
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // ── AUTODECLARAÇÃO (gênero/raça/orientação) ────────────────────────────────────────────────
+  // Dado sensível (LGPD Art. 5/11): autoidentificação. O usuário declarou o valor canônico no
+  // Perfil; aqui só MARCAMOS a opção do portal que corresponde EXATAMENTE a essa escolha — nunca
+  // inferimos outra categoria. Sem correspondência segura (0 ou ambígua) → deixa em branco.
+  function _norm(s) { return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function _ehPlaceholder(t) { return !_norm(t) || /\b(selecione|escolha|prefiro nao|nao informar|nao declarar|select|choose|none)\b/.test(_norm(t)); }
+  // Variantes aprovadas por categoria canônica. Só formas da MESMA categoria (gramaticais/idioma/
+  // sigla) — jamais cruzam categorias. Negro(a) só entra para Preta/Parda se o usuário autorizou.
+  const _VAR = {
+    genero: { homem: /\b(homem|masculino|masc|male|cis ?masculino)\b/, mulher: /\b(mulher|feminino|fem|female|cis ?feminino)\b/, 'nao-binario': /\b(nao binari\w*|nao bin|nonbinary|non binary)\b/, outro: /\b(outr[oa]s?|other)\b/ },
+    raca: { branca: /\bbranc[oa]\b/, preta: /\bpret[oa]\b/, parda: /\bpard[oa]\b/, amarela: /\bamarel[oa]\b/, indigena: /\bindigena\b/ },
+    orientacao: { heterossexual: /\b(heteross?exual|hetero|straight)\b/, homossexual: /\b(homoss?exual|gay|lesbic[ao]|lesbian)\b/, bissexual: /\b(bissexual|bisexual|bi)\b/, outra: /\b(outr[oa]s?|other)\b/ }
+  };
+  function _variantePadrao(chave, canon, racaNegro) {
+    const tbl = _VAR[chave]; if (!tbl) return null;
+    let re = tbl[canon]; if (!re) return null;
+    if (chave === 'raca' && racaNegro && (canon === 'preta' || canon === 'parda')) re = new RegExp(re.source + '|\\bnegr[oa]\\b');
+    return re;
+  }
+  // Um <select> é "vazio" se não há seleção real (placeholder/em branco). Texto: sem valor.
+  function _seleVazia(el) {
+    if (el.tagName === 'SELECT') { const o = el.options[el.selectedIndex]; return !o || !o.value || _ehPlaceholder(o.textContent); }
+    return !el.value.trim();
+  }
+  // Marca a opção equivalente à autodeclaração. Devolve true só se REALMENTE marcou.
+  function _preencherSelecao(el, chave, canon, racaNegro) {
+    const re = _variantePadrao(chave, canon, racaNegro); if (!re) return false;
+    if (el.tagName === 'SELECT') {
+      if (!_seleVazia(el)) return false; // não sobrescreve escolha já feita
+      const opts = Array.from(el.options).filter(o => o.value !== '' && !_ehPlaceholder(o.textContent));
+      const casam = opts.filter(o => re.test(_norm(o.textContent)));
+      if (casam.length !== 1) return false; // 0 ou ambígua → não arrisca categoria errada
+      el.value = casam[0].value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return el.value === casam[0].value;
+    }
+    if (el.value.trim()) return false; // texto livre já preenchido
+    _preencherCampo(el, canon); return true;
   }
 
   // Forma de candidatura desta vaga no LinkedIn.
@@ -865,6 +914,7 @@
     let linhas = li(primeira);
     if (grupos.pessoal.length) linhas += li('Dados: ' + grupos.pessoal.join(', '));
     if (grupos.pergunta.length) linhas += li(grupos.pergunta.length + (grupos.pergunta.length === 1 ? ' pergunta aberta' : ' perguntas abertas'));
+    if (grupos.selecao.length) linhas += li('Autodeclaração: ' + grupos.selecao.join(', '));
     if (grupos.cv.length) linhas += li('Upload de currículo');
     if (grupos.outro.length) linhas += li(grupos.outro.length + (grupos.outro.length === 1 ? ' outro campo' : ' outros campos'));
 
@@ -887,9 +937,10 @@
     let campos = [];
     try { campos = _coletarCampos(); } catch (_) {}
     const porGrupo = g => campos.filter(c => c.grupo === g).length;
-    const vazios = campos.filter(c =>
-      ((c.grupo === 'pessoal' && c.chave) || c.grupo === 'pergunta') && c.el && !c.el.value.trim()
-    ).length;
+    const vazios = campos.filter(c => c.el && (
+      (((c.grupo === 'pessoal' && c.chave) || c.grupo === 'pergunta') && !c.el.value.trim()) ||
+      (c.grupo === 'selecao' && c.chave && _seleVazia(c.el))
+    )).length;
     let inputs = 0;
     try { inputs = document.querySelectorAll(_CAMPO_SEL).length; } catch (_) {}
     // Por que campos não são lidos? Conta visíveis na página e dentro do container, quantos
@@ -934,6 +985,7 @@
       origem, container, inputs, visDoc, visEsc, semRotulo, amostra: amostra.join(' | '),
       fileN, fileVis,
       classificados: campos.length, pessoal: porGrupo('pessoal'), perguntas: porGrupo('pergunta'),
+      selecao: porGrupo('selecao'),
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma
     };
@@ -941,14 +993,14 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.51',
+      'SENOVA DIAG v2.52',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
       'rótulos vistos: ' + (d.amostra || '—'),
-      'campos lidos: ' + d.classificados + ' (pessoal ' + d.pessoal + ' · perguntas ' + d.perguntas + ' · upload ' + d.upload + ')',
+      'campos lidos: ' + d.classificados + ' (pessoal ' + d.pessoal + ' · perguntas ' + d.perguntas + ' · autodeclaração ' + d.selecao + ' · upload ' + d.upload + ')',
       'campos de arquivo (upload): ' + d.fileN + ' (visíveis: ' + d.fileVis + ')',
       'vazios p/ preencher: ' + d.vazios,
       'iframes: ' + d.iframes + ' (sem acesso: ' + d.iframesSemAcesso + (d.iframeHosts ? ' → ' + d.iframeHosts : '') + ')',
@@ -997,7 +1049,8 @@
     const _campos = _coletarCampos();
     const _nPessoal = _campos.filter(c => c.grupo === 'pessoal' && c.chave && c.el && !c.el.value.trim()).length;
     const _nPerg = _campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim()).length;
-    const _nPreencher = _nPessoal + _nPerg;
+    const _nSelecao = _campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el)).length;
+    const _nPreencher = _nPessoal + _nPerg + _nSelecao;
     const _temUpload = _campos.some(c => c.grupo === 'cv');
     // O CV NÃO depende de "enxergar" o campo de upload: portais como a DHL usam um widget próprio
     // (campos de arquivo: 0) e cada ATS é diferente — caçar isso seria gambiarra. O papel do
@@ -1043,11 +1096,17 @@
       ? ` <span style="color:#2C2C2A;">Destaquei: <b>${_esc(_habilidadesSel.join(', '))}</b> — ajuste se quiser.</span>` : '';
     // Mensagem HONESTA: diz O QUE preencheu e QUANTO falta com você (CPF, datas, dados sensíveis).
     // Nunca só "✓ Preenchido" — o usuário precisa saber que ainda há campos por fazer.
-    const _feito = [...new Set(_campos.filter(c => c.grupo === 'pessoal' && c.el && c.el.value.trim()).map(c => c.label))].join(', ');
+    const _feito = [...new Set([
+      ..._campos.filter(c => c.grupo === 'pessoal' && c.el && c.el.value.trim()).map(c => c.label),
+      ..._selFeitas
+    ])].join(', ');
     const _nOutro = new Set(_campos.filter(c => c.grupo === 'outro').map(c => c.label)).size;
+    // Autodeclaração declarada no Perfil mas sem opção equivalente neste portal → você escolhe à mão.
+    const _selPend = [...new Set(_selPendentes)];
     const rodapeHTML = _respondido
       ? `<b style="color:#1A6840;">✓ Preenchi ${_esc(_feito || 'o que reconheci')}.</b> `
         + (_nOutro ? `Faltam <b>${_nOutro}</b> ${_nOutro === 1 ? 'campo' : 'campos'} que só você informa (CPF, datas, etc.). ` : '')
+        + (_selPend.length ? `Não achei a opção equivalente para <b>${_esc(_selPend.join(', '))}</b> aqui — escolha à mão. ` : '')
         + 'Revise e envie.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
@@ -1274,13 +1333,15 @@
     const campos = _coletarCampos();
     const pessoais = campos.filter(c => c.grupo === 'pessoal' && c.chave && c.el && !c.el.value.trim());
     const perguntas = campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim());
-    if (!pessoais.length && !perguntas.length) {
+    const selecoes = campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el));
+    if (!pessoais.length && !perguntas.length && !selecoes.length) {
       // Nunca falhar calado: o botão apareceu, mas no clique não há nada vazio a preencher.
       if (btn) { btn.style.background = '#9C5800'; btn.textContent = 'Nada vazio para preencher aqui'; setTimeout(() => _atualizarCorpo(), 2200); }
       return;
     }
     _preenchendo = true;
     _habilidadesSel = null;
+    _selFeitas = []; _selPendentes = [];
     if (_copilotoObserver) _copilotoObserver.disconnect();
     const an = _copilotoAnalise || {};
     let algum = false, erroMsg = '';
@@ -1288,21 +1349,22 @@
                       : e === 'sem_funcao' ? 'Recarregue o Senova (Ctrl+Shift+R)'
                       : 'Não consegui agora — tente de novo';
 
-    // 1) Dados fixos (Cartão de candidatura)
-    if (pessoais.length) {
+    // Cartão (dados fixos + autodeclaração autorizada): buscado UMA vez, reusado nas etapas 1 e 3.
+    let cartao = null;
+    if (pessoais.length || selecoes.length) {
       if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Preenchendo seus dados…'; }
-      let cartao = null;
       try { cartao = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTAO' }); } catch (_) {}
       if (cartao && cartao.erro) erroMsg = _falha(cartao.erro);
-      else if (cartao) {
-        for (const c of pessoais) {
-          const v = cartao[c.chave];
-          if (v) { _preencherCampo(c.el, v); algum = true; }
-        }
-      } else {
-        // Resposta vazia (null): o app não respondeu. NÃO confundir com "preencheu nada" —
-        // avisa em vez de silenciar (causa comum: aba do Senova fechada ou recém-recarregada).
-        erroMsg = 'Abra o Senova numa aba e recarregue esta página (Ctrl+Shift+R)';
+      // Resposta vazia (null): o app não respondeu. NÃO confundir com "preencheu nada" — avisa em
+      // vez de silenciar (causa comum: aba do Senova fechada ou recém-recarregada).
+      else if (!cartao) erroMsg = 'Abra o Senova numa aba e recarregue esta página (Ctrl+Shift+R)';
+    }
+
+    // 1) Dados fixos (Cartão de candidatura)
+    if (!erroMsg && pessoais.length) {
+      for (const c of pessoais) {
+        const v = cartao[c.chave];
+        if (v) { _preencherCampo(c.el, v); algum = true; }
       }
     }
 
@@ -1319,7 +1381,20 @@
       }
     }
 
-    // 3) Habilidades (chips de múltipla escolha) — auto-seleciona as mais relevantes para revisão.
+    // 3) Autodeclaração (gênero/raça/orientação) — marca a opção do portal equivalente à escolha do
+    // Perfil. Nunca infere outra categoria; sem correspondência segura, deixa em branco e avisa.
+    if (!erroMsg && selecoes.length && cartao) {
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Conferindo autodeclaração…'; }
+      for (const c of selecoes) {
+        const canon = cartao[c.chave];
+        if (!canon) continue; // "prefiro não informar" / não autorizado — não mexe, não cobra
+        let fez = false;
+        try { fez = _preencherSelecao(c.el, c.chave, canon, cartao.racaNegro); } catch (_) {}
+        if (fez) { algum = true; _selFeitas.push(c.label); } else _selPendentes.push(c.label);
+      }
+    }
+
+    // 4) Habilidades (chips de múltipla escolha) — auto-seleciona as mais relevantes para revisão.
     if (!erroMsg) {
       if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Selecionando habilidades…'; }
       try { const h = await _selecionarHabilidades(); if (h && h.length) { algum = true; _habilidadesSel = h; } } catch (_) {}

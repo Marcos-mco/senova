@@ -924,36 +924,41 @@ select option { background: var(--bg2); }
             <label class="field-label">Gênero</label>
             <select id="perfil-genero">
               <option value="">Prefiro não informar</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Feminino">Feminino</option>
-              <option value="Outro">Outro</option>
+              <option value="homem">Homem</option>
+              <option value="mulher">Mulher</option>
+              <option value="nao-binario">Não-binário</option>
+              <option value="outro">Outro</option>
             </select>
           </div>
           <div class="form-row" style="margin:0;">
-            <label class="field-label">Raça / cor</label>
+            <label class="field-label">Raça / cor (IBGE)</label>
             <select id="perfil-raca">
               <option value="">Prefiro não informar</option>
-              <option value="Branca">Branca</option>
-              <option value="Preta">Preta</option>
-              <option value="Parda">Parda</option>
-              <option value="Amarela">Amarela</option>
-              <option value="Indígena">Indígena</option>
+              <option value="branca">Branca</option>
+              <option value="preta">Preta</option>
+              <option value="parda">Parda</option>
+              <option value="amarela">Amarela</option>
+              <option value="indigena">Indígena</option>
             </select>
           </div>
           <div class="form-row" style="margin:0;">
             <label class="field-label">Orientação sexual</label>
             <select id="perfil-orientacao">
               <option value="">Prefiro não informar</option>
-              <option value="Heterossexual">Heterossexual</option>
-              <option value="Homossexual">Homossexual</option>
-              <option value="Bissexual">Bissexual</option>
-              <option value="Outra">Outra</option>
+              <option value="heterossexual">Heterossexual</option>
+              <option value="homossexual">Homossexual</option>
+              <option value="bissexual">Bissexual</option>
+              <option value="outra">Outra</option>
             </select>
           </div>
         </div>
+        <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:13px;color:var(--text2);line-height:1.45;margin-top:12px;">
+          <input type="checkbox" id="perfil-raca-negro" style="accent-color:var(--navy);width:16px;height:16px;margin-top:1px;flex-shrink:0;">
+          <span>Em raça/cor, aceitar também <b>"Negro(a)"</b> como equivalente a Preta ou Parda (alguns portais usam essa opção única).</span>
+        </label>
         <div style="font-size:12.5px;color:var(--text3);line-height:1.5;margin-top:12px;">
-          Gênero, raça/cor e orientação ficam guardados aqui; o copiloto preenche estes em breve
-          (nos portais costumam ser campos de seleção). CPF, PIS e nascimento ele já preenche.
+          O copiloto só marca, no portal, a opção que <b>corresponde exatamente</b> à sua escolha
+          (incluindo variações como Pardo/Parda). Se nenhuma corresponder, deixa <b>em branco</b> para você decidir.
         </div>
         <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:14px;color:var(--text2);line-height:1.45;margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);">
           <input type="checkbox" id="perfil-sensiveis-autorizar" style="accent-color:var(--navy);width:17px;height:17px;margin-top:1px;flex-shrink:0;">
@@ -3801,12 +3806,14 @@ function carregarDadosSensiveis(){
   set('perfil-cpf',d.cpf); set('perfil-pis',d.pis); set('perfil-nascimento',d.nascimento);
   set('perfil-genero',d.genero); set('perfil-raca',d.raca); set('perfil-orientacao',d.orientacao);
   const aut=document.getElementById('perfil-sensiveis-autorizar'); if(aut) aut.checked=!!d.autorizado;
+  const neg=document.getElementById('perfil-raca-negro'); if(neg) neg.checked=!!d.racaNegro;
 }
 function salvarDadosSensiveis(){
   const get=id=>(document.getElementById(id)?.value||'').trim();
   const d={
     cpf:get('perfil-cpf'), pis:get('perfil-pis'), nascimento:get('perfil-nascimento'),
     genero:get('perfil-genero'), raca:get('perfil-raca'), orientacao:get('perfil-orientacao'),
+    racaNegro:document.getElementById('perfil-raca-negro')?.checked||false,
     autorizado:document.getElementById('perfil-sensiveis-autorizar')?.checked||false,
   };
   const st=document.getElementById('perfil-sensiveis-status');
@@ -9327,6 +9334,7 @@ window.__senovaCartaoCandidatura=function(){
     const s=JSON.parse(localStorage.getItem('senova_dados_sensiveis')||'{}');
     if(s && s.autorizado){
       ['cpf','pis','nascimento','genero','raca','orientacao'].forEach(k=>{ if(s[k]) base[k]=s[k]; });
+      if(s.racaNegro) base.racaNegro=true;
     }
   }catch(_){}
   return base;
