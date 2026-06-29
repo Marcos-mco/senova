@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.55
+// Content script — Senova Extension v2.56
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -624,6 +624,8 @@
   let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
   let _ultimoPasse = undefined; // estado do passe lido nesta página externa (instrumentação do diag)
   let _reinjetTs = 0;           // throttle de reinjeção do copiloto em SPA que apaga o painel
+  let _copilotoFechadoManual = false; // você fechou no × → não reabrir sozinho
+  let _watchdog = null;         // intervalo que garante o painel mesmo se o SPA trocar o <body>
   let _lastDiagSig = '';      // último diagnóstico logado (evita repetir no console a cada mutação)
 
   function _esc(s) {
@@ -1025,7 +1027,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.55',
+      'SENOVA DIAG v2.56',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1474,6 +1476,7 @@
     const _fab = document.getElementById('snv-fab'); if (_fab) _fab.remove(); // copiloto substitui o FAB
     requestAnimationFrame(() => { wrap.style.opacity = '1'; });
     document.getElementById('snv-cop-fechar').addEventListener('click', () => {
+      _copilotoFechadoManual = true; // você fechou de propósito → watchdog não reabre
       wrap.remove();
       if (_copilotoObserver) { _copilotoObserver.disconnect(); _copilotoObserver = null; }
     });
@@ -1518,6 +1521,22 @@
       _copilotoT = setTimeout(() => { _checarEnvioAuto(); _atualizarCorpo(); }, 400);
     });
     _copilotoObserver.observe(document.body, { childList: true, subtree: true });
+    _iniciarWatchdog(); // garante o painel mesmo se o SPA trocar o <body> (mata o observer)
+  }
+
+  // O MutationObserver morre se o SPA SUBSTITUI o <body> (Greenhouse/Workday) — ele observa o nó
+  // antigo. Este watchdog é independente do DOM: a cada 1s, se o painel sumiu e você não o fechou,
+  // reinjeta. Para sozinho após 6min ou quando você fecha no ×. É o que faz "abrir direto" valer.
+  function _iniciarWatchdog() {
+    if (_watchdog) return;
+    const inicio = Date.now();
+    _watchdog = setInterval(() => {
+      if (_copilotoFechadoManual || Date.now() - inicio > 6 * 60 * 1000) { clearInterval(_watchdog); _watchdog = null; return; }
+      if (_copilotoAnalise && !document.getElementById('snv-copiloto') && Date.now() - _reinjetTs > 800) {
+        _reinjetTs = Date.now();
+        try { injetarCopiloto(_copilotoAnalise); } catch (_) {}
+      }
+    }, 1000);
   }
 
   // PULL da análise: se esta vaga do LinkedIn já tem card com Compatibilidade no app, puxa a
@@ -1575,6 +1594,7 @@
           cargo: an.cargo || _ultimoPasse.cargo, empresa: an.empresa || _ultimoPasse.empresa
         });
       }
+      _copilotoFechadoManual = false; // você pediu para abrir → reativa a persistência
       try { injetarCopiloto(an); } catch (_) {}
     }
   });
