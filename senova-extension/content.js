@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.50
+// Content script — Senova Extension v2.51
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -695,6 +695,15 @@
     if (/linkedin/.test(r)) return { grupo: 'pessoal', label: 'LinkedIn', chave: 'linkedin' };
     if (/cidade|city|localidade|munic[ií]pio|endere/.test(r)) return { grupo: 'pessoal', label: 'Cidade', chave: 'cidade' };
     if (/sal[aá]r|pretens|remunera|salary/.test(r)) return { grupo: 'pessoal', label: 'Pretensão' };
+    // Dados sensíveis de TEXTO — preenchidos pelo Cartão (determinístico, nunca pela IA) só se o
+    // usuário autorizou no Perfil; sem autorização o Cartão não traz a chave → campo fica vazio e
+    // entra na mensagem honesta. Geral: casa por rótulo em qualquer portal. Gênero/raça/orientação
+    // NÃO entram (são seleção; preencher select ainda não é suportado — ver fila S21).
+    if (/\bcpf\b/.test(r)) return { grupo: 'pessoal', label: 'CPF', chave: 'cpf' };
+    if (/\bpis\b|pasep|\bnit\b/.test(r)) return { grupo: 'pessoal', label: 'PIS/PASEP', chave: 'pis' };
+    // Só DATA de nascimento — exclui "local/cidade/naturalidade de nascimento" (lugar, não data),
+    // que não devem receber a data. Lugar não preenchido é melhor que lugar preenchido errado.
+    if (!/local|cidade|munic|natural|cidad/.test(r) && /nascimento|nasc\.|data\s*de\s*nasc|date\s*of\s*birth|birth\s*date|birthdate/.test(r)) return { grupo: 'pessoal', label: 'Data de nascimento', chave: 'nascimento' };
     // Nome — sobrenome / primeiro / completo / ambíguo. Ordem: específicos antes do genérico
     // ("Sobrenome" contém "nome", "First name" contém "name"). "nombre" (ES) é ambíguo como
     // "nome" — a resolução de contexto decide se é primeiro nome (há Apellido) ou nome inteiro.
@@ -932,7 +941,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.50',
+      'SENOVA DIAG v2.51',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'container do formulário: ' + d.container,

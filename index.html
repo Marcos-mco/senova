@@ -897,6 +897,75 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Dados para candidatura (sensíveis) — APENAS neste navegador -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--navy)" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+          <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">Dados para candidatura</div>
+        </div>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:16px;">
+          Ficam <b>só neste navegador</b>. Nunca vão para a nuvem nem para a inteligência artificial.
+          Deixe um campo vazio para "prefiro não informar".
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">CPF</label>
+            <input type="text" id="perfil-cpf" placeholder="000.000.000-00" autocomplete="off">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">PIS / PASEP</label>
+            <input type="text" id="perfil-pis" placeholder="000.00000.00-0" autocomplete="off">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">Data de nascimento</label>
+            <input type="text" id="perfil-nascimento" placeholder="dd/mm/aaaa" autocomplete="off">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">Gênero</label>
+            <select id="perfil-genero">
+              <option value="">Prefiro não informar</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">Raça / cor</label>
+            <select id="perfil-raca">
+              <option value="">Prefiro não informar</option>
+              <option value="Branca">Branca</option>
+              <option value="Preta">Preta</option>
+              <option value="Parda">Parda</option>
+              <option value="Amarela">Amarela</option>
+              <option value="Indígena">Indígena</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label class="field-label">Orientação sexual</label>
+            <select id="perfil-orientacao">
+              <option value="">Prefiro não informar</option>
+              <option value="Heterossexual">Heterossexual</option>
+              <option value="Homossexual">Homossexual</option>
+              <option value="Bissexual">Bissexual</option>
+              <option value="Outra">Outra</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:var(--text3);line-height:1.5;margin-top:12px;">
+          Gênero, raça/cor e orientação ficam guardados aqui; o copiloto preenche estes em breve
+          (nos portais costumam ser campos de seleção). CPF, PIS e nascimento ele já preenche.
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:14px;color:var(--text2);line-height:1.45;margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);">
+          <input type="checkbox" id="perfil-sensiveis-autorizar" style="accent-color:var(--navy);width:17px;height:17px;margin-top:1px;flex-shrink:0;">
+          <span>Autorizo o copiloto a preencher estes dados nos formulários de candidatura.
+          <b>Você sempre revisa antes de enviar.</b></span>
+        </label>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:14px;">
+          <button class="btn btn-primary" onclick="salvarDadosSensiveis()" style="font-size:14px;padding:10px 24px;">Salvar dados</button>
+          <span id="perfil-sensiveis-status" style="font-size:13px;font-weight:600;"></span>
+        </div>
+      </div>
+
     </div><!-- /panel-1 -->
 
     <!-- ── TAB 2: BUSCA ── -->
@@ -2916,7 +2985,7 @@ function showPage(page) {
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
   if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); const _syncCompleto=!sessionStorage.getItem('sn_session_sync');if(_syncCompleto)sessionStorage.setItem('sn_session_sync','1');carregarEmails(_syncCompleto); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
-  if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); inicializarToggleMoverEmails(); inicializarPadroes(); }
+  if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); carregarDadosSensiveis(); inicializarToggleMoverEmails(); inicializarPadroes(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
   if(page!=='ats'){ const b=document.getElementById('ats-decisao-bar'); if(b) b.style.display='none'; }
   if(page==='sofia') sofiaTab(1);
@@ -3718,6 +3787,32 @@ function usarImportLinkedIn(){
   el.value=txt;
   document.getElementById('import-li-area').style.display='none';
   document.getElementById('perfil-cv-ok').style.display='block';
+}
+
+// ── Dados sensíveis de candidatura — vivem APENAS no localStorage deste navegador.
+// NUNCA são enviados ao Worker/KV nem à IA (por isso têm Salvar próprio, fora de salvarPerfil,
+// que faz POST ao Worker). CPF/PIS/nascimento o copiloto preenche em campos de texto, só se
+// autorizado; gênero/raça/orientação ficam guardados para o futuro suporte a seleção.
+const _SENSIVEL_KEY='senova_dados_sensiveis';
+function carregarDadosSensiveis(){
+  let d={};
+  try{ d=JSON.parse(localStorage.getItem(_SENSIVEL_KEY)||'{}'); }catch(_){}
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
+  set('perfil-cpf',d.cpf); set('perfil-pis',d.pis); set('perfil-nascimento',d.nascimento);
+  set('perfil-genero',d.genero); set('perfil-raca',d.raca); set('perfil-orientacao',d.orientacao);
+  const aut=document.getElementById('perfil-sensiveis-autorizar'); if(aut) aut.checked=!!d.autorizado;
+}
+function salvarDadosSensiveis(){
+  const get=id=>(document.getElementById(id)?.value||'').trim();
+  const d={
+    cpf:get('perfil-cpf'), pis:get('perfil-pis'), nascimento:get('perfil-nascimento'),
+    genero:get('perfil-genero'), raca:get('perfil-raca'), orientacao:get('perfil-orientacao'),
+    autorizado:document.getElementById('perfil-sensiveis-autorizar')?.checked||false,
+  };
+  const st=document.getElementById('perfil-sensiveis-status');
+  try{ localStorage.setItem(_SENSIVEL_KEY,JSON.stringify(d)); }
+  catch(_){ if(st){ st.textContent='Não consegui salvar neste navegador.'; st.style.color='var(--danger,#B52419)'; } return; }
+  if(st){ st.textContent='Salvo neste navegador ✓'; st.style.color='var(--green)'; setTimeout(()=>{ if(st.textContent.startsWith('Salvo')) st.textContent=''; },2600); }
 }
 
 async function carregarPerfil(){
@@ -9223,7 +9318,18 @@ window.__senovaCartaoCandidatura=function(){
   const sobrenome=_np.length>1?_np.slice(1).join(' '):'';
   const cm=t.match(/\b([A-ZÀ-Ú][a-zà-ú]+(?:\s[A-ZÀ-Ú][a-zà-ú]+)*),\s*([A-Z]{2})\b/);
   const cidade=cm?(cm[1]+', '+cm[2]):'';
-  return { nome, primeiroNome, sobrenome, email, telefone, linkedin, cidade };
+  const base={ nome, primeiroNome, sobrenome, email, telefone, linkedin, cidade };
+  // Dados sensíveis: só entram se o usuário autorizou explicitamente no Perfil. Vivem apenas no
+  // localStorage deste navegador — nunca passaram pelo Worker nem pela IA. O Cartão é uma ponte
+  // LOCAL app→extensão (não faz fetch). O copiloto preenche os de texto (CPF/PIS/nascimento);
+  // gênero/raça/orientação seguem prontos para quando o copiloto preencher campos de seleção.
+  try{
+    const s=JSON.parse(localStorage.getItem('senova_dados_sensiveis')||'{}');
+    if(s && s.autorizado){
+      ['cpf','pis','nascimento','genero','raca','orientacao'].forEach(k=>{ if(s[k]) base[k]=s[k]; });
+    }
+  }catch(_){}
+  return base;
 };
 
 // Exposto para o copiloto: baixa o CV (.docx) da vaga para o usuário subir no portal (o
