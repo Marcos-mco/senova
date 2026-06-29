@@ -23,15 +23,17 @@ Virgílio NUNCA registra commit/versão sem confirmação do estado real pelo Cl
 6. Apresentar FILA DE PRIORIDADES do SESSAO.md e confirmar com Marcos por onde comecar
 
 ## FECHAMENTO (ordem obrigatória)
-1. Virgílio pergunta ao Code o estado real: último commit (hash+msg), versão, o que ficou sem commit
-2. Virgílio redige o novo SESSAO.md com o estado confirmado
-3. Claude Code grava SESSAO.md e faz commit + push
-4. Fechar VERSOES.md se houve mudanças não documentadas
-5. Bloco CRESCIMENTO (2 min) — Virgílio responde:
+1. Confirmar o estado real pelo Code: último commit (hash+msg), versão da extensão, o que ficou sem commit
+2. Redigir o novo SESSAO.md com o estado confirmado
+3. **Atualizar VERSOES.md** (entrada da sessão no topo) se houve mudanças não documentadas
+4. **Atualizar VIRGILIO.md SEMPRE** (regra de Marcos, 29/jun/2026): cabeçalho (data/sessão/versão), "ESTADO ATUAL"
+   (último commit/versão), "AO RETOMAR" (fila nova) e resumo "O QUE FOI FEITO — SESSÃO N". Preservar histórico — adicionar, não apagar.
+5. Claude Code grava SESSAO.md + VERSOES.md + VIRGILIO.md e faz **commit + push**
+6. Bloco CRESCIMENTO (2 min) — responder:
    - O que aprendi de IA hoje aplicável aos 3 planos?
    - Que alternativa criativa não tentamos e aceleraria o objetivo?
    - Que padrão repetido poderia virar automação/skill?
-6. Deixar Claude Code preparado para o dia seguinte
+7. Deixar Claude Code preparado para o dia seguinte
 
 ## Regras que nunca mudam
 - DLS nunca omitir · MBA FGV = Administração (nunca Marketing)

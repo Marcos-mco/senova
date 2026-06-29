@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 24/jun/2026 — v3.48 (Sessão 17 — FECHADA)*
+*Atualizado: 29/jun/2026 — Sessão 19 — FECHADA (extensão v2.40)*
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -20,7 +20,7 @@
 
 ---
 
-## ESTADO ATUAL — v3.48 (24/jun/2026 — Sessão 17)
+## ESTADO ATUAL — 29/jun/2026 (Sessão 19)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -29,27 +29,61 @@
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — sem alteração na Sessão 11)
-- **Extensão Chrome:** **v2.16** (arquivos locais — recarregar em `chrome://extensions`; +permissão `cookies`)
+- **Extensão Chrome:** **v2.40** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `e495271` (24/jun/2026 — Sessão 17)
+- **Último commit estável:** `0e76686` (29/jun/2026 — Sessão 19)
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 18) — AÇÕES IMEDIATAS
-0. **✅ Sessão 15 (B11) validada:** badge conta só processos abertos; arquivados via "N arquivadas ↗" no Seu Painel (commit `3db105d`).
-1. **✅ Extensão v2.16:** enriquecimento via `jobs-guest` funcionando (FPP enriquecida a 82%).
-2. **✅ GAP DO PERFIL BASE (Sessão 16):** `PERFIL_MARCOS.md` enriquecido — EADCon, Expoente, Évora, competências completas.
-3. **✅ REDESIGN DO CARD — todos os Ps concluídos ou descartados** (Sessão 16).
-4. **✅ "Acrescentar algo sobre mim" (Sessão 16):** commits `68ef75f`, `917c02c`.
-5. **✅ Sort padrão Kanban por Compatibilidade (Sessão 16):** commit `e8faff3`.
-6. **✅ TRAVA ANTI-PERDA + REFORMA DO MODAL (Sessão 17):** ver seção abaixo. Commits `a33598f`→`e495271`.
-7. **Decisão CONGELADA:** modelo **Compatibilidade × Desejabilidade + aprendizado por comportamento** — NÃO definir até finalizar a Sofia.
+## ⚠️ AO RETOMAR (Sessão 20) — AÇÕES IMEDIATAS
+1. **PRÓXIMO A CONSTRUIR — score + Gerar CV indo direto no LinkedIn.** DECISÃO de Marcos: copiloto
+   **automático em TODA vaga** (`/jobs/view/`) com botão **"Analisar esta vaga"** → lê a descrição,
+   **cria card + pontua Compatibilidade**, mostra o score e libera **Gerar CV**. Hoje `__senovaAnaliseDoCard`
+   ([index.html:9146]) retorna null sem card pontuado, então indo direto o painel vem "pelado".
+2. **VALIDAR/AJUSTAR — auto-seleção de habilidades (v2.39)** pode não pegar os chips do Gupy real
+   (Marcos viu "0/3" no print da Rodobens). Confirmar reload + DOM real; ajustar `_acharChipsHabilidades`.
+3. **A CONSTRUIR — CV arrastável no painel** (ideia de Marcos): gerar e arrastar do painel pro upload; download fallback.
+4. **A CONSTRUIR — consentimento de dados sensíveis NO PERFIL** (raça/gênero/orientação: declarar + autorizar,
+   "prefiro não informar"). Até lá o copiloto pula sensíveis. Ver [[feedback_auditar_antes_do_teste]].
+5. **Limpeza:** aposentar FAB legado · unificar passe + `temCV` · retry de DOM tardio.
+6. **PENDENTE TESTE DE MARCOS:** card em produção (Documentos sem scroll, Gerar CV, Ir para vaga grava; +Processo)
+   e extensão **v2.40** (Easy Apply, Gupy, habilidades, arrastar).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 19 (25→29/jun/2026)
+
+**Tema:** refazer o card de Oportunidade sob o crivo cognitivo + destravar o copiloto em portais reais.
+Cada mudança de risco passou pelo **senova-auditor** (verificação independente) ANTES do deploy.
+
+### Card de Oportunidade (produção, commits `f67dd2b`→`2e5b0ee`)
+- Análise automática = **só Compatibilidade** (`mvAutoCompatCheck`); **Documentos sob demanda** ("Gerar CV").
+- "Dados da vaga" sai do lead importado (valor nos pills); mantido na criação manual.
+- Rodapé: "Ir para vaga" navy/principal e **grava antes** de navegar; "Salvar" secundário.
+- **Anti-perda:** `saveVaga`/`saveVagaSilent` mesclam (`...existing`) — nunca descartam análise (era perda latente).
+- Gerar CV **nunca de snippet** (piso 400 unificado). Vocabulário: Compatibilidade, **PDF Executivo**, sem "Score".
+- Descrição compacta (~3 linhas) → Documentos aparece sem scroll.
+
+### Extensão / Copiloto v2.34 → v2.40 (Marcos recarrega)
+- v2.34 LinkedIn não inventa "Formulário" · v2.35 não invade Google · v2.36 first/last name ·
+  v2.37 auto-detecta envio em /thanks · v2.38 preenche Gupy (sem `<form>`) + painel arrastável ·
+  v2.39 auto-seleciona habilidades (chips) · v2.40 reconhece Easy Apply.
+- Bridges novas no app: `__senovaCopilotoEscolherHabilidadesPrompt`; Cartão expõe `primeiroNome`/`sobrenome`.
+
+### Decisões de produto
+- Copiloto **automático em toda vaga do LinkedIn** (Marcos).
+- Habilidades = decisão **profissional** (copiloto seleciona, Marcos revisa); dado **sensível** = usuário declara no Perfil.
+- "Dados da vaga" não vive na Oportunidade importada.
+
+### Processo / memória
+- senova-auditor usado **7×** nesta sessão. Memória nova: **`feedback_auditar_antes_do_teste`**
+  (varrer todos os estados ANTES de pedir teste a Marcos; entrega incompleta queima o QA dele).
 
 ---
 
