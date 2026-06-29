@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.54
+// Content script — Senova Extension v2.55
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -577,14 +577,10 @@
     } catch (_) {}
   }
 
-  // Botão flutuante em todas as plataformas exceto LinkedIn (usa popup).
-  if (!host.includes('linkedin.com')) {
-    if (document.readyState === 'complete') {
-      setTimeout(() => _tentarInjetar(6), 1200);
-    } else {
-      window.addEventListener('load', () => setTimeout(() => _tentarInjetar(6), 1200));
-    }
-  }
+  // FAB legado APOSENTADO (v2.55): o copiloto (passe) e o popup cobrem salvar/analisar. O FAB
+  // aparecia no site da empresa e poluía a tela ("lixo de outras versões"). _tentarInjetar fica
+  // definido mas nunca é disparado automaticamente.
+  void _tentarInjetar;
 
   // Auto-atualização Senova: em /jobs/view/ o browser está logado e pode ler a descrição completa.
   // Assim que encontrar, envia para o Senova (se estiver aberto) sem precisar de clique extra.
@@ -627,6 +623,7 @@
   let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
   let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
   let _ultimoPasse = undefined; // estado do passe lido nesta página externa (instrumentação do diag)
+  let _reinjetTs = 0;           // throttle de reinjeção do copiloto em SPA que apaga o painel
   let _lastDiagSig = '';      // último diagnóstico logado (evita repetir no console a cada mutação)
 
   function _esc(s) {
@@ -1028,7 +1025,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.54',
+      'SENOVA DIAG v2.55',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1509,7 +1506,14 @@
     _checarEnvioAuto(); // checa já no load — a página estática de "obrigado" pode não gerar mutação
 
     // Reescaneia quando a página muda (modal abre / avança de etapa / confirmação de envio).
+    // PERSISTÊNCIA: se o SPA (Greenhouse/Gupy/Workday) re-renderiza o body e apaga o painel,
+    // reinjeta com a mesma análise — o copiloto não pode "abrir e fechar". Throttle anti-thrash.
+    if (_copilotoObserver) _copilotoObserver.disconnect();
     _copilotoObserver = new MutationObserver(() => {
+      if (_copilotoAnalise && !document.getElementById('snv-copiloto')) {
+        if (Date.now() - _reinjetTs > 800) { _reinjetTs = Date.now(); injetarCopiloto(_copilotoAnalise); }
+        return;
+      }
       clearTimeout(_copilotoT);
       _copilotoT = setTimeout(() => { _checarEnvioAuto(); _atualizarCorpo(); }, 400);
     });

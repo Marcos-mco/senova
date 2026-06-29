@@ -1,4 +1,4 @@
-// Popup — Senova Extension v2.13
+// Popup — Senova Extension v2.55
 
 const APP_URL = 'https://marcos-mco.github.io/senova';
 
@@ -64,6 +64,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!dados) { mostrarEstado('generico'); return; }
 
+  // VEIO DO SENOVA? Passe fresco com card + vaga desta página é a mesma → mostra o card do Senova
+  // (score já calculado, sem reanalisar nem gastar chamada) e oferece abrir o copiloto aqui.
+  try {
+    const ps = await chrome.storage.local.get('senova_passe');
+    const passe = ps.senova_passe;
+    if (passe && passe.jobId && !passe.porFora && (Date.now() - passe.ts) < 45 * 60 * 1000) {
+      const _n = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+      const cp = _n(dados.cargo), cpasse = _n(passe.cargo);
+      const mesmaVaga = !cp || !cpasse || cp.includes(cpasse) || cpasse.includes(cp);
+      if (mesmaVaga) { renderDoSenova(passe, dados.tipo === 'vaga' ? dados : null); return; }
+    }
+  } catch (_) {}
+
   if (dados.tipo === 'vaga' && (dados.cargo || dados.empresa)) {
     _dadosVaga = dados;
     renderVaga(dados);
@@ -91,16 +104,39 @@ function renderVaga(d) {
   el('btn-ver-processos').addEventListener('click', abrirProcessos);
 
   // Entrada "Por fora": ativa o copiloto na própria página da vaga, com a análise feita aqui.
-  // Se você VEIO DO SENOVA (passe fresco com card), o copiloto já abre sozinho na página —
-  // não mostramos este botão (seria redundante e poderia rebaixar o card a "sem-card").
+  // (Quando você VEM do Senova, o init mostra renderDoSenova ANTES daqui — esta tela é só por-fora.)
+  const bcop = el('btn-copiloto');
+  if (bcop) { bcop.style.display = 'block'; bcop.addEventListener('click', iniciarCopiloto); }
+}
+
+// Você VEIO DO SENOVA: mostra o card (cargo/empresa + score já calculado, sem reanalisar) e a ação
+// principal vira ABRIR O COPILOTO nesta página — não "Salvar/Analisar" (que são entradas por-fora).
+function renderDoSenova(passe, dados) {
+  mostrarEstado('vaga');
+  el('vaga-cargo').textContent   = passe.cargo || dados?.cargo || 'Vaga do seu Senova';
+  el('vaga-empresa').textContent = passe.empresa || dados?.empresa || '';
+  el('vaga-canal').textContent   = 'Do seu Senova';
+  el('vaga-local').textContent   = '';
+  _analise = { score: passe.score, pontos_fortes: passe.compatFortes || [], pontos_atencao: passe.compatAtencao || [] };
+  if (passe.score != null) renderScore(_analise); else esconderScore();
+  // Esconde as ações por-fora; mostra abrir copiloto (primária) + ver processos.
+  ['btn-salvar', 'btn-analisar'].forEach(id => { const b = el(id); if (b) b.style.display = 'none'; });
+  const bvp = el('btn-ver-processos'); if (bvp) { bvp.style.display = 'block'; bvp.addEventListener('click', abrirProcessos); }
   const bcop = el('btn-copiloto');
   if (bcop) {
-    const _mostrarBtnCop = () => { bcop.style.display = 'block'; bcop.addEventListener('click', iniciarCopiloto); };
-    chrome.storage.local.get('senova_passe').then(s => {
-      const p = s.senova_passe;
-      const veioDoSenova = p && p.jobId && !p.porFora && (Date.now() - p.ts) < 45 * 60 * 1000;
-      if (!veioDoSenova) _mostrarBtnCop();
-    }).catch(_mostrarBtnCop);
+    bcop.style.display = 'block';
+    bcop.textContent = 'Abrir copiloto nesta vaga';
+    bcop.addEventListener('click', async () => {
+      if (!_tab) return;
+      bcop.disabled = true; bcop.textContent = 'Abrindo…';
+      try {
+        await chrome.tabs.sendMessage(_tab.id, { type: 'ATIVAR_COPILOTO', analise: {
+          jobId: passe.jobId, score: passe.score, compatFortes: passe.compatFortes,
+          compatAtencao: passe.compatAtencao, cargo: passe.cargo, empresa: passe.empresa
+        } });
+      } catch (_) {}
+      window.close();
+    });
   }
 }
 
