@@ -1,5 +1,10 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 29/jun/2026 — Sessão 20 — FECHADA (extensão v2.50)*
+*Atualizado: 29/jun/2026 — Sessão 21 — FECHADA (extensão v2.58 · candidatura externa ponta-a-ponta)*
+
+## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
+Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
+com segurança de onde paramos (este arquivo + memória), e **chegue com um plano dos próximos
+passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio.
 
 ## LEITURA OBRIGATÓRIA AO INICIAR QUALQUER SESSÃO
 1. Ler este arquivo completo
@@ -29,32 +34,69 @@
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — sem alteração na Sessão 11)
-- **Extensão Chrome:** **v2.50** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
+- **Extensão Chrome:** **v2.58** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `27c734e` (29/jun/2026 — Sessão 20 — extensão v2.50)
+- **Último commit estável:** `1589b28` (29/jun/2026 — Sessão 21 — extensão v2.58)
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 21) — AÇÕES IMEDIATAS
-1. **CONFIRMAR — painel v2.50** (altura máx 85vh + rolagem interna + arrasto vertical; diagnóstico fechado
-   por padrão). Marcos ia fazer o teste final no fechamento.
-2. **A CONSTRUIR — consentimento de dados sensíveis NO PERFIL** (CPF/PIS/nascimento/raça/gênero/orientação:
-   declarar + autorizar, "prefiro não informar"). Até lá o copiloto **lê e mostra**, mas **não preenche**
-   sensível. Ver [[feedback_auditar_antes_do_teste]].
-3. **A AVALIAR — preencher dropdowns/selects** ("Você trabalha na DHL?", "Por onde encontrou a vaga?").
-   Hoje o copiloto só preenche **texto**. Delicado: escolher a opção errada é pior que deixar em branco.
-4. **A CONSTRUIR — score + Gerar CV direto no LinkedIn** (copiloto automático em toda vaga `/jobs/view/`
-   com "Analisar esta vaga" → cria card + pontua + libera Gerar CV). Herdado da Sessão 19.
-5. **DECISÃO — Modo Diagnóstico:** está embutido na extensão (discreto, fechado por padrão, botão
-   "📋 Copiar para enviar ao Bruno"). Manter como ferramenta de campo ou esconder atrás de toggle.
-   Suavizar o flash inicial do diagnóstico no load.
-6. **Limpeza:** aposentar FAB legado · unificar passe + `temCV`.
+## ⚠️ AO RETOMAR (Sessão 22) — FRENTE PRINCIPAL: EASY APPLY (Candidatura Simplificada LinkedIn)
+Marcos pediu **"reunião de toda a equipe"** para esta frente — é fluxo diferente do externo (que JÁ
+funciona). **Instrumentar ANTES de codar** (senova-auditor + Modo Diagnóstico nas 4 páginas do modal),
+desenhar sob o crivo cognitivo, fatiar. Agenda definida na Sessão 21:
+1. **Detecção honesta:** o painel mostrou *"Candidatura no site da empresa"* num Easy Apply — ERRADO.
+   Tem que rotular **"Candidatura Simplificada (LinkedIn)"** e se comportar como tal. (Bug concreto.)
+2. **CV no Easy Apply (o nó):** etapa de currículo aparece só na pág. 2/3 do modal; o navegador PROÍBE
+   anexar arquivo por código. Decidir: (a) "Baixar meu CV" quando a etapa abrir + você anexa; (b) usar o
+   currículo que o LinkedIn já guarda; (c) orientação clara do passo. Hoje Marcos "não soube gerar/mandar".
+3. **Multi-página:** preencher página a página (Contato→Currículo→Perguntas→Revisar), **parar antes do
+   "Enviar"** (nunca auto-submit — regra inviolável).
+4. **Marcar CV Enviado:** detectar o envio DENTRO do modal (não há página de "obrigado" externa).
+
+### Pendências antigas ainda abertas
+- **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO:** o casamento de opção da Sessão 21 cobre `<select>`
+  nativo; custom/radio ficam para expandir COM dado do Diagnóstico (anti-gambiarra).
+- **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
+- **Limpeza:** unificar passe + `temCV` (FAB já foi aposentado na S21).
+- Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 21 (29/jun/2026)
+
+**🏆 MARCO: a candidatura em site externo passou ponta-a-ponta pela 1ª vez** (Gupy/Cepêra). Marcos:
+*"Funcionou tudo… primeira vez que tudo deu certo!!!!"*. App (dados sensíveis) + extensão **v2.50 → v2.58**.
+
+### Dados sensíveis de candidatura (app — aba Perfil) — LGPD by design
+- Card "Dados para candidatura": **CPF, PIS, nascimento** (texto) + **gênero, raça/cor (IBGE), orientação**
+  (seleção) + toggle de autorização (OFF por padrão). Vivem **só no `localStorage`** — Salvar próprio,
+  **NUNCA** vão ao Worker/KV nem à IA (o Cartão é ponte local sem `fetch`; trava da IA impede prosa em CPF).
+- **Autoidentificação com variantes aprovadas:** o copiloto só MARCA a opção do portal que corresponde
+  EXATAMENTE à escolha (Pardo/Parda, PT/EN); 0 ou ambígua → branco e avisa. Nunca infere. Opt-in explícito
+  "Negro(a) ≡ Preta/Parda". Gênero ampliado: cis/trans/não-binário/agênero/fluido/bigênero — trans/NB sem
+  opção equivalente NUNCA caem em caixa binária. Motores testados (raça/orientação 14/14, gênero 17/17).
+
+### Extensão / Copiloto v2.51 → v2.58 (Marcos recarrega)
+- **v2.51** CPF/PIS/nascimento (texto). **v2.52** autodeclaração por casamento de opção. **v2.53** taxonomia
+  de gênero ampliada. **v2.54** anti-rebaixamento do card no popup + esconde botão quando vem do Senova +
+  **REMOVIDOS TODOS OS ÍCONES INFANTIS** (🚀✍️📄🔍📋✨⚡💼💡). **v2.55** FAB legado APOSENTADO + persistência
+  SPA + popup reconhece o card (mostra score sem reanalisar). **v2.56** **watchdog** (intervalo, independente
+  do DOM) — resolve SPA que troca o `<body>` e matava o observer → copiloto "abre e FICA". **v2.57** lê a
+  pergunta REAL no Gupy (ignora placeholder genérico "Digite sua resposta aqui") + nunca escreve meta-resposta
+  da IA ([PULAR]). **v2.58** reconhece "Candidatura finalizada" (Gupy) → card move p/ CV Enviado + instrução.
+
+### Decisões de produto / processo
+- **Honestidade radical:** o copiloto nunca escreve a dúvida da IA no campo; declara o que faltou ("N perguntas
+  precisam de você"). **Sem ícones infantis** — regra reforçada por Marcos (sobriedade executiva).
+- **Easy Apply é outra frente** (ver AO RETOMAR) — Marcos pediu reunião de equipe; instrumentar antes.
+- Painel **v2.50 VALIDADO** por Marcos. Método mantido: instrumentar (Modo Diagnóstico mostra `passe (card)`,
+  rótulos, grupos) → ver a causa → fix geral. Anti-gambiarra o tempo todo.
 
 ---
 
