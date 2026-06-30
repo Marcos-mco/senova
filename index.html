@@ -9284,6 +9284,7 @@ REGRAS:
 - Responda APENAS o que a pergunta pede, em 1 a 3 frases.
 - Use só fatos do perfil. NUNCA invente formação, experiência, número ou localização.
 - Se a vaga exige algo que o perfil não confirma (ex.: residir em outra cidade), seja honesto e construtivo (disponibilidade para relocação/remoto), sem prometer o que não é verdade.
+- Se a "pergunta" estiver vazia, ilegível ou for só um placeholder genérico (ex.: "Digite sua resposta aqui"), responda APENAS com [PULAR] — nunca peça contexto nem escreva uma dúvida (isso iria parar dentro do campo).
 - Sem saudação e sem assinatura. Devolva só o texto da resposta.`;
   return { model:MODELOS.rapido, max_tokens:400, system:sys,
     messages:[{role:'user',content:`Vaga: ${cargo||'(não informado)'}${empresa?(' na '+empresa):''}.\n\nPergunta do formulário:\n"${String(pergunta).slice(0,500)}"\n\nEscreva a resposta de Marcos.`}] };

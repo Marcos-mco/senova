@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.56
+// Content script — Senova Extension v2.57
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -622,6 +622,7 @@
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
   let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
   let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
+  let _pergPendentes = [];    // perguntas que a IA não conseguiu responder → você responde à mão
   let _ultimoPasse = undefined; // estado do passe lido nesta página externa (instrumentação do diag)
   let _reinjetTs = 0;           // throttle de reinjeção do copiloto em SPA que apaga o painel
   let _copilotoFechadoManual = false; // você fechou no × → não reabrir sozinho
@@ -647,24 +648,40 @@
     // se contém um campo, é um container (linha do form) e não o rótulo em si
     if (el.querySelector && el.querySelector('input,textarea,select,button')) return '';
     const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-    return (t.length >= 2 && t.length <= 90) ? t : '';
+    return (t.length >= 2 && t.length <= 140) ? t : '';
+  }
+
+  // Placeholder GENÉRICO de resposta livre ("Digite sua resposta aqui", "Type your answer") NÃO é
+  // a pergunta — no Gupy/Typeform a pergunta real fica ACIMA do campo. Não confundir com placeholder
+  // que cita o campo ("Digite seu e-mail") — esse é informativo e fica.
+  function _placeholderGenerico(p) {
+    const t = (p || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+    if (!t) return true;
+    return /^(digite|escreva|insira|informe|preencha)\b.*\b(resposta|aqui)\b/.test(t)
+        || /^(type|enter)\b.*\b(answer|response|here)\b/.test(t)
+        || /^(sua resposta|your answer|resposta|answer|digite aqui|type here|aqui|here)$/.test(t);
   }
 
   // Rótulo pela POSIÇÃO: o texto que antecede o campo. A maioria dos ATS (DHL, Lumesse, etc.)
   // põe o rótulo ACIMA/AO LADO do input, sem o vínculo formal "for" — sem isto o copiloto lia
   // só os poucos campos "colados" (2 de 49 no form da DHL). Sobe poucos níveis, conservador.
+  // Limpa o rótulo de pergunta: tira numeração "1." e o "*" de obrigatório.
+  function _limpaPergunta(t) { return (t || '').replace(/^\s*\d+[.)]\s*/, '').replace(/\s*\*+\s*$/, '').trim(); }
   function _rotuloPorPosicao(el) {
-    let node = el;
+    let node = el, melhor = '';
     for (let nivel = 0; nivel < 4 && node && node !== document.body; nivel++) {
       let sib = node.previousElementSibling, hops = 0;
       while (sib && hops < 4) {
         const t = _textoRotulo(sib);
-        if (t) return t;
+        if (t) {
+          if (/\?\s*\*?\s*$/.test(t)) return _limpaPergunta(t); // a pergunta (termina em ?) é o melhor rótulo
+          if (!melhor) melhor = t; // guarda o 1º texto como reserva
+        }
         sib = sib.previousElementSibling; hops++;
       }
       node = node.parentElement;
     }
-    return '';
+    return _limpaPergunta(melhor);
   }
 
   // Rótulo de um campo: <label for> → label ancestral → aria → placeholder → POSIÇÃO (texto ao
@@ -678,7 +695,7 @@
       const ref = document.getElementById(el.getAttribute('aria-labelledby'));
       if (ref) t = ref.innerText;
     }
-    if (!t && el.placeholder) t = el.placeholder;
+    if (!t && el.placeholder && !_placeholderGenerico(el.placeholder)) t = el.placeholder;
     if (!t) t = _rotuloPorPosicao(el);
     if (!t && el.name) t = el.name;
     return (t || '').replace(/\s+/g, ' ').trim().slice(0, 80);
@@ -1027,7 +1044,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.56',
+      'SENOVA DIAG v2.57',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1138,10 +1155,12 @@
     const _nOutro = new Set(_campos.filter(c => c.grupo === 'outro').map(c => c.label)).size;
     // Autodeclaração declarada no Perfil mas sem opção equivalente neste portal → você escolhe à mão.
     const _selPend = [...new Set(_selPendentes)];
+    const _nPergPend = new Set(_pergPendentes).size;
     const rodapeHTML = _respondido
       ? `<b style="color:#1A6840;">✓ Preenchi ${_esc(_feito || 'o que reconheci')}.</b> `
         + (_nOutro ? `Faltam <b>${_nOutro}</b> ${_nOutro === 1 ? 'campo' : 'campos'} que só você informa (CPF, datas, etc.). ` : '')
         + (_selPend.length ? `Não achei a opção equivalente para <b>${_esc(_selPend.join(', '))}</b> aqui — escolha à mão. ` : '')
+        + (_nPergPend ? `<b>${_nPergPend}</b> ${_nPergPend === 1 ? 'pergunta precisa' : 'perguntas precisam'} de você — deixei em branco. ` : '')
         + 'Revise e envie.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
@@ -1363,6 +1382,14 @@
     return feitas.length ? feitas : null;
   }
 
+  // A resposta da IA é INÚTIL quando ela pede contexto/desiste (campo sem rótulo legível) ou manda
+  // [PULAR]. Nunca escrever isso no campo — seria a dúvida da IA no lugar da resposta de Marcos.
+  function _respostaInutil(s) {
+    const t = (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return /\[pular\]/.test(t)
+      || /preciso de mais contexto|nao consigo responder|nao tenho (informacao|contexto)|poderia (compartilhar|informar|enviar)|pode compartilhar|qual (e|seria) a pergunta|nao ficou claro|nao especificou|compartilhar (o campo|a instrucao|o texto|a pergunta)/.test(t);
+  }
+
   async function _preencher() {
     const btn = document.getElementById('snv-cop-preencher');
     const campos = _coletarCampos();
@@ -1376,7 +1403,7 @@
     }
     _preenchendo = true;
     _habilidadesSel = null;
-    _selFeitas = []; _selPendentes = [];
+    _selFeitas = []; _selPendentes = []; _pergPendentes = [];
     if (_copilotoObserver) _copilotoObserver.disconnect();
     const an = _copilotoAnalise || {};
     let algum = false, erroMsg = '';
@@ -1412,7 +1439,11 @@
         let resp = null;
         try { resp = await chrome.runtime.sendMessage({ type: 'COPILOTO_RESPOSTA', pergunta: c.label, cargo: an.cargo || '', empresa: an.empresa || '' }); } catch (_) {}
         if (resp && resp.erro) { erroMsg = _falha(resp.erro); break; }
-        if (typeof resp === 'string' && resp.trim()) { _preencherCampo(c.el, resp.trim()); algum = true; }
+        const rs = (typeof resp === 'string') ? resp.trim() : '';
+        // NUNCA escrever meta-resposta no campo (IA pedindo contexto / [PULAR]) — seria pôr a dúvida
+        // da IA como se fosse a resposta de Marcos. Sem resposta útil → deixa em branco e avisa.
+        if (rs && !_respostaInutil(rs)) { _preencherCampo(c.el, rs); algum = true; }
+        else if (c.label) _pergPendentes.push(c.label);
       }
     }
 
