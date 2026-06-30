@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.57
+// Content script — Senova Extension v2.58
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1044,7 +1044,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.57',
+      'SENOVA DIAG v2.58',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1136,9 +1136,12 @@
     // não na página da vaga do LinkedIn, onde você ainda nem foi candidatar.
     const _emContextoCand = !!(an && an.jobId) && (!host.includes('linkedin.com') || !!_acharContainerCandidatura());
     const btnCandHTML = _candidatado
-      ? `<div style="margin-top:9px;display:flex;align-items:center;gap:8px;background:#EAF7EF;border:1px solid rgba(26,104,64,0.25);border-radius:8px;padding:9px 11px;">
-           <span style="font-size:13px;font-weight:700;color:#1A6840;flex:1;line-height:1.3;">✓ Registrei como CV Enviado</span>
-           <button id="snv-cop-naoenviei" style="background:none;border:none;color:#2E6DA4;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">Não enviei</button>
+      ? `<div style="margin-top:9px;background:#EAF7EF;border:1px solid rgba(26,104,64,0.25);border-radius:8px;padding:10px 12px;">
+           <div style="display:flex;align-items:center;gap:8px;">
+             <span style="font-size:13px;font-weight:700;color:#1A6840;flex:1;line-height:1.3;">✓ Registrei como CV Enviado</span>
+             <button id="snv-cop-naoenviei" style="background:none;border:none;color:#2E6DA4;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">Não enviei</button>
+           </div>
+           <div style="font-size:12px;color:#2C2C2A;line-height:1.45;margin-top:6px;">O card avançou para <b>CV Enviado</b> no Senova. Acompanhe seu e-mail (e o spam) nos próximos dias — quando houver retorno, atualize o processo no Senova.</div>
          </div>`
       : _emContextoCand
         ? `<button id="snv-cop-candidatei" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Já me candidatei</button>`
@@ -1251,7 +1254,7 @@
   // Quando o formulário que você preencheu SOME e aparece a confirmação do portal, o copiloto
   // marca a candidatura sozinho e avisa (reversível em "Não enviei"). Conservador: só dispara
   // na transição form→confirmação, nunca por uma frase solta. O botão manual é a rede de segurança.
-  const _RE_CONFIRMA = /candidatura\s+(enviada|realizada|recebida|conclu[ií]da|registrada|efetuada)|inscri[çc][ãa]o\s+(realizada|enviada|conclu[ií]da)|curr[ií]culo\s+enviado|recebemos\s+sua\s+candidatura|obrigad[oa]\s+por\s+(se\s+candidatar|sua\s+candidatura|se\s+inscrever)|application\s+(sent|submitted|received|complete)|thank\s+you\s+for\s+(applying|your\s+application)|successfully\s+applied/i;
+  const _RE_CONFIRMA = /candidatura\s+(enviada|realizada|recebida|conclu[ií]da|registrada|efetuada|finalizada)|inscri[çc][ãa]o\s+(realizada|enviada|conclu[ií]da|finalizada)|curr[ií]culo\s+enviado|recebemos\s+sua\s+candidatura|obrigad[oa]\s+por\s+(se\s+candidatar|sua\s+candidatura|se\s+inscrever)|application\s+(sent|submitted|received|complete|finished)|thank\s+you\s+for\s+(applying|your\s+application)|successfully\s+applied/i;
 
   function _temConfirmacaoEnvio() {
     const els = document.querySelectorAll('h1,h2,h3,h4,p,span,strong,div');
