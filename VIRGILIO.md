@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 29/jun/2026 — Sessão 21 — FECHADA (extensão v2.58 · candidatura externa ponta-a-ponta)*
+*Atualizado: 01/jul/2026 — Sessão 22 — FECHADA (fundação: MANIFESTO_SENOVA.md ratificado · Passo 1 auditado · fix H4+H3 pendente de teste)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -25,7 +25,7 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ESTADO ATUAL — 29/jun/2026 (Sessão 20)
+## ESTADO ATUAL — 01/jul/2026 (Sessão 22)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -39,32 +39,49 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit estável:** `1589b28` (29/jun/2026 — Sessão 21 — extensão v2.58)
+- **Último commit:** `2e4fc90` (30/jun/2026 — MANIFESTO_SENOVA.md, **local/não pushado**). Estável em produção: `1589b28` (extensão v2.58).
+- **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
+- **Working tree:** `index.html` com o fix **H4+H3 (metadados da análise) — NÃO testado, NÃO commitado**. Backup `senova_v3.47_30jun2026_pre-H4H3.html`.
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 22) — FRENTE PRINCIPAL: EASY APPLY (Candidatura Simplificada LinkedIn)
-Marcos pediu **"reunião de toda a equipe"** para esta frente — é fluxo diferente do externo (que JÁ
-funciona). **Instrumentar ANTES de codar** (senova-auditor + Modo Diagnóstico nas 4 páginas do modal),
-desenhar sob o crivo cognitivo, fatiar. Agenda definida na Sessão 21:
-1. **Detecção honesta:** o painel mostrou *"Candidatura no site da empresa"* num Easy Apply — ERRADO.
-   Tem que rotular **"Candidatura Simplificada (LinkedIn)"** e se comportar como tal. (Bug concreto.)
-2. **CV no Easy Apply (o nó):** etapa de currículo aparece só na pág. 2/3 do modal; o navegador PROÍBE
-   anexar arquivo por código. Decidir: (a) "Baixar meu CV" quando a etapa abrir + você anexa; (b) usar o
-   currículo que o LinkedIn já guarda; (c) orientação clara do passo. Hoje Marcos "não soube gerar/mandar".
-3. **Multi-página:** preencher página a página (Contato→Currículo→Perguntas→Revisar), **parar antes do
-   "Enviar"** (nunca auto-submit — regra inviolável).
-4. **Marcar CV Enviado:** detectar o envio DENTRO do modal (não há página de "obrigado" externa).
+## ⚠️ AO RETOMAR (Sessão 23) — FUNDAÇÃO DO V1 (sob o MANIFESTO)
+Base de decisão agora: **`MANIFESTO_SENOVA.md`** + **Definição de "Pronto" do V1** (happy path sem erro +
+fora-de-escopo declarado + substrato estruturado). Ler o manifesto antes de propor qualquer coisa.
+Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
+1. **TESTAR o H4+H3** (está no working tree, NÃO commitado). Console:
+   `vagas.filter(v=>v.atsAnaliseData).map(v=>({c:v.cargo,d:new Date(v.atsAnaliseData).toLocaleString(),i:v.atsCvIdioma}))`.
+   Aprovar → commit → (decidir push).
+2. **H5 — convergir motivo:** `vaga.motivo` (modal do card, save em `index.html:6058`) vs `vaga.motivoArquivamento`
+   (Kanban, `arquivarSalvar` 5072). Fix PLANEJADO — mexe no save central + migração de dados antigos. NÃO é warm-up.
+3. **#6 Retorno recebido (maior valor p/ Sofia):** hoje 100% volátil (e-mail classificado no Worker nunca toca o
+   card). Gravar `teveRetorno/tipoRetorno/retornoData` no card.
+4. **#5 Transições de estágio** (array `{de,para,ts}`) · **#1 setor** na extração da IA. Tudo em campo, dentro de
+   `vaga`/`contato` — sem entidade nova.
+
+### Decisão de escopo (Sessão 22)
+- **Easy Apply deep-dive FORA do V1** (upload/multi-página/dropdowns por portal = a assíntota que prende).
+  Sobrevive só o **fix de detecção honesta** (hoje rotula errado "Candidatura no site da empresa" num Easy Apply).
+- **Universal na ARQUITETURA, um corredor humano por vez na EXECUÇÃO.** Mercado: lusófono primeiro; Bálcãs→Alemanha depois.
 
 ### Pendências antigas ainda abertas
-- **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO:** o casamento de opção da Sessão 21 cobre `<select>`
-  nativo; custom/radio ficam para expandir COM dado do Diagnóstico (anti-gambiarra).
+- **Manifesto:** decidir push (publicar) ou manter local (`2e4fc90`).
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
-- **Limpeza:** unificar passe + `temCV` (FAB já foi aposentado na S21).
+- **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 22 (30/jun–01/jul/2026)
+
+**Sessão de FUNDAÇÃO — código de produção intocado.**
+- **`MANIFESTO_SENOVA.md` ratificado (`2e4fc90`, local):** constituição do produto — a quem serve (o usuário, não o dono), ordem missão↔renda, "sem contra-indicação", IA do lado da pessoa, métrica-norte (pessoas que encontram onde são chamadas, nunca tempo-de-tela), universal-na-arquitetura, os 2 crivos, visão≠utopia. Complementa SOFIA_ALMA.md. Editável só com autorização de Marcos.
+- **Definição de "Pronto" do V1** (brief de Virgílio) acatada; **Easy Apply deep-dive rebaixado** (só detecção honesta); **mercado:** lusófono primeiro / Bálcãs→Alemanha depois.
+- **Passo 1 — auditoria do substrato (senova-auditor, read-only):** happy path sólido incl. ética; lacunas p/ Sofia = retorno (volátil), transições (prosa), setor (ausente); higiene H1-H5. Tudo cabe em `vaga`/`contato` — sem entidade nova.
+- **H4+H3 implementado (PENDENTE DE TESTE, não commitado):** grava `atsAnaliseData`+`atsCvIdioma` na análise (`index.html:6821` + preservação `6065-6066`). QA Fase 2 ok; backup `senova_v3.47`.
 
 ---
 

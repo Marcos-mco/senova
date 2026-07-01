@@ -1,10 +1,45 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 29/jun/2026 — Sessão 20 (FECHADA)
+> Última atualização: 01/jul/2026 — Sessão 22 (FECHADA)
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **sem alteração nesta sessão** · working tree limpo no fechamento
-Extensão **v2.50** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store)
-Worker — sem alteração nesta sessão (rate limit da Sessão 18 segue no ar, deploy `a5a11b89`)
+Senova app — produção em marcos-mco.github.io/senova · **produção sem alteração** (o fix **H4+H3** está no working tree, ainda **NÃO testado por Marcos nem commitado**)
+Extensão **v2.58** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store) · sem alteração nesta sessão
+Worker — sem alteração nesta sessão (deploy `a5a11b89`)
+Novo: **`MANIFESTO_SENOVA.md`** commitado local (`2e4fc90`) — ainda **NÃO pushado** (aguarda sinal de Marcos p/ publicar).
+
+## O QUE FOI FEITO — SESSÃO 22 (30/jun–01/jul/2026)
+
+**Tema:** sessão de **FUNDAÇÃO** — definir a quem o Senova serve e como ganha a vida sem se trair, e auditar o substrato de aprendizado do V1. Código de produção intocado.
+
+### Fundação / estratégia
+- **`MANIFESTO_SENOVA.md` (ratificado, `2e4fc90`):** constituição do produto — razão de existir (serve o usuário, não o dono), ordem missão↔renda, "sem contra-indicação", IA do lado da pessoa, métrica-norte (pessoas que encontram onde são chamadas, nunca tempo-de-tela), universal-na-arquitetura, os **2 crivos**, veredito visão≠utopia. Complementa `SOFIA_ALMA.md`. Editável só com autorização de Marcos.
+- **Definição de "Pronto" do V1 (brief de Virgílio, acatado):** happy path sem erro + fora-de-escopo declarado + substrato de aprendizado capturando dado **ESTRUTURADO** (campos, não prosa), dentro dos cards existentes.
+- **Universal × Pareto (decidido):** universal na ARQUITETURA (CV/carta agnóstico, qualquer língua); um corredor humano por vez na EXECUÇÃO. **Easy Apply deep-dive REBAIXADO** (upload/multi-página = a assíntota que prende); sobrevive só o fix de detecção honesta. **Mercado:** arranque lusófono primeiro; Bálcãs→Alemanha como 1ª expansão internacional.
+
+### Passo 1 — auditoria do substrato (senova-auditor, read-only)
+- **Happy path central SÓLIDO, incluindo a honestidade ética** (prompts não inventam; copiloto `[PULAR]`).
+- **Maiores lacunas p/ a Sofia:** retorno recebido (volátil, nunca no card), transições de estágio (prosa), setor (ausente). Já estruturados: canal, desfecho+motivo, temperatura.
+- **Higiene:** H1 (envio por e-mail sem anexo), H5 (dois campos de motivo divergentes), H2/H3/H4 (piso/idioma/data).
+
+### Fix implementado (PENDENTE DE TESTE)
+- **H4+H3 — gravar metadados da análise:** `atsAnaliseData` (data) + `atsCvIdioma` (idioma) no save da análise (`index.html:6821`) e preservados no rebuild do card (`index.html:6065-6066`). QA (Fase 2) passou; backup `senova_v3.47_30jun2026_pre-H4H3.html`. **Working tree modificado, NÃO commitado — aguarda o teste de Marcos.**
+
+## PRÓXIMAS PRIORIDADES — SESSÃO 23 (retomar aqui)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Testar H4+H3** (console: `vagas.filter(v=>v.atsAnaliseData)…`) → aprovar → commit | Pendente teste |
+| 2 | **H5 — convergir os dois campos de motivo** (`motivo` vs `motivoArquivamento`) — fix planejado, mexe no save do card + migração | A planejar |
+| 3 | **#6 Retorno recebido** — vincular e-mail classificado ao card (`teveRetorno/tipoRetorno/retornoData`) — maior valor p/ Sofia | A construir |
+| 4 | **#5 Transições de estágio** (array `{de,para,ts}`) · **#1 setor** na extração da IA | A construir |
+| 5 | **Manifesto** — decidir push (publicar) ou manter local | Decisão |
+
+## DECISÕES DE PRODUTO — SESSÃO 22
+- **Constituição escrita** (`MANIFESTO_SENOVA.md`) — pedra contra a qual toda decisão futura é medida.
+- **Easy Apply deep-dive fora do V1** (só detecção honesta) — universalidade vem da arquitetura agnóstica, não de código por portal.
+- **Substrato de aprendizado** vive nos cards existentes (`vaga`/`contato`) — nenhuma entidade nova.
+
+---
 
 ## O QUE FOI FEITO — SESSÃO 20 (29/jun/2026)
 

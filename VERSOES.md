@@ -7,7 +7,19 @@
 
 ---
 
-## Sessão 20 — 29/jun/2026 (ATUAL)
+## Sessão 22 — 30jun–01jul/2026 (ATUAL)
+**Status:** App produção **sem alteração** · fix **H4+H3 no working tree (não testado/não commitado)** · Extensão **v2.58** · Worker `a5a11b89`
+**Commits-chave:** `2e4fc90` MANIFESTO_SENOVA.md (constituição — local, não pushado)
+
+Sessão de **fundação**: manifesto do produto + auditoria do substrato de aprendizado (Passo 1).
+- **MANIFESTO_SENOVA.md ratificado:** a quem o Senova serve e como ganha a vida sem se trair (2 crivos, sem contra-indicação, IA do lado da pessoa, métrica-norte). Complementa SOFIA_ALMA.md.
+- **Passo 1 (senova-auditor):** happy path sólido (inclui ética); lacunas p/ Sofia = retorno (volátil), transições (prosa), setor (ausente).
+- **H4+H3:** grava `atsAnaliseData` + `atsCvIdioma` na análise (backup `senova_v3.47`). Aguarda teste de Marcos.
+- **Decisão:** Easy Apply deep-dive fora do V1 (só detecção honesta); universal na arquitetura, um corredor por vez.
+
+---
+
+## Sessão 20 — 29/jun/2026
 **Status:** Funcional · App **sem alteração** · Extensão **v2.50** · Worker `a5a11b89` (sem alteração)
 **Commits-chave:** extensão `content.js`/`manifest.json` v2.40→v2.50
 
