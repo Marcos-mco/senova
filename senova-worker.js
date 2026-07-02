@@ -149,8 +149,23 @@ const CONFIG_PADRAO = {
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version',
+  'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version, x-senova-key',
 };
+
+// Segredo compartilhado: barra chamadas diretas à URL pública do Worker (CORS só
+// protege o navegador, não curl/script). Rotas de escrita real (e-mail/agenda) e de
+// leitura de dados privados (inbox/perfil) exigem o header x-senova-key == SENOVA_APP_SECRET.
+// Fica FORA das rotas que a extensão usa (Fase B) e das de navegação OAuth. Fail-open se
+// o segredo não estiver configurado no ambiente, para não travar durante o rollout.
+const ROTAS_SEM_SEGREDO = new Set([
+  '/health',
+  '/api/claude', '/api/analisar-vaga', '/api/vagas-lead', '/api/whitelist', // usadas pela extensão — Fase B
+  '/api/auth/outlook', '/api/auth/callback', // navegação/OAuth (não carregam header custom)
+]);
+function segredoOk(request, env) {
+  if (!env.SENOVA_APP_SECRET) return true; // não configurado → gate inativo (rollout seguro)
+  return (request.headers.get('x-senova-key') || '') === env.SENOVA_APP_SECRET;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  HELPERS
@@ -422,14 +437,20 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // ── Gate de segredo (rotas de escrita real e dados privados) ─────
+    if (!ROTAS_SEM_SEGREDO.has(path) && !segredoOk(request, env)) {
+      return json({ erro: 'nao_autorizado', detalhe: 'Chave de acesso ausente ou inválida.' }, 401);
+    }
+
     // ── Health ──────────────────────────────────────────────────────
     if (path === '/health') {
       const token = await getValidToken(env);
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.3',
+        status: 'ok', worker: 'senova-proxy', versao: '7.4',
         outlook: token ? 'conectado' : 'desconectado',
+        auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
         statsHoje,
       });
