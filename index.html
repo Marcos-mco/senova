@@ -1267,6 +1267,19 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Chave de acesso do Senova -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Chave de acesso</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:14px;">Protege o envio de e-mails e a criação de eventos na sua conta contra uso indevido. Fica só neste aparelho — nunca sai daqui.</div>
+        <div class="form-row" style="margin:0;">
+          <label class="field-label">Chave (a mesma configurada no Worker)</label>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="password" id="perfil-app-key" placeholder="cole a chave aqui" style="flex:1;min-width:220px;">
+            <button class="btn btn-primary" onclick="salvarChaveAcesso()" style="font-size:13px;padding:8px 18px;">Salvar chave</button>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /panel-4 -->
 
     <!-- ── TAB 5: PREFERÊNCIAS ── -->
@@ -2683,6 +2696,42 @@ select option { background: var(--bg2); }
 </div>
 
 <script>
+// ─── Segurança: chave de acesso ao Worker ─────────
+// A URL do Worker é pública (o código-fonte deste app é servido pelo GitHub Pages).
+// A chave NÃO fica no código — Marcos a digita uma vez em Perfil › Integrações e ela
+// vive só no localStorage deste aparelho. Este interceptor a injeta como header
+// x-senova-key em toda chamada ao Worker, sem tocar nos ~50 pontos de fetch.
+(function(){
+  const PREFIX = 'https://senova-proxy.marcos-mco.workers.dev';
+  const _fetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try{
+      const u = typeof input === 'string' ? input : (input && input.url) || '';
+      if (u.indexOf(PREFIX) === 0){
+        const k = localStorage.getItem('senova_app_key') || '';
+        if (k){
+          init = init ? Object.assign({}, init) : {};
+          init.headers = Object.assign({}, init.headers || {});
+          init.headers['x-senova-key'] = k;
+        }
+      }
+    }catch(e){}
+    return _fetch(input, init);
+  };
+})();
+function salvarChaveAcesso(){
+  const inp = document.getElementById('perfil-app-key');
+  if (!inp) return;
+  const v = (inp.value || '').trim();
+  if (v) localStorage.setItem('senova_app_key', v);
+  else localStorage.removeItem('senova_app_key');
+  if (typeof showToast === 'function') showToast(v ? 'Chave de acesso salva neste aparelho' : 'Chave de acesso removida');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('perfil-app-key');
+  if (inp) inp.value = localStorage.getItem('senova_app_key') || '';
+});
+
 // ─── Resize #home-wrap ───────────────────────────
 (function() {
   const MIN_W = 400, MAX_W = 960, EDGE = 8, LS_KEY = 'sn_home_wrap_w3';
@@ -6064,6 +6113,9 @@ function saveVaga(){
     atsAnalise:existing?.atsAnalise||'',
     atsAnaliseData:existing?.atsAnaliseData||'',
     atsCvIdioma:existing?.atsCvIdioma||'',
+    teveRetorno:existing?.teveRetorno||false,
+    tipoRetorno:existing?.tipoRetorno||'',
+    retornoData:existing?.retornoData||'',
     atsCV:existing?.atsCV||'',
     atsCarta:existing?.atsCarta||'',
     tags:existing?.tags||[],
@@ -7934,8 +7986,8 @@ function merConfirmarAndamento(){
   atualizarPipelineEmail(stage,data,notas);
 }
 function merAceitar(){
-  showToast('✅ Interesse registrado — card em Em Contato');
-  atualizarPipelineEmail('contato','','Aceito via email — recrutador contatado');
+  showToast('✅ Interesse registrado — card em CV Enviado');
+  atualizarPipelineEmail('aplicado','','Aceito via email — recrutador contatado');
 }
 function merDeclinar(){
   if(!confirm('Declinar esta oportunidade?\nO card será arquivado.')) return;
@@ -8072,13 +8124,17 @@ async function atualizarPipelineEmail(stage, data, notas){
   const assunto=_emailAtual.subject||'';
   const empresa=_emailAtual.from_name||emailAddr||'A definir';
   const _t=Date.now();
+  const ehRetorno=['positivo','pipeline','negativo','hunter'].includes(_emailAtual.categoria);
   let card=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr&&(v.emailAssunto||'')===(assunto||''));
   if(card){
     card.status=stage;
     card.updatedAt=_t;
+    if(ehRetorno){card.teveRetorno=true;card.tipoRetorno=_emailAtual.categoria;card.retornoData=_t;}
     if(notas) card.timeline.push({ts:_t,texto:notas});
   } else {
-    vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:stage,salario:'',proxima:data||'',notas:notas||'',emailDest:emailAddr,emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],timeline:[{ts:_t,texto:'Registrado via email'+(notas?': '+notas:'')}]});
+    vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:stage,salario:'',proxima:data||'',notas:notas||'',emailDest:emailAddr,emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],
+      teveRetorno:ehRetorno,tipoRetorno:ehRetorno?_emailAtual.categoria:'',retornoData:ehRetorno?_t:'',
+      timeline:[{ts:_t,texto:'Registrado via email'+(notas?': '+notas:'')}]});
   }
   saveVagas();
   if(data){
@@ -8723,7 +8779,7 @@ function renderDashboardPipeline(){
         const c=(v.canal||'Outros').trim();
         if(!cMap[c]) cMap[c]={total:0,retorno:0};
         cMap[c].total++;
-        if(['entrevista','proposta','aceito'].includes(v.status)) cMap[c].retorno++;
+        if(v.teveRetorno||['entrevista','proposta','aceito'].includes(v.status)) cMap[c].retorno++;
       });
       const ordem=Object.entries(cMap).sort((a,b)=>b[1].total-a[1].total);
       if(!ordem.length){
