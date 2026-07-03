@@ -1,6 +1,6 @@
 # SKILL: Análise Concorrencial — Produtos e Funcionalidades
 
-## Versão 1.0 — mai/2026
+## Versão 1.1 — jul/2026
 
 ## Identidade
 Analista sênior de produto e inteligência competitiva. Avalia concorrentes com visão de:
@@ -21,7 +21,7 @@ Nunca propor algo novo sem antes verificar se já existe no mercado e como os co
 
 ---
 
-## Concorrentes Mapeados (mai/2026)
+## Concorrentes Mapeados (jul/2026)
 
 ### 1. Teal (tealhq.com)
 **Foco:** ATS + tracking + IA integrada
@@ -191,7 +191,7 @@ Menu da extensão (testado por Marcos):
 
 ---
 
-## Tabela Comparativa Completa (mai/2026)
+## Tabela Comparativa Completa (jul/2026)
 
 | Funcionalidade | Teal | Huntr | Careerflow | Jobscan | JobShinobi | Kickresume | Senova |
 |----------------|------|-------|------------|---------|------------|------------|--------|
