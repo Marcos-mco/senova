@@ -164,25 +164,50 @@ Menu da extensão (testado por Marcos):
 - Curva de aprendizado alta
 **Aprendizado para o Senova:** networking de longo prazo é relevante para executivos 50+
 
+### 9. Kickresume (kickresume.com)
+
+**Foco:** Resume builder + Job Tracker + Mapa de Carreira com IA
+**Preço:** Grátis (4 templates, exportação limitada) / Premium US$3,60–24/mês (varia por período de cobrança — anual mais barato, mensal mais caro)
+**Público:** Candidatos em geral, todos os estágios de carreira — sem segmentação por senioridade
+
+**Pontos fortes:**
+- Job Tracker em kanban (All Jobs/Saved/Applied/Interviewing/Offer/Accepted/Closed) — lançado recentemente
+- Mapa de Carreira com onboarding de preferências (renda, estilo de vida, metas, reconhecimento, setores) e sugestões de cargos adjacentes personalizadas por IA
+- Resume builder com 40+ templates visuais e AI Writer (GPT-4.1)
+- ATS Resume Checker
+- Simulador de entrevista integrado
+- Chrome extension para autofill + cover letter em 1 clique
+- Website builder pessoal (7 templates)
+- Import de LinkedIn/PDF
+
+**Pontos fracos:**
+- Job Tracker rastreia vaga, não relacionamento — sem CRM de contatos/headhunters
+- Sem prazo + próxima ação obrigatórios por item — não força cadência de follow-up
+- "Encontre empregos" sem filtro de senioridade — testado com perfil C-level 58 anos retornou cargos operacionais júnior no Canadá
+- Sem foco 50+, sem dados de mercado BR (CLT/PJ, faixas salariais em R$)
+- Queixas externas de conteúdo de IA genérico e alucinação ocasional
+
+**Aprendizado para o Senova:** o onboarding do Mapa de Carreira (perguntas de renda, estilo de vida, metas, reconhecimento, setores) é um bom modelo de enriquecimento de perfil a adaptar para o público 50+ — sem copiar a tela, só a lógica de captura.
+
 ---
 
 ## Tabela Comparativa Completa (mai/2026)
 
-| Funcionalidade | Teal | Huntr | Careerflow | Jobscan | JobShinobi | Senova |
-|----------------|------|-------|------------|---------|------------|--------|
-| Kanban visual | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | ✅ |
-| CRM contatos | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | ✅ |
-| Chrome extension | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ ainda |
-| ATS score/análise | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Resume builder IA | ✅ | ❌ | ✅ | ⚠️ | ❌ | ✅ |
-| Cover letter IA | ✅ | ❌ | ✅ | ✅ | ❌ | 🔄 planejado |
-| Simulador entrevista | ❌ | ❌ | ❌ | ❌ | ❌ | Sofia — assistente de carreira com IA + simulador de entrevista |
-| Email → CRM auto | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ parcial |
-| Homepage pendências | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | 🔄 planejado |
-| Foco executivo 50+ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ único |
-| IA nativa completa | ⚠️ | ❌ | ⚠️ | ⚠️ | ❌ | ✅ |
-| Idioma PT/BR | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Preço/mês | $29 | $30 | $14–24 | $30+ | $10 | R$47 |
+| Funcionalidade | Teal | Huntr | Careerflow | Jobscan | JobShinobi | Kickresume | Senova |
+|----------------|------|-------|------------|---------|------------|------------|--------|
+| Kanban visual | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | ✅ | ✅ |
+| CRM contatos | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | ❌ | ✅ |
+| Chrome extension | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ ainda |
+| ATS score/análise | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Resume builder IA | ✅ | ❌ | ✅ | ⚠️ | ❌ | ✅ | ✅ |
+| Cover letter IA | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | 🔄 planejado |
+| Simulador entrevista | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Email → CRM auto | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ parcial |
+| Homepage pendências | ⚠️ | ✅ | ⚠️ | ❌ | ❌ | ❌ | 🔄 planejado |
+| Foco executivo 50+ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ único |
+| IA nativa completa | ⚠️ | ❌ | ⚠️ | ⚠️ | ❌ | ✅ | ✅ |
+| Idioma PT/BR | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ interface só | ✅ |
+| Preço/mês | $29 | $30 | $14–24 | $30+ | $10 | US$3,60–24 | R$47 |
 
 ---
 
