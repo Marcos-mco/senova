@@ -1,11 +1,11 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.5
+//  SENOVA PROXY — Worker v7.6
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.5 (03/jul/2026) — S1 segurança:
-//  · Gate de segredo por MÉTODO+path (antes: por path só). Fecha o
-//    DELETE /api/auth/outlook e DELETE /api/whitelist, que estavam
-//    isentos junto com o GET legítimo dessas rotas.
+//  NOVIDADES v7.6 (03/jul/2026) — S2 segurança:
+//  · segredoOk fail-CLOSED: segredo ausente no ambiente agora NEGA
+//    (antes liberava geral). Segredo faltando nunca = Worker aberto.
+//  v7.5 — S1: gate de segredo por MÉTODO+path (fecha DELETE outlook/whitelist).
 //  v7.4: gate x-senova-key nas rotas de escrita/dados privados.
 //  v7.3: rotas OAuth Outlook + emails + calendar + whitelist.
 // ══════════════════════════════════════════════════════════════════
@@ -160,7 +160,8 @@ const CORS = {
 // Isenção é por MÉTODO+path (não por path só): DELETE nunca é isento — é sempre chamada
 // do app, que injeta o header. Ficam de fora só os pares que genuinamente não carregam
 // header: navegação OAuth (GET, redirect no browser) e as rotas da extensão (Fase B).
-// Fail-open se o segredo não estiver configurado no ambiente (rollout — endurece no S2).
+// Fail-CLOSED (S2): se o segredo não estiver configurado, o gate NEGA — segredo ausente
+// nunca pode significar "aberto". As rotas isentas acima seguem livres (não passam por aqui).
 const ROTAS_SEM_SEGREDO = new Set([
   'GET /health',
   'POST /api/claude', 'POST /api/analisar-vaga',    // extensão — Fase B
@@ -169,7 +170,7 @@ const ROTAS_SEM_SEGREDO = new Set([
   'GET /api/auth/outlook', 'GET /api/auth/callback', // navegação/OAuth (redirect no browser)
 ]);
 function segredoOk(request, env) {
-  if (!env.SENOVA_APP_SECRET) return true; // não configurado → gate inativo (rollout seguro)
+  if (!env.SENOVA_APP_SECRET) return false; // não configurado → NEGA (fail-closed, S2)
   return (request.headers.get('x-senova-key') || '') === env.SENOVA_APP_SECRET;
 }
 
@@ -454,7 +455,7 @@ export default {
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.5',
+        status: 'ok', worker: 'senova-proxy', versao: '7.6',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -1415,7 +1416,9 @@ Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — va
 
 IDIOMAS — regra obrigatória: o candidato tem inglês avançado e espanhol avançado — NÃO fluente em nenhum dos dois. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) em inglês ou espanhol, registrar OBRIGATORIAMENTE em pontos_atencao. Nunca registrar inglês ou espanhol como ponto_forte se o requisito for fluência. Nunca afirmar que o candidato "atende" exigência de fluência em inglês ou espanhol.
 
-JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|"")}`;
+CANDIDATURA DIRETA: se a descrição instruir enviar a candidatura DIRETO por e-mail fora do portal — frases como "envie seu CV para", "não se candidate por este site", "send your resume/CV to", "email your application to", às vezes com uma palavra-código ou nome de arquivo exigido no assunto — extraia o e-mail para candidatura_direta_email e, se houver, a palavra-código/assunto exigido para candidatura_direta_codigo. Se não houver essa instrução, retorne "" nos dois campos.
+
+JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|""),"candidatura_direta_email":"e-mail extraído ou ''","candidatura_direta_codigo":"código/assunto exigido ou ''"}`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
