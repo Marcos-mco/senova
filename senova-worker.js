@@ -1,11 +1,13 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.3
+//  SENOVA PROXY — Worker v7.5
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.3 (mai/2026):
-//  · Restaura rotas OAuth Outlook + emails + calendar + whitelist
-//  · Mantém varredura v7.2: rotação países, Adzuna + Jobicy
-//  · Health check inclui status Outlook
+//  NOVIDADES v7.5 (03/jul/2026) — S1 segurança:
+//  · Gate de segredo por MÉTODO+path (antes: por path só). Fecha o
+//    DELETE /api/auth/outlook e DELETE /api/whitelist, que estavam
+//    isentos junto com o GET legítimo dessas rotas.
+//  v7.4: gate x-senova-key nas rotas de escrita/dados privados.
+//  v7.3: rotas OAuth Outlook + emails + calendar + whitelist.
 // ══════════════════════════════════════════════════════════════════
 
 // ── Helpers de email ────────────────────────────────────────────────
@@ -155,12 +157,16 @@ const CORS = {
 // Segredo compartilhado: barra chamadas diretas à URL pública do Worker (CORS só
 // protege o navegador, não curl/script). Rotas de escrita real (e-mail/agenda) e de
 // leitura de dados privados (inbox/perfil) exigem o header x-senova-key == SENOVA_APP_SECRET.
-// Fica FORA das rotas que a extensão usa (Fase B) e das de navegação OAuth. Fail-open se
-// o segredo não estiver configurado no ambiente, para não travar durante o rollout.
+// Isenção é por MÉTODO+path (não por path só): DELETE nunca é isento — é sempre chamada
+// do app, que injeta o header. Ficam de fora só os pares que genuinamente não carregam
+// header: navegação OAuth (GET, redirect no browser) e as rotas da extensão (Fase B).
+// Fail-open se o segredo não estiver configurado no ambiente (rollout — endurece no S2).
 const ROTAS_SEM_SEGREDO = new Set([
-  '/health',
-  '/api/claude', '/api/analisar-vaga', '/api/vagas-lead', '/api/whitelist', // usadas pela extensão — Fase B
-  '/api/auth/outlook', '/api/auth/callback', // navegação/OAuth (não carregam header custom)
+  'GET /health',
+  'POST /api/claude', 'POST /api/analisar-vaga',    // extensão — Fase B
+  'GET /api/vagas-lead', 'POST /api/vagas-lead',     // extensão — Fase B
+  'GET /api/whitelist', 'POST /api/whitelist',       // extensão HABILITAR_PORTAL — Fase B
+  'GET /api/auth/outlook', 'GET /api/auth/callback', // navegação/OAuth (redirect no browser)
 ]);
 function segredoOk(request, env) {
   if (!env.SENOVA_APP_SECRET) return true; // não configurado → gate inativo (rollout seguro)
@@ -437,8 +443,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // ── Gate de segredo (rotas de escrita real e dados privados) ─────
-    if (!ROTAS_SEM_SEGREDO.has(path) && !segredoOk(request, env)) {
+    // ── Gate de segredo (por método+path; DELETE nunca é isento) ─────
+    if (!ROTAS_SEM_SEGREDO.has(request.method + ' ' + path) && !segredoOk(request, env)) {
       return json({ erro: 'nao_autorizado', detalhe: 'Chave de acesso ausente ou inválida.' }, 401);
     }
 
@@ -448,7 +454,7 @@ export default {
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.4',
+        status: 'ok', worker: 'senova-proxy', versao: '7.5',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
