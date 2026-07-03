@@ -380,7 +380,7 @@ OCDE Employment Outlook 2025 (older workers; Germany) · Equal Times (paradoxo e
 
 | ID | Decisão | Opções na mesa | Depende de | Status |
 |---|---|---|---|---|
-| **D-01** | **Largura do escopo** (a decisão-raiz) | Estreito (copiloto de candidatura) · Médio (copiloto de recolocação) · Largo (companheiro de empregabilidade + vida) · Marketplace. Proposta de Bruno: *largo de visão, estreito de mão* (V1 estreito, norte largo) | — | **ABERTA** |
+| **D-01** | **Largura do escopo** (a decisão-raiz) | Estreito (copiloto de candidatura) · Médio (copiloto de recolocação) · Largo (companheiro de empregabilidade + vida) · Marketplace. Proposta de Bruno: *largo de visão, estreito de mão* (V1 estreito, norte largo) | — | ✓ **DECIDIDA 03/jul** — ver *Decisões Resolvidas* |
 | **D-02** | **Modelo de negócio** | B2C assinatura (maioria dos docs) · Marketplace B2B2C onde empresas pagam para buscar perfis (VISAO_FUNDACIONAL) · Híbrido (B2C agora, marketplace depois) | D-01 | ABERTA |
 | **D-03** | **Precificação** | R$47/97 (3 docs) · **R$29/59/129** (ESTUDO, mais recente/rigoroso) · R$47/97/197 (PRODUCT_STRATEGY) | D-01, D-02 | ABERTA |
 | **D-04** | **Idade-alvo** | 35+ · 40+ · 50+ (oscila entre docs; CLAUDE.md diz 40+) | D-01 | ABERTA |
@@ -392,10 +392,34 @@ OCDE Employment Outlook 2025 (older workers; Germany) · Equal Times (paradoxo e
 
 ## Recomendações informadas pela pesquisa (02/jul — recomendação de Bruno, NÃO decisão; ver Apêndice D)
 
-- **D-01 (largura) — recomendação:** *moldura larga já, cunha estreita e afiada.* Norte = empregabilidade na segunda metade da vida profissional, borderless, com a inversão de agência e o antídoto à mesmice da IA presentes desde o V1 (posicionamento + arquitetura). Construção do V1 = **um corredor** (recolocação/candidatura ativa), reposicionado como *"seja visto como a pessoa inteira e verificável que você é"*. Marketplace de dois lados continua sequenciado (cold-start), mas o **lado da demanda já está provado** (reverse recruiting). Status: **ABERTA, recomendação registrada.**
+- **D-01 (largura) — recomendação:** *moldura larga já, cunha estreita e afiada.* Norte = empregabilidade na segunda metade da vida profissional, borderless, com a inversão de agência e o antídoto à mesmice da IA presentes desde o V1 (posicionamento + arquitetura). Construção do V1 = **um corredor** (recolocação/candidatura ativa), reposicionado como *"seja visto como a pessoa inteira e verificável que você é"*. Marketplace de dois lados continua sequenciado (cold-start), mas o **lado da demanda já está provado** (reverse recruiting). Status: ✓ **RATIFICADA por Marcos em 03/jul/2026** — ver *Decisões Resolvidas*.
 - **D-03 (preço) — recomendação:** *reabrir com teto mais alto.* O mercado paga US$ 500-15.000 por "alguém do meu lado". Para o resultado "ser visto/encontrado", a disposição a pagar excede o R$29-129 dos documentos — pelo menos fora do Brasil. Manter tier missão "Recomeço". Status: **ABERTA, recomendação registrada.**
 - **D-04 (faixa etária) — recomendação:** *não é faixa, é a segunda metade da vida profissional.* Entrada aguda **~45** (onde a dor primeiro morde, mediana do 1º etarismo), relação começando antes (**40**, ansiedade antecipatória) e se estendendo depois (**60→70**, terceiro ato da longevidade). "50+" é tarde; "35+" é cedo. Status: **ABERTA, recomendação registrada.**
 - **D-06 (mercado) — recomendação:** *o TAM é a economia da longevidade*, não "executivos em busca de emprego" — ordens de grandeza maior e crescente (mas dimensionar o SAM real: gasto com empregabilidade, não consumo total dos 50+). Status: **ABERTA, recomendação registrada.**
+
+---
+
+## DECISÕES RESOLVIDAS (fase convergente — inicia 03/jul/2026)
+
+### D-01 — Largura do escopo · ✓ **DECIDIDA 03/jul/2026** (ratificada por Marcos)
+
+**Resolução:** *"Largo de visão, estreito de mão."* Largura (o **norte**) e escopo-de-construção (o **V1**) são dois eixos separados — não um só. Confundi-los é a origem tanto do medo da "viagem na maionese" quanto da tentação de encolher a visão.
+
+- **Norte / estrela-guia (LARGO):** empregabilidade na **segunda metade da vida profissional**, borderless — com a inversão de agência ("a IA do lado da pessoa") e o antídoto à mesmice da IA presentes desde já, como **posicionamento e arquitetura**. Custo de engenharia: **zero** (é posicionamento, não feature).
+- **Construção / V1 (ESTREITO e afiado):** **um corredor só** — recolocação / candidatura ativa — reposicionado como *"seja visto como a pessoa inteira e verificável que você é."*
+
+**Racional:** separar os dois eixos desarma ao mesmo tempo a maionese (Marcos) e o encolhimento da visão. Sustentado pela leitura de mercado do Apêndice D — tendências de *agora*, não aposta (50+ = 43% do PIB EUA; ferida etária abre aos ~45; "crise de autenticidade da IA" é manchete de 2025; reverse recruiting já monetizado a US$ 500–15k).
+
+**O que esta decisão ENCAMINHA (cascata — a confirmar em cada Dxx):**
+- **D-04** → deixa de ser faixa fixa (35/40/50); vira *"a segunda metade da vida profissional"* (entrada aguda ~45).
+- **D-08** → métrica-norte = a do Manifesto (calma + confiança + "encontrar onde é chamado"); **exclui** a métrica de marketplace.
+
+**O que esta decisão NÃO tranca (aberto de propósito):**
+- **D-02** (marketplace) — *sequenciado, não descartado*: lado da demanda já provado (reverse recruiting), oferta depois.
+- **D-03** (preço) — reabre com teto mais alto.
+- A redação final do corredor do V1.
+
+**Próxima pergunta destravada (D-09 + prioridade #2 da REVISAO_ESTRATEGICA):** qual o **menor caminho seguro para um 2º usuário real** testar este corredor ponta-a-ponta.
 
 ---
 
@@ -410,4 +434,4 @@ OCDE Employment Outlook 2025 (older workers; Germany) · Equal Times (paradoxo e
 
 ---
 
-*Documento vivo. Fase atual: síntese (divergente). Próxima fase: convergente — resolver o Decision Log em ordem de cascata (D-01 primeiro) e gerar `BUSINESS_PLAN.md`. Nada neste dossiê se apaga; decisões se registram.*
+*Documento vivo. Fase atual: **convergente iniciada** — D-01 decidida em 03/jul/2026 (ver Decisões Resolvidas). Próximas: **D-09** (menor caminho seguro p/ um 2º usuário real) e a cascata D-02..D-08, rumo ao `BUSINESS_PLAN.md`. Nada neste dossiê se apaga; decisões se registram.*
