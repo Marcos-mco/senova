@@ -325,6 +325,21 @@ Reserva financeira: 3–4 meses — prioridade é estabilidade. Tom: caloroso, e
 - **Segurança (02/jul/2026):** Worker v7.4 — gate de segredo `x-senova-key` vs `SENOVA_APP_SECRET` nas rotas de escrita/dados privados. **Ativo e validado.** Fase B (rotas da extensão) deferida.
 - **Dívida técnica-chave (de REVISAO_OPUS + REVISAO_ESTRATEGICA):** mono-usuário hardcoded (token Outlook único, perfil único no KV) = **bloqueante absoluto para versão comercial**; zero testes automatizados; single-file file grande.
 
+### Mapa do corredor V1 — auditoria `senova-auditor` (03/jul/2026)
+
+**Achado-raiz:** identidade do candidato **hardcoded no código** (não só no KV): `PERFIL_MARCOS` (`senova-worker.js:115`, todo score) e `CV_BASE` (`index.html:2782`, geração + autofill). O `perfil_usuario` do KV que a tela de Perfil carrega é **decorativo** — a geração o ignora. → "fork de código", não isolamento de dado.
+
+| Natureza | Componentes | Status p/ 2º usuário |
+|---|---|---|
+| **(A) localStorage** | Kanban/pipeline (`senova_vagas_v2`), cards/CV/carta salvos, dados sensíveis de autofill (`senova_dados_sensiveis`, nunca saem do device) | Seguro por-navegador — **mas** `__senovaImportar()` roda no load (`index.html:9567`) e puxa o `vagas_lead` **global**: abrir o app já mistura vagas das 2 pessoas |
+| **(B) KV/Worker compartilhado** | Perfil (`perfil_usuario`), varredura (`vagas_lead`/`config_varredura`), **todo o Outlook** (token 1:1), whitelist | Colide/vaza. Token único → 2ª pessoa leria a caixa e enviaria da conta do Marcos |
+| **(C) Proxy Anthropic** | score ATS (`/api/analisar-vaga`), geração (`/api/claude`) | Funciona, mas gasta a chave do Marcos **e** produz conteúdo com a identidade dele |
+
+**Resíduos de segurança do gate v7.4 (contradizem o "FECHADO" — a corrigir, prioridade):**
+1. **Gate por path, não por método:** `DELETE /api/auth/outlook` (desconecta o Outlook do Marcos) e `DELETE /api/whitelist` estão **isentos** de segredo (path-base em `ROTAS_SEM_SEGREDO`). `DELETE` destrutivo exposto.
+2. **Fail-open:** se `SENOVA_APP_SECRET` não estiver setado, o gate inteiro fica inativo (`senova-worker.js:166`). Confirmar `/health` → `auth: "ativo"`.
+3. `/api/claude` e `/api/analisar-vaga` **não exigem** o segredo (só rate-limit por IP, 40/min) — chave Anthropic gastável por qualquer um com a URL. **Instrumentar se a extensão manda o header antes de gatear** (a extensão hoje POSTa `/api/vagas-lead` sem segredo).
+
 ---
 
 # APÊNDICE C — A REVISÃO ESTRATÉGICA DE 02/jul (de `REVISAO_ESTRATEGICA_02jul2026.md`)
@@ -388,7 +403,7 @@ OCDE Employment Outlook 2025 (older workers; Germany) · Equal Times (paradoxo e
 | **D-06** | **Tamanho de mercado** | 500k–1M · 2,5M/300k-ano · 850k/85k-recolocação (ou 765k com vida) | D-01 | ABERTA |
 | **D-07** | **Nome/estrutura dos planos** | Free/Pro/Executive · Radar/Perfil/Acompanhamento · Recomeço/Essencial/Profissional/Executivo · Radar/Ativo/Premium | D-01, D-03 | ABERTA |
 | **D-08** | **Métrica-norte** | "Calma e confiança + encontrar onde é chamado" (Manifesto) · "Tempo de recolocação < 90 dias" (PROJETO_ESTRATEGICO) · "Empresas que vieram buscar você" (VISAO_FUNDACIONAL) | D-01, D-02 | ABERTA |
-| **D-09** | **Caminho para o 2º usuário** | Menor caminho seguro para 1 pessoa real (revisão) vs. multi-tenant comercial completo | D-01 | ABERTA |
+| **D-09** | **Caminho para o 2º usuário** | Menor caminho seguro para 1 pessoa real (revisão) vs. multi-tenant comercial completo | D-01 | ✓ **DECIDIDA 03/jul** — concierge + costura de identidade (ver Decisões Resolvidas) |
 
 ## Recomendações informadas pela pesquisa (02/jul — recomendação de Bruno, NÃO decisão; ver Apêndice D)
 
@@ -420,6 +435,19 @@ OCDE Employment Outlook 2025 (older workers; Germany) · Equal Times (paradoxo e
 - A redação final do corredor do V1.
 
 **Próxima pergunta destravada (D-09 + prioridade #2 da REVISAO_ESTRATEGICA):** qual o **menor caminho seguro para um 2º usuário real** testar este corredor ponta-a-ponta.
+
+### D-09 — Caminho para o 2º usuário · ✓ **DECIDIDA 03/jul/2026** (Marcos)
+
+**Contexto novo (auditoria `senova-auditor`, 03/jul — ver mapa no Apêndice B):** a identidade do candidato é **HARDCODED no código**, não só no armazenamento — `PERFIL_MARCOS` (`senova-worker.js:115`, base de *todo* score ATS) e `CV_BASE` (`index.html:2782`, base de geração de CV/carta e autofill do copiloto). Logo, mesmo a "ilha localStorage" produz o CV/score do Marcos: **entregar uma URL a uma 2ª pessoa está descartado.** Multi-usuário real = a reescrita que a D-01 excluiu do V1.
+
+**Princípio declarado por Marcos:** o objetivo **não é preparar a versão comercial** agora — é uma **arquitetura barata de adaptar depois**. **Segurança é prioridade, agora e sempre.**
+
+**Resolução — "concierge + costura de identidade" (opção 1, refinada):**
+- **Validar VALOR** com 1 pessoa real da rede (teste *concierge* do núcleo: CV real dela + vaga real → score + CV + carta + pipeline). Outlook / varredura / retorno-por-e-mail **fora de escopo** (estado 1:1 com o Marcos).
+- Habilitado por uma **costura limpa, não um fork descartável:** o Worker vira **stateless quanto à identidade do candidato** — recebe `perfilCandidato` por requisição e o usa **no lugar** de `PERFIL_MARCOS`; o app passa o Perfil/CV master em vez do `CV_BASE` constante. Barato de virar multi-user depois: só muda a *origem* do perfil (localStorage agora → API autenticada depois).
+- **Segurança primeiro:** corrigir os resíduos do gate v7.4 (Apêndice B) **antes** da costura.
+
+**Ordem de execução (1 fix por vez):** S1 gate por método (`DELETE` exposto) → S2 fail-closed → S3 rotas de custo (instrumentar a extensão antes) → A1 costura de identidade → teste concierge.
 
 ---
 
