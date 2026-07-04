@@ -1,8 +1,12 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.7
+//  SENOVA PROXY — Worker v7.8
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.7 (03/jul/2026) — A1.1 costura de identidade:
+//  NOVIDADES v7.8 (03/jul/2026) — Sprint 1 vazamento zero:
+//  · extrairVagasEmail: extrai TODAS as vagas de e-mail multi-vaga.
+//  · /api/emails alimenta o funil vagas_lead (dedup jobid/URL + relevância).
+//  · /api/emails/diagnostico expõe email_vagas_stats (tamanho do vazamento).
+//  v7.7 (03/jul/2026) — A1.1 costura de identidade:
 //  · analisarVaga aceita perfilCandidato (fallback PERFIL_MARCOS).
 //    Worker fica stateless quanto à identidade do candidato.
 //  · Regra de IDIOMAS generica (le os niveis do perfil, nao crava Marcos).
@@ -496,7 +500,7 @@ export default {
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.7',
+        status: 'ok', worker: 'senova-proxy', versao: '7.8',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -752,10 +756,55 @@ export default {
           const linkHtml = detectarLinkVaga(linksHtml);
           if (linkHtml) { e.links = linksHtml; e.link_vaga = linkHtml; }
           if (isAlerta) e.artigos = extrairArtigosGoogleAlert(html);
+          if (mightBeVaga) e.vagas_extraidas = extrairVagasEmail(html);
         } catch {}
       }));
 
       const emails = emailsBase;
+
+      // ── Vazamento zero: vagas escondidas em e-mail multi-vaga → funil vagas_lead ──
+      // Alimenta o MESMO funil da varredura. Dedup por id (jobid/URL) via
+      // vagas_vistas_ids; filtro de relevância; score + gate por limiar
+      // acontecem no cliente (importarVagasLead → renderWidgetRevisao).
+      // Best-effort: encapsulado; nunca quebra /api/emails.
+      try {
+        const rawLead = await env.SENOVA_KV.get('vagas_lead');
+        const vagasLead = rawLead ? JSON.parse(rawLead) : [];
+        const rawVistos = await env.SENOVA_KV.get('vagas_vistas_ids');
+        const vistosSet = new Set(rawVistos ? JSON.parse(rawVistos) : []);
+        const idsLead = new Set(vagasLead.map(v => v.id));
+        let extraidas = 0, novasLead = 0, emailsMulti = 0;
+        for (const e of emails) {
+          const vs = e.vagas_extraidas || [];
+          if (vs.length > 1) emailsMulti++;
+          for (const v of vs) {
+            extraidas++;
+            const id = gerarId({ titulo: v.titulo, empresa: '', url: v.url });
+            if (vistosSet.has(id) || idsLead.has(id)) continue;   // dedup jobid/URL
+            if (!tituloRelevante(v.titulo)) continue;             // filtra ruído
+            vistosSet.add(id); idsLead.add(id);
+            vagasLead.push({
+              id, titulo: v.titulo, empresa: '', local: 'Brasil', url: v.url,
+              descricao: '', canal: 'Email', fonte: 'email_alerta',
+              data: new Date().toLocaleDateString('pt-BR'),
+              score: null, resumo: '', pontos_fortes: [], pontos_atencao: [],
+              forma_candidatura: '', badge: 'Email',
+              criadoEm: new Date().toISOString(), status: 'lead',
+            });
+            novasLead++;
+          }
+        }
+        if (novasLead > 0) {
+          await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasLead.slice(-250)));
+          await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-2000)));
+        }
+        await env.SENOVA_KV.put('email_vagas_stats', JSON.stringify({
+          ultima: new Date().toISOString(),
+          emails_multivaga: emailsMulti,
+          vagas_extraidas: extraidas,
+          vagas_novas_lead: novasLead,
+        }));
+      } catch (err) { /* extração é best-effort; não derruba a rota */ }
 
       // Alertas: artigos já extraídos no fetch HTML individual acima
       const todosAlertas = emails.filter(isAlertaFn);
@@ -1002,7 +1051,9 @@ export default {
         return { from: fromAddr, from_name: fromName, subject: subj.slice(0, 80), autorizado, is_read: e.isRead, date: e.receivedDateTime.slice(0,16) };
       });
       const autorizadosNaoLidos = emails.filter(e => e.autorizado && !e.is_read).length;
-      return json({ whitelist, padroes: padroesAtivos, autorizados_nao_lidos: autorizadosNaoLidos, emails });
+      let vagasEmailStats = null;
+      try { vagasEmailStats = await env.SENOVA_KV.get('email_vagas_stats', 'json'); } catch {}
+      return json({ whitelist, padroes: padroesAtivos, autorizados_nao_lidos: autorizadosNaoLidos, vagas_email: vagasEmailStats, emails });
     }
 
     // ── Limpar backlog: não-lidos antigos da Caixa de Entrada ──────
