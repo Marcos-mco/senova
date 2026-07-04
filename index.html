@@ -3295,6 +3295,23 @@ function corDoScore(s){return s>=_PONTOS_TERMOS.otima?'#1A7A4A':s>=_PONTOS_TERMO
 function bgDoScore(s){return s>=_PONTOS_TERMOS.otima?'#EAF7EF':s>=_PONTOS_TERMOS.valer?'#FFF8EC':'#FEF0EF';}
 function classificacaoDoScore(s){return s>=_PONTOS_TERMOS.otima?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}:s>=_PONTOS_TERMOS.valer?{titulo:'Pode valer a pena',cor:'#B8670A'}:s>0?{titulo:'Fora do seu perfil',cor:'#C0281E'}:null;}
 const MODELOS={analise:'claude-opus-4-8',rapido:'claude-sonnet-4-6'};
+// ── TRAVA DE ARQUIVAMENTO (VIRGILIO Sessão 17, estendida ao STATUS) ──────────
+// A trava da S17 protege contra DELETE. Esta protege o outro lado: um processo
+// real (Entrevista/Proposta/Aceito) NUNCA vira 'arquivado' sem confirmação
+// explícita, e TODO arquivamento deixa rastro no histórico. Foi a ausência disto
+// que sumiu "TV Integração" repetidamente (S13/S17/S23) — arquivava em silêncio.
+const _STATUS_PROTEGIDO=['entrevista','proposta','aceito'];
+function _statusLabel(s){return ({lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',arquivado:'Arquivado',triagem:'Para Considerar'})[s]||s;}
+function _confirmarArquivarProtegido(statusAntes,nome){
+  if(!_STATUS_PROTEGIDO.includes(statusAntes)) return true;
+  return confirm(`"${nome||'Este processo'}" está em ${_statusLabel(statusAntes)} — um processo ativo.\n\nArquivar mesmo assim? Ele vai para Arquivados (recuperável a qualquer momento), mas sai do seu Kanban.`);
+}
+function _estagioReativacao(v){
+  const t=((v.timeline||[]).map(e=>(e.texto||'').toLowerCase()).join(' | '));
+  if(/proposta|oferta/.test(t)) return 'proposta';
+  if(/entrevista/.test(t)) return 'entrevista';
+  return 'aplicado';
+}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   lastCRM = crm;
@@ -3612,11 +3629,14 @@ function declinarVagaATS() {
   const notas = [score?'Match ATS: '+score+'/100':'','Declinada'].filter(Boolean).join(' — ');
   const hoje  = dataAtualFormatada();
   if(idx>=0) {
+    // Trava: nunca arquiva um processo real sem confirmação; sempre deixa rastro.
+    if(!_confirmarArquivarProtegido(vagas[idx].status, vagas[idx].empresa)) return;
     vagas[idx].status='arquivado';
     vagas[idx].proxima='Declinada';
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
     vagas[idx].updatedAt=Date.now();
+    vagas[idx].timeline=[...(vagas[idx].timeline||[]),{ts:Date.now(),texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}];
     saveVagas();
   } else if(atsEmpresa||atsCargo) {
     const _t=Date.now();
@@ -5880,6 +5900,7 @@ function atualizarBotoesModal(statusOverride){
     mvAjustarSecoesStatus(status);
   } else {
     if(cancelarBtn) cancelarBtn.style.display='';
+    if(status==='arquivado') html+=`<button class="btn btn-ghost" onclick="reativarVaga()">Reativar processo</button>`;
     html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     mvAjustarSecoesStatus(status);
   }
@@ -5955,7 +5976,7 @@ function marcarEntrevista(){ document.getElementById('mv-status').value='entrevi
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
 function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
 function encerrarVaga(motivo){ document.getElementById('mv-status').value='arquivado'; document.getElementById('mv-motivo').value=motivo; atualizarBotoes(); }
-function reativarVaga(){ document.getElementById('mv-status').value='aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
+function reativarVaga(){ const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null; document.getElementById('mv-status').value=v?_estagioReativacao(v):'aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
 
 function irParaVaga(){
   const url=document.getElementById('mv-origem-url')?.value.trim()||'';
@@ -6220,6 +6241,14 @@ function saveVaga(){
   const isNew=editingVagaId==='new';
   const existing=isNew?null:vagas.find(v=>String(v.id)===String(editingVagaId));
   const now=Date.now();
+  // ── TRAVA DE ARQUIVAMENTO: processo real não vira 'arquivado' sem confirmar ──
+  const _stAntes=existing?.status;
+  const _stDepois=document.getElementById('mv-status').value;
+  if(!isNew && _stDepois==='arquivado' && _stAntes!=='arquivado' && !_confirmarArquivarProtegido(_stAntes, empresa)){
+    document.getElementById('mv-status').value=_stAntes;
+    atualizarBotoesModal(_stAntes);
+    return; // cancelado — mantém o card como estava, não arquiva
+  }
   const createdAt=existing?.createdAt||parseDateBR(existing?.data)||now;
   const obj={
     ...(existing||{}), // trava anti-perda: preserva todo campo já gravado; os de baixo só sobrescrevem
@@ -6265,6 +6294,15 @@ function saveVaga(){
     createdAt,
     updatedAt:now
   };
+  // Rastro no histórico: nunca mais arquivar/reativar em silêncio.
+  if(!isNew && _stDepois!==_stAntes){
+    if(_stDepois==='arquivado'){
+      const _mtv=(document.getElementById('mv-motivo').value||'').trim();
+      obj.timeline=[...obj.timeline,{ts:now,texto:'Processo arquivado'+(_mtv&&_mtv!=='aceito'?' — '+_mtv:'')}];
+    } else if(_stAntes==='arquivado'){
+      obj.timeline=[...obj.timeline,{ts:now,texto:'Processo reativado — '+_statusLabel(_stDepois)}];
+    }
+  }
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>String(v.id)===String(editingVagaId)?obj:v);
   if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
   if(isNew) _clearDraftVaga();
