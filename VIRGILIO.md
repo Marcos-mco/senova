@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 01/jul/2026 — Sessão 22 — FECHADA (fundação: MANIFESTO_SENOVA.md ratificado · Passo 1 auditado · fix H4+H3 pendente de teste)*
+*Atualizado: 04/jul/2026 — Sessão 23 — FECHADA (vazamento de e-mail multi-vaga RESOLVIDO: triagem + Critério humano no ar, aguardando teste de Marcos)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -25,7 +25,7 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ESTADO ATUAL — 01/jul/2026 (Sessão 22)
+## ESTADO ATUAL — 04/jul/2026 (Sessão 23)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -33,26 +33,35 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (Cloudflare Worker — sem alteração na Sessão 11)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.8** — Sessão 23: extrai vagas de e-mail multi-vaga → funil vagas_lead)
 - **Extensão Chrome:** **v2.58** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `2e4fc90` (30/jun/2026 — MANIFESTO_SENOVA.md, **local/não pushado**). Estável em produção: `1589b28` (extensão v2.58).
+- **Último commit:** `a745e0f` (04/jul — triagem frontend, **pushado**). Antes: `fb3bbe2` (Worker v7.8). **Working tree LIMPO, sincronizado com origin/main.**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
-- **Working tree:** `index.html` com o fix **H4+H3 (metadados da análise) — NÃO testado, NÃO commitado**. Backup `senova_v3.47_30jun2026_pre-H4H3.html`.
+- **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
+- **Backup pré-triagem:** `senova_v3.52_03jul2026_pre-triagem-email.html`. Rollback do arco Sessão 23 = reverter para `bb4f3cc`.
+- ⚠️ **H4+H3** (metadados da análise) da Sessão 22 ficou sem confirmação de teste no meio do arco funil/dossiê — **verificar se foi ao ar** antes de retomar como pendência.
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 23) — FUNDAÇÃO DO V1 (sob o MANIFESTO)
-Base de decisão agora: **`MANIFESTO_SENOVA.md`** + **Definição de "Pronto" do V1** (happy path sem erro +
-fora-de-escopo declarado + substrato estruturado). Ler o manifesto antes de propor qualquer coisa.
+## ⚠️ AO RETOMAR (Sessão 24) — VALIDAR A TRIAGEM, depois FUNDAÇÃO DO V1
+Base de decisão: **`MANIFESTO_SENOVA.md`** + **`DIAGNOSTICO_FUNIL.md`** + Decision Log do `DOSSIE_SENOVA.md`.
 Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
-1. **TESTAR o H4+H3** (está no working tree, NÃO commitado). Console:
+
+**0. VALIDAR A TRIAGEM (Sessão 23, no ar — PRIORIDADE)** — arco "vazamento de e-mail multi-vaga":
+   - a) Fluxo principal: Home Ctrl+Shift+R → Pipeline esvazia dos ~37 cards de e-mail (flood some, contagens caem)
+     + surge **"Para Considerar"**; logado no LinkedIn, Compatibilidade preenche e as que passam o Critério auto-promovem.
+   - b) **Perfil › O que busco:** seletor humano por região + "Ajuste fino" (pontos 75/55). Salvar e reabrir → persistiu?
+   - c) **Multi-select** em Para Considerar → "Enviar selecionadas para Processos".
+   - Regressão a vigiar: enriquecimento/login intocados; triagem NÃO deve aparecer em contagem de Oportunidade.
+
+1. **TESTAR o H4+H3** (verificar se ainda está pendente — ver ESTADO ATUAL). Console:
    `vagas.filter(v=>v.atsAnaliseData).map(v=>({c:v.cargo,d:new Date(v.atsAnaliseData).toLocaleString(),i:v.atsCvIdioma}))`.
    Aprovar → commit → (decidir push).
 2. **H5 — convergir motivo:** `vaga.motivo` (modal do card, save em `index.html:6058`) vs `vaga.motivoArquivamento`
@@ -72,6 +81,29 @@ Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 23 (02–04/jul/2026)
+
+**Tema:** parar o vazamento de e-mail multi-vaga (diagnóstico do funil → arquitetura → implementação completa).
+
+### Diagnóstico (raiz)
+- **86,6% do pipeline nunca vira candidatura** (`DIAGNOSTICO_FUNIL.md`, commit `ca5bed6`). E-mail com mais de uma vaga dava **ZERO card**: alerta do LinkedIn (maior volume) é excluído do fluxo de artigos; caía como `multi_vagas` → só um toast, nada criado.
+
+### Decisão (Marcos)
+- **Card por vaga, perda zero, sem triagem obrigatória** — MAS com **score-gate em linguagem humana** e **ajuste fino** dos pontos dos termos. Substitui o "estreito de mão" (D-01) NESTE fluxo.
+
+### Auditoria anti-regressão (obrigatória antes de codar)
+- Reconfirmado: **Worker NÃO busca LinkedIn** (bloqueia IP datacenter) — enriquecimento é só pela **extensão logada** (`jobs-guest`). Retirei minha proposta de enriquecer no Worker. Doc durável: memória `reference_login_enriquecimento_linkedin` + [background.js:465,558].
+
+### Implementação (no ar)
+- **Worker v7.8** (`fb3bbe2`): `extrairVagasEmail` → funil `vagas_lead` (dedup jobid/URL). Vazamento medido = **48 vagas**.
+- **Frontend triagem** (`a745e0f`): vaga de e-mail nasce **`status:'triagem'`** (fora do Kanban e das contagens, mas enriquece/pontua igual — triagem incluída nos 5 pontos do enriquecimento); **auto-promove** ao atingir o Critério da região; **"Para Considerar"** na Home (Compatibilidade em palavras + multi-select); **Perfil** com seletor humano por região + "Ajuste fino" (`_PONTOS_TERMOS` 75/55, fonte única em `classificacaoDoScore`); migração 1× recolhe os 37; caminho único de criação de card. **Enriquecimento e login intocados.**
+- Backup `senova_v3.52_03jul2026_pre-triagem-email.html`. QA: sintaxe OK, gold-rule OK (zero `api.anthropic.com`).
+
+### Também nesta janela (commits anteriores no arco)
+- `DOSSIE_SENOVA.md` (SSOT, Decision Log D-01..D-09) · D-01 "largo de visão, estreito de mão" · D-09 corredor do 2º usuário.
 
 ---
 
