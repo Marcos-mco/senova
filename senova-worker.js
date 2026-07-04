@@ -1,10 +1,12 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.6
+//  SENOVA PROXY — Worker v7.7
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.6 (03/jul/2026) — S2 segurança:
-//  · segredoOk fail-CLOSED: segredo ausente no ambiente agora NEGA
-//    (antes liberava geral). Segredo faltando nunca = Worker aberto.
+//  NOVIDADES v7.7 (03/jul/2026) — A1.1 costura de identidade:
+//  · analisarVaga aceita perfilCandidato (fallback PERFIL_MARCOS).
+//    Worker fica stateless quanto à identidade do candidato.
+//  · Regra de IDIOMAS generica (le os niveis do perfil, nao crava Marcos).
+//  v7.6 — S2: segredoOk fail-closed.
 //  v7.5 — S1: gate de segredo por MÉTODO+path (fecha DELETE outlook/whitelist).
 //  v7.4: gate x-senova-key nas rotas de escrita/dados privados.
 //  v7.3: rotas OAuth Outlook + emails + calendar + whitelist.
@@ -104,6 +106,45 @@ function extrairArtigosGoogleAlert(html) {
     }
   }
   return [...new Map(artigos.map(a => [a.url, a])).values()].slice(0, 8);
+}
+
+// Extrai TODAS as vagas de um e-mail multi-vaga (alerta LinkedIn, newsletter…),
+// não só a primeira como detectarLinkVaga. Pareia texto-âncora com href de vaga.
+// URLs normalizadas (LinkedIn → /jobs/view/ID/) para dedup estável por jobid.
+function extrairVagasEmail(html) {
+  const out = [];
+  const seen = new Set();
+  const htmlStr = html || '';
+  const re = /<a\s[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const m of htmlStr.matchAll(re)) {
+    const href = m[1].replace(/&amp;/g, '&');
+    let url = '';
+    const jid = href.match(/jobid_(\d+)/i) || href.match(/linkedin\.com\/(?:comm\/)?jobs\/view\/(\d+)/i);
+    if (jid) url = `https://www.linkedin.com/jobs/view/${jid[1]}/`;
+    else if (JOB_URL_PATTERNS.some(p => p.test(href))) url = href;
+    else {
+      const r = href.match(/[?&](?:q|url)=(https?[^&]+)/i);
+      if (r) {
+        try {
+          const alvo = decodeURIComponent(r[1]);
+          const j2 = alvo.match(/jobid_(\d+)/i) || alvo.match(/jobs\/view\/(\d+)/i);
+          if (j2) url = `https://www.linkedin.com/jobs/view/${j2[1]}/`;
+          else if (JOB_URL_PATTERNS.some(p => p.test(alvo))) url = alvo;
+        } catch {}
+      }
+    }
+    if (!url || seen.has(url)) continue;
+    const titulo = m[2]
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&nbsp;/gi, ' ')
+      .replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+      .replace(/&[a-z]+;/gi, ' ')
+      .replace(/\s+/g, ' ').trim().slice(0, 120);
+    if (titulo.length < 4) continue;
+    seen.add(url);
+    out.push({ titulo, url });
+  }
+  return out.slice(0, 25);
 }
 
 const ADZUNA_PAISES = { br:'br', es:'es', de:'de', pt:'pt', us:'us' };
@@ -455,7 +496,7 @@ export default {
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.6',
+        status: 'ok', worker: 'senova-proxy', versao: '7.7',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -478,8 +519,8 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto));
+      const { titulo, empresa, descricao, contexto, perfilCandidato } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato));
     }
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
@@ -684,8 +725,9 @@ export default {
       // Fetch HTML individual só para emails com aparência de vaga — extrai hrefs reais
       const JOB_FROM_PATTERN = /linkedin|gupy|greenhouse|lever|workday|indeed|michaelpage|roberthalf|catho|vagas\.com|empregos\.com|infojobs|jobscore/i;
       const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
-      // HTML fetch individual: só para emails de vaga sem URL encontrada no texto,
-      // ou para alertas (extrai artigos). Não bloqueia o fluxo se falhar.
+      // HTML fetch individual: para qualquer e-mail com cara de vaga (extrai
+      // TODAS as vagas, mesmo que o texto já tenha achado uma) ou alerta.
+      // Não bloqueia o fluxo se falhar.
       // Cap de subrequests: o prefixo síncrono do .map serializa o contador,
       // então o limite é respeitado mesmo com execução concorrente.
       let _htmlCount = 0;
@@ -693,7 +735,7 @@ export default {
       await Promise.allSettled(emailsBase.map(async e => {
         const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
         const isAlerta = isAlertaFn(e);
-        const precisaHtml = (mightBeVaga && !e.link_vaga) || isAlerta;
+        const precisaHtml = mightBeVaga || isAlerta;
         if (!precisaHtml) return;
         if (_htmlCount >= HTML_CAP) return;
         _htmlCount++;
@@ -1407,14 +1449,19 @@ function vagaRecente(d) {
 // ═══════════════════════════════════════════════════════════════════
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
-async function analisarVaga(titulo, empresa, descricao, env, contexto) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato) {
+  // Costura de identidade (A1): pontua o perfil que RECEBE. Sem perfilCandidato,
+  // cai no PERFIL_MARCOS (retrocompatível — o app hoje não manda). O Worker fica
+  // stateless quanto à identidade: multi-user depois só troca qual perfil chega.
+  const perfil = (typeof perfilCandidato === 'string' && perfilCandidato.trim())
+    ? perfilCandidato.trim() : PERFIL_MARCOS;
   const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
 
-CANDIDATO: ${PERFIL_MARCOS}
+CANDIDATO: ${perfil}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
-IDIOMAS — regra obrigatória: o candidato tem inglês avançado e espanhol avançado — NÃO fluente em nenhum dos dois. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) em inglês ou espanhol, registrar OBRIGATORIAMENTE em pontos_atencao. Nunca registrar inglês ou espanhol como ponto_forte se o requisito for fluência. Nunca afirmar que o candidato "atende" exigência de fluência em inglês ou espanhol.
+IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do CANDIDATO acima. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma.
 
 CANDIDATURA DIRETA: se a descrição instruir enviar a candidatura DIRETO por e-mail fora do portal — frases como "envie seu CV para", "não se candidate por este site", "send your resume/CV to", "email your application to", às vezes com uma palavra-código ou nome de arquivo exigido no assunto — extraia o e-mail para candidatura_direta_email e, se houver, a palavra-código/assunto exigido para candidatura_direta_codigo. Se não houver essa instrução, retorne "" nos dois campos.
 
