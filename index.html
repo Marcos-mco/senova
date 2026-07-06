@@ -6907,6 +6907,7 @@ async function mvEnriquecerPerfil(){
       : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
   }
   // 3) Reanálise imediata — só no estágio Oportunidade com descrição completa
+  let _temExplQueda=false;
   if(_reanalisa){
     showToast('Reanalisando esta vaga…');
     const novoScore=await mvReanalisarCompat();
@@ -6914,14 +6915,17 @@ async function mvEnriquecerPerfil(){
     const _iCV=vagas.findIndex(x=>String(x.id)===String(editingVagaId));
     if(_iCV>=0 && vagas[_iCV].atsCV){ vagas[_iCV].atsCV=''; saveVagas(); }
     if(typeof mvSyncDocsCV==='function') mvSyncDocsCV();
+    const _explQueda=_iCV>=0?(vagas[_iCV].explicacaoQueda||''):'';
+    _temExplQueda=!!_explQueda;
     if(st) st.innerHTML=(typeof novoScore==='number')
       ? '<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+novoScore+'%.</span> Clique num formato para gerar o CV atualizado.'
+        +(_explQueda?'<div style="margin-top:8px;background:var(--amber-bg);border:1px solid rgba(156,88,0,0.18);border-radius:var(--radius);padding:10px 12px;font-size:12.5px;color:var(--amber);line-height:1.5;">A nota baixou — motivo: '+escHtml(_explQueda)+'</div>':'')
       : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
   } else {
     showToast('Adicionado ao seu perfil.');
   }
-  // 4) Após alguns segundos, restaura o gatilho (permite acrescentar mais)
-  setTimeout(()=>{ const s=document.getElementById('mv-enriquecer-status'); if(s){s.style.display='none';s.innerHTML='';} const t=document.getElementById('mv-enriquecer-toggle'); if(t)t.style.display=''; }, 5000);
+  // 4) Após alguns segundos, restaura o gatilho (permite acrescentar mais) — mais tempo se houver explicação de queda para ler
+  setTimeout(()=>{ const s=document.getElementById('mv-enriquecer-status'); if(s){s.style.display='none';s.innerHTML='';} const t=document.getElementById('mv-enriquecer-toggle'); if(t)t.style.display=''; }, _temExplQueda?14000:5000);
 }
 // Reanálise manual da Compatibilidade — ignora o guard de "sem score" (Sessão 10),
 // porque foi pedida explicitamente pelo usuário ao acrescentar contexto.
@@ -6931,15 +6935,17 @@ async function mvReanalisarCompat(){
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return null;
   const v=vagas[idx];
+  const scoreAnterior=parseInt(v.atsScore)||0;
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined})
     });
     if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
     const data=await res.json();
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
     if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
+    vagas[idx].explicacaoQueda=(scoreAnterior&&score<scoreAnterior&&data.explicacao_queda)?String(data.explicacao_queda):'';
     vagas[idx].atsScore=String(score);
     if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
     vagas[idx].compatClass=data.classificacao||'';

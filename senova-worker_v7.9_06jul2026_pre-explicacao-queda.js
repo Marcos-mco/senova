@@ -1,13 +1,7 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.10
+//  SENOVA PROXY — Worker v7.8
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.10 (06/jul/2026) — explica queda de Compatibilidade:
-//  · analisarVaga aceita scoreAnterior; se a nova nota vier MENOR, a IA
-//    preenche explicacao_queda (motivo real, sem trava — a nota pode cair
-//    de verdade quando a informação nova pesa contra).
-//  v7.9 (06/jul/2026) — candidatura direta generalizada: cobre canal
-//  (Email/WhatsApp/Telefone) + destino OU instrução pura sem canal nenhum.
 //  NOVIDADES v7.8 (03/jul/2026) — Sprint 1 vazamento zero:
 //  · extrairVagasEmail: extrai TODAS as vagas de e-mail multi-vaga.
 //  · /api/emails alimenta o funil vagas_lead (dedup jobid/URL + relevância).
@@ -529,8 +523,8 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior));
+      const { titulo, empresa, descricao, contexto, perfilCandidato } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato));
     }
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
@@ -1506,13 +1500,12 @@ function vagaRecente(d) {
 // ═══════════════════════════════════════════════════════════════════
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato) {
   // Costura de identidade (A1): pontua o perfil que RECEBE. Sem perfilCandidato,
   // cai no PERFIL_MARCOS (retrocompatível — o app hoje não manda). O Worker fica
   // stateless quanto à identidade: multi-user depois só troca qual perfil chega.
   const perfil = (typeof perfilCandidato === 'string' && perfilCandidato.trim())
     ? perfilCandidato.trim() : PERFIL_MARCOS;
-  const _scoreAnt = (typeof scoreAnterior === 'number' && scoreAnterior > 0) ? scoreAnterior : 0;
   const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
 
 CANDIDATO: ${perfil}
@@ -1521,11 +1514,9 @@ Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — va
 
 IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do CANDIDATO acima. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma.
 
-CANDIDATURA DIRETA: se a vaga trouxer qualquer instrução voltada a filtrar quem lê com atenção: (a) candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to") ou por WhatsApp/telefone — extraia candidatura_direta_canal ("Email"|"WhatsApp"|"Telefone") e candidatura_direta_destino (e-mail ou telefone encontrado); (b) OU simplesmente pedir para mencionar uma palavra, código ou fazer alguma ação específica em algum lugar da candidatura, sem exigir nenhum canal próprio — pode estar solta no meio da descrição, longe de "como se candidatar" — nesse caso deixe candidatura_direta_canal e candidatura_direta_destino como "". Em ambos os casos, se houver uma palavra/código/ação exigida, preencha candidatura_direta_instrucao. Se não houver nada disso, retorne "" nos três campos.${_scoreAnt ? `
+CANDIDATURA DIRETA: se a vaga trouxer qualquer instrução voltada a filtrar quem lê com atenção: (a) candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to") ou por WhatsApp/telefone — extraia candidatura_direta_canal ("Email"|"WhatsApp"|"Telefone") e candidatura_direta_destino (e-mail ou telefone encontrado); (b) OU simplesmente pedir para mencionar uma palavra, código ou fazer alguma ação específica em algum lugar da candidatura, sem exigir nenhum canal próprio — pode estar solta no meio da descrição, longe de "como se candidatar" — nesse caso deixe candidatura_direta_canal e candidatura_direta_destino como "". Em ambos os casos, se houver uma palavra/código/ação exigida, preencha candidatura_direta_instrucao. Se não houver nada disso, retorne "" nos três campos.
 
-SCORE ANTERIOR desta vaga (antes do perfil complementar mais recente abaixo): ${_scoreAnt}. Se a SUA nova pontuação for MENOR que ${_scoreAnt}, preencha "explicacao_queda" com uma frase curta e direta (1 linha, tom neutro) explicando o motivo real da queda — ex.: a informação nova já constava de forma mais específica no perfil complementar; a informação é vaga demais para mudar a avaliação; ou algum requisito da vaga passou a pesar mais nesta leitura completa. Nunca invente um motivo — só descreva o que de fato pesou. Se a pontuação não diminuiu, deixe "explicacao_queda" como "".` : ''}
-
-JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|""),"candidatura_direta_canal":"canal extraído ou ''","candidatura_direta_destino":"e-mail ou telefone extraído ou ''","candidatura_direta_instrucao":"palavra/ação exigida ou ''","explicacao_queda":"motivo da queda de score ou ''"}`;
+JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|""),"candidatura_direta_canal":"canal extraído ou ''","candidatura_direta_destino":"e-mail ou telefone extraído ou ''","candidatura_direta_instrucao":"palavra/ação exigida ou ''"}`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1547,7 +1538,7 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
     const data = await resp.json();
     return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
   } catch {
-    return { score:50, classificacao:'analisar', resumo:'Revisar manualmente.', pontos_fortes:[], pontos_atencao:[], salario_compativel:true, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
+    return { score:50, classificacao:'analisar', resumo:'Revisar manualmente.', pontos_fortes:[], pontos_atencao:[], salario_compativel:true, localizacao:'', modelo:'', regime:'' };
   }
 }
 
