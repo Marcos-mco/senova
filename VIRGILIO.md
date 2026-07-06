@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 06/jul/2026 — Sessão 24 — FECHADA (trava de arquivamento no ar: processo real nunca some em silêncio + rastro no histórico. TV Integração recuperado. Triagem e "Para Considerar" ainda a validar)*
+*Atualizado: 06/jul/2026 — Sessão 25 — FECHADA (candidatura direta generalizada — email/whatsapp/telefone/instrução pura — no ar e CONFIRMADA por Marcos via wrangler tail. Trava de arquivamento da S24 e "Para Considerar"/triagem ainda sem teste)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -33,25 +33,28 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.8** — Sessão 23: extrai vagas de e-mail multi-vaga → funil vagas_lead)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.9** — Sessão 25: candidatura direta generalizada canal+instrução)
 - **Extensão Chrome:** **v2.58** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `e71c9e7` (06/jul — trava de arquivamento, **pushado**). Antes: `a745e0f` (triagem frontend) · `fb3bbe2` (Worker v7.8). **Working tree LIMPO, sincronizado com origin/main.**
+- **Último commit:** `3d39933` (06/jul — fix instrução pura sem canal, **pushado**). Antes: `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
 - **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
-- **Backups:** `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
+- **Backups:** `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
 - ✅ **H4+H3** (metadados da análise) CONFIRMADO no ar — grava `atsAnaliseData`/`atsCvIdioma` na análise (`index.html:7028`). Saiu da lista de pendências.
-- ✅ **TRAVA DE ARQUIVAMENTO no ar** (`e71c9e7`): processo real (Entrevista/Proposta/Aceito) não vira `arquivado` sem confirmação; TODO arquivamento deixa rastro no histórico; botão "Reativar processo" no card arquivado. **A trava vive no `saveVaga` (index.html:6244) + `declinarVagaATS` — não reintroduzir arquivamento silencioso.**
+- ✅ **TRAVA DE ARQUIVAMENTO no ar** (`e71c9e7`): processo real (Entrevista/Proposta/Aceito) não vira `arquivado` sem confirmação; TODO arquivamento deixa rastro no histórico; botão "Reativar processo" no card arquivado. **A trava vive no `saveVaga` (index.html:6244) + `declinarVagaATS` — não reintroduzir arquivamento silencioso.** Ainda sem teste explícito de Marcos.
+- ✅ **CANDIDATURA DIRETA GENERALIZADA no ar e CONFIRMADA por Marcos** (`3d39933`, Worker v7.9): cobre canal (Email/WhatsApp/Telefone) + destino OU instrução pura (palavra/código/ação) sem canal nenhum. Render (`mvUpdateScoreDisplay`, index.html:~6787) e os 3 gates de gravação (`mvAutoCompatCheck`, `mvReanalisarCompat`, `analisarInline`) disparam com qualquer um dos três campos preenchido — instrução pura é caso próprio, não fallback do canal. Não reintroduzir a exigência de destino/canal para exibir ou salvar.
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 25) — validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
+## ⚠️ AO RETOMAR (Sessão 26) — validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
+*(Sessão 25 não tocou nesta lista — Marcos autorizou 2 ajustes pequenos na candidatura direta, mas o teste dele achou um bug real que virou o foco da sessão inteira. Itens abaixo continuam de pé, sem mudança — ver "O QUE FOI FEITO — SESSÃO 25" abaixo.)*
+
 Base de decisão: **`MANIFESTO_SENOVA.md`** + **`DIAGNOSTICO_FUNIL.md`** + Decision Log do `DOSSIE_SENOVA.md`.
 Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
 
@@ -86,6 +89,29 @@ Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 25 (06/jul/2026)
+
+**Tema:** Marcos autorizou dois ajustes pequenos num único commit (generalizar "Candidatura direta" além de e-mail + parar de sobrescrever análise rica ao gerar CV) — mas o teste dele achou um bug real que virou o foco da sessão inteira: pegadinha de instrução pura (sem canal nenhum) sumia por completo.
+
+### Round 1 — generalização + Fix A (commit `0ed3165`, Worker v7.8→7.9, pushado)
+- **Candidatura direta** deixa de ser só e-mail: prompt (`ATS_SYSTEM` em index.html + quick-check no Worker) agora extrai `canal` (Email/WhatsApp/Telefone) + `destino` + `instrução` separados, em vez de só um regex de e-mail. Campos legados (`canalDiretoEmail/Codigo`) continuam lidos por compatibilidade.
+- **Fix A:** gerar CV não sobrescreve mais uma análise já rica (Cargo real/Urgência/Red flags/Empresa-Cultura) salva no card — só é refeita de fato pelo fluxo "Acrescentar sobre mim" (`mvReanalisarCompat`).
+
+### Round 2 — bug da instrução pura sem canal (commit `3d39933`, Worker v7.9, pushado)
+- Teste de Marcos ("mencionar a palavra morango", sem e-mail/whatsapp) mostrou a caixa "Candidatura direta" sumindo por completo. Causa: tanto o render (`mvUpdateScoreDisplay`) quanto os 3 gates de gravação (`mvAutoCompatCheck`, `mvReanalisarCompat`, `analisarInline`) só disparavam com canal/destino presente — uma instrução pura (sem canal) nunca era salva nem mostrada, mesmo extraída certo pela IA.
+- Fix: render mostra a caixa com destino OU instrução; os 3 gates de gravação salvam com qualquer um dos 3 campos preenchido; prompts (index.html + Worker) diferenciam explicitamente canal+destino vs. instrução pura solta na descrição.
+
+### Instrumentação + confirmação (sem commit extra — diagnóstico ao vivo)
+- 1º reteste de Marcos ("código 00333 no título") pareceu falhar (info só apareceu como bullet de atenção, sem caixa destacada) — em vez de tentar mais um ajuste de prompt no escuro, liguei `wrangler tail` + log temporário no Worker e pedi o mesmo teste de novo.
+- Log ao vivo confirmou: a IA preenche `candidatura_direta_instrucao` corretamente ("Incluir o código 00333 no título da vaga ao se candidatar") e a caixa renderiza. O 1º "erro" foi só timing de cache/propagação do GitHub Pages, não bug residual. Log de diagnóstico removido, Worker redeployado limpo (`6c02cde3`).
+- **CONFIRMADO por Marcos** nos dois cenários (instrução pura + canal com código). Ver memória `project_pegadinha_candidatura_direta`.
+
+### Aberto / não tocado nesta sessão
+- **Trava de arquivamento (S24, `e71c9e7`)** — ainda sem teste explícito de Marcos.
+- **"Para Considerar" com cargo ilegível (0b)** e **validação completa da triagem (0c)** — ainda pendentes, ver AO RETOMAR.
 
 ---
 
