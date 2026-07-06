@@ -4903,6 +4903,29 @@ function _compatChip(score){
   const c=classificacaoDoScore(score);
   return `<span style="font-size:11px;font-weight:700;color:${c.cor};background:${bgDoScore(score)};padding:2px 9px;border-radius:10px;white-space:nowrap;">${c.titulo}</span>`;
 }
+// Título de vaga de e-mail vem do texto do link do alerta — no LinkedIn isso
+// degenera para a inicial do badge da empresa ("D..", "M..") e a empresa vem vazia.
+// Enquanto o enriquecimento (extensão) não traz o cargo real, mostramos um rótulo
+// honesto em vez do fragmento ilegível. Puramente de exibição — não altera o dado.
+function _tituloIlegivel(s){
+  const t=(s||'').replace(/[^A-Za-zÀ-ÿ0-9]/g,'');
+  return t.length<=2;
+}
+// Decide o que mostrar num item de "Para Considerar": usa o melhor campo legível
+// (cargo → empresa) e, se nada presta ainda, um rótulo digno pela fonte.
+function _exibVagaConsiderar(v){
+  const url=v.origemUrl||v.url||v.link||'';
+  const jid=_jobIdLinkedIn(url);
+  const cargo=(v.cargo||v.titulo||'').trim();
+  const emp=(v.empresa||'').trim();
+  const loc=(v.localizacao||v.local||'').trim();
+  const fonteTxt = v.fonte==='email_alerta' ? 'Alerta por e-mail'
+                 : v.fonte==='extensao_chrome' ? 'Extensão'
+                 : (v.canal||v.fonte||'Busca automática');
+  if(!_tituloIlegivel(cargo)) return {titulo:cargo, sub:[(!_tituloIlegivel(emp)?emp:''),loc].filter(Boolean).join(' · ')||fonteTxt};
+  if(!_tituloIlegivel(emp))   return {titulo:emp, sub:[loc,fonteTxt].filter(Boolean).join(' · ')};
+  return {titulo:(jid?'Vaga do LinkedIn':'Vaga'), sub:fonteTxt+' · avaliando'};
+}
 function renderWidgetRevisao(){
   const sinalTxt = document.getElementById('sinal-vagas-txt');
   const listaEl = document.getElementById('home-revisao-lista');
@@ -4922,11 +4945,12 @@ function renderWidgetRevisao(){
   if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
   const rowTriagem=(v)=>{
     const url=urlSegura(v.origemUrl||'');
+    const ex=_exibVagaConsiderar(v);
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <input type="checkbox" class="pc-cb" data-type="triagem" data-id="${v.id}" style="accent-color:var(--navy);width:16px;height:16px;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(v.cargo||v.empresa||'—')}</div>
-        <div style="font-size:11.5px;color:var(--text3);">${escHtml(v.empresa||'—')}${v.localizacao?' · '+escHtml(v.localizacao):''}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
+        <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
       </div>
       ${_compatChip(v.score)}
       ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
@@ -4936,11 +4960,12 @@ function renderWidgetRevisao(){
   };
   const rowRevisao=(v,i)=>{
     const url=urlSegura(v.url||v.link||v.origemUrl||'');
+    const ex=_exibVagaConsiderar(v);
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
       <input type="checkbox" class="pc-cb" data-type="revisao" data-idx="${i}" style="accent-color:var(--navy);width:16px;height:16px;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(v.titulo||'—')}</div>
-        <div style="font-size:11.5px;color:var(--text3);">${escHtml(v.empresa||'—')}${v.local?' · '+escHtml(v.local):(v.fonte?' · '+escHtml(v.fonte):'')}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
+        <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
       </div>
       ${_compatChip(v.score)}
       ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
