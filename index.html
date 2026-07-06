@@ -6936,15 +6936,22 @@ async function mvReanalisarCompat(){
   if(idx<0) return null;
   const v=vagas[idx];
   const scoreAnterior=parseInt(v.atsScore)||0;
+  // Avisa no próprio placar (não só num toast passageiro) — é ali que o olho está
+  const _badge=document.getElementById('mv-score-total-badge');
+  const _label=document.getElementById('mv-compat-class-label');
+  const _miniScore=document.getElementById('mv-compat-score-mini');
+  if(_badge){_badge.textContent='…';_badge.style.color='var(--text3)';}
+  if(_label){_label.textContent='Recalculando…';_label.style.color='var(--text3)';}
+  if(_miniScore){_miniScore.textContent='…';_miniScore.style.color='var(--text3)';}
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined})
     });
-    if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
+    if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     const data=await res.json();
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
+    if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     vagas[idx].explicacaoQueda=(scoreAnterior&&score<scoreAnterior&&data.explicacao_queda)?String(data.explicacao_queda):'';
     vagas[idx].atsScore=String(score);
     if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
@@ -6964,7 +6971,7 @@ async function mvReanalisarCompat(){
     mvUpdateScoreDisplay();
     if(filtroAtivo) aplicarFiltros(); else renderCRM();
     return score;
-  }catch(_){ showToast('Não foi possível recalcular. Tente novamente.'); return null; }
+  }catch(_){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
 }
 
 // ── META INFO (cabeçalho) ────────────────────────────────────────────────────
