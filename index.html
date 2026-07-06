@@ -6000,9 +6000,10 @@ function candidatarDoModal(){
     abrirAntiATSModal();
     return;
   }
-  // tem CV — marcar como aplicado, salvar modal, abrir modal-candidatura direto
-  document.getElementById('mv-status').value='aplicado';
-  saveVaga(); // fecha o modal Pipeline internamente
+  // tem CV — salva o modal e abre o modal-candidatura. NÃO muda o status aqui:
+  // o card só vira "CV Enviado" quando o envio for confirmado (enviarCandidaturaOutlook →
+  // _marcarCandidaturaEnviada). Se você desistir no modal de envio, o card fica onde estava.
+  saveVaga(); // fecha o modal Pipeline internamente (mantém o status atual)
   const vagaIdx=vagas.findIndex(x=>x.id===id);
   if(vagaIdx<0) return;
   const saved=vagas[vagaIdx];
