@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 04/jul/2026 — Sessão 23 — FECHADA (vazamento de e-mail multi-vaga RESOLVIDO: triagem + Critério humano no ar, aguardando teste de Marcos)*
+*Atualizado: 06/jul/2026 — Sessão 24 — FECHADA (trava de arquivamento no ar: processo real nunca some em silêncio + rastro no histórico. TV Integração recuperado. Triagem e "Para Considerar" ainda a validar)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -39,31 +39,36 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `a745e0f` (04/jul — triagem frontend, **pushado**). Antes: `fb3bbe2` (Worker v7.8). **Working tree LIMPO, sincronizado com origin/main.**
+- **Último commit:** `e71c9e7` (06/jul — trava de arquivamento, **pushado**). Antes: `a745e0f` (triagem frontend) · `fb3bbe2` (Worker v7.8). **Working tree LIMPO, sincronizado com origin/main.**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
 - **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
-- **Backup pré-triagem:** `senova_v3.52_03jul2026_pre-triagem-email.html`. Rollback do arco Sessão 23 = reverter para `bb4f3cc`.
-- ⚠️ **H4+H3** (metadados da análise) da Sessão 22 ficou sem confirmação de teste no meio do arco funil/dossiê — **verificar se foi ao ar** antes de retomar como pendência.
+- **Backups:** `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
+- ✅ **H4+H3** (metadados da análise) CONFIRMADO no ar — grava `atsAnaliseData`/`atsCvIdioma` na análise (`index.html:7028`). Saiu da lista de pendências.
+- ✅ **TRAVA DE ARQUIVAMENTO no ar** (`e71c9e7`): processo real (Entrevista/Proposta/Aceito) não vira `arquivado` sem confirmação; TODO arquivamento deixa rastro no histórico; botão "Reativar processo" no card arquivado. **A trava vive no `saveVaga` (index.html:6244) + `declinarVagaATS` — não reintroduzir arquivamento silencioso.**
 
 ### 🔎 Agente de auditoria
 - **`senova-auditor`** (em `.claude/agents/`) — agente dedicado de diagnóstico de causa raiz, com arquitetura + fluxo de enriquecimento + armadilhas embutidas. Acionar quando um bug persistir ou para auditar um fluxo inteiro: "usa o senova-auditor pra investigar X".
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 24) — VALIDAR A TRIAGEM, depois FUNDAÇÃO DO V1
+## ⚠️ AO RETOMAR (Sessão 25) — validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
 Base de decisão: **`MANIFESTO_SENOVA.md`** + **`DIAGNOSTICO_FUNIL.md`** + Decision Log do `DOSSIE_SENOVA.md`.
 Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
 
-**0. VALIDAR A TRIAGEM (Sessão 23, no ar — PRIORIDADE)** — arco "vazamento de e-mail multi-vaga":
-   - a) Fluxo principal: Home Ctrl+Shift+R → Pipeline esvazia dos ~37 cards de e-mail (flood some, contagens caem)
-     + surge **"Para Considerar"**; logado no LinkedIn, Compatibilidade preenche e as que passam o Critério auto-promovem.
-   - b) **Perfil › O que busco:** seletor humano por região + "Ajuste fino" (pontos 75/55). Salvar e reabrir → persistiu?
-   - c) **Multi-select** em Para Considerar → "Enviar selecionadas para Processos".
-   - Regressão a vigiar: enriquecimento/login intocados; triagem NÃO deve aparecer em contagem de Oportunidade.
+**0. VALIDAR A TRAVA DE ARQUIVAMENTO (Sessão 24, no ar `e71c9e7` — PRIORIDADE)** — falta ver a trava *impedindo* o arquivamento silencioso:
+   - a) Processo em Entrevista → seletor de status → Arquivado → Salvar → deve **PERGUNTAR** "Arquivar processo ativo?"; cancelar mantém o card intacto.
+   - b) Card arquivado → botão **"Reativar processo"** → volta ao estágio real + linha "Processo reativado" no histórico.
+   - c) Confirmar que TODO arquivamento agora deixa **linha no histórico** (era isso que faltava).
+   - Contexto: Marcos já recuperou o TV Integração à mão (seletor → Entrevista). O que falta é ver a trava agindo.
 
-1. **TESTAR o H4+H3** (verificar se ainda está pendente — ver ESTADO ATUAL). Console:
-   `vagas.filter(v=>v.atsAnaliseData).map(v=>({c:v.cargo,d:new Date(v.atsAnaliseData).toLocaleString(),i:v.atsCvIdioma}))`.
-   Aprovar → commit → (decidir push).
+**0b. "PARA CONSIDERAR" LEGÍVEL (aberto — pedido de Marcos)** — os cards de e-mail vêm com **cargo ilegível** ("D..", "M..", "G.."). A extração no Worker (`extrairVagasEmail` em `senova-worker.js`) produz título ruim → dar **informação mínima** (cargo/empresa/fonte) para saber do que se trata. Investigar no Worker + fallback no render `renderWidgetRevisao` (`index.html:~4903`).
+
+**0c. TERMINAR A VALIDAÇÃO DA TRIAGEM (S23)** — só o passo principal foi visto ("Para Considerar" apareceu com 57 itens; migração recolheu os cards de e-mail). Falta:
+   - **Perfil › O que busco:** seletor humano por região + "Ajuste fino" (75/55). Salvar/reabrir → persistiu?
+   - **Multi-select** em Para Considerar → "Enviar selecionadas para Processos".
+   - Regressão: enriquecimento/login intocados; triagem NÃO conta como Oportunidade.
+
+Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 2. **H5 — convergir motivo:** `vaga.motivo` (modal do card, save em `index.html:6058`) vs `vaga.motivoArquivamento`
    (Kanban, `arquivarSalvar` 5072). Fix PLANEJADO — mexe no save central + migração de dados antigos. NÃO é warm-up.
 3. **#6 Retorno recebido (maior valor p/ Sofia):** hoje 100% volátil (e-mail classificado no Worker nunca toca o
@@ -81,6 +86,28 @@ Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 24 (04–06/jul/2026)
+
+**Tema:** validar a triagem (arco S23) → **emergência**: o TV Integração (melhor processo, Entrevista, 91%) sumiu pela **3ª vez** (S13/S17/S23). Diagnóstico de causa raiz + blindagem definitiva.
+
+### Emergência TV Integração — causa raiz FINALMENTE achada
+- O card **não** foi deletado — estava **arquivado** (status mudou), recuperável. **Nada perdido.** Marcos o trouxe de volta para Entrevista pelo seletor de status.
+- Diagnóstico read-only guiado pelo próprio app (sem console — Marcos não gosta): a lista de arquivados mostrou o card; o **histórico dele não tinha nenhuma linha de "Arquivado"**, mas status=`arquivado` e "Atualizado 03/jul 22:31". Prova do arquivamento **invisível**.
+- **Raiz (nova):** `saveVaga` (`index.html:6244`) e `declinarVagaATS` (Análise CV) mudavam status para `arquivado` **sem escrever no histórico**. A trava da S17 só cobria **DELETE** — o arquivamento silencioso ficou de fora. **Essa era a metade que faltava**: por isso o card voltava do backup e sumia de novo.
+
+### Blindagem (commit `e71c9e7`, no ar — AGUARDANDO TESTE de Marcos)
+- **Helpers** `_STATUS_PROTEGIDO` / `_confirmarArquivarProtegido` / `_statusLabel` / `_estagioReativacao` (`index.html:~3298`).
+- **`saveVaga`** = coração da trava: bloqueia arquivar Entrevista/Proposta/Aceito sem confirmação (reverte o seletor, não salva) + registra TODA transição de/para arquivado no histórico.
+- **`declinarVagaATS`**: confirma antes de arquivar processo real + deixa rastro.
+- **Botão "Reativar processo"** visível no card arquivado; `reativarVaga` volta ao estágio real lido do histórico (TV Integração → Entrevista).
+- Backup `senova_v3.53_04jul2026_pre-trava-arquivamento.html`. QA Fase 2: sintaxe OK, gold-rule OK (zero `api.anthropic.com`).
+
+### Aberto / interrompido pela emergência
+- **"Para Considerar" com cargo ilegível** ("D..", "M.."): a extração de e-mail no Worker produz título ruim. Marcos pediu **"mais informação mínima para saber do que se trata"** — NÃO resolvido (ver AO RETOMAR 0b).
+- **Validação da triagem (S23) incompleta:** só o passo principal foi visto; Perfil (seletor humano + ajuste fino) e multi-select **não testados** (ver AO RETOMAR 0c).
 
 ---
 
