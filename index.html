@@ -2145,12 +2145,28 @@ select option { background: var(--bg2); }
         <div id="mv-doctab-ats">
           <button class="btn btn-primary" id="mv-gerar-cv-btn" onclick="mvGerarCV()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:13px;">Gerar CV</button>
           <textarea id="mv-ats-cv-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
-          <div id="mv-cv-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <button class="copy-btn" onclick="copyAtsField('mv-ats-cv-txt',this)">Copiar</button>
-            <button class="copy-btn" onclick="downloadDocFromModal()">Word</button>
-            <button class="copy-btn" onclick="downloadPDFFromModal()">PDF</button>
-            <button class="copy-btn" onclick="downloadPDFExecFromModal()" style="background:var(--navy);color:#fff;border-color:var(--navy);">PDF Executivo</button>
-            <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">Regenerar</button>
+          <div id="mv-cv-actions" style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+              <div style="min-width:0;">
+                <div style="font-size:13.5px;font-weight:700;color:var(--navy);">Executivo</div>
+                <div style="font-size:11.5px;color:var(--text3);">para pessoas — headhunter, indicação</div>
+              </div>
+              <button class="copy-btn" onclick="downloadPDFExecFromModal(this)" style="background:var(--navy);color:#fff;border-color:var(--navy);flex-shrink:0;">PDF</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+              <div style="min-width:0;">
+                <div style="font-size:13.5px;font-weight:700;color:var(--navy);">Otimizado</div>
+                <div style="font-size:11.5px;color:var(--text3);">para portais — leitura automática (ATS)</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button class="copy-btn" onclick="downloadDocFromModal(this)">Word</button>
+                <button class="copy-btn" onclick="downloadPDFFromModal(this)">PDF</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;padding-top:8px;">
+              <button class="copy-btn" onclick="copyCVFromModal(this)">Copiar texto</button>
+              <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">Regenerar</button>
+            </div>
           </div>
           <div id="mv-ctx-ats-row" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);">
             <label class="field-label" style="margin-bottom:6px;">Informação importante para esta regeneração</label>
@@ -6580,11 +6596,29 @@ function mvSyncDocsCV(){
   const gerarBtn=document.getElementById('mv-gerar-cv-btn');
   const cvTxt=document.getElementById('mv-ats-cv-txt');
   const actions=document.getElementById('mv-cv-actions');
-  if(gerarBtn){ gerarBtn.style.display=has?'none':''; gerarBtn.disabled=false; gerarBtn.textContent='Gerar CV'; }
-  if(cvTxt){ cvTxt.style.display=has?'':'none'; if(has&&!cvTxt.value) cvTxt.value=v.atsCV; }
-  if(actions) actions.style.display=has?'':'none';
-  if(!has){ const a=document.querySelector('.mv-doc-tab-btn[data-tab="ats"]'); mvDocTab('ats',a); }
+  // Todas as opções de saída já de primeira: o formato é o gatilho. Clicar sem CV
+  // gera o CV sob demanda (via analisarInline) e então baixa/copia — sem o passo
+  // separado "Gerar CV" (aposentado). Menos fricção, mesmo custo (gera só ao pedir).
+  if(gerarBtn){ gerarBtn.style.display='none'; }
+  if(cvTxt){
+    cvTxt.style.display='';
+    if(has){ if(!cvTxt.value) cvTxt.value=v.atsCV; }
+    else { cvTxt.value=''; cvTxt.placeholder='Escolha um formato abaixo — geramos seu CV na hora, a partir da descrição da vaga.'; }
+  }
+  if(actions) actions.style.display='flex';
 }
+// Garante que existe um CV antes de baixar/copiar. Se ainda não há, gera sob demanda
+// (mesma geração do antigo "Gerar CV") e devolve true se o CV ficou pronto.
+async function _mvGarantirCV(btn){
+  const cvTxt=document.getElementById('mv-ats-cv-txt');
+  if(cvTxt&&cvTxt.value.trim()) return true;
+  const _lbl=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='Gerando CV…'; }
+  try{ await analisarInline(); }catch(e){}
+  if(btn){ btn.disabled=false; btn.textContent=_lbl; }
+  const cv2=document.getElementById('mv-ats-cv-txt');
+  return !!(cv2&&cv2.value.trim()); // se seguir vazio, analisarInline já avisou (sem descrição/erro)
+}
+function copyCVFromModal(btn){ _mvGarantirCV(btn).then(ok=>{ if(ok) copyAtsField('mv-ats-cv-txt',btn); }); }
 // Geração explícita do CV pelo card (estado Oportunidade). Único caminho que gera o CV no lead.
 async function mvGerarCV(){
   const gerarBtn=document.getElementById('mv-gerar-cv-btn');
@@ -7194,19 +7228,24 @@ async function gerarDocModal(tipo){
   if(btnEl){btnEl.disabled=false;btnEl.textContent=labels[tipo];}
 }
 
-function downloadDocFromModal(){
-  const cv=document.getElementById('mv-ats-cv-txt')?.value;
-  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
-  const _prev=lastCV; lastCV=cv; downloadDoc(); lastCV=_prev;
+function downloadDocFromModal(btn){
+  _mvGarantirCV(btn).then(ok=>{
+    if(!ok) return;
+    const cv=document.getElementById('mv-ats-cv-txt')?.value;
+    const _prev=lastCV; lastCV=cv; downloadDoc(); lastCV=_prev;
+  });
 }
-function downloadPDFFromModal(){
-  const cv=document.getElementById('mv-ats-cv-txt')?.value;
-  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
-  const _prev=lastCV; lastCV=cv; downloadPDF(); lastCV=_prev;
+function downloadPDFFromModal(btn){
+  _mvGarantirCV(btn).then(ok=>{
+    if(!ok) return;
+    const cv=document.getElementById('mv-ats-cv-txt')?.value;
+    const _prev=lastCV; lastCV=cv; downloadPDF(); lastCV=_prev;
+  });
 }
-function downloadPDFExecFromModal(){
+function downloadPDFExecFromModal(btn){
+  _mvGarantirCV(btn).then(ok=>{
+  if(!ok) return;
   const cv=document.getElementById('mv-ats-cv-txt')?.value;
-  if(!cv){showToast('⚠️ Gere o CV primeiro');return;}
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const _prev=lastCV; const _prevFn=lastCVFilename;
@@ -7214,6 +7253,7 @@ function downloadPDFExecFromModal(){
   lastCVFilename=`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
   downloadPDFExecutivo();
   lastCV=_prev; lastCVFilename=_prevFn;
+  });
 }
 
 // Contato Modal
