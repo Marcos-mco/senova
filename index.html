@@ -2136,70 +2136,61 @@ select option { background: var(--bg2); }
       <!-- ZONA 7 — DOCUMENTOS -->
       <div class="mv-sec" id="mv-docs-section" style="display:none;">
         <div class="mv-sec-head"><span class="mv-sec-title">Documentos</span></div>
-        <div class="mv-doc-tabs">
-          <button class="mv-doc-tab-btn active" data-tab="ats" onclick="mvDocTab('ats',this)">CV</button>
-          <button class="mv-doc-tab-btn" data-tab="carta" onclick="mvDocTab('carta',this)">Carta</button>
-          <button class="mv-doc-tab-btn" data-tab="resposta" onclick="mvDocTab('resposta',this)">Resposta</button>
-        </div>
-        <!-- CV Plataforma -->
-        <div id="mv-doctab-ats">
-          <button class="btn btn-primary" id="mv-gerar-cv-btn" onclick="mvGerarCV()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:13px;">Gerar CV</button>
-          <textarea id="mv-ats-cv-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:monospace;line-height:1.55;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:8px;"></textarea>
-          <div id="mv-cv-actions" style="display:flex;flex-direction:column;gap:2px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
-              <div style="min-width:0;">
-                <div style="font-size:13.5px;font-weight:700;color:var(--navy);">Executivo</div>
-                <div style="font-size:11.5px;color:var(--text3);">para pessoas — headhunter, indicação</div>
-              </div>
-              <button class="copy-btn" onclick="downloadPDFExecFromModal(this)" style="background:var(--navy);color:#fff;border-color:var(--navy);flex-shrink:0;">PDF</button>
+        <!-- CONTROLES (sempre em cima) -->
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">CV Executivo</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:3px;">Para pessoas — headhunter, indicação</div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
-              <div style="min-width:0;">
-                <div style="font-size:13.5px;font-weight:700;color:var(--navy);">Otimizado</div>
-                <div style="font-size:11.5px;color:var(--text3);">para portais — leitura automática (ATS)</div>
-              </div>
-              <div style="display:flex;gap:6px;flex-shrink:0;">
-                <button class="copy-btn" onclick="downloadDocFromModal(this)">Word</button>
-                <button class="copy-btn" onclick="downloadPDFFromModal(this)">PDF</button>
-              </div>
+            <button class="copy-btn mv-fmt-btn" id="mv-cvbtn-exec" onclick="downloadPDFExecFromModal(this)" style="flex-shrink:0;min-height:42px;padding:0 18px;">PDF</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">CV Otimizado</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:3px;">Para portais — leitura automática (ATS)</div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;padding-top:8px;">
-              <button class="copy-btn" onclick="copyCVFromModal(this)">Copiar texto</button>
-              <button class="copy-btn" onclick="mvMostrarCtxRegen('ats')" style="margin-left:auto;">Regenerar</button>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+              <button class="copy-btn mv-fmt-btn" id="mv-cvbtn-word" onclick="downloadDocFromModal(this)" style="min-height:42px;padding:0 16px;">Word</button>
+              <button class="copy-btn mv-fmt-btn" id="mv-cvbtn-pdf" onclick="downloadPDFFromModal(this)" style="min-height:42px;padding:0 16px;">PDF</button>
             </div>
           </div>
-          <div id="mv-ctx-ats-row" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);">
-            <label class="field-label" style="margin-bottom:6px;">Informação importante para esta regeneração</label>
-            <textarea id="mv-ctx-ats" rows="2" placeholder="Ex: destacar gestão de times · remover experiência de docência · tom mais direto…" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.5;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;margin-bottom:8px;"></textarea>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="mvOcultarCtxRegen('ats')">Cancelar</button>
-              <button class="btn btn-primary" id="mv-gerar-ats-btn" style="padding:5px 14px;font-size:12px;" onclick="gerarDocModal('ats')">Gerar</button>
-            </div>
+          <div style="height:1px;background:var(--border);margin:6px 0 4px;"></div>
+          <div style="display:flex;gap:10px;">
+            <button class="copy-btn mv-doc-pill" onclick="mvAbrirDoc('carta',this)" style="flex:1;min-height:44px;border-radius:999px;font-weight:600;color:var(--navy);">Carta de apresentação</button>
+            <button class="copy-btn mv-doc-pill" onclick="mvAbrirDoc('resposta',this)" style="flex:1;min-height:44px;border-radius:999px;font-weight:600;color:var(--navy);">Resposta por e-mail</button>
           </div>
         </div>
-        <!-- Carta -->
-        <div id="mv-doctab-carta" style="display:none;">
-          <div class="form-row" style="margin-bottom:8px;">
-            <label class="field-label">Informação importante para esta carta</label>
-            <textarea id="mv-ctx-carta" rows="2" placeholder="Ex: carta formal para o diretor · mencionar indicação de contato · tom consultivo e direto…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
+        <!-- buffer oculto do CV (fonte de dados p/ downloads e para a área de resultado) -->
+        <textarea id="mv-ats-cv-txt" readonly style="display:none;"></textarea>
+        <!-- ÁREA DE RESULTADO (embaixo) -->
+        <div style="margin-top:16px;">
+          <div id="mv-doc-reslabel" style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:0 0 8px 2px;">Documento</div>
+          <div id="mv-doc-view"></div>
+          <!-- Painel Carta -->
+          <div id="mv-doctab-carta" style="display:none;">
+            <div class="form-row" style="margin-bottom:8px;">
+              <label class="field-label">Informação importante para esta carta</label>
+              <textarea id="mv-ctx-carta" rows="2" placeholder="Ex: carta formal para o diretor · mencionar indicação de contato · tom consultivo e direto…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
+            </div>
+            <button class="btn btn-primary" id="mv-gerar-carta-btn" onclick="gerarDocModal('carta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Gerar carta de apresentação</button>
+            <textarea id="mv-ats-carta-modal-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
+            <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">Copiar carta</button></div>
           </div>
-          <button class="btn btn-primary" id="mv-gerar-carta-btn" onclick="gerarDocModal('carta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Gerar carta de apresentação</button>
-          <textarea id="mv-ats-carta-modal-txt" rows="9" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
-          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-ats-carta-modal-txt',this)">Copiar carta</button></div>
-        </div>
-        <!-- Resposta -->
-        <div id="mv-doctab-resposta" style="display:none;">
-          <div class="form-row" style="margin-bottom:8px;">
-            <label class="field-label">Email ou mensagem recebida</label>
-            <textarea id="mv-email-recebido" rows="4" placeholder="Cole aqui o email, WhatsApp ou mensagem do recrutador…" style="font-size:13px;font-family:var(--font);resize:vertical;line-height:1.6;"></textarea>
+          <!-- Painel Resposta -->
+          <div id="mv-doctab-resposta" style="display:none;">
+            <div class="form-row" style="margin-bottom:8px;">
+              <label class="field-label">Email ou mensagem recebida</label>
+              <textarea id="mv-email-recebido" rows="4" placeholder="Cole aqui o email, WhatsApp ou mensagem do recrutador…" style="font-size:13px;font-family:var(--font);resize:vertical;line-height:1.6;"></textarea>
+            </div>
+            <div class="form-row" style="margin-bottom:8px;">
+              <label class="field-label">Informação importante para esta resposta</label>
+              <textarea id="mv-ctx-resposta" rows="2" placeholder="Ex: aceitar entrevista · pedir mais detalhes sobre o salário · tom formal…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
+            </div>
+            <button class="btn btn-primary" id="mv-gerar-resposta-btn" onclick="gerarDocModal('resposta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Sugerir resposta</button>
+            <textarea id="mv-resposta-txt" rows="7" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
+            <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-resposta-txt',this)">Copiar resposta</button></div>
           </div>
-          <div class="form-row" style="margin-bottom:8px;">
-            <label class="field-label">Informação importante para esta resposta</label>
-            <textarea id="mv-ctx-resposta" rows="2" placeholder="Ex: aceitar entrevista · pedir mais detalhes sobre o salário · tom formal…" style="font-size:13px;font-family:var(--font);resize:vertical;"></textarea>
-          </div>
-          <button class="btn btn-primary" id="mv-gerar-resposta-btn" onclick="gerarDocModal('resposta')" style="width:100%;justify-content:center;padding:9px;font-size:13px;margin-bottom:8px;">Sugerir resposta</button>
-          <textarea id="mv-resposta-txt" rows="7" readonly style="width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font);line-height:1.65;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text2);background:var(--bg3);margin-bottom:6px;"></textarea>
-          <div style="display:flex;justify-content:flex-end;"><button class="copy-btn" onclick="copyAtsField('mv-resposta-txt',this)">Copiar resposta</button></div>
         </div>
       </div>
 
@@ -5791,7 +5782,7 @@ function openVagaModal(id){
         // Restaurar lastCV para permitir downloads sem reanálise
         lastCV=v.atsCV;
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
-        mvDocTab('ats');
+        _mvCVAcab='exec'; mvDocTab('ats');
       } else {
         docsSec.style.display='none';
         if(resultEl) resultEl.style.display='none';
@@ -6105,10 +6096,9 @@ function mvAjustarSecoesStatus(status){
     if(isLead){ _docsSec.style.display=''; _docsSec.style.order='6'; mvSyncDocsCV(); }
     else {
       _docsSec.style.order='';
-      // "Gerar CV" é exclusivo do lead; não-lead usa o fluxo próprio de análise.
-      const _gb=document.getElementById('mv-gerar-cv-btn'); if(_gb) _gb.style.display='none';
-      const _cvt=document.getElementById('mv-ats-cv-txt'); if(_cvt) _cvt.style.display='';
-      const _act=document.getElementById('mv-cv-actions'); if(_act) _act.style.display='';
+      // Não-lead: a área Documentos (se visível) já foi montada em openVagaModal.
+      // O buffer do CV fica sempre oculto; os controles são os cartões fixos.
+      mvSyncDocsCV();
     }
   }
   const sofiaInline=document.getElementById('mv-sofia-inline');
@@ -6578,36 +6568,82 @@ function mvRenderPipeline(status){
   }).join('');
 }
 
-function mvDocTab(which,btn){
-  ['ats','carta','resposta'].forEach(t=>{
-    const el=document.getElementById('mv-doctab-'+t);
-    if(el) el.style.display=t===which?'':'none';
-  });
-  document.querySelectorAll('.mv-doc-tab-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  else{const b=document.querySelector(`.mv-doc-tab-btn[data-tab="${which}"]`);if(b)b.classList.add('active');}
+// ── Documentos: controles fixos em cima, uma área de resultado embaixo ──
+var _mvDocAtivo=null;   // 'ats' | 'carta' | 'resposta' — o que está aberto na área
+var _mvCVAcab=null;     // 'exec' | 'otim' — acabamento do CV mostrado
+// Destaque "escolhido" (navy): só um botão/pill por vez — a opção aberta na caixa.
+function _mvBtnChosen(b){ if(!b)return; b.style.background='var(--navy)'; b.style.color='#fff'; b.style.borderColor='var(--navy)'; b.dataset.chosen='1'; }
+function _mvBtnNeutro(b){ if(!b)return; b.style.background=''; b.style.color=''; b.style.borderColor=''; b.dataset.chosen=''; }
+function _mvSetChosen(alvo){
+  document.querySelectorAll('#mv-docs-section .mv-fmt-btn, #mv-docs-section .mv-doc-pill').forEach(_mvBtnNeutro);
+  _mvBtnChosen(alvo);
 }
-
-// Sincroniza a aba CV com o estado real do card: sem CV → só o botão "Gerar CV"
-// (nada de textarea vazia ou downloads de um CV inexistente). Com CV → resultado + downloads.
+// Formata o CV para a área de resultado. bonito=true → Executivo (nome Playfair, régua
+// dourada, seções); false → Otimizado (linear, a cara do arquivo ATS).
+function _mvFormatCV(texto, bonito){
+  const linhas=(texto||'').split('\n');
+  if(!bonito) return `<div style="white-space:pre-wrap;font-family:var(--font);font-size:12.5px;line-height:1.6;color:var(--text2);">${escHtml(texto)}</div>`;
+  const nome=escHtml((linhas[0]||'').trim());
+  const titulo=escHtml((linhas[1]||'').trim());
+  const contato=escHtml((linhas[2]||'').trim());
+  let corpo='';
+  for(let j=3;j<linhas.length;j++){
+    const t=(linhas[j]||'').trim();
+    if(!t){ corpo+='<div style="height:7px;"></div>'; continue; }
+    const isSec = t.length<42 && t===t.toUpperCase() && /[A-ZÀ-Ý]/.test(t) && !/\d{4}/.test(t);
+    corpo += isSec
+      ? `<div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--navy);text-transform:uppercase;margin:11px 0 4px;">${escHtml(t)}</div>`
+      : `<div style="font-size:12.5px;color:var(--text2);line-height:1.6;">${escHtml(t)}</div>`;
+  }
+  return `<div style="font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--navy);line-height:1.1;">${nome}</div>`
+    +(titulo?`<div style="font-size:12.5px;color:var(--gold);font-weight:600;margin-top:3px;">${titulo}</div>`:'')
+    +(contato?`<div style="font-size:11px;color:var(--text3);margin-top:3px;">${contato}</div>`:'')
+    +`<div style="height:1.5px;background:var(--gold);opacity:.7;margin:11px 0;"></div>`+corpo;
+}
+// Renderiza a caixa "Documento" com o CV no acabamento escolhido (ou placeholder).
+function _mvRenderCVView(){
+  const view=document.getElementById('mv-doc-view');
+  const label=document.getElementById('mv-doc-reslabel');
+  if(!view) return;
+  const cv=(document.getElementById('mv-ats-cv-txt')?.value||'').trim();
+  if(!cv){
+    if(label) label.textContent='Documento';
+    view.innerHTML=`<div style="border:1.5px dashed var(--border2);border-radius:var(--radius);padding:20px;text-align:center;font-size:12.5px;color:var(--text3);">Clique num formato acima — o documento é gerado na hora e aparece aqui.</div>`;
+    return;
+  }
+  const acab=_mvCVAcab||'exec';
+  if(label) label.textContent='Documento — '+(acab==='exec'?'CV Executivo':'CV Otimizado');
+  view.innerHTML=`<div style="border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;background:var(--bg2);max-height:260px;overflow-y:auto;">${_mvFormatCV(cv, acab==='exec')}</div>`;
+}
+// Roteia a área embaixo: 'ats' mostra a view do CV; 'carta'/'resposta' mostram o painel.
+// Os controles (cartões CV + pills) ficam sempre visíveis — só a área embaixo troca.
+function mvDocTab(which){
+  _mvDocAtivo=which;
+  const view=document.getElementById('mv-doc-view');
+  const carta=document.getElementById('mv-doctab-carta');
+  const resp=document.getElementById('mv-doctab-resposta');
+  const label=document.getElementById('mv-doc-reslabel');
+  const eDoc=(which==='carta'||which==='resposta');
+  if(view) view.style.display=eDoc?'none':'';
+  if(carta) carta.style.display=which==='carta'?'':'none';
+  if(resp) resp.style.display=which==='resposta'?'':'none';
+  if(eDoc){ if(label) label.textContent='Documento — '+(which==='carta'?'Carta de apresentação':'Resposta por e-mail'); }
+  else _mvRenderCVView();
+}
+// Clicou num formato de CV: marca a escolha e mostra o acabamento na caixa embaixo.
+function _mvEscolherCV(acab, btn){ _mvCVAcab=acab; _mvSetChosen(btn); mvDocTab('ats'); }
+// Pills Carta / Resposta: abrem o painel na área e assumem o destaque.
+function mvAbrirDoc(tipo, pill){ _mvSetChosen(pill); mvDocTab(tipo); }
+// Sincroniza a área Documentos com o card: buffer do CV + view (Executivo por padrão).
 function mvSyncDocsCV(){
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const has=!!(v&&v.atsCV);
-  const gerarBtn=document.getElementById('mv-gerar-cv-btn');
-  const cvTxt=document.getElementById('mv-ats-cv-txt');
-  const actions=document.getElementById('mv-cv-actions');
-  // Todas as opções de saída já de primeira: o formato é o gatilho. Clicar sem CV
-  // gera o CV sob demanda (via analisarInline) e então baixa/copia — sem o passo
-  // separado "Gerar CV" (aposentado). Menos fricção, mesmo custo (gera só ao pedir).
-  if(gerarBtn){ gerarBtn.style.display='none'; }
-  if(cvTxt){
-    cvTxt.style.display='';
-    if(has){ if(!cvTxt.value) cvTxt.value=v.atsCV; }
-    else { cvTxt.value=''; cvTxt.placeholder='Escolha um formato abaixo — geramos seu CV na hora, a partir da descrição da vaga.'; }
-  }
-  if(actions) actions.style.display='flex';
+  const buf=document.getElementById('mv-ats-cv-txt');
+  if(buf) buf.value = has ? (v.atsCV||'') : '';
+  if(!has){ _mvCVAcab=null; _mvSetChosen(null); } else if(!_mvCVAcab) _mvCVAcab='exec';
+  mvDocTab('ats');
 }
-// Garante que existe um CV antes de baixar/copiar. Se ainda não há, gera sob demanda
+// Garante que existe um CV antes de baixar. Se ainda não há, gera sob demanda
 // (mesma geração do antigo "Gerar CV") e devolve true se o CV ficou pronto.
 async function _mvGarantirCV(btn){
   const cvTxt=document.getElementById('mv-ats-cv-txt');
@@ -6617,14 +6653,6 @@ async function _mvGarantirCV(btn){
   if(btn){ btn.disabled=false; btn.textContent=_lbl; }
   const cv2=document.getElementById('mv-ats-cv-txt');
   return !!(cv2&&cv2.value.trim()); // se seguir vazio, analisarInline já avisou (sem descrição/erro)
-}
-function copyCVFromModal(btn){ _mvGarantirCV(btn).then(ok=>{ if(ok) copyAtsField('mv-ats-cv-txt',btn); }); }
-// Geração explícita do CV pelo card (estado Oportunidade). Único caminho que gera o CV no lead.
-async function mvGerarCV(){
-  const gerarBtn=document.getElementById('mv-gerar-cv-btn');
-  if(gerarBtn){ gerarBtn.disabled=true; gerarBtn.textContent='Gerando…'; }
-  await analisarInline();
-  mvSyncDocsCV();
 }
 
 function mvAtualizarBtnAnalise(){
@@ -6870,10 +6898,14 @@ async function mvEnriquecerPerfil(){
   }
   // 3) Reanálise imediata — só no estágio Oportunidade com descrição completa
   if(_reanalisa){
-    showToast('Recalculando esta vaga…');
+    showToast('Reanalisando esta vaga…');
     const novoScore=await mvReanalisarCompat();
+    // O contexto novo muda o CV: invalida o CV atual para regenerar no próximo clique de formato.
+    const _iCV=vagas.findIndex(x=>String(x.id)===String(editingVagaId));
+    if(_iCV>=0 && vagas[_iCV].atsCV){ vagas[_iCV].atsCV=''; saveVagas(); }
+    if(typeof mvSyncDocsCV==='function') mvSyncDocsCV();
     if(st) st.innerHTML=(typeof novoScore==='number')
-      ? '<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+novoScore+'%.</span>'
+      ? '<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+novoScore+'%.</span> Clique num formato para gerar o CV atualizado.'
       : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
   } else {
     showToast('Adicionado ao seu perfil.');
@@ -7096,10 +7128,15 @@ async function analisarInline(){
   const metaVaga=[localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
   const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
   const contextoFull=ctx?'\n\n---\nContexto desta rodada: '+ctx:'';
+  // Complementos do Perfil ("acrescentar sobre mim") relevantes para esta vaga —
+  // mesmo mecanismo da Análise de Vaga. Assim o CV do card também parte do CV original
+  // + complementos do Perfil + o que se acrescenta na hora.
+  const _rel=ctxBuscarRelevantes(jobDesc);
+  const perfilComp=_rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o relevante para esta vaga específica):\n'+_rel.map(e=>'• '+e.texto).join('\n'):'';
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,system:ATS_SYSTEM(cvLang),
-        messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull}]})});
+        messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull+perfilComp}]})});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     const parts=text.split('---CV---');
@@ -7159,7 +7196,7 @@ async function analisarInline(){
       if(cvTxt) cvTxt.value=cv;
       const docsSec=document.getElementById('mv-docs-section');
       if(docsSec) docsSec.style.display='';
-      mvDocTab('ats');
+      _mvCVAcab='exec'; mvDocTab('ats');
       atualizarBotoesModal();
       setTimeout(()=>{
         const body=document.querySelector('#modal-vaga .modal-body');
@@ -7233,6 +7270,7 @@ function downloadDocFromModal(btn){
     if(!ok) return;
     const cv=document.getElementById('mv-ats-cv-txt')?.value;
     const _prev=lastCV; lastCV=cv; downloadDoc(); lastCV=_prev;
+    _mvEscolherCV('otim', btn);
   });
 }
 function downloadPDFFromModal(btn){
@@ -7240,6 +7278,7 @@ function downloadPDFFromModal(btn){
     if(!ok) return;
     const cv=document.getElementById('mv-ats-cv-txt')?.value;
     const _prev=lastCV; lastCV=cv; downloadPDF(); lastCV=_prev;
+    _mvEscolherCV('otim', btn);
   });
 }
 function downloadPDFExecFromModal(btn){
@@ -7253,6 +7292,7 @@ function downloadPDFExecFromModal(btn){
   lastCVFilename=`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
   downloadPDFExecutivo();
   lastCV=_prev; lastCVFilename=_prevFn;
+  _mvEscolherCV('exec', btn);
   });
 }
 
