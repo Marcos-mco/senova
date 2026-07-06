@@ -3098,7 +3098,7 @@ Retorne EXATAMENTE neste formato com estes separadores:
 
 ---ANALISE---
 ## Análise da Vaga
-**Candidatura direta:** [se a descrição instruir enviar a candidatura DIRETO por e-mail fora do portal — frases como "envie seu CV para", "não se candidate por este site", "send your resume/CV to", "email your application to", às vezes com uma palavra-código ou nome de arquivo exigido no assunto — extraia e escreva assim: e-mail encontrado e, se houver, acrescente · código: "PALAVRA". Se a vaga não tiver essa instrução, escreva apenas "Nenhuma"]
+**Candidatura direta:** [se a vaga trouxer alguma instrução voltada a filtrar quem lê com atenção — candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to"), por WhatsApp/telefone, ou exigir uma palavra-código/nome de arquivo/ação específica no assunto ou mensagem — extraia e escreva assim: canal: "Email" (ou "WhatsApp"/"Telefone"/"Outro") · destino: "e-mail ou telefone encontrado" e, se houver instrução extra, acrescente · instrução: "PALAVRA OU AÇÃO EXIGIDA". Se a vaga não tiver nada disso, escreva apenas "Nenhuma"]
 **Cargo real:** [o que precisam de fato]
 **Urgência:** [baixa/média/alta — motivo]
 **Red flags:** [ou "Nenhum"]
@@ -3278,7 +3278,7 @@ async function analyzeJob() {
   btn.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV`;
 }
 
-let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='',atsCanalDiretoEmail='',atsCanalDiretoCodigo='';
+let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='',atsCanalDiretoTipo='',atsCanalDiretoDestino='',atsCanalDiretoInstrucao='';
 let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _decodeHtml(s){if(!s) return '';const t=document.createElement('textarea');t.innerHTML=s;return t.value;}
@@ -3339,13 +3339,15 @@ function renderATSResult(analise,cv,crm) {
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
   const canalDiretoLinha=analise.match(/\*{0,2}Candidatura direta:\*{0,2}\s*([^\n]+)/i)?.[1]?.trim()||'';
   const canalDiretoAusente=!canalDiretoLinha||/^nenhuma?$/i.test(canalDiretoLinha);
-  atsCanalDiretoEmail=canalDiretoAusente?'':(canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
-  atsCanalDiretoCodigo=canalDiretoAusente?'':(canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
+  atsCanalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':'Outro'));
+  atsCanalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
+  atsCanalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
   if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){
     vagas[_vi].atsCV=cv;vagas[_vi].atsCvScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;
-    vagas[_vi].canalDiretoEmail=atsCanalDiretoEmail;
-    vagas[_vi].canalDiretoCodigo=atsCanalDiretoCodigo;
-    if(atsCanalDiretoEmail&&!vagas[_vi].emailDest) vagas[_vi].emailDest=atsCanalDiretoEmail;
+    vagas[_vi].canalDiretoTipo=atsCanalDiretoTipo;
+    vagas[_vi].canalDiretoDestino=atsCanalDiretoDestino;
+    vagas[_vi].canalDiretoInstrucao=atsCanalDiretoInstrucao;
+    if(atsCanalDiretoTipo==='Email'&&atsCanalDiretoDestino&&!vagas[_vi].emailDest) vagas[_vi].emailDest=atsCanalDiretoDestino;
     saveVagas();
   }}
   const veredicto = analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
@@ -3619,11 +3621,13 @@ async function candidatarVagaATS(){
   vagas[savedIdx].atsAnalise=_atsAnalise;
   vagas[savedIdx].atsCV=lastCV;
   vagas[savedIdx].atsCarta=carta;
-  vagas[savedIdx].canalDiretoEmail=vagas[savedIdx].canalDiretoEmail||atsCanalDiretoEmail;
-  vagas[savedIdx].canalDiretoCodigo=vagas[savedIdx].canalDiretoCodigo||atsCanalDiretoCodigo;
-  const emailDest=(idx>=0?vagas[idx].emailDest:'')||atsEmailDest||atsCanalDiretoEmail;
-  const codigoDest=vagas[savedIdx].canalDiretoCodigo||'';
-  atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';atsCanalDiretoEmail='';atsCanalDiretoCodigo='';
+  vagas[savedIdx].canalDiretoTipo=vagas[savedIdx].canalDiretoTipo||atsCanalDiretoTipo;
+  vagas[savedIdx].canalDiretoDestino=vagas[savedIdx].canalDiretoDestino||atsCanalDiretoDestino;
+  vagas[savedIdx].canalDiretoInstrucao=vagas[savedIdx].canalDiretoInstrucao||atsCanalDiretoInstrucao;
+  const _tipoDest=vagas[savedIdx].canalDiretoTipo||atsCanalDiretoTipo;
+  const emailDest=(idx>=0?vagas[idx].emailDest:'')||atsEmailDest||(_tipoDest==='Email'?atsCanalDiretoDestino:'');
+  const codigoDest=vagas[savedIdx].canalDiretoInstrucao||'';
+  atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';atsCanalDiretoTipo='';atsCanalDiretoDestino='';atsCanalDiretoInstrucao='';
   saveVagas();
   const bar=document.getElementById('ats-decisao-bar');
   if(bar){bar.querySelectorAll('button').forEach(b=>{b.disabled=true;b.style.opacity='0.45';});const lbl=document.getElementById('ats-decisao-label');if(lbl)lbl.textContent='✓ Candidatura registrada — '+hoje;}
@@ -6002,7 +6006,7 @@ function candidatarDoModal(){
   const vagaIdx=vagas.findIndex(x=>x.id===id);
   if(vagaIdx<0) return;
   const saved=vagas[vagaIdx];
-  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoCodigo||''});
+  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
 }
 function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
@@ -6773,9 +6777,14 @@ function mvUpdateScoreDisplay(vOpt){
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
     if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
-    // Candidatura direta detectada (pegadinha de e-mail escondido) — mostra sempre que houver,
-    // vindo do quick-check automático ou da análise completa, independente de qual rodou.
-    const canalHtml=v?.canalDiretoEmail?`<div style="font-size:12px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:6px 9px;margin-bottom:6px;border-radius:4px;line-height:1.5;">Candidatura direta: <span style="font-weight:600;">${escHtml(v.canalDiretoEmail)}${v.canalDiretoCodigo?' · código: "'+escHtml(v.canalDiretoCodigo)+'"':''}</span></div>`:'';
+    // Candidatura direta detectada (pegadinha p/ filtrar quem lê com atenção — e-mail, WhatsApp,
+    // telefone, palavra-código etc.) — mostra sempre que houver, vindo do quick-check automático
+    // ou da análise completa, independente de qual rodou. Lê campos legados (canalDiretoEmail/
+    // canalDiretoCodigo) para não perder cards já analisados antes desta mudança.
+    const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
+    const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
+    const _canalInstr=v?.canalDiretoInstrucao||v?.canalDiretoCodigo||'';
+    const canalHtml=_canalDest?`<div style="font-size:12px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:6px 9px;margin-bottom:6px;border-radius:4px;line-height:1.5;">Candidatura direta${_canalTipo?' ('+escHtml(_canalTipo)+')':''}: <span style="font-weight:600;">${escHtml(_canalDest)}${_canalInstr?' · instrução: "'+escHtml(_canalInstr)+'"':''}</span></div>`:'';
     // Prioridade 1: texto rico da aba Analisar (tem seções como Cargo real, Red flags, etc.)
     const analise=(v?.atsAnalise||'').trim();
     const isRichAnalise=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(analise);
@@ -6827,10 +6836,11 @@ async function mvAutoCompatCheck(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_email){
-      vagas[idx].canalDiretoEmail=data.candidatura_direta_email;
-      vagas[idx].canalDiretoCodigo=data.candidatura_direta_codigo||'';
-      if(!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_email;
+    if(data.candidatura_direta_canal||data.candidatura_direta_destino){
+      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
+      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
+      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
+      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_destino;
     }
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
@@ -6935,10 +6945,11 @@ async function mvReanalisarCompat(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_email){
-      vagas[idx].canalDiretoEmail=data.candidatura_direta_email;
-      vagas[idx].canalDiretoCodigo=data.candidatura_direta_codigo||'';
-      if(!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_email;
+    if(data.candidatura_direta_canal||data.candidatura_direta_destino){
+      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
+      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
+      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
+      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_destino;
     }
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
@@ -7148,8 +7159,9 @@ async function analisarInline(){
     const keywords=analise.match(/\*\*Presentes no CV:\*\*\s*([^\n]+)/)?.[1]?.trim()||analise.match(/Presentes no CV:\s*([^\n]+)/)?.[1]?.trim()||'';
     const canalDiretoLinha=analise.match(/\*{0,2}Candidatura direta:\*{0,2}\s*([^\n]+)/i)?.[1]?.trim()||'';
     const canalDiretoAusente=!canalDiretoLinha||/^nenhuma?$/i.test(canalDiretoLinha);
-    const canalDiretoEmail=canalDiretoAusente?'':(canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
-    const canalDiretoCodigo=canalDiretoAusente?'':(canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
+    const canalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':'Outro'));
+    const canalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
+    const canalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
     lastCV=cv;
     lastCVFilename=`CV_MF_${(empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
     atsEmpresa=empresa;atsCargo=cargo;
@@ -7159,13 +7171,22 @@ async function analisarInline(){
     } else if(editingVagaId&&editingVagaId!=='new'){
       const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
       if(idx>=0){
-        vagas[idx].atsCV=cv;vagas[idx].atsCvScore=score?String(score):'';vagas[idx].atsKeywords=keywords;vagas[idx].atsAnalise=analise;vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].atsAnaliseData=Date.now();vagas[idx].atsCvIdioma=cvLang;vagas[idx].updatedAt=Date.now();
-        vagas[idx].canalDiretoEmail=canalDiretoEmail;
-        vagas[idx].canalDiretoCodigo=canalDiretoCodigo;
-        if(canalDiretoEmail&&!vagas[idx].emailDest){
-          vagas[idx].emailDest=canalDiretoEmail;
+        // Gerar CV não deve apagar uma análise já rica (Cargo real/Urgência/Red flags/Empresa-Cultura) —
+        // ela só é refeita de fato pelo fluxo de "acrescentar sobre mim" (mvReanalisarCompat).
+        const _analisePrevia=vagas[idx].atsAnalise||'';
+        const _previaRica=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(_analisePrevia);
+        vagas[idx].atsCV=cv;vagas[idx].atsCvScore=score?String(score):'';vagas[idx].atsKeywords=keywords;
+        if(!_previaRica) vagas[idx].atsAnalise=analise;
+        vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].atsAnaliseData=Date.now();vagas[idx].atsCvIdioma=cvLang;vagas[idx].updatedAt=Date.now();
+        if(canalDiretoTipo||canalDiretoDestino){
+          vagas[idx].canalDiretoTipo=canalDiretoTipo;
+          vagas[idx].canalDiretoDestino=canalDiretoDestino;
+          vagas[idx].canalDiretoInstrucao=canalDiretoInstrucao;
+        }
+        if(canalDiretoTipo==='Email'&&canalDiretoDestino&&!vagas[idx].emailDest){
+          vagas[idx].emailDest=canalDiretoDestino;
           const destInput=document.getElementById('mv-email-dest');
-          if(destInput) destInput.value=canalDiretoEmail;
+          if(destInput) destInput.value=canalDiretoDestino;
         }
         saveVagas();
       }
