@@ -3098,7 +3098,7 @@ Retorne EXATAMENTE neste formato com estes separadores:
 
 ---ANALISE---
 ## Análise da Vaga
-**Candidatura direta:** [se a vaga trouxer alguma instrução voltada a filtrar quem lê com atenção — candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to"), por WhatsApp/telefone, ou exigir uma palavra-código/nome de arquivo/ação específica no assunto ou mensagem — extraia e escreva assim: canal: "Email" (ou "WhatsApp"/"Telefone"/"Outro") · destino: "e-mail ou telefone encontrado" e, se houver instrução extra, acrescente · instrução: "PALAVRA OU AÇÃO EXIGIDA". Se a vaga não tiver nada disso, escreva apenas "Nenhuma"]
+**Candidatura direta:** [se a vaga trouxer qualquer instrução voltada a filtrar quem lê com atenção: (a) candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to"), por WhatsApp/telefone — escreva canal: "Email"/"WhatsApp"/"Telefone" · destino: "e-mail ou telefone encontrado" e, se houver, acrescente · instrução: "palavra/código exigido"; (b) OU simplesmente pedir para mencionar uma palavra, código ou fazer alguma ação específica em algum lugar da candidatura, sem exigir nenhum canal próprio — pode estar solta no meio da descrição, longe de "como se candidatar" — nesse caso escreva só: instrução: "PALAVRA OU AÇÃO EXIGIDA" (sem canal nem destino). Se a vaga não tiver nada disso, escreva apenas "Nenhuma"]
 **Cargo real:** [o que precisam de fato]
 **Urgência:** [baixa/média/alta — motivo]
 **Red flags:** [ou "Nenhum"]
@@ -3339,7 +3339,7 @@ function renderATSResult(analise,cv,crm) {
   const score = parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
   const canalDiretoLinha=analise.match(/\*{0,2}Candidatura direta:\*{0,2}\s*([^\n]+)/i)?.[1]?.trim()||'';
   const canalDiretoAusente=!canalDiretoLinha||/^nenhuma?$/i.test(canalDiretoLinha);
-  atsCanalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':'Outro'));
+  atsCanalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':''));
   atsCanalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
   atsCanalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
   if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){
@@ -6784,7 +6784,7 @@ function mvUpdateScoreDisplay(vOpt){
     const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
     const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
     const _canalInstr=v?.canalDiretoInstrucao||v?.canalDiretoCodigo||'';
-    const canalHtml=_canalDest?`<div style="font-size:12px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:6px 9px;margin-bottom:6px;border-radius:4px;line-height:1.5;">Candidatura direta${_canalTipo?' ('+escHtml(_canalTipo)+')':''}: <span style="font-weight:600;">${escHtml(_canalDest)}${_canalInstr?' · instrução: "'+escHtml(_canalInstr)+'"':''}</span></div>`:'';
+    const canalHtml=(_canalDest||_canalInstr)?`<div style="font-size:12px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:6px 9px;margin-bottom:6px;border-radius:4px;line-height:1.5;">Candidatura direta${(_canalTipo&&_canalDest)?' ('+escHtml(_canalTipo)+')':''}: <span style="font-weight:600;">${_canalDest?escHtml(_canalDest):escHtml(_canalInstr)}${_canalDest&&_canalInstr?' · instrução: "'+escHtml(_canalInstr)+'"':''}</span></div>`:'';
     // Prioridade 1: texto rico da aba Analisar (tem seções como Cargo real, Red flags, etc.)
     const analise=(v?.atsAnalise||'').trim();
     const isRichAnalise=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(analise);
@@ -6836,7 +6836,7 @@ async function mvAutoCompatCheck(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_canal||data.candidatura_direta_destino){
+    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
       vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
       vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
       vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
@@ -6945,7 +6945,7 @@ async function mvReanalisarCompat(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_canal||data.candidatura_direta_destino){
+    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
       vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
       vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
       vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
@@ -7159,7 +7159,7 @@ async function analisarInline(){
     const keywords=analise.match(/\*\*Presentes no CV:\*\*\s*([^\n]+)/)?.[1]?.trim()||analise.match(/Presentes no CV:\s*([^\n]+)/)?.[1]?.trim()||'';
     const canalDiretoLinha=analise.match(/\*{0,2}Candidatura direta:\*{0,2}\s*([^\n]+)/i)?.[1]?.trim()||'';
     const canalDiretoAusente=!canalDiretoLinha||/^nenhuma?$/i.test(canalDiretoLinha);
-    const canalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':'Outro'));
+    const canalDiretoTipo=canalDiretoAusente?'':(canalDiretoLinha.match(/canal:\s*"?([^"·\n]+)"?/i)?.[1]?.trim()||(/[\w.+-]+@[\w-]+\.[\w.-]+/.test(canalDiretoLinha)?'Email':''));
     const canalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
     const canalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
     lastCV=cv;
@@ -7178,7 +7178,7 @@ async function analisarInline(){
         vagas[idx].atsCV=cv;vagas[idx].atsCvScore=score?String(score):'';vagas[idx].atsKeywords=keywords;
         if(!_previaRica) vagas[idx].atsAnalise=analise;
         vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].atsAnaliseData=Date.now();vagas[idx].atsCvIdioma=cvLang;vagas[idx].updatedAt=Date.now();
-        if(canalDiretoTipo||canalDiretoDestino){
+        if(canalDiretoTipo||canalDiretoDestino||canalDiretoInstrucao){
           vagas[idx].canalDiretoTipo=canalDiretoTipo;
           vagas[idx].canalDiretoDestino=canalDiretoDestino;
           vagas[idx].canalDiretoInstrucao=canalDiretoInstrucao;
