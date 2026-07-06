@@ -2158,7 +2158,7 @@ select option { background: var(--bg2); }
           <div style="height:1px;background:var(--border);margin:6px 0 4px;"></div>
           <div style="display:flex;gap:10px;">
             <button class="copy-btn mv-doc-pill" onclick="mvAbrirDoc('carta',this)" style="flex:1;min-height:44px;border-radius:999px;font-weight:600;color:var(--navy);">Carta de apresentação</button>
-            <button class="copy-btn mv-doc-pill" onclick="mvAbrirDoc('resposta',this)" style="flex:1;min-height:44px;border-radius:999px;font-weight:600;color:var(--navy);">Resposta por e-mail</button>
+            <button id="mv-doc-pill-resposta" class="copy-btn mv-doc-pill" onclick="mvClicarDocResposta(this)" style="flex:1;min-height:44px;border-radius:999px;font-weight:600;color:var(--navy);">Resposta por e-mail</button>
           </div>
         </div>
         <!-- buffer oculto do CV (fonte de dados p/ downloads e para a área de resultado) -->
@@ -6638,6 +6638,27 @@ function mvDocTab(which){
 function _mvEscolherCV(acab, btn){ _mvCVAcab=acab; _mvSetChosen(btn); mvDocTab('ats'); }
 // Pills Carta / Resposta: abrem o painel na área e assumem o destaque.
 function mvAbrirDoc(tipo, pill){ _mvSetChosen(pill); mvDocTab(tipo); }
+// O pill "Resposta por e-mail" tem dois modos (decididos por mvSyncEnvioDireto):
+// - vaga de candidatura direta por e-mail → vira "Enviar candidatura por e-mail" (envio proativo)
+// - vaga normal → "Resposta por e-mail" (responder um e-mail RECEBIDO)
+// Responder pressupõe um e-mail que chegou; enviar candidatura é você iniciando o contato.
+function mvClicarDocResposta(btn){
+  if(btn&&btn.dataset.modoEnvio==='1'){ candidatarDoModal(); return; }
+  mvAbrirDoc('resposta', btn);
+}
+// Decide o modo do pill conforme a vaga. Candidatura direta por e-mail = há um destino
+// de e-mail detectado (canalDiretoDestino com @, ou canalDiretoTipo 'Email'). WhatsApp/
+// Telefone NÃO entram aqui — o envio é via Outlook/e-mail. Campos legados: canalDiretoEmail.
+function mvSyncEnvioDireto(){
+  const btn=document.getElementById('mv-doc-pill-resposta');
+  if(!btn) return;
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
+  const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
+  const _ehEmailDireto=!!_canalDest&&(/@/.test(_canalDest)||_canalTipo==='Email');
+  if(_ehEmailDireto){ btn.textContent='Enviar candidatura por e-mail →'; btn.dataset.modoEnvio='1'; }
+  else { btn.textContent='Resposta por e-mail'; btn.dataset.modoEnvio=''; }
+}
 // Sincroniza a área Documentos com o card: buffer do CV + view (Executivo por padrão).
 function mvSyncDocsCV(){
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
@@ -6646,6 +6667,7 @@ function mvSyncDocsCV(){
   if(buf) buf.value = has ? (v.atsCV||'') : '';
   if(!has){ _mvCVAcab=null; _mvSetChosen(null); } else if(!_mvCVAcab) _mvCVAcab='exec';
   mvDocTab('ats');
+  mvSyncEnvioDireto();
 }
 // Garante que existe um CV antes de baixar. Se ainda não há, gera sob demanda
 // (mesma geração do antigo "Gerar CV") e devolve true se o CV ficou pronto.
@@ -7230,7 +7252,7 @@ async function analisarInline(){
       if(cvTxt) cvTxt.value=cv;
       const docsSec=document.getElementById('mv-docs-section');
       if(docsSec) docsSec.style.display='';
-      _mvCVAcab='exec'; mvDocTab('ats');
+      _mvCVAcab='exec'; mvDocTab('ats'); mvSyncEnvioDireto();
       atualizarBotoesModal();
       setTimeout(()=>{
         const body=document.querySelector('#modal-vaga .modal-body');
