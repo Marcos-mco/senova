@@ -9552,7 +9552,7 @@ function downloadPDFExecutivo(){
     doc.setFontSize(8);
     doc.setTextColor(branco[0],branco[1],branco[2]);
     doc.text('Marcos Franco  |  Curitiba, PR',margL,293);
-    doc.text('Pagina '+i+' de '+pages,190,293,{align:'right'});
+    doc.text('Página '+i+' de '+pages,190,293,{align:'right'});
   }
   doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
 }
