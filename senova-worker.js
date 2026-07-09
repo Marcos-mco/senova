@@ -184,7 +184,7 @@ Experiências:
 - Popper: Head de Expansão & Novos Negócios (2024–2025)
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
-Pretensão: R$19–25k CLT · Aceita PJ · Aceita relocação SC
+Pretensão: R$15–25k CLT (fecha a partir de R$15k; mínimo de sobrevivência R$8k em Curitiba) · Aceita PJ · Aceita relocação SC
 Aberto a: Brasil, Espanha, Alemanha, Portugal, remoto
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
 `.trim();
