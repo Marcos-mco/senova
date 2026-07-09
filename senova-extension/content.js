@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.58
+// Content script — Senova Extension v2.59
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1015,12 +1015,21 @@
       fileN = fl.length; fileVis = fl.filter(_visivel).length;
     } catch (_) {}
     // iframes: um formulário de candidatura dentro de iframe cross-origin é invisível para nós.
+    // Para iframe MESMA ORIGEM, medimos quantos campos existem lá dentro — hipótese a confirmar
+    // antes de mexer em código: será que o formulário real mora no iframe e a varredura de hoje
+    // (só document de topo) nunca olha pra lá?
     const ifr = Array.from(document.querySelectorAll('iframe'));
-    let semAcesso = 0; const hosts = [];
+    let semAcesso = 0; const hosts = []; const mesmaOrigem = [];
     for (const f of ifr) {
       let ok = false;
       try { ok = !!f.contentDocument; } catch (_) { ok = false; }
       if (!ok) { semAcesso++; try { hosts.push(new URL(f.src, location.href).hostname); } catch (_) {} }
+      else {
+        try {
+          const campos2 = Array.from(f.contentDocument.querySelectorAll(_CAMPO_SEL));
+          mesmaOrigem.push({ src: f.src || '(sem src)', total: campos2.length, vis: campos2.filter(_visivel).length });
+        } catch (_) {}
+      }
     }
     const an = _copilotoAnalise || {};
     const origem = !an.jobId ? 'popup/sem-card'
@@ -1038,13 +1047,14 @@
       passe: _ultimoPasse === undefined ? 'não lido' : !_ultimoPasse ? 'nenhum'
         : `jobId ${_ultimoPasse.jobId} · há ${Math.round((Date.now() - _ultimoPasse.ts) / 60000)}min`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
-      iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma
+      iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
+      iframesMesmaOrigem: mesmaOrigem
     };
   }
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.58',
+      'SENOVA DIAG v2.59',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1056,6 +1066,9 @@
       'campos de arquivo (upload): ' + d.fileN + ' (visíveis: ' + d.fileVis + ')',
       'vazios p/ preencher: ' + d.vazios,
       'iframes: ' + d.iframes + ' (sem acesso: ' + d.iframesSemAcesso + (d.iframeHosts ? ' → ' + d.iframeHosts : '') + ')',
+      'iframes mesma origem: ' + (d.iframesMesmaOrigem && d.iframesMesmaOrigem.length
+        ? d.iframesMesmaOrigem.map(x => x.src + ': ' + x.total + ' campos (' + x.vis + ' vis)').join(' | ')
+        : '—'),
       'forma: ' + d.forma,
       'url: ' + location.href
     ].join('\n');
