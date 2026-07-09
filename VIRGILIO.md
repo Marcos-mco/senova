@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 09/jul/2026 — Sessão 26 — FECHADA (bug novo de Marcos: copiloto não preenche formulário no SmartRecruiters/oneclick-ui — causa raiz achada pelo senova-auditor: iframe same-origem nunca varrido. Instrumentação v2.59 no ar; fix real aguarda reteste de Marcos com dado. Fila de S24/S25 — trava de arquivamento, "Para Considerar", triagem — continua sem teste)*
+*Atualizado: 09/jul/2026 — Sessão 27 — FECHADA (MUDANÇA DE MÉTODO: Bruno=CTO, Marcos=Dono do Produto; Lean + uma coisa por vez + ANDAR A ESPINHA — fluxo de candidatura ponta a ponta provado UMA vez com uma vaga real; tudo fora da espinha vai pro PARKING LOT. Cobaia escolhida: Humanizata/abler "Diretor de Executivo" 78%, envio por e-mail. Também: fetch silencioso eliminado no worker (v7.11) + régua salarial atualizada (fecha R$15k). Próximo: Estação 2 — gerar CV+carta da cobaia no app)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -25,7 +25,7 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ESTADO ATUAL — 09/jul/2026 (Sessão 26)
+## ESTADO ATUAL — 09/jul/2026 (Sessão 27)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -33,16 +33,16 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.9** — Sessão 25: candidatura direta generalizada canal+instrução)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.11** — S27: fetch silencioso eliminado em `analisarVaga`+`classificarEmails`; régua salarial atualizada no `PERFIL_MARCOS`)
 - **Extensão Chrome:** **v2.59** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `0184508` (09/jul — versiona backup pré-pegadinha-generica do worker v7.8, **pushado**). Antes: `e9aedaa` (extensão v2.59 — diagnóstico de iframe same-origem) · `3d39933` (fix instrução pura sem canal) · `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
+- **Último commit:** `40145ae` (09/jul S27 — régua salarial R$19k→fecha R$15k/sobrevive R$8k, **pushado**). Antes: `5cbb700` (S27 — fetch silencioso eliminado, Worker v7.11) · `02c3c36` (fecha S26) · `0184508` (backup worker v7.8) · `e9aedaa` (extensão v2.59 — diagnóstico de iframe same-origem) · `3d39933` (fix instrução pura sem canal) · `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
 - **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
-- **Backups:** `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
+- **Backups:** `senova_v3.62_09jul2026_pre-salario.html` (S27) · `senova-worker_v7.10_09jul2026_pre-fetch-silencioso.js` (S27) · `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
 - ✅ **H4+H3** (metadados da análise) CONFIRMADO no ar — grava `atsAnaliseData`/`atsCvIdioma` na análise (`index.html:7028`). Saiu da lista de pendências.
 - ✅ **TRAVA DE ARQUIVAMENTO no ar** (`e71c9e7`): processo real (Entrevista/Proposta/Aceito) não vira `arquivado` sem confirmação; TODO arquivamento deixa rastro no histórico; botão "Reativar processo" no card arquivado. **A trava vive no `saveVaga` (index.html:6244) + `declinarVagaATS` — não reintroduzir arquivamento silencioso.** Ainda sem teste explícito de Marcos.
 - ✅ **CANDIDATURA DIRETA GENERALIZADA no ar e CONFIRMADA por Marcos** (`3d39933`, Worker v7.9): cobre canal (Email/WhatsApp/Telefone) + destino OU instrução pura (palavra/código/ação) sem canal nenhum. Render (`mvUpdateScoreDisplay`, index.html:~6787) e os 3 gates de gravação (`mvAutoCompatCheck`, `mvReanalisarCompat`, `analisarInline`) disparam com qualquer um dos três campos preenchido — instrução pura é caso próprio, não fallback do canal. Não reintroduzir a exigência de destino/canal para exibir ou salvar.
@@ -52,8 +52,27 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 27) — reteste do iframe SmartRecruiters, validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
-*(Sessão 26 não tocou a fila de S24/S25 — Marcos trouxe um bug novo por screenshot: copiloto sem preencher formulário no SmartRecruiters. Itens antigos abaixo continuam de pé, sem mudança — ver "O QUE FOI FEITO — SESSÃO 26" abaixo.)*
+## ⚠️ AO RETOMAR (Sessão 28) — ANDAR A ESPINHA com a cobaia Humanizata (Estação 2 → 3)
+
+**MUDANÇA DE MÉTODO (Sessão 27 — decidida com Marcos, vale daqui pra frente):**
+- **Papéis:** Bruno = **CTO** (o "como", diz a verdade sobre custo/risco, avisa quando Marcos erra na tarefa). Marcos = **Dono do Produto** (o "quê" e a ordem — não técnico). Sem chefe, dois donos de coisas diferentes.
+- **Método:** Lean Startup na cabeça + **uma coisa por vez** (a regra "um de cada vez" virou método) + **a ESPINHA como trilho** + **PARKING LOT** para tudo que estiver fora dela.
+- **A ESPINHA** = o fluxo único de candidatura, provado UMA vez com uma vaga real: **0 Entrada → 1 Análise → 2 Preparo (CV+carta) → 3 Envio → 4 Registro (CV Enviado+follow-up) → 5 Retorno → 6 Desfecho.** Nenhuma vaga fechou 0→100 até hoje porque a espinha inteira nunca foi montada. **Enquanto não fechar uma volta, só se toca bug que trava a estação atual;** o resto fica parkeado de propósito. O fluxo v1.2 já está DESENHADO — não redesenhar, só ANDAR e marcar onde quebra.
+
+**COBAIA (viva, real, aceita por Marcos):** Humanizata (via plataforma **abler**) — "Diretor de Executivo", Curitiba/PR, R$12k, presencial, **Compatibilidade 78%**. Publicada 06/jul, aceita candidaturas. Card já existe e já pontuou → **Estações 0 e 1 verdes.** LinkedIn `/jobs/view/4437476362/`. (Marcos aceita apesar de R$12k < piso R$15k: Curitiba + Diretor + porta de entrada p/ Europa/inglês.)
+- **Canal de envio = E-MAIL:** `vaga-377019@vagas.abler.in` ("candidate-se rapidamente pelo email"). É o caminho simples e já provado. **O formulário no site da abler é a fronteira difícil — FORA desta primeira volta.**
+
+**PRÓXIMO PASSO CONCRETO (Estação 2, aguardando Marcos):** gerar no **APP** o CV executivo em PDF (`index.html:9557`, `_executivo.pdf` — a **extensão NÃO faz** isso) + a carta para essa vaga. Bruno guia o passo a passo.
+
+**GAP REAL JÁ AUDITADO NA ESTAÇÃO 3 (o último metro):** o envio por e-mail do Senova **não anexa arquivo** — `/api/emails/enviar` (worker) não tem suporte a anexo e `abrirModalCandidatura` (`index.html:~8582`) cola o CV como TEXTO no corpo. Para vaga de Diretor, CV colado é cara de amador; a abler espera o **PDF anexado**.
+- **Plano recomendado (decidir com Marcos):** **(1) PROVA RÁPIDA** — app gera o PDF → Marcos anexa no próprio Outlook → envia → marca "Já me candidatei"; fecha a espinha de verdade uma vez e revela o gap exato. **(2) DEPOIS, automatizar o anexo:** capturar o PDF em base64 (`jsPDF doc.output('datauristring')`) + ensinar `/api/emails/enviar` a mandar `attachments` no Graph `sendMail`. É a **próxima tarefa da espinha**, bem definida.
+
+---
+
+### PARKING LOT (válido, revisitado só quando a espinha fechar uma volta — NÃO é o foco agora)
+- **Achados da cobaia Coca** (descartada por "não aceita mais candidaturas"): (a) Senova trouxe vaga MORTA de 1 mês → filtro de entrada deixa passar vaga fechada; (b) card entrou só com um TRECHO da descrição (snippet), curto demais p/ disparar análise. Raiz comum = **"como a descrição COMPLETA e viva entra no card" é o gargalo da Estação 0.**
+- **Perda na entrada por e-mail** (relatado por Marcos): alertas Michael Page & cia. chegam no celular mas o Senova lê/arquiva sem gerar card → também Estação 0.
+- **Fila represada S24/S25/S26** (segue de pé, parkeada): iframe SmartRecruiters (v2.59, item -1 abaixo), trava de arquivamento (0), "Para Considerar" legível (0b), validação da triagem (0c). **Detalhes preservados abaixo, intactos.**
 
 Base de decisão: **`MANIFESTO_SENOVA.md`** + **`DIAGNOSTICO_FUNIL.md`** + Decision Log do `DOSSIE_SENOVA.md`.
 Ordem (1 fix por vez — commit → Ctrl+Shift+R / recarregar extensão → aprovar → próximo):
@@ -94,6 +113,29 @@ Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 27 (09/jul/2026)
+
+**Tema:** começou como "por que o Senova não analisou a vaga da Uber?" e virou uma **reorientação de método**. Marcos cortou o rumo: parar o whack-a-mole de bugs e ANDAR a espinha (fluxo de candidatura ponta a ponta) com uma vaga real. Ver "AO RETOMAR (Sessão 28)".
+
+### 1. Fetch silencioso eliminado no Worker (commit `5cbb700`, v7.11, pushado+deployado)
+- Causa raiz (achada ao investigar a Uber que mostrava "Compatibilidade 50%" FALSA): `analisarVaga` e `classificarEmails` engoliam erro de fetch e devolviam resultado falso (score fixo 50 / e-mail marcado "irrelevante" para sempre — perda permanente). Agora checam `resp.ok`, logam o erro real e devolvem estado honesto (`{erro:true, score:null}`). O front já tinha guardas defensivas → **0 mudança no index.html**. Confirmado no teste de Marcos (card novo da Uber pontuou **52% real**).
+- Esclarecido a Marcos: **"Não analisada"** = já tem o texto da vaga, falta rodar a nota; **"Aguardando análise"** = ainda nem tem o texto (só link/origemUrl). (Sugestão de Marcos p/ o parking lot: unificar num rótulo tipo "buscando informações e analisando".)
+
+### 2. Reorientação de método (CTO/PO + espinha + parking lot)
+- Papéis aceitos (Bruno=CTO, Marcos=Dono do Produto). Método Lean + uma coisa por vez + espinha como trilho. Detalhado em "AO RETOMAR (Sessão 28)" e na memória `project_metodo_espinha_cobaia`.
+
+### 3. Cobaia da espinha + auditoria da Estação 3
+- Coca-Cola testada e **descartada** (vaga morta + snippet → 2 achados no parking lot). Escolhida **Humanizata/abler "Diretor de Executivo" 78%** (viva, R$12k, Curitiba), canal **e-mail**. Auditada a Estação 3: **envio sem suporte a anexo** = o gap real. Próximo = Estação 2 (gerar CV+carta no app).
+
+### 4. Régua salarial atualizada (commit `40145ae`, pushado+deployado)
+- R$19k → **fecha a partir de R$15k**, sobrevivência R$8k em Curitiba. Corrigido nos 3 pontos que governam comportamento (PRETENSÃO do prompt ATS + PERFIL da Sofia no index.html; `PERFIL_MARCOS` no worker). Vagas-exemplo seed (4316-4347) mantidas. Backup `senova_v3.62_09jul2026_pre-salario.html`. Memória `user_marcos_salario` gravada.
+
+### Commits desta sessão (pushados)
+- `5cbb700` fix(worker): elimina fetch silencioso em analisarVaga e classificarEmails (v7.11)
+- `40145ae` chore(perfil): atualiza régua salarial de Marcos
 
 ---
 
