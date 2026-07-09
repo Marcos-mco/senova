@@ -1,15 +1,7 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.11
+//  SENOVA PROXY — Worker v7.10
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.11 (09/jul/2026) — fim do "fetch silencioso":
-//  · analisarVaga e classificarEmails checavam resp.ok? Não. Erro de rede/IA
-//    virava resultado fake (score:50 "revisar manualmente" / e-mail inteiro
-//    marcado "irrelevante" e "visto" pra sempre). Agora: resp.ok checado,
-//    erro logado (console.error) e NUNCA disfarçado de resultado real —
-//    vaga fica sem nota (o app já trata isso como falha e re-tenta/avisa) e
-//    e-mail cujo lote falhou fica de fora de "vistos"/lidos, reaparecendo
-//    como novo na próxima busca em vez de sumir.
 //  NOVIDADES v7.10 (06/jul/2026) — explica queda de Compatibilidade:
 //  · analisarVaga aceita scoreAnterior; se a nova nota vier MENOR, a IA
 //    preenche explicacao_queda (motivo real, sem trava — a nota pode cair
@@ -476,7 +468,6 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
           messages:[{ role:'user', content:`E-MAILS:\n${listaEmails}` }]
         }),
       });
-      if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0,300)}`);
       const data = await res.json();
       const texto = data.content?.[0]?.text || '';
       const parsed = JSON.parse(texto.replace(/```json|```/g,'').trim());
@@ -486,11 +477,8 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
         const cat = CATEGORIAS[r.categoria] || CATEGORIAS.irrelevante;
         resultados.push({ ...email, categoria:r.categoria, label:cat.label, emoji:cat.emoji, prioridade:cat.prioridade, resumo:r.resumo });
       });
-    } catch (err) {
-      console.error('classificarEmails: lote falhou, será retentado na próxima busca —', err.message);
-      // Nunca marcar como 'irrelevante' por fingimento: e-mails deste lote ficam de fora de
-      // "resultados" e, por isso (ver chamador), fora de "vistos"/lidos — reaparecem como
-      // novos no próximo /api/emails em vez de sumirem em silêncio.
+    } catch {
+      lote.forEach(e => resultados.push({ ...e, categoria:'irrelevante', label:'Irrelevante', emoji:'—', prioridade:9, resumo:'' }));
     }
   }
 
@@ -870,15 +858,10 @@ export default {
       const emailsNormais = emailsParaClassificar.filter(e => !isSocialLinkedIn(e));
 
       const classificadosIA = await classificarEmails(emailsNormais, whitelist, env);
-      const idsClassificadosIA = new Set(classificadosIA.map(e => e.id));
-      // E-mails cujo lote de classificação falhou (rede/IA) não entram em classificadosIA —
-      // não marcar como vistos/lidos, para reaparecerem como novos na próxima busca em vez
-      // de sumirem em silêncio (ver catch em classificarEmails).
-      const idsFalhaAnalise = new Set(emailsNormais.filter(e => !idsClassificadosIA.has(e.id)).map(e => e.id));
       const todoClassificados = [...classificadosIA, ...socialIrrelevante];
       // Salvar vistos APENAS para emails autorizados — emails bloqueados por consentimento
       // não devem ser marcados como vistos, para reaparecer quando o usuário autorizar a fonte.
-      await salvarVistos(env, autorizado.filter(e => !idsFalhaAnalise.has(e.id)).map(e => e.id));
+      await salvarVistos(env, autorizado.map(e => e.id));
 
       // Whitelist override: email de domínio prioritário nunca some como irrelevante
       // Exceção: redes sociais — notificações do LinkedIn (conexões, mensagens) NÃO devem virar vaga
@@ -905,7 +888,7 @@ export default {
       // Marcar como lido: apenas emails autorizados (privacidade + consentimento)
       // Emails não autorizados não são marcados — reaparecem quando fonte for liberada
       // Via Graph $batch (20/subrequest) para não estourar o limite do Worker.
-      const paraMarcarLido = autorizado.filter(e => !e.is_read && !idsFalhaAnalise.has(e.id));
+      const paraMarcarLido = autorizado.filter(e => !e.is_read);
       ctx.waitUntil((async () => {
         // 1. Marcar como lido (PATCH em lote)
         if (paraMarcarLido.length) {
@@ -1561,15 +1544,10 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
         messages:[{ role:'user', content:`VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
       }),
     });
-    if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
     const data = await resp.json();
     return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
-  } catch (err) {
-    console.error('analisarVaga falhou:', err.message);
-    // Nunca fingir um resultado: score:null é honesto e cai nos guards que já existem no app
-    // (mvAutoCompatCheck/mvReanalisarCompat/analisarLoteBackground/importar vagas), que tratam
-    // "sem score" como falha real — avisam o usuário ou re-tentam, em vez de gravar nota falsa.
-    return { erro:true, score:null, classificacao:'', resumo:'', pontos_fortes:[], pontos_atencao:[], salario_compativel:null, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
+  } catch {
+    return { score:50, classificacao:'analisar', resumo:'Revisar manualmente.', pontos_fortes:[], pontos_atencao:[], salario_compativel:true, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
   }
 }
 
