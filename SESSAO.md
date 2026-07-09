@@ -1,11 +1,36 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 01/jul/2026 — Sessão 22 (FECHADA)
+> Última atualização: 09/jul/2026 — Sessão 26 (FECHADA)
+> ⚠️ Sessões 23–25 não foram registradas neste arquivo (ficou parado na 22) — histórico completo vive em `VIRGILIO.md`. Este topo reflete o estado REAL confirmado agora pelo Claude Code.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **produção sem alteração** (o fix **H4+H3** está no working tree, ainda **NÃO testado por Marcos nem commitado**)
-Extensão **v2.58** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store) · sem alteração nesta sessão
-Worker — sem alteração nesta sessão (deploy `a5a11b89`)
-Novo: **`MANIFESTO_SENOVA.md`** commitado local (`2e4fc90`) — ainda **NÃO pushado** (aguarda sinal de Marcos p/ publicar).
+Senova app — produção em marcos-mco.github.io/senova · sem alteração nesta sessão
+Extensão **v2.59** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store) · instrumentação de diagnóstico (iframe same-origem) — Sessão 26
+Worker **v7.9** — sem alteração nesta sessão
+Working tree LIMPO, sincronizado com origin/main. Último commit: `0184508`.
+
+## O QUE FOI FEITO — SESSÃO 26 (09/jul/2026)
+
+**Tema:** Marcos reportou (screenshot) que o Copiloto não preencheu o formulário de candidatura numa vaga da Louis Dreyfus Company no SmartRecruiters (`oneclick-ui`).
+
+### Diagnóstico (senova-auditor, read-only)
+- Causa raiz: o formulário real vive dentro de um `<iframe>` MESMA ORIGEM que a extensão nunca varre — `_acharContainerCandidatura`/`_scanPaginaCampos`/`_coletarCampos`/`_diagnostico` (content.js) só olham o `document` do frame de topo. `manifest.json` não injeta em iframes (`all_frames` ausente). Sem tratamento específico de SmartRecruiters (cai em `extractGenerico`) — buraco é estrutural, não falta de regra por portal.
+
+### Instrumentação v2.59 (sem mudar comportamento de preenchimento)
+- Painel de diagnóstico ganhou a linha "iframes mesma origem" (conta campos dentro de cada iframe acessível) para confirmar a hipótese com dado real antes do fix — mesmo método anti-gambiarra da Sessão 20.
+- **Próximo passo:** pedir a Marcos para reabrir a mesma vaga e copiar o diagnóstico de novo. Confirmando, implementar a travessia de iframe same-origin nas 4 funções de varredura (painel continua só no frame de topo).
+
+## PRÓXIMAS PRIORIDADES — SESSÃO 27 (retomar aqui)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Reteste do diagnóstico v2.59** no SmartRecruiters (Louis Dreyfus) → confirmar iframe → implementar travessia | Aguardando dado de Marcos |
+| 2 | Validar TRAVA DE ARQUIVAMENTO (S24, `e71c9e7`) | Pendente teste |
+| 3 | "Para Considerar" com cargo ilegível (extração de e-mail no Worker) | Aberto |
+| 4 | Terminar validação da TRIAGEM (S23): Perfil seletor humano + multi-select | Pendente teste |
+
+Detalhe completo das Sessões 23–25 (candidatura direta generalizada, trava de arquivamento, vazamento de e-mail multi-vaga): ver `VIRGILIO.md`.
+
+---
 
 ## O QUE FOI FEITO — SESSÃO 22 (30/jun–01/jul/2026)
 

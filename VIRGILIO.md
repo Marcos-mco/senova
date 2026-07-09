@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 06/jul/2026 — Sessão 25 — FECHADA (candidatura direta generalizada — email/whatsapp/telefone/instrução pura — no ar e CONFIRMADA por Marcos via wrangler tail. Trava de arquivamento da S24 e "Para Considerar"/triagem ainda sem teste)*
+*Atualizado: 09/jul/2026 — Sessão 26 — FECHADA (bug novo de Marcos: copiloto não preenche formulário no SmartRecruiters/oneclick-ui — causa raiz achada pelo senova-auditor: iframe same-origem nunca varrido. Instrumentação v2.59 no ar; fix real aguarda reteste de Marcos com dado. Fila de S24/S25 — trava de arquivamento, "Para Considerar", triagem — continua sem teste)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -25,7 +25,7 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ESTADO ATUAL — 04/jul/2026 (Sessão 23)
+## ESTADO ATUAL — 09/jul/2026 (Sessão 26)
 
 ### ⚠️ LEITURA OBRIGATÓRIA ANTES DE QUALQUER SPRINT
 - **`REVISAO_OPUS_17jun2026.md`** — revisão completa acatada por Marcos. NÃO ignorar.
@@ -34,12 +34,12 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
 - **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.9** — Sessão 25: candidatura direta generalizada canal+instrução)
-- **Extensão Chrome:** **v2.58** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
+- **Extensão Chrome:** **v2.59** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `3d39933` (06/jul — fix instrução pura sem canal, **pushado**). Antes: `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
+- **Último commit:** `0184508` (09/jul — versiona backup pré-pegadinha-generica do worker v7.8, **pushado**). Antes: `e9aedaa` (extensão v2.59 — diagnóstico de iframe same-origem) · `3d39933` (fix instrução pura sem canal) · `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
 - **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
 - **Backups:** `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
@@ -52,11 +52,16 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 26) — validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
-*(Sessão 25 não tocou nesta lista — Marcos autorizou 2 ajustes pequenos na candidatura direta, mas o teste dele achou um bug real que virou o foco da sessão inteira. Itens abaixo continuam de pé, sem mudança — ver "O QUE FOI FEITO — SESSÃO 25" abaixo.)*
+## ⚠️ AO RETOMAR (Sessão 27) — reteste do iframe SmartRecruiters, validar a TRAVA, "Para Considerar" legível, terminar a TRIAGEM
+*(Sessão 26 não tocou a fila de S24/S25 — Marcos trouxe um bug novo por screenshot: copiloto sem preencher formulário no SmartRecruiters. Itens antigos abaixo continuam de pé, sem mudança — ver "O QUE FOI FEITO — SESSÃO 26" abaixo.)*
 
 Base de decisão: **`MANIFESTO_SENOVA.md`** + **`DIAGNOSTICO_FUNIL.md`** + Decision Log do `DOSSIE_SENOVA.md`.
-Ordem (1 fix por vez — commit → Ctrl+Shift+R → aprovar → próximo):
+Ordem (1 fix por vez — commit → Ctrl+Shift+R / recarregar extensão → aprovar → próximo):
+
+**-1. CONFIRMAR + CORRIGIR IFRAME NO SMARTRECRUITERS (Sessão 26, extensão v2.59, PRIORIDADE — bug novo de Marcos)**
+   - Causa raiz achada pelo `senova-auditor` (alta confiança): nessa vaga (`jobs.smartrecruiters.com/oneclick-ui/...`) o formulário real (LinkedIn, Website, Resume, Message to the Hiring Team) vive dentro de um `<iframe>` MESMA ORIGEM que a extensão nunca varre. `_acharContainerCandidatura`, `_scanPaginaCampos`, `_coletarCampos` e `_diagnostico` (todas em `content.js`) só consultam o `document` do frame de topo; `manifest.json` não usa `all_frames:true`, então o content script nem é injetado dentro do iframe do formulário. O único campo contado no dump de Marcos era o `input[type=file]` do upload de currículo, que por coincidência fica fora do iframe.
+   - **v2.59 (só instrumentação, já no ar):** painel de diagnóstico ganhou a linha "iframes mesma origem" — conta quantos campos existem dentro de cada iframe acessível, sem tocar na lógica de preenchimento.
+   - **Próximo passo:** pedir a Marcos para voltar na MESMA vaga (Louis Dreyfus Company / SmartRecruiters), reabrir o Copiloto e copiar o diagnóstico de novo. Se a nova linha mostrar campos ali dentro, confirma a hipótese com dado real → implementar o fix: as 4 funções de varredura passam a olhar `document` + todo `iframe` cujo `contentDocument` seja legível (same-origin), concatenando os resultados. **Manter o painel/UI só no frame de topo** (não usar `all_frames:true` no manifest — injetaria o copiloto em todo iframe de todo site). Iframe cross-origin continua fora de alcance (bridge de mensagens seria outra frente, fora de escopo aqui).
 
 **0. VALIDAR A TRAVA DE ARQUIVAMENTO (Sessão 24, no ar `e71c9e7` — PRIORIDADE)** — falta ver a trava *impedindo* o arquivamento silencioso:
    - a) Processo em Entrevista → seletor de status → Arquivado → Salvar → deve **PERGUNTAR** "Arquivar processo ativo?"; cancelar mantém o card intacto.
@@ -89,6 +94,27 @@ Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 26 (09/jul/2026)
+
+**Tema:** Marcos reportou (screenshot) que o Copiloto não conseguiu preencher o formulário de candidatura numa vaga da Louis Dreyfus Company no SmartRecruiters (`oneclick-ui`) — painel de diagnóstico mostrou "container do formulário: NÃO ENCONTRADO" e 0 campos visíveis, apesar da tela ter vários campos preenchíveis (LinkedIn, Website, Resume, Message to the Hiring Team).
+
+### Diagnóstico de causa raiz (`senova-auditor`, read-only)
+- Causa raiz encontrada com alta confiança: o formulário mora dentro de um `<iframe>` MESMA ORIGEM que a extensão nunca varre. `_acharContainerCandidatura`, `_scanPaginaCampos`, `_coletarCampos` e `_diagnostico` (`content.js`) só consultam `document` do frame de topo — nunca `iframe.contentDocument`. O `manifest.json` também não usa `all_frames:true`, então o content script nem é injetado dentro do iframe do formulário. O único "input" contado no dump era o `input[type=file]` de upload de currículo, que fica fora do iframe por coincidência.
+- Não existe tratamento específico de SmartRecruiters no roteador `extract()` (`content.js`) — cai em `extractGenerico`, o que está OK pela filosofia "fix geral"; o buraco é estrutural (falta de travessia de iframe), não falta de regra por portal.
+
+### Instrumentação (v2.59, extensão — sem mudança de comportamento no preenchimento)
+- Seguindo o princípio anti-gambiarra (instrumentar antes de corrigir — mesmo método da Sessão 20), adicionei ao painel de diagnóstico uma linha nova "iframes mesma origem": conta quantos campos existem dentro de cada `<iframe>` same-origin acessível, antes de tocar em qualquer lógica de varredura.
+- **Próximo passo (ainda não é o fix):** pedir a Marcos para reabrir a MESMA vaga e copiar o diagnóstico de novo. Se a nova linha mostrar campos dentro do iframe, confirma a hipótese com dado real e libera o fix real (ver "AO RETOMAR" acima).
+
+### Commits desta sessão (pushados)
+- `e9aedaa` diag(extensão): mede campos dentro de iframe same-origem (v2.59)
+- `0184508` chore: versiona backup pré-pegadinha-generica do worker v7.8 (pendente da Sessão 25)
+
+### Aberto / não tocado nesta sessão
+- Trava de arquivamento (S24), "Para Considerar" legível (0b), validação da triagem (0c) — ver "AO RETOMAR".
 
 ---
 

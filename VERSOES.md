@@ -7,7 +7,19 @@
 
 ---
 
-## Sessão 22 — 30jun–01jul/2026 (ATUAL)
+## Sessão 26 — 09jul/2026 (ATUAL)
+**Status:** App produção sem alteração · Extensão **v2.59** (instrumentação de diagnóstico) · Worker **v7.9** sem alteração
+**Commits-chave:** `e9aedaa` diag(extensão) iframe same-origem · `0184508` chore backup worker v7.8
+**⚠️ Sessões 23–25 não têm entrada aqui** (arquivo ficou parado na 22) — ver `VIRGILIO.md` para candidatura direta generalizada, trava de arquivamento e vazamento de e-mail multi-vaga.
+
+Marcos reportou copiloto sem preencher formulário numa vaga do SmartRecruiters (Louis Dreyfus/oneclick-ui).
+- **Diagnóstico (senova-auditor):** formulário real vive num `<iframe>` mesma origem nunca varrido pelas funções de detecção de campo do content.js; sem tratamento específico de SmartRecruiters (cai no genérico) — buraco estrutural, não falta de regra por portal.
+- **v2.59:** só instrumentação — painel ganha linha "iframes mesma origem" (conta campos lá dentro) para confirmar a hipótese com dado antes do fix real.
+- **Próximo:** reteste de Marcos na mesma vaga → confirma → implementa travessia de iframe same-origin nas 4 funções de varredura.
+
+---
+
+## Sessão 22 — 30jun–01jul/2026
 **Status:** App produção **sem alteração** · fix **H4+H3 no working tree (não testado/não commitado)** · Extensão **v2.58** · Worker `a5a11b89`
 **Commits-chave:** `2e4fc90` MANIFESTO_SENOVA.md (constituição — local, não pushado)
 
