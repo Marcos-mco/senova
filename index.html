@@ -2434,10 +2434,13 @@ select option { background: var(--bg2); }
       </div>
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap;">
-          <label class="field-label" style="margin:0;">Corpo do e-mail</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label class="field-label" style="margin:0;">Corpo do e-mail</label>
+            <button class="copy-btn" id="mcand-gerar-email-btn" onclick="gerarEmailEnvio(_candidaturaVagaIdx,null,null,{forcar:true})" style="font-size:11px;padding:4px 10px;">Refazer texto</button>
+          </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
-            <button class="copy-btn" id="mcand-gerar-email-btn" onclick="gerarEmailEnvio(_candidaturaVagaIdx,null,null,{forcar:true})" style="font-size:11px;padding:4px 10px;">Gerar novamente</button>
+            <button class="copy-btn" id="mcand-ver-cv-btn" onclick="visualizarCVAnexo()" style="font-size:11px;padding:4px 10px;">Visualizar CV</button>
           </div>
         </div>
         <textarea id="mcand-preview" rows="14" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
@@ -8640,8 +8643,19 @@ async function gerarEmailEnvio(vagaIdx,empresa,cargo,opts){
     if(prev) prev.value=`Olá,\n\nVi a vaga de ${cargo||'—'}${empresa?' na '+empresa:''} e quero me apresentar. Anexei meu currículo com o detalhe da minha trajetória.\n\nGrato e à disposição,\nMarcos Franco · (41) 99615-2224 · marcos_mco@hotmail.com`;
   }finally{
     if(prev) prev.disabled=false;
-    if(gbtn){gbtn.disabled=false;gbtn.textContent='Gerar novamente';}
+    if(gbtn){gbtn.disabled=false;gbtn.textContent='Refazer texto';}
   }
+}
+// Abre o MESMO PDF Executivo que será anexado, numa aba nova, para conferir antes de enviar.
+function visualizarCVAnexo(){
+  if(!_candCV.trim()){alert('Ainda não há CV para esta vaga. Gere o CV na aba Documentos do card antes de enviar.');return;}
+  const _prev=lastCV,_prevFn=lastCVFilename;
+  lastCV=_candCV; lastCVFilename=_candCVFilename;
+  const doc=_buildPDFExecDoc();
+  lastCV=_prev; lastCVFilename=_prevFn;
+  if(!doc) return;
+  try{ const url=doc.output('bloburl'); const w=window.open(url,'_blank'); if(!w) doc.output('dataurlnewwindow'); }
+  catch(e){ try{ doc.output('dataurlnewwindow'); }catch(_){ alert('Não foi possível abrir o PDF. Tente o botão PDF na aba Documentos.'); } }
 }
 function fecharModalCandidatura(){
   document.getElementById('modal-candidatura').style.display='none';
