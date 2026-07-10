@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 09/jul/2026 — Sessão 27 — FECHADA (MUDANÇA DE MÉTODO: Bruno=CTO, Marcos=Dono do Produto; Lean + uma coisa por vez + ANDAR A ESPINHA — fluxo de candidatura ponta a ponta provado UMA vez com uma vaga real; tudo fora da espinha vai pro PARKING LOT. Cobaia escolhida: Humanizata/abler "Diretor de Executivo" 78%, envio por e-mail. Também: fetch silencioso eliminado no worker (v7.11) + régua salarial atualizada (fecha R$15k). Próximo: Estação 2 — gerar CV+carta da cobaia no app)*
+*Atualizado: 10/jul/2026 — Sessão 28 — FECHADA (🏆 MARCO: a ESPINHA fechou a PRIMEIRA VOLTA INTEIRA dentro do app — 1ª candidatura ponta a ponta. Cobaia Humanizata/abler enviada DE VERDADE por Outlook, com CV Executivo em PDF ANEXADO + e-mail de apresentação humano no corpo; card andou sozinho p/ CV Enviado. Construído: Worker v7.12 (anexo no envio), gerador de e-mail anti-mesmice, Visualizar CV + Refazer texto no modal, faixa da rota de envio SEMPRE visível p/ todas as pegadinhas, e removida a 2ª "Compatibilidade" duplicada. Princípio mantido: nunca auto-submit. Próximo: provar REPETIÇÃO com uma 2ª vaga real.)*
 
 ## COMO ABRIR A PRÓXIMA SESSÃO (diretriz de Marcos — Sessão 21)
 Ao iniciar, **não pergunte "o que fazer".** Rode o protocolo completo de leitura, identifique
@@ -33,16 +33,16 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ### Infraestrutura
 - **Frontend:** marcos-mco.github.io/senova (GitHub Pages)
-- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.11** — S27: fetch silencioso eliminado em `analisarVaga`+`classificarEmails`; régua salarial atualizada no `PERFIL_MARCOS`)
+- **Worker:** senova-proxy.marcos-mco.workers.dev (**v7.12** — S28: `/api/emails/enviar` aceita `anexos` → Graph fileAttachment. Antes v7.11: fetch silencioso eliminado)
 - **Extensão Chrome:** **v2.59** (arquivos locais — recarregar em `chrome://extensions` a cada deploy)
 - **KV:** SENOVA_KV
 - **Cron:** `0 10 * * *` (07:00 BRT) — varredura automática Adzuna + Jobicy
 - **Modelo Worker:** `claude-sonnet-4-6` (NUNCA usar 4-5 — obsoleto)
 - **Modelo Bruno — análise:** `claude-opus-4-8` | **código:** `claude-sonnet-4-6`
-- **Último commit:** `40145ae` (09/jul S27 — régua salarial R$19k→fecha R$15k/sobrevive R$8k, **pushado**). Antes: `5cbb700` (S27 — fetch silencioso eliminado, Worker v7.11) · `02c3c36` (fecha S26) · `0184508` (backup worker v7.8) · `e9aedaa` (extensão v2.59 — diagnóstico de iframe same-origem) · `3d39933` (fix instrução pura sem canal) · `0ed3165` (generaliza candidatura direta + preserva análise rica) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main.**
+- **Último commit:** `53899ff` (10/jul S28 — uma só "Compatibilidade" + idioma p/ Documentos). Antes S28: `3f28ab2` (faixa rota de envio sempre visível, todas pegadinhas) · `0d27399` (fix renderCRM: card anda ao enviar) · `ec01beb` (Visualizar CV + Refazer texto) · `2036fb6` (anexo PDF + e-mail humano, Worker v7.12). Antes: `40145ae` (S27 régua salarial) · `5cbb700` (S27 fetch silencioso, v7.11) · `e71c9e7` (trava de arquivamento). **Working tree LIMPO, sincronizado com origin/main. Worker deployado (df569ab7).**
 - **Novo doc de fundação:** `MANIFESTO_SENOVA.md` — constituição do produto (ler junto com SOFIA_ALMA.md). Editável só com autorização de Marcos.
 - **SSOT:** `DOSSIE_SENOVA.md` (arquivo-chefe, Decision Log D-01..D-09) + `DIAGNOSTICO_FUNIL.md` (03/jul).
-- **Backups:** `senova_v3.62_09jul2026_pre-salario.html` (S27) · `senova-worker_v7.10_09jul2026_pre-fetch-silencioso.js` (S27) · `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
+- **Backups:** `senova_v3.63_10jul2026_pre-anexo-email.html` (S28) · `senova-worker_v7.11_10jul2026_pre-anexo.js` (S28) · `senova_v3.62_09jul2026_pre-salario.html` (S27) · `senova-worker_v7.10_09jul2026_pre-fetch-silencioso.js` (S27) · `senova_v3.57_06jul2026_pre-pegadinha-generica.html` + `senova-worker_v7.8_06jul2026_pre-pegadinha-generica.js` (S25) · `senova_v3.53_04jul2026_pre-trava-arquivamento.html` (S24) · `senova_v3.52_03jul2026_pre-triagem-email.html` (S23). Rollback da pegadinha = reverter `3d39933`+`0ed3165`; da trava = reverter `e71c9e7`; do arco S23 = `bb4f3cc`.
 - ✅ **H4+H3** (metadados da análise) CONFIRMADO no ar — grava `atsAnaliseData`/`atsCvIdioma` na análise (`index.html:7028`). Saiu da lista de pendências.
 - ✅ **TRAVA DE ARQUIVAMENTO no ar** (`e71c9e7`): processo real (Entrevista/Proposta/Aceito) não vira `arquivado` sem confirmação; TODO arquivamento deixa rastro no histórico; botão "Reativar processo" no card arquivado. **A trava vive no `saveVaga` (index.html:6244) + `declinarVagaATS` — não reintroduzir arquivamento silencioso.** Ainda sem teste explícito de Marcos.
 - ✅ **CANDIDATURA DIRETA GENERALIZADA no ar e CONFIRMADA por Marcos** (`3d39933`, Worker v7.9): cobre canal (Email/WhatsApp/Telefone) + destino OU instrução pura (palavra/código/ação) sem canal nenhum. Render (`mvUpdateScoreDisplay`, index.html:~6787) e os 3 gates de gravação (`mvAutoCompatCheck`, `mvReanalisarCompat`, `analisarInline`) disparam com qualquer um dos três campos preenchido — instrução pura é caso próprio, não fallback do canal. Não reintroduzir a exigência de destino/canal para exibir ou salvar.
@@ -52,20 +52,18 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 28) — ANDAR A ESPINHA com a cobaia Humanizata (Estação 2 → 3)
+## ⚠️ AO RETOMAR (Sessão 29) — a espinha fechou 1 volta; agora PROVAR REPETIÇÃO
 
-**MUDANÇA DE MÉTODO (Sessão 27 — decidida com Marcos, vale daqui pra frente):**
+**MÉTODO (S27, vale daqui pra frente):**
 - **Papéis:** Bruno = **CTO** (o "como", diz a verdade sobre custo/risco, avisa quando Marcos erra na tarefa). Marcos = **Dono do Produto** (o "quê" e a ordem — não técnico). Sem chefe, dois donos de coisas diferentes.
 - **Método:** Lean Startup na cabeça + **uma coisa por vez** (a regra "um de cada vez" virou método) + **a ESPINHA como trilho** + **PARKING LOT** para tudo que estiver fora dela.
-- **A ESPINHA** = o fluxo único de candidatura, provado UMA vez com uma vaga real: **0 Entrada → 1 Análise → 2 Preparo (CV+carta) → 3 Envio → 4 Registro (CV Enviado+follow-up) → 5 Retorno → 6 Desfecho.** Nenhuma vaga fechou 0→100 até hoje porque a espinha inteira nunca foi montada. **Enquanto não fechar uma volta, só se toca bug que trava a estação atual;** o resto fica parkeado de propósito. O fluxo v1.2 já está DESENHADO — não redesenhar, só ANDAR e marcar onde quebra.
+- **A ESPINHA** = o fluxo único de candidatura: **0 Entrada → 1 Análise → 2 Preparo (CV+carta) → 3 Envio → 4 Registro (CV Enviado+follow-up) → 5 Retorno → 6 Desfecho.** **✅ FECHOU A 1ª VOLTA INTEIRA em 10/jul (S28)** com a cobaia Humanizata — envio real por Outlook com PDF anexado, dentro do app. Régua de corte segue: "está na espinha ou fora?".
 
-**COBAIA (viva, real, aceita por Marcos):** Humanizata (via plataforma **abler**) — "Diretor de Executivo", Curitiba/PR, R$12k, presencial, **Compatibilidade 78%**. Publicada 06/jul, aceita candidaturas. Card já existe e já pontuou → **Estações 0 e 1 verdes.** LinkedIn `/jobs/view/4437476362/`. (Marcos aceita apesar de R$12k < piso R$15k: Curitiba + Diretor + porta de entrada p/ Europa/inglês.)
-- **Canal de envio = E-MAIL:** `vaga-377019@vagas.abler.in` ("candidate-se rapidamente pelo email"). É o caminho simples e já provado. **O formulário no site da abler é a fronteira difícil — FORA desta primeira volta.**
+**COBAIA Humanizata (via abler)** — "Diretor de Executivo", Curitiba, 78%. **Candidatura ENVIADA de verdade em 10/jul, card em CV Enviado, follow-up agendado.** `vaga-377019@vagas.abler.in`. (O **formulário no site da abler** é a fronteira difícil — segue FORA; o envio por e-mail é o caminho provado.)
 
-**PRÓXIMO PASSO CONCRETO (Estação 2, aguardando Marcos):** gerar no **APP** o CV executivo em PDF (`index.html:9557`, `_executivo.pdf` — a **extensão NÃO faz** isso) + a carta para essa vaga. Bruno guia o passo a passo.
+**PRÓXIMO PASSO (Estação — provar que a volta REPETE):** escolher uma **2ª vaga real** e andar a espinha ponta a ponta de novo, confirmando que funciona sempre — não só uma vez. Bruno guia. Se algo quebrar numa estação, é bug de espinha (desenvolvimento); resto no parking lot.
 
-**GAP REAL JÁ AUDITADO NA ESTAÇÃO 3 (o último metro):** o envio por e-mail do Senova **não anexa arquivo** — `/api/emails/enviar` (worker) não tem suporte a anexo e `abrirModalCandidatura` (`index.html:~8582`) cola o CV como TEXTO no corpo. Para vaga de Diretor, CV colado é cara de amador; a abler espera o **PDF anexado**.
-- **Plano recomendado (decidir com Marcos):** **(1) PROVA RÁPIDA** — app gera o PDF → Marcos anexa no próprio Outlook → envia → marca "Já me candidatei"; fecha a espinha de verdade uma vez e revela o gap exato. **(2) DEPOIS, automatizar o anexo:** capturar o PDF em base64 (`jsPDF doc.output('datauristring')`) + ensinar `/api/emails/enviar` a mandar `attachments` no Graph `sendMail`. É a **próxima tarefa da espinha**, bem definida.
+**PENDÊNCIA PEQUENA DA ESPINHA (não urgente):** afrouxar o prompt anti-clichê do e-mail de envio (`EMAIL_ENVIO_SYSTEM` em index.html). Marcos apontou que **"transformação digital" NÃO deveria estar na lista de proibidos** — é competência real dele. A regra certa não é lista de palavras banidas, é **"todo termo tem que vir grudado num fato"**. Tirar termos reais (transformação digital etc.) e trocar a regra por "ancore em fato". Ver [[project_cv_autentico_pos_ia]].
 
 ---
 
@@ -113,6 +111,35 @@ Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 28 (10/jul/2026)
+
+**Tema:** 🏆 ANDAR A ESPINHA com a cobaia Humanizata e **fechar a primeira volta inteira** — a 1ª candidatura ponta a ponta dentro do app. Começou pela Estação 2 e foi até o Registro, com Marcos como QA a cada passo.
+
+### 1. Envio real com PDF anexado + e-mail humano (commits `2036fb6`, Worker v7.12)
+- **O gap central da Estação 3, provado pelos olhos de Marcos:** o envio colava o CV como TEXTO no corpo e não anexava arquivo. Marcos cortou a "prova rápida manual" que eu propus ("pra mim é gambiarra; não anexar nem compor o e-mail certo é erro de processo — é espinha"). Decisão dele (Dono do Produto): fazer o Envio funcionar de verdade no app.
+- **Worker v7.12:** `/api/emails/enviar` aceita `anexos:[{nome,conteudoBase64,tipo}]` → Graph `sendMail` `fileAttachment`. Retrocompatível.
+- **App:** `_buildPDFExecDoc` (refatoração do gerador do PDF Executivo) + `_pdfExecBase64` capturam o **mesmo** PDF em base64 para anexar. `EMAIL_ENVIO_SYSTEM` gera o **corpo curto e humano** (voz calibrada com Marcos: 1ª pessoa no presente, fatos concretos, fecho "Grato e à disposição", sem clichê de IA). Salvo em `vaga.emailEnvio`.
+
+### 2. Ajustes de UX no modal de envio (commit `ec01beb`)
+- **"Visualizar CV"** (abre o PDF anexado numa aba nova — Marcos não enviava mais às cegas) + **"Refazer texto"** (regenera o e-mail), separados e claros.
+
+### 3. Fix: o card não andava (commit `0d27399`)
+- Após enviar, `saveVagas()` atualizava a Home mas **não redesenhava o Kanban** → status gravava mas o card só se movia após reload. Fix no padrão do app: `if(filtroAtivo) aplicarFiltros(); else renderCRM();`. **Confirmado por Marcos: card moveu p/ CV Enviado.**
+
+### 4. Rota de envio SEMPRE visível — todas as pegadinhas (commit `3f28ab2`)
+- A faixa "candidate-se pelo e-mail" ficava dentro da Compatibilidade (que colapsa no lead) → escondida. Agora faixa fixa `mv-canal-direto-banner` no topo, sempre visível. **Diretriz durável de Marcos: "vale para TODAS as pegadinhas"** — canal-agnóstica (Email/WhatsApp/Telefone/instrução pura). Regra: rota de envio é AÇÃO, nunca enterrar em seção que colapsa. Ver [[project_pegadinha_candidatura_direta]].
+
+### 5. Uma só "Compatibilidade" + idioma p/ Documentos (commit `53899ff`)
+- Marcos notou duas seções "Compatibilidade" com a Descrição no meio. Diagnóstico honesto: **não era reordenação minha** — a Zona 6 (`mv-analise-section`) era uma 2ª "Compatibilidade" legada que duplicava o veredicto e hospedava o PT/EN/ES. Removida; o seletor de idioma migrou p/ Documentos; `setLang` passa a atualizar o toggle clicado. **Opinião da equipe registrada: ordem Compatibilidade (decisão) → Descrição (evidência) é a correta — o card é ferramenta de decisão, lê-se a conclusão primeiro.**
+
+### Confirmado por Marcos (QA)
+- ✅ Envio real com PDF anexado (verificado nos Enviados do Outlook) · ✅ e-mail humano na voz dele · ✅ card andou p/ CV Enviado · ✅ faixa da rota visível · ✅ uma só Compatibilidade + idioma em Documentos.
+
+### Princípio preservado
+- **Nunca auto-submit:** o app prepara tudo (gera, escreve, anexa, registra), **Marcos revisa e aperta Enviar**. É "primeira candidatura ponta a ponta dentro do app", não "100% automática" — e é assim que deve ser (a pessoa decide). Ver [[project_metodo_espinha_cobaia]].
 
 ---
 
