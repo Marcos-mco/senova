@@ -2433,9 +2433,12 @@ select option { background: var(--bg2); }
         </div>
       </div>
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <label class="field-label" style="margin:0;">Pré-visualização do email</label>
-          <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap;">
+          <label class="field-label" style="margin:0;">Corpo do e-mail</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="mcand-cv-status" style="font-size:11px;color:var(--text3);"></span>
+            <button class="copy-btn" id="mcand-gerar-email-btn" onclick="gerarEmailEnvio(_candidaturaVagaIdx,null,null,{forcar:true})" style="font-size:11px;padding:4px 10px;">Gerar novamente</button>
+          </div>
         </div>
         <textarea id="mcand-preview" rows="14" style="width:100%;box-sizing:border-box;font-size:13px;font-family:var(--font);line-height:1.6;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;color:var(--text1);background:var(--bg2);"></textarea>
       </div>
@@ -3149,6 +3152,25 @@ INSTRUÇÕES:
 - Retorne APENAS o texto da carta, sem cabeçalho, sem título, sem assinatura formatada`;
 };
 
+// E-mail de ENVIO — o CORPO curto que acompanha o CV em ANEXO (não é a carta formal).
+// Voz calibrada com Marcos (10/jul/2026): 1ª pessoa no presente, fatos concretos, fecho "Grato e à disposição".
+const EMAIL_ENVIO_SYSTEM = `Você escreve, na primeira pessoa como se fosse Marcos Franco, o CORPO de um e-mail curto para se candidatar a uma vaga. O currículo vai ANEXADO em PDF — este e-mail é só a apresentação humana que acompanha o anexo, NÃO uma carta formal.
+
+PERFIL (única fonte de fatos — nunca invente nada fora daqui):
+${CV_BASE.PT}
+
+VOZ (inegociável):
+- Primeira pessoa, no presente: "quero me apresentar". Direto e caloroso, sem pompa. Frases curtas.
+- 3 parágrafos curtos, de 80 a 130 palavras no TOTAL. Nada de encher.
+- Use 1 ou 2 FATOS CONCRETOS do perfil (número, empresa, escopo real) no lugar de adjetivos. Um fato vale mais que dez qualidades.
+- PROIBIDO usar qualquer destes clichês de IA (se der vontade, troque por um fato): "entrego resultado", "visão estratégica", "gestão financeira e transformação digital", "encontra correspondência direta", "profissional de liderança", "acelerando crescimento", "de médio a grande porte", "resultados mensuráveis", "de forma direta e honesta", "trajetória marcada por", "sinergia", "proatividade", "agregar valor".
+- Não repita o CV inteiro — só o essencial que faz a pessoa querer abrir o anexo.
+- Estrutura: (1) vi a vaga e quero me apresentar + quem sou em 1 linha com 1 fato forte; (2) por que esta vaga me chamou + o que já fiz que conversa com ela; (3) menciono o currículo em anexo.
+- Sem emoji. Sem "quando fizer sentido". Sem exagero de entusiasmo.
+- Fecha com a linha "Grato e à disposição," seguida da assinatura em uma linha só: Marcos Franco · (41) 99615-2224 · marcos_mco@hotmail.com
+
+Responda SOMENTE com o corpo do e-mail (da saudação à assinatura), sem assunto, sem comentários.`;
+
 // ═══════════════════════════════════════════════
 //  CONTEXTO ADICIONAL
 // ═══════════════════════════════════════════════
@@ -3280,6 +3302,8 @@ async function analyzeJob() {
 
 let lastCV='',lastCRM='',lastCVFilename='CV_MF_Vaga_v1',atsOrigemVagaId=null,atsEmailDest='',atsEmpresa='',atsCargo='',atsCanalDiretoTipo='',atsCanalDiretoDestino='',atsCanalDiretoInstrucao='';
 let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
+// Estado do modal de envio: CV do card (p/ anexar o MESMO PDF) + rótulo do arquivo.
+let _candCV='',_candCVFilename='CV_MF';
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _decodeHtml(s){if(!s) return '';const t=document.createElement('textarea');t.innerHTML=s;return t.value;}
 function urlSegura(u){if(!u||typeof u!=='string') return '';const t=u.trim();return(t.startsWith('https://')||t.startsWith('http://'))?t:'';}
@@ -8578,14 +8602,46 @@ function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv,co
   document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
   document.getElementById('mcand-email').value=emailDest||'';
   document.getElementById('mcand-assunto').value=codigoDest||('Candidatura — '+cargo+' — Marcos Franco');
-  const cvContent=cv||lastCV||'';
-  const preview=(carta||'')+(cvContent?(carta?'\n\n━━━ CV OTIMIZADO ━━━\n\n':'')+ cvContent:'');
-  document.getElementById('mcand-preview').value=preview;
-  const semCarta=!carta;
-  document.getElementById('mcand-cv-status').textContent=cvContent&&semCarta?'✓ CV incluído · Sem carta — gere na aba Análise':cvContent?'✓ CV + carta incluídos':'Sem CV — edite o corpo manualmente';
+  // O CV do card vai ANEXADO como o MESMO PDF Executivo — não é mais colado no corpo.
+  _candCV=cv||lastCV||'';
+  _candCVFilename=`CV_MF_${String(empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${String(cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
+  const temCV=!!_candCV.trim();
+  document.getElementById('mcand-cv-status').textContent=temCV?'✓ CV Executivo (PDF) em anexo':'Sem CV — gere na aba Documentos antes de enviar';
   const btn=document.getElementById('mcand-enviar-btn');
   if(btn){btn.textContent='Enviar pelo Outlook';btn.disabled=false;btn.style.color='';}
   document.getElementById('modal-candidatura').style.display='flex';
+  // Corpo = e-mail de apresentação curto e humano. Usa o salvo na vaga; senão gera agora.
+  gerarEmailEnvio(savedVagaIdx,empresa,cargo,{});
+}
+// Gera (ou reaproveita) o corpo curto e humano do e-mail de envio. forcar:true refaz do zero.
+async function gerarEmailEnvio(vagaIdx,empresa,cargo,opts){
+  opts=opts||{};
+  const prev=document.getElementById('mcand-preview');
+  const gbtn=document.getElementById('mcand-gerar-email-btn');
+  const v=(vagaIdx>=0&&vagaIdx<vagas.length)?vagas[vagaIdx]:null;
+  empresa=empresa||v?.empresa||'';
+  cargo=cargo||v?.cargo||'';
+  if(!opts.forcar&&v&&v.emailEnvio&&v.emailEnvio.trim()){ if(prev)prev.value=v.emailEnvio; return; }
+  if(prev){prev.value='Gerando e-mail de apresentação…';prev.disabled=true;}
+  if(gbtn){gbtn.disabled=true;gbtn.textContent='Gerando…';}
+  const contexto=(v?.atsAnalise||v?.jobDescription||v?.descricao||v?.notas||'').slice(0,1500);
+  try{
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:500,system:EMAIL_ENVIO_SYSTEM,
+        messages:[{role:'user',content:`Escreva o corpo do e-mail para a vaga de ${cargo||'a posição'} na ${empresa||'a empresa'}.${contexto?`\n\nSobre a vaga (use para o parágrafo do "por que esta vaga"):\n${contexto}`:''}`}]})});
+    if(!res.ok) throw new Error('http '+res.status);
+    const data=await res.json();
+    const txt=(data.content?.find(b=>b.type==='text')?.text||data.content?.[0]?.text||'').trim();
+    if(!txt) throw new Error('vazio');
+    if(prev) prev.value=txt;
+    if(v){v.emailEnvio=txt;saveVagas();}
+  }catch(e){
+    console.error('gerarEmailEnvio:',e);
+    if(prev) prev.value=`Olá,\n\nVi a vaga de ${cargo||'—'}${empresa?' na '+empresa:''} e quero me apresentar. Anexei meu currículo com o detalhe da minha trajetória.\n\nGrato e à disposição,\nMarcos Franco · (41) 99615-2224 · marcos_mco@hotmail.com`;
+  }finally{
+    if(prev) prev.disabled=false;
+    if(gbtn){gbtn.disabled=false;gbtn.textContent='Gerar novamente';}
+  }
 }
 function fecharModalCandidatura(){
   document.getElementById('modal-candidatura').style.display='none';
@@ -8616,11 +8672,21 @@ async function enviarCandidaturaOutlook(btn){
   if(!para){alert('Preencha o email do recrutador.');return;}
   if(!assunto){alert('Preencha o assunto.');return;}
   if(!corpo){alert('O corpo do email está vazio.');return;}
+  // Anexa o MESMO PDF Executivo do card (seta os globais que o gerador lê e restaura).
+  let anexos=[];
+  if(_candCV.trim()){
+    const _prev=lastCV,_prevFn=lastCVFilename;
+    lastCV=_candCV; lastCVFilename=_candCVFilename;
+    const b64=_pdfExecBase64();
+    lastCV=_prev; lastCVFilename=_prevFn;
+    if(b64) anexos=[{nome:_candCVFilename+'_executivo.pdf',conteudoBase64:b64,tipo:'application/pdf'}];
+  }
+  if(!anexos.length && !confirm('Nenhum CV em anexo. Enviar só com o texto do e-mail?')) return;
   btn.textContent='Enviando…';btn.disabled=true;
   try{
     const res=await fetch(WORKER_URL+'/api/emails/enviar',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({para,assunto,corpo})
+      body:JSON.stringify({para,assunto,corpo,anexos})
     });
     const json=await res.json().catch(()=>({}));
     if(res.ok){
@@ -9476,8 +9542,8 @@ function enviarCVModal(){
 // ═══════════════════════════════════════════════
 //  PDF EXECUTIVO (design navy/dourado)
 // ═══════════════════════════════════════════════
-function downloadPDFExecutivo(){
-  if(!window.jspdf){alert('jsPDF nao carregado.');return;}
+function _buildPDFExecDoc(){
+  if(!window.jspdf){alert('jsPDF nao carregado.');return null;}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
   const navy=[26,58,92];
@@ -9554,7 +9620,18 @@ function downloadPDFExecutivo(){
     doc.text('Marcos Franco  |  Curitiba, PR',margL,293);
     doc.text('Página '+i+' de '+pages,190,293,{align:'right'});
   }
+  return doc;
+}
+function downloadPDFExecutivo(){
+  const doc=_buildPDFExecDoc();
+  if(!doc)return;
   doc.save((lastCVFilename||'CV_MF')+'_executivo.pdf');
+}
+// Captura o MESMO PDF Executivo em base64 (sem o prefixo data:) para anexar no envio.
+function _pdfExecBase64(){
+  const doc=_buildPDFExecDoc();
+  if(!doc)return null;
+  return ((doc.output('datauristring')||'').split('base64,').pop())||null;
 }
 document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none');var nm=document.getElementById('crm-novo-menu');if(nm)nm.style.display='none';});
 loadCRM();

@@ -1,12 +1,7 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.12
+//  SENOVA PROXY — Worker v7.11
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.12 (10/jul/2026) — anexo no envio de candidatura:
-//  · /api/emails/enviar aceita `anexos: [{ nome, conteudoBase64, tipo }]`
-//    e repassa ao Graph sendMail como fileAttachment (contentBytes base64).
-//    Retrocompatível: sem anexos, envia como antes. Espinha — Estação 3:
-//    o CV Executivo em PDF agora vai ANEXADO, não colado como texto no corpo.
 //  NOVIDADES v7.11 (09/jul/2026) — fim do "fetch silencioso":
 //  · analisarVaga e classificarEmails checavam resp.ok? Não. Erro de rede/IA
 //    virava resultado fake (score:50 "revisar manualmente" / e-mail inteiro
@@ -994,27 +989,19 @@ export default {
         const base = env.MS_REDIRECT_URI?.replace('/api/auth/callback','') || 'https://senova-proxy.marcos-mco.workers.dev';
         return json({ erro: 'Outlook não conectado.', reauth: true, url_auth: base + '/api/auth/outlook' }, 401);
       }
-      const { para, assunto, corpo, anexos } = await request.json();
+      const { para, assunto, corpo } = await request.json();
       if (!para || !assunto || !corpo) return json({ erro: 'para, assunto e corpo obrigatórios' }, 400);
-      // Anexos opcionais: [{ nome, conteudoBase64, tipo }]. Sem anexo, envia como antes (retrocompatível).
-      const attachments = Array.isArray(anexos) ? anexos
-        .filter(a => a && a.nome && a.conteudoBase64)
-        .map(a => ({
-          '@odata.type': '#microsoft.graph.fileAttachment',
-          name: a.nome,
-          contentType: a.tipo || 'application/pdf',
-          contentBytes: a.conteudoBase64,
-        })) : [];
-      const message = {
-        subject: assunto,
-        body: { contentType: 'Text', content: corpo },
-        toRecipients: [{ emailAddress: { address: para } }],
-      };
-      if (attachments.length) message.attachments = attachments;
       const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, saveToSentItems: true }),
+        body: JSON.stringify({
+          message: {
+            subject: assunto,
+            body: { contentType: 'Text', content: corpo },
+            toRecipients: [{ emailAddress: { address: para } }],
+          },
+          saveToSentItems: true,
+        }),
       });
       if (!res.ok) return json({ erro: 'Erro ao enviar email', detalhe: await res.json().catch(()=>({})) }, res.status);
       return json({ ok: true });
