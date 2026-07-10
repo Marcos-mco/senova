@@ -2034,6 +2034,8 @@ select option { background: var(--bg2); }
 
       <!-- ZONA 3 — COMPATIBILIDADE / PONTUAÇÃO AO PROJETO -->
       <div id="mv-score-section" style="margin-top:14px;padding:14px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);">
+        <!-- Rota de envio (candidatura direta) — SEMPRE visível, fora do que colapsa -->
+        <div id="mv-canal-direto-banner" style="display:none;font-size:12.5px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:8px 12px;margin-bottom:12px;border-radius:6px;line-height:1.55;"></div>
         <!-- Cabeçalho colapsável (estado Oportunidade) -->
         <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
           <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
@@ -6801,6 +6803,20 @@ function mvConcluirEditarDesc(){
 // ── PONTUAÇÃO AO PROJETO ─────────────────────────────────────────────────────
 function mvUpdateScoreDisplay(vOpt){
   const v=vOpt||(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
+  // Rota de envio (candidatura direta) — SEMPRE visível, independente de score/colapso.
+  // Vale para TODAS as pegadinhas: canal (Email/WhatsApp/Telefone)+destino OU instrução pura.
+  const cdBanner=document.getElementById('mv-canal-direto-banner');
+  if(cdBanner){
+    const _cDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
+    const _cTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
+    const _cInstr=v?.canalDiretoInstrucao||v?.canalDiretoCodigo||'';
+    if(_cDest||_cInstr){
+      cdBanner.innerHTML=_cDest
+        ? `Candidatura direta${_cTipo?' ('+escHtml(_cTipo)+')':''}: <span style="font-weight:600;">${escHtml(_cDest)}</span>${_cInstr?' · instrução: "'+escHtml(_cInstr)+'"':''}`
+        : `Candidatura direta: <span style="font-weight:600;">${escHtml(_cInstr)}</span>`;
+      cdBanner.style.display='';
+    } else { cdBanner.innerHTML=''; cdBanner.style.display='none'; }
+  }
   // ATS score — usa atsScore (app) ou cai para score salvo (extensão), nunca recalcula aqui
   const ats=parseInt(v?.atsScore||0)||(typeof v?.score==='number'&&v.score>0?Math.round(v.score):0);
   const atsBar=document.getElementById('mv-ats-bar');
@@ -6827,14 +6843,8 @@ function mvUpdateScoreDisplay(vOpt){
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
     if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
-    // Candidatura direta detectada (pegadinha p/ filtrar quem lê com atenção — e-mail, WhatsApp,
-    // telefone, palavra-código etc.) — mostra sempre que houver, vindo do quick-check automático
-    // ou da análise completa, independente de qual rodou. Lê campos legados (canalDiretoEmail/
-    // canalDiretoCodigo) para não perder cards já analisados antes desta mudança.
-    const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
-    const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
-    const _canalInstr=v?.canalDiretoInstrucao||v?.canalDiretoCodigo||'';
-    const canalHtml=(_canalDest||_canalInstr)?`<div style="font-size:12px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:6px 9px;margin-bottom:6px;border-radius:4px;line-height:1.5;">Candidatura direta${(_canalTipo&&_canalDest)?' ('+escHtml(_canalTipo)+')':''}: <span style="font-weight:600;">${_canalDest?escHtml(_canalDest):escHtml(_canalInstr)}${_canalDest&&_canalInstr?' · instrução: "'+escHtml(_canalInstr)+'"':''}</span></div>`:'';
+    // (Rota de envio / candidatura direta agora vive numa faixa fixa no topo desta função —
+    //  sempre visível, fora do corpo que colapsa. Não duplicar aqui dentro.)
     // Prioridade 1: texto rico da aba Analisar (tem seções como Cargo real, Red flags, etc.)
     const analise=(v?.atsAnalise||'').trim();
     const isRichAnalise=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(analise);
@@ -6850,7 +6860,7 @@ function mvUpdateScoreDisplay(vOpt){
         if(lbl){html+=`<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;"><span style="font-weight:600;color:var(--navy);">${escHtml(lbl[1])}:</span> ${escHtml(lbl[2])}</div>`;return;}
         html+=`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">${escHtml(t)}</div>`;
       });
-      signalsEl.innerHTML=canalHtml+(html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>');
+      signalsEl.innerHTML=(html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>');
       return;
     }
     // Fallback: bullets pontos_fortes / pontos_atencao
@@ -6861,7 +6871,7 @@ function mvUpdateScoreDisplay(vOpt){
       const verd=(v?.atsAnalise||'').match(/VEREDICTO:\s*(.+)/i)?.[1]?.trim()||'';
       if(verd&&!/revisar manualmente/i.test(verd)) html='<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;">'+escHtml(verd)+'</div>';
     }
-    signalsEl.innerHTML=canalHtml+(html||'<span style="font-size:12px;color:var(--text3);">Clique em <strong>Analisar</strong> para ver a análise completa.</span>');
+    signalsEl.innerHTML=(html||'<span style="font-size:12px;color:var(--text3);">Clique em <strong>Analisar</strong> para ver a análise completa.</span>');
   }
 }
 
