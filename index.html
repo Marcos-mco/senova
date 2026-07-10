@@ -8707,6 +8707,8 @@ async function enviarCandidaturaOutlook(btn){
       if(_candidaturaVagaIdx>=0&&_candidaturaVagaIdx<vagas.length){
         _marcarCandidaturaEnviada(vagas[_candidaturaVagaIdx],'CV enviado por Outlook para '+para);
         saveVagas();
+        // saveVagas atualiza a Home mas NÃO o Kanban — redesenha p/ o card andar p/ CV Enviado.
+        if(filtroAtivo) aplicarFiltros(); else renderCRM();
       }
       btn.textContent='✓ Enviado!';
       const frase=['CV enviado! Estou torcendo por você, Marcos. 🌟','Candidatura a caminho! Você tem muito a oferecer. 💛','Enviado pelo Outlook! Conte comigo para o que precisar. 🚀'][Math.floor(Math.random()*3)];
