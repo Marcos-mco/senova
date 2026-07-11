@@ -9901,25 +9901,36 @@ window.__senovaCartaoCandidatura=function(){
 // Se o card já tem CV (gerado aqui ou pelo Anti-ATS) → devolve o dataUrl direto.
 // Se não tem → devolve o prompt para o background gerar via Worker.
 // Após a geração, o background chama __senovaCopilotoSalvarCV para persistir no card.
-window.__senovaCopilotoGerarCV=function(url){
+window.__senovaCopilotoGerarCV=function(url,formato){
+  formato=(formato==='pdf')?'pdf':'docx';
   const tgtId=_jobIdLinkedIn(url);
   const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
   if(idx<0) return {ok:false,motivo:'sem_card'};
   const v=vagas[idx];
-  const fn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1.doc`;
+  const baseFn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}`;
   if(v.atsCV&&v.atsCV.trim()){
     // CV já existe no card — devolve pronto, sem reprocessar
+    if(formato==='pdf'){
+      // PDF Executivo: reusa o MESMO gerador do envio por e-mail (S28), apontando lastCV para o CV desta vaga.
+      const _prev=lastCV,_prevFn=lastCVFilename;
+      lastCV=v.atsCV; lastCVFilename=baseFn;
+      let b64=null; try{ b64=_pdfExecBase64(); }catch(_){}
+      lastCV=_prev; lastCVFilename=_prevFn;
+      if(!b64) return {ok:false,erro:'pdf_falhou'};
+      return {ok:true,dataUrl:'data:application/pdf;base64,'+b64,filename:baseFn+'_executivo.pdf'};
+    }
+    // .docx (texto puro) — melhor para o parser de ATS
     const esc=v.atsCV.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
-    return {ok:true,dataUrl:'data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html))),filename:fn};
+    return {ok:true,dataUrl:'data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html))),filename:baseFn+'.doc'};
   }
-  // Precisa gerar — devolve o prompt (síncrono), background faz o fetch
+  // Precisa gerar — devolve o prompt (síncrono), background faz o fetch, salva e re-chama neste formato
   const desc=(v.jobDescription||v.descricao||'').slice(0,4000);
   if(!desc) return {ok:false,motivo:'sem_descricao'};
   return {ok:false,motivo:'precisa_gerar',
     prompt:{model:MODELOS.analise,max_tokens:2000,system:ATS_SYSTEM('PT'),
       messages:[{role:'user',content:`Descrição da vaga:\n\n${desc}`}]},
-    filename:fn, empresa:v.empresa||'', cargo:v.cargo||''};
+    filename:baseFn, empresa:v.empresa||'', cargo:v.cargo||''};
 };
 
 // Salva o CV gerado pelo copiloto de volta no card — única fonte de verdade.

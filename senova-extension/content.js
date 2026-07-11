@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.59
+// Content script — Senova Extension v2.60
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1054,7 +1054,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.59',
+      'SENOVA DIAG v2.60',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1140,8 +1140,13 @@
       ? `<button id="snv-cop-preencher" style="width:100%;margin-top:11px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Preencher para revisar</button>`
       : '';
 
+    // Dois formatos: PDF Executivo (para o olho humano — recrutador/e-mail) e .docx de texto (melhor
+    // para o parser de ATS). O usuário escolhe conforme o portal. Ambos saem do MESMO CV do card.
+    const _rotCvPdf = an.temCV ? 'Baixar CV Executivo (PDF)' : 'Gerar CV Executivo (PDF)';
+    const _rotCvDocx = an.temCV ? 'Baixar CV p/ ATS (.docx)' : 'Gerar CV p/ ATS (.docx)';
     const btnCvHTML = _temCV
-      ? `<button id="snv-cop-cv" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${an.temCV ? 'Baixar meu CV (.docx)' : 'Gerar e baixar CV (.docx)'}</button>`
+      ? `<button id="snv-cop-cv-pdf" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${_rotCvPdf}</button>
+         <button id="snv-cop-cv-docx" style="width:100%;margin-top:6px;background:#fff;color:#2E6DA4;border:1.5px solid #C9D6E2;border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;">${_rotCvDocx}</button>`
       : '';
 
     // Candidatura: o automático marca ao detectar o envio; o manual é a rede de segurança.
@@ -1216,8 +1221,10 @@
 
     const bp = document.getElementById('snv-cop-preencher');
     if (bp) bp.addEventListener('click', _preencher);
-    const bcv = document.getElementById('snv-cop-cv');
-    if (bcv) bcv.addEventListener('click', _baixarCV);
+    const bcvPdf = document.getElementById('snv-cop-cv-pdf');
+    if (bcvPdf) bcvPdf.addEventListener('click', () => _baixarCV('pdf'));
+    const bcvDocx = document.getElementById('snv-cop-cv-docx');
+    if (bcvDocx) bcvDocx.addEventListener('click', () => _baixarCV('docx'));
     const bc = document.getElementById('snv-cop-candidatei');
     if (bc) bc.addEventListener('click', _marcarCandidatei);
     const bn = document.getElementById('snv-cop-naoenviei');
@@ -1226,18 +1233,21 @@
     if (bcd) bcd.addEventListener('click', () => _copiarDiag(bcd, _diagTxt));
   }
 
-  // Baixa o CV (.docx) da vaga pelo app, para o usuário subir no campo de upload do portal.
-  async function _baixarCV() {
+  // Baixa o CV da vaga pelo app, para o usuário levar ao portal: 'pdf' (Executivo) ou 'docx' (ATS).
+  async function _baixarCV(formato) {
+    formato = (formato === 'pdf') ? 'pdf' : 'docx';
     const an = _copilotoAnalise || {};
     if (!an.jobId) return;
-    const btn = document.getElementById('snv-cop-cv');
+    const btn = document.getElementById(formato === 'pdf' ? 'snv-cop-cv-pdf' : 'snv-cop-cv-docx');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = an && an.temCV ? 'Preparando…' : 'Gerando CV…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', jobId: an.jobId }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', jobId: an.jobId, formato }); } catch (_) {}
     if (res && res.ok) {
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = '✓ CV baixado — arraste para o Upload'; }
+      const okTxt = formato === 'pdf' ? '✓ PDF Executivo baixado' : '✓ .docx baixado — arraste para o Upload';
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = okTxt; }
     } else {
-      const m = (res && res.motivo === 'sem_cv') ? 'Gere o CV desta vaga no Senova'
+      const m = (res && res.erro === 'pdf_falhou') ? 'Recarregue o Senova (PDF)'
+              : (res && res.motivo === 'sem_cv') ? 'Gere o CV desta vaga no Senova'
               : (res && res.erro === 'app_fechado') ? 'Abra o Senova numa aba'
               : (res && res.erro === 'sem_funcao') ? 'Recarregue o Senova'
               : 'Não consegui — tente de novo';

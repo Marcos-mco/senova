@@ -56,8 +56,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === 'COPILOTO_CV') {
-    // O copiloto pede para baixar o CV (.docx) da vaga, para o usuário subir no portal.
-    copilotoCV(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    // O copiloto pede o CV da vaga para o usuário levar ao portal: 'pdf' (Executivo) ou 'docx' (ATS).
+    copilotoCV(msg.jobId, msg.formato).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_CANDIDATEI') {
@@ -354,23 +354,27 @@ async function copilotoCartao() {
 // CV da vaga: sem reprocessar. Se o card já tem CV → baixa direto.
 // Se não tem → gera via Worker (ATS_SYSTEM), salva no card, baixa.
 // Card e copiloto ficam sempre em sincronia — fonte de verdade única.
-async function copilotoCV(jobId) {
+async function copilotoCV(jobId, formato) {
   if (!jobId) return null;
+  formato = (formato === 'pdf') ? 'pdf' : 'docx';
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return { erro: 'app_fechado' };
   const url = 'https://www.linkedin.com/jobs/view/' + jobId;
 
-  // Passo 1: tenta o CV existente no card (ou recebe o prompt para gerar)
-  let r = null;
-  try {
+  // Produz o artefato no formato pedido a partir do card (fonte de verdade). Ponto único de geração.
+  const gerar = async () => {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u) => (typeof window.__senovaCopilotoGerarCV === 'function') ? window.__senovaCopilotoGerarCV(u) : { erro: 'sem_funcao' },
-      args: [url],
+      func: (u, f) => (typeof window.__senovaCopilotoGerarCV === 'function') ? window.__senovaCopilotoGerarCV(u, f) : { erro: 'sem_funcao' },
+      args: [url, formato],
     });
-    r = (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
-  } catch { return null; }
+    return (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
+  };
+
+  // Passo 1: tenta o CV existente no card (ou recebe o prompt para gerar)
+  let r = null;
+  try { r = await gerar(); } catch { return null; }
 
   if (r && r.ok) {
     try { await chrome.downloads.download({ url: r.dataUrl, filename: r.filename, saveAs: false }); return { ok: true }; }
@@ -378,7 +382,7 @@ async function copilotoCV(jobId) {
   }
   if (!r || r.motivo !== 'precisa_gerar') return r;
 
-  // Passo 2: gera via Worker
+  // Passo 2: gera o texto do CV via Worker
   let cvText = null;
   try {
     const res = await fetch(WORKER + '/api/claude', {
@@ -400,12 +404,14 @@ async function copilotoCV(jobId) {
     });
   } catch {}
 
-  // Passo 4: baixa
-  const esc = cvText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
-  const dataUrl = 'data:application/msword;base64,' + btoa(unescape(encodeURIComponent(html)));
-  try { await chrome.downloads.download({ url: dataUrl, filename: r.filename, saveAs: false }); return { ok: true, gerou: true }; }
-  catch { return { erro: 'download_falhou' }; }
+  // Passo 4: agora o CV existe no card — re-chama a bridge para produzir o formato pedido (PDF ou .docx)
+  let r2 = null;
+  try { r2 = await gerar(); } catch { return null; }
+  if (r2 && r2.ok) {
+    try { await chrome.downloads.download({ url: r2.dataUrl, filename: r2.filename, saveAs: false }); return { ok: true, gerou: true }; }
+    catch { return { erro: 'download_falhou' }; }
+  }
+  return r2 || { erro: 'download_falhou' };
 }
 
 // "Não enviei" — pede ao app que reverta a marcação de candidatura enviada.
