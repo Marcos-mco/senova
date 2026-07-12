@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.60
+// Content script — Senova Extension v2.63
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -980,6 +980,27 @@
   // ── DIAGNÓSTICO (modo de campo) ─────────────────────────────────────
   // O copiloto relata o que ENXERGA do formulário desta página, para o Bruno consertar a causa
   // real sem depender de Marcos descrever termos técnicos. Pequeno, reversível, sem chamada paga.
+  // Sensor de envio — Passo 1 (só instrumentação): lista os botões de AÇÃO do container de
+  // candidatura, candidatos a "Enviar". Mede com dado real (qualquer portal) se o MOMENTO do
+  // envio é detectável, ANTES de ligar a marcação automática. Não muda comportamento.
+  const _RE_ENVIAR = /\b(enviar|envie|envio|submeter|candidatar|candidate|aplicar|aplica[çc][ãa]o|finalizar|concluir|submit|apply|send|bewerben|absenden|postular)\b/i;
+  function _botoesEnvio() {
+    let cont = null;
+    try { cont = _acharContainerCandidatura(); } catch (_) {}
+    const escopo = cont || document;
+    const cands = [];
+    try {
+      const els = escopo.querySelectorAll('button, input[type=submit], input[type=button], [role=button]');
+      for (const el of els) {
+        const txt = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim();
+        const ehSubmit = (el.type === 'submit') || (el.tagName === 'BUTTON' && !el.getAttribute('type'));
+        if (!ehSubmit && !_RE_ENVIAR.test(txt)) continue;
+        cands.push({ txt: (txt || '(sem texto)').slice(0, 28), vis: _visivel(el), submit: ehSubmit });
+      }
+    } catch (_) {}
+    return cands;
+  }
+
   function _diagnostico() {
     let cont = null;
     try { cont = _acharContainerCandidatura(); } catch (_) {}
@@ -1048,13 +1069,14 @@
         : `jobId ${_ultimoPasse.jobId} · há ${Math.round((Date.now() - _ultimoPasse.ts) / 60000)}min`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
-      iframesMesmaOrigem: mesmaOrigem
+      iframesMesmaOrigem: mesmaOrigem,
+      botoesEnvio: _botoesEnvio()
     };
   }
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.60',
+      'SENOVA DIAG v2.63',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1070,6 +1092,9 @@
         ? d.iframesMesmaOrigem.map(x => x.src + ': ' + x.total + ' campos (' + x.vis + ' vis)').join(' | ')
         : '—'),
       'forma: ' + d.forma,
+      'botões de envio: ' + (d.botoesEnvio && d.botoesEnvio.length
+        ? d.botoesEnvio.map(b => '"' + b.txt + '"' + (b.vis ? '' : ' (oculto)') + (b.submit ? ' [submit]' : '')).join(' | ')
+        : '— nenhum'),
       'url: ' + location.href
     ].join('\n');
   }
@@ -1140,13 +1165,18 @@
       ? `<button id="snv-cop-preencher" style="width:100%;margin-top:11px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Preencher para revisar</button>`
       : '';
 
-    // Dois formatos: PDF Executivo (para o olho humano — recrutador/e-mail) e .docx de texto (melhor
-    // para o parser de ATS). O usuário escolhe conforme o portal. Ambos saem do MESMO CV do card.
-    const _rotCvPdf = an.temCV ? 'Baixar CV Executivo (PDF)' : 'Gerar CV Executivo (PDF)';
-    const _rotCvDocx = an.temCV ? 'Baixar CV p/ ATS (.docx)' : 'Gerar CV p/ ATS (.docx)';
+    // Dois formatos do MESMO CV do card, lado a lado: PDF Executivo (para o olho humano —
+    // recrutador/e-mail; ação principal, navy sólido) e .docx de texto (melhor para o parser de
+    // ATS; secundário, contorno). Uma ação principal clara, sem empilhar botões de peso igual.
     const btnCvHTML = _temCV
-      ? `<button id="snv-cop-cv-pdf" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${_rotCvPdf}</button>
-         <button id="snv-cop-cv-docx" style="width:100%;margin-top:6px;background:#fff;color:#2E6DA4;border:1.5px solid #C9D6E2;border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;">${_rotCvDocx}</button>`
+      ? `<div style="margin-top:11px;">
+           <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#98989D;margin-bottom:5px;">Documentos para levar</div>
+           <div style="display:flex;gap:7px;">
+             <button id="snv-cop-cv-pdf" style="flex:1;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:9px 4px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">PDF Executivo</button>
+             <button id="snv-cop-cv-docx" style="flex:1;background:#fff;color:#2E6DA4;border:1.5px solid #C9D6E2;border-radius:8px;padding:9px 4px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">.docx (ATS)</button>
+           </div>
+           <button id="snv-cop-carta" style="width:100%;margin-top:7px;background:#fff;color:#2E6DA4;border:1.5px solid #C9D6E2;border-radius:8px;padding:9px 4px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Carta de apresentação</button>
+         </div>`
       : '';
 
     // Candidatura: o automático marca ao detectar o envio; o manual é a rede de segurança.
@@ -1225,6 +1255,8 @@
     if (bcvPdf) bcvPdf.addEventListener('click', () => _baixarCV('pdf'));
     const bcvDocx = document.getElementById('snv-cop-cv-docx');
     if (bcvDocx) bcvDocx.addEventListener('click', () => _baixarCV('docx'));
+    const bcarta = document.getElementById('snv-cop-carta');
+    if (bcarta) bcarta.addEventListener('click', _gerarCarta);
     const bc = document.getElementById('snv-cop-candidatei');
     if (bc) bc.addEventListener('click', _marcarCandidatei);
     const bn = document.getElementById('snv-cop-naoenviei');
@@ -1243,15 +1275,42 @@
     let res = null;
     try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', jobId: an.jobId, formato }); } catch (_) {}
     if (res && res.ok) {
-      const okTxt = formato === 'pdf' ? '✓ PDF Executivo baixado' : '✓ .docx baixado — arraste para o Upload';
+      const okTxt = formato === 'pdf' ? '✓ PDF baixado' : '✓ .docx baixado';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = okTxt; }
     } else {
-      const m = (res && res.erro === 'pdf_falhou') ? 'Recarregue o Senova (PDF)'
-              : (res && res.motivo === 'sem_cv') ? 'Gere o CV desta vaga no Senova'
-              : (res && res.erro === 'app_fechado') ? 'Abra o Senova numa aba'
+      const m = (res && res.erro === 'pdf_falhou') ? 'Recarregue o app'
+              : (res && res.motivo === 'sem_cv') ? 'Gere o CV no Senova'
+              : (res && res.erro === 'app_fechado') ? 'Abra o Senova'
+              : (res && res.erro === 'sem_funcao') ? 'Recarregue o app'
+              : 'Tente de novo';
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.fontSize = '10.5px'; btn.textContent = m; }
+    }
+  }
+
+  // Gera a carta de apresentação da vaga (pelo app, reusa CARTA_SYSTEM) e copia para o formulário.
+  // Carta é texto para colar — não arquivo. Nunca envia; o usuário cola e revisa.
+  async function _gerarCarta() {
+    const an = _copilotoAnalise || {};
+    if (!an.jobId) return;
+    const btn = document.getElementById('snv-cop-carta');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Gerando carta…'; }
+    let res = null;
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTA', jobId: an.jobId }); } catch (_) {}
+    if (res && res.ok && res.carta) {
+      let copiado = false;
+      try { await navigator.clipboard.writeText(res.carta); copiado = true; } catch (_) {}
+      if (btn) {
+        btn.disabled = false; btn.style.opacity = '1';
+        btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840';
+        btn.textContent = copiado ? '✓ Carta copiada — cole e revise no formulário' : '✓ Carta pronta no Senova';
+      }
+    } else {
+      const m = (res && res.erro === 'app_fechado') ? 'Abra o Senova'
+              : (res && res.motivo === 'sem_descricao') ? 'Falta a descrição da vaga'
+              : (res && res.motivo === 'sem_card') ? 'Vaga não está no Senova'
               : (res && res.erro === 'sem_funcao') ? 'Recarregue o Senova'
               : 'Não consegui — tente de novo';
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = m; }
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.fontSize = '11px'; btn.textContent = m; }
     }
   }
 

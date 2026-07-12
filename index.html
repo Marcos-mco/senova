@@ -9949,6 +9949,34 @@ window.__senovaCopilotoSalvarCV=function(url,cvText){
   return true;
 };
 
+// Carta de apresentação para o copiloto levar ao formulário externo — reusa CARTA_SYSTEM (mesmo
+// gerador do card). Se a carta já existe no card, devolve pronta; senão devolve o prompt e o
+// background gera via Worker e chama __senovaCopilotoSalvarCarta. Fonte de verdade única: v.atsCarta.
+window.__senovaCopilotoGerarCarta=function(url){
+  const tgtId=_jobIdLinkedIn(url);
+  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0) return {ok:false,motivo:'sem_card'};
+  const v=vagas[idx];
+  if(v.atsCarta&&v.atsCarta.trim()) return {ok:true,carta:v.atsCarta};
+  const desc=(v.jobDescription||v.descricao||'').slice(0,3000);
+  if(!desc) return {ok:false,motivo:'sem_descricao'};
+  const cargo=v.cargo||'a posição', empresa=v.empresa||'a empresa';
+  return {ok:false,motivo:'precisa_gerar',
+    prompt:{model:MODELOS.rapido,max_tokens:700,system:CARTA_SYSTEM('PT'),
+      messages:[{role:'user',content:`Escreva a carta em português (Brasil) para a vaga de ${cargo} na ${empresa}.\n\nDESCRIÇÃO DA VAGA (use para personalizar):\n${desc}`}]}};
+};
+window.__senovaCopilotoSalvarCarta=function(url,carta){
+  if(!carta) return false;
+  const tgtId=_jobIdLinkedIn(url);
+  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+  if(idx<0) return false;
+  vagas[idx].atsCarta=carta;
+  saveVagas();
+  const cartaTxt=document.getElementById('mv-ats-carta-txt');
+  if(cartaTxt) cartaTxt.value=carta;
+  return true;
+};
+
 // Exposto para a extensão: vagas (lead) do LinkedIn com link mas SEM descrição,
 // para enriquecimento em segundo plano. Retorna URLs canônicas (/jobs/view/).
 window.__senovaPendentesDesc=function(){

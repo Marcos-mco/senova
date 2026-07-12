@@ -60,6 +60,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     copilotoCV(msg.jobId, msg.formato).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
+  if (msg.type === 'COPILOTO_CARTA') {
+    // O copiloto pede a carta de apresentação da vaga (texto) para o usuário colar no formulário.
+    copilotoCarta(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
   if (msg.type === 'COPILOTO_CANDIDATEI') {
     // O copiloto confirma o envio → o app move o card para CV Enviado + follow-up 7 dias.
     copilotoCandidatei(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
@@ -412,6 +417,55 @@ async function copilotoCV(jobId, formato) {
     catch { return { erro: 'download_falhou' }; }
   }
   return r2 || { erro: 'download_falhou' };
+}
+
+// Carta de apresentação: pede ao app (que reusa CARTA_SYSTEM). Devolve o TEXTO — a carta é para
+// colar no campo do formulário, não um arquivo. Gera via Worker só se ainda não existe no card.
+async function copilotoCarta(jobId) {
+  if (!jobId) return null;
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
+  const url = 'https://www.linkedin.com/jobs/view/' + jobId;
+
+  const ponte = async () => {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u) => (typeof window.__senovaCopilotoGerarCarta === 'function') ? window.__senovaCopilotoGerarCarta(u) : { erro: 'sem_funcao' },
+      args: [url],
+    });
+    return (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
+  };
+
+  // Passo 1: carta pronta no card, ou o prompt para gerar
+  let r = null;
+  try { r = await ponte(); } catch { return null; }
+  if (r && r.ok) return { ok: true, carta: r.carta };
+  if (!r || r.motivo !== 'precisa_gerar') return r;
+
+  // Passo 2: gera via Worker
+  let carta = null;
+  try {
+    const res = await fetch(WORKER + '/api/claude', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(r.prompt),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    carta = ((data.content && data.content[0] && data.content[0].text) || '').trim();
+  } catch { return null; }
+  if (!carta) return null;
+
+  // Passo 3: salva no card (fonte de verdade única)
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (u, c) => (typeof window.__senovaCopilotoSalvarCarta === 'function') ? window.__senovaCopilotoSalvarCarta(u, c) : null,
+      args: [url, carta],
+    });
+  } catch {}
+
+  return { ok: true, carta, gerou: true };
 }
 
 // "Não enviei" — pede ao app que reverta a marcação de candidatura enviada.
