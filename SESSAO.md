@@ -1,12 +1,83 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 09/jul/2026 — Sessão 26 (FECHADA)
-> ⚠️ Sessões 23–25 não foram registradas neste arquivo (ficou parado na 22) — histórico completo vive em `VIRGILIO.md`. Este topo reflete o estado REAL confirmado agora pelo Claude Code.
+> Última atualização: 14/jul/2026 — Sessão 30 · **duas frentes em paralelo**: Bruno (fechar o PROCESSO PRINCIPAL) + Virgílio (migração do CV p/ `PERFIL_MARCOS`)
+> ⚠️ Histórico completo e canônico vive em `VIRGILIO.md`. Este topo reflete o estado REAL.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · sem alteração nesta sessão
-Extensão **v2.59** (local — Marcos recarrega em chrome://extensions; NÃO publicada na Web Store) · instrumentação de diagnóstico (iframe same-origem) — Sessão 26
-Worker **v7.9** — sem alteração nesta sessão
-Working tree LIMPO, sincronizado com origin/main. Último commit: `0184508`.
+Senova app — produção em marcos-mco.github.io/senova · **tudo commitado e pushado**
+Extensão **v2.66** — agora com **AUTO-RELOAD**: se atualiza sozinha quando a versão em disco muda (validado por Marcos em 14/jul; fim do "recarregue em chrome://extensions"). Worker **v7.12** (sem alteração).
+Último commit `baef9b2`. Commits da S30: `2ba3b51` (CV PDF+docx na rota externa) · `da4e998` (carta) · `61a7211` (**registro do envio nos 2 caminhos**) · `03b9f14` (**PERFIL_MARCOS — do Virgílio; commitado a pedido de Marcos, NÃO revisado pelo Bruno**) · `668b238` (auto-reload) · `57f922e` (**CV/carta/card fora do LinkedIn**) · `baef9b2` (**83 testes**).
+
+---
+
+## FRENTE BRUNO — FECHAR O PROCESSO PRINCIPAL (14/jul)
+
+**A reorientação de Marcos (vale daqui pra frente):** *"A extensão É o copiloto"* — não é captura, não é uma telinha de botões. Dois caminhos, **mesma espinha**: **(A)** acho a vaga por fora → clico na extensão → ela **cria o card** e me ajuda na candidatura; **(B)** vaga já no Senova → o copiloto acompanha e **atualiza** o card. Única diferença: criar × atualizar. Marcos: *"viu o quanto ainda estamos longe do processo principal fechado e correto? Foque nisso"* → parar de desenhar telas soltas. Ver `project_processo_principal_copiloto`.
+
+**A causa raiz que travava o processo inteiro: tudo dependia do jobId do LinkedIn.**
+- O passe do Caminho A **não tinha jobId** → guardas `if(!an.jobId) return` matavam **em silêncio** o registro, a detecção automática e o desfazer, e **escondiam os botões de CV e carta**. O Caminho A nunca registrou nada — nunca.
+- O background **inventava** `linkedin.com/jobs/view/{id}` → as pontes não achavam card de nenhum outro portal (Gupy/abler/Sólides/site da empresa) → `sem_card` / `return false` **calado**.
+- **Não existia criar card**: vaga por fora sem card → registro morria. E sem card não há descrição — **sem descrição não se gera CV nem carta**.
+
+**Fechado:**
+- **`_acharVagaRef`** — ponto ÚNICO de casamento (jobId → URL real → empresa+cargo), usado pelo registro, pelo desfazer e pelas **4 pontes de documento**. (Casamento duplicado divergindo foi o que sumiu com o TV Integração na S24 — não repetir.)
+- **`__senovaCopilotoGarantirCard`** (novo): ativar o copiloto numa vaga por fora **cria o card com a descrição da página**. É a peça que destrava o Caminho A inteiro.
+- **Registro**: cria o card se não existe, idempotente, **nunca falha calado**.
+- **Auto-reload da extensão**: Bruno atualiza a extensão sem intervenção de Marcos.
+
+**Verificação — 83/83:** `node testes/registro.js` (35) · `testes/documentos.js` (23) · `testes/espinha.js` (25, integração dos 2 caminhos). Extraem as funções REAIS do `index.html`, sem browser. Ver `testes/README.md`.
+
+**NÃO fechado (honesto):** validação em campo (exige o browser de Marcos) · **Estação 3 — envio por formulário** (a fronteira) · o **popup** que Marcos reprovou (3 botões: "Iniciar copiloto"/"Salvar"/"Analisar") segue como está, redesenho no parking lot.
+
+---
+
+## FRENTE VIRGÍLIO — MIGRAÇÃO DO CV (14/jul)
+
+**Tema:** terminar a migração do gerador de CV do Anti-ATS para `PERFIL_MARCOS`, com um filtro determinístico (sem IA) decidindo QUAIS experiências entram — a IA só reescreve/traduz/otimiza a redação do que já foi filtrado.
+
+- **`filtrarExperienciasRelevantes(textoVaga, nivelVaga)`** (novo, `index.html` antes de `CV_BASE`): sempre inclui as experiências com `incluir_por_padrao:true` e a atual (`fim:null`); as demais (DLS, Intec, Editora Abril, Ghaphical Consult — início de carreira em produção gráfica) só entram se houver correspondência real entre `tags_area` e o texto da vaga. Ordena por `fim` decrescente (cargo atual sempre primeiro) — mesma lógica cobre ordem entre empresas e dentro da mesma empresa (RPC diretor/gerente, Editel superintendente/gerente nacional).
+- **`perfilFormatadoPara(textoVaga, nivelVaga)`**: bloco único (contato + resumo + experiências já filtradas + formação + idiomas) usado como fonte por `ATS_SYSTEM`, `CARTA_SYSTEM` e `EMAIL_ENVIO_SYSTEM`.
+- **`ATS_SYSTEM`** virou 2 estágios: removida a instrução antiga de "CORTE IMPLACÁVEL" (a IA decidindo relevância) — agora o prompt deixa explícito que a lista já veio filtrada e a IA NUNCA pode omitir, acrescentar ou reordenar, só traduzir/otimizar redação. Atualizados os 4 pontos de chamada (`analyzeJob`, `analisarInline`, `gerarDocModal`, `window.__senovaCopilotoGerarCV`) para passar o texto da vaga.
+- **`CARTA_SYSTEM`** e **`EMAIL_ENVIO_SYSTEM`** migrados também (decisão autônoma — risco baixo, ver resumo da sessão): ambos tinham texto de vaga/análise disponível no escopo de todos os call sites. `EMAIL_ENVIO_SYSTEM` deixou de ser uma string fixa e virou função (`EMAIL_ENVIO_SYSTEM(textoVaga)`).
+- **Bug encontrado e corrigido durante o teste:** a tag genérica "gestão de equipe" deixava a Editora Abril (início de carreira) vazar em qualquer vaga que mencionasse "gestão de equipes" — ampliada a lista de tags genéricas ignoradas no filtro.
+- **Bug relatado de comentários `\` em vez de `//` (linhas ~10046-10103, incl. `<\head>`):** verificado e **não existe** no arquivo atual nem no HEAD commitado — nenhuma correção necessária.
+- **`CV_BASE` não foi removido** — continua servindo o LinkedIn Optimizer e os helpers de autofill/resposta de formulário do copiloto (`__senovaCartaoCandidatura`, `__senovaCopilotoRespostaPrompt`, `__senovaCopilotoEscolherHabilidadesPrompt`), fora do escopo desta migração.
+- **Teste:** sem o texto real da vaga "Gerente Geral (Bahia, bens de consumo)" (não estava salvo em nenhum arquivo) — validado com Node.js rodando o filtro real extraído do `index.html` contra uma vaga sintética equivalente (Gerente Geral, Bahia, bens de consumo/FMCG). Resultado: 9 experiências principais + cargo atual incluídos em ordem cronológica correta, as 4 de início de carreira corretamente excluídas; teste inverso (vaga editorial/gráfica) confirmou que essas mesmas 4 entram quando genuinamente relevantes.
+
+> ⚠️ Correção de estado: a migração `PERFIL_MARCOS` **já está commitada** (`03b9f14`) — Marcos autorizou o commit ("é do Virgílio"). O commit declara que **não passou pelo QA do Bruno**. A revisão dela segue pendente.
+
+## PRÓXIMAS PRIORIDADES — SESSÃO 31 (retomar aqui)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Validar o processo em campo**: abrir uma vaga real (score médio) e andar a espinha nos 2 caminhos. Único passo que exige o browser de Marcos — o resto está autotestado | Pendente |
+| 2 | **Estação 3 — envio por formulário** (autofill/upload): a fronteira, não fechada | Aberto |
+| 3 | Revisar a migração `PERFIL_MARCOS` (commitada sem QA do Bruno) + gerar um CV real numa vaga | Pendente |
+| 4 | **Passo 1** (prompt anti-clichê do e-mail) — foi junto no `03b9f14`, ainda não validado em e-mail real | Pendente teste |
+| 5 | **Popup** reprovado por Marcos (3 botões sem sentido de estado) — redesenho não feito | Parking lot |
+| 6 | Gap do score (requisitos eliminatórios + eixo liderança×operação) | Parking lot |
+| 5 | Sólides/perfil persistente — Copiloto não autopreencher onde o portal já preenche | Parking lot |
+
+---
+
+## O QUE FOI FEITO — SESSÃO 29 (10–11/jul/2026)
+
+**Tema:** provar a REPETIÇÃO da espinha com uma 2ª vaga real → virou declínio consciente por FIT + 2 achados de produto.
+
+- **Passo 1 (dívida da espinha):** afrouxado o prompt anti-clichê do e-mail — termos reais de Marcos (transformação digital, visão estratégica, gestão financeira, liderança) deixam de ser proibidos; regra vira "termo só grudado a um fato, senão corta"; só clichê vazio segue banido. QA OK, backup v3.64. **Não commitado** (só se testa gerando e-mail real; a volta da Dialog foi por formulário).
+- **2ª volta — Dialog "Gerente de Marketing e Conteúdo" (LinkedIn → Sólides):** Compatibilidade 72. Portal **Sólides** (novo) exige login e **autopreenche 92%** do cadastro pela conta LinkedIn → autofill do Copiloto redundante/arriscado ali. Parou no filtro **ELIMINATÓRIO** de ferramentas operacionais (HubSpot/GA/RD Station/Power BI). Descrição dizia "focado em execução".
+- **Decisão de Marcos: "Liderar".** Descompasso liderança×operação — a vaga quer operador, ele é o executivo que dirige. Declinou com honestidade (Cancelar no Sólides, card `lead` excluído). Sem culpa: o mesmo princípio que impede inflar nível dá o direito de declinar.
+- **Achado de produto:** o score 72 não sinalizou que os requisitos eliminatórios eram operacionais/incompatíveis com o perfil → gap da análise. Memórias novas: `project_gap_score_lideranca_operacao`, `project_portais_perfil_persistente`.
+
+## PRÓXIMAS PRIORIDADES — SESSÃO 30 (retomar aqui)
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | **Provar a REPETIÇÃO** com vaga de LIDERANÇA real (do tamanho do Marcos), até o envio. Preferir e-mail (valida o Passo 1) | Retomar |
+| 2 | **Passo 1** — validar prompt anti-clichê gerando um e-mail real → commitar | Pendente teste |
+| 3 | **Gap do score** — análise sinalizar requisitos eliminatórios + eixo liderança×operação | Parking lot |
+| 4 | **Sólides/perfil persistente** — Copiloto não autopreencher onde o portal já preenche | Parking lot |
+
+---
 
 ## O QUE FOI FEITO — SESSÃO 26 (09/jul/2026)
 
