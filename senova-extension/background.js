@@ -66,13 +66,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === 'COPILOTO_CANDIDATEI') {
-    // O copiloto confirma o envio → o app move o card para CV Enviado + follow-up 7 dias.
-    copilotoCandidatei(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    // O copiloto confirma o envio → o app registra: card em CV Enviado + follow-up 7 dias
+    // (e CRIA o card se a vaga veio por fora e ainda não existe).
+    copilotoCandidatei(msg.dados || { jobId: msg.jobId }).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_DESFAZER') {
     // "Não enviei" — reverte a marcação (detecção automática errou).
-    copilotoDesfazer(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    copilotoDesfazer(msg.dados || { jobId: msg.jobId }).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'HABILITAR_PORTAL') {
@@ -324,21 +325,27 @@ async function copilotoHabilidades(skills, cargo, empresa, max) {
   } catch { return null; }
 }
 
-// Confirma a candidatura no app: reusa __senovaCandidaturaEnviada (que casa por jobId do
-// LinkedIn) passando a URL canônica reconstruída a partir do jobId do passe.
-async function copilotoCandidatei(jobId) {
-  if (!jobId) return null;
+// Confirma a candidatura no app. Passa a referência REAL da vaga (jobId do passe quando há,
+// URL de verdade da vaga, cargo/empresa e os documentos gerados) — antes reconstruía uma URL
+// fake do LinkedIn, o que fazia o registro falhar calado em todo portal que não fosse LinkedIn
+// e nunca criava card para vaga achada por fora.
+async function copilotoCandidatei(dados) {
+  const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
+  if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return { erro: 'app_fechado' };
-  const urlCanonica = 'https://www.linkedin.com/jobs/view/' + jobId;
   try {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u) => (typeof window.__senovaCandidaturaEnviada === 'function') ? window.__senovaCandidaturaEnviada(u) : null,
-      args: [urlCanonica],
+      func: (ref) => (typeof window.__senovaCandidaturaEnviada === 'function') ? window.__senovaCandidaturaEnviada(ref) : null,
+      args: [d],
     });
-    return { ok: !!(out && out[0] && out[0].result) };
+    const r = out && out[0] && out[0].result;
+    if (!r) return { erro: 'sem_funcao' };
+    if (r === true) return { ok: true };                       // ponte antiga (app não recarregado)
+    return r.ok ? { ok: true, criou: !!r.criou, jaRegistrado: !!r.jaRegistrado }
+                : { erro: r.motivo || 'nao_registrou' };
   } catch { return null; }
 }
 
@@ -468,18 +475,20 @@ async function copilotoCarta(jobId) {
   return { ok: true, carta, gerou: true };
 }
 
-// "Não enviei" — pede ao app que reverta a marcação de candidatura enviada.
-async function copilotoDesfazer(jobId) {
-  if (!jobId) return null;
+// "Não enviei" — pede ao app que reverta a marcação de candidatura enviada. Usa a MESMA
+// referência real do registro, senão não acharia o card fora do LinkedIn (o que deixaria
+// uma marcação impossível de desfazer).
+async function copilotoDesfazer(dados) {
+  const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
+  if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return { erro: 'app_fechado' };
-  const urlCanonica = 'https://www.linkedin.com/jobs/view/' + jobId;
   try {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u) => (typeof window.__senovaDesfazerCandidatura === 'function') ? window.__senovaDesfazerCandidatura(u) : null,
-      args: [urlCanonica],
+      func: (ref) => (typeof window.__senovaDesfazerCandidatura === 'function') ? window.__senovaDesfazerCandidatura(ref) : null,
+      args: [d],
     });
     return { ok: !!(out && out[0] && out[0].result) };
   } catch { return null; }

@@ -144,12 +144,15 @@ async function iniciarCopiloto() {
   if (!_dadosVaga || !_tab) return;
   const btn = el('btn-copiloto');
   if (btn) { btn.disabled = true; btn.textContent = 'Ativando…'; }
+  // url/cargo/empresa vão junto: é a identidade da vaga achada POR FORA (não há jobId do
+  // LinkedIn aqui). Sem isto o registro do envio não acha nem cria o card depois.
   const analise = {
     score: _analise?.score,
     compatFortes: _analise?.pontos_fortes || [],
     compatAtencao: _analise?.pontos_atencao || [],
     cargo: _dadosVaga.cargo || '',
     empresa: _dadosVaga.empresa || '',
+    url: _dadosVaga.url || _tab?.url || '',
   };
   try {
     // grava o passe e manda o content script (já rodando na página) acordar o copiloto

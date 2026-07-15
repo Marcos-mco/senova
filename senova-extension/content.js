@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.63
+// Content script — Senova Extension v2.64
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1076,7 +1076,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.63',
+      'SENOVA DIAG v2.64',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1182,7 +1182,7 @@
     // Candidatura: o automático marca ao detectar o envio; o manual é a rede de segurança.
     // O botão só aparece ONDE a candidatura acontece (site da empresa ou formulário aberto) —
     // não na página da vaga do LinkedIn, onde você ainda nem foi candidatar.
-    const _emContextoCand = !!(an && an.jobId) && (!host.includes('linkedin.com') || !!_acharContainerCandidatura());
+    const _emContextoCand = _temRefVaga() && (!host.includes('linkedin.com') || !!_acharContainerCandidatura());
     const btnCandHTML = _candidatado
       ? `<div style="margin-top:9px;background:#EAF7EF;border:1px solid rgba(26,104,64,0.25);border-radius:8px;padding:10px 12px;">
            <div style="display:flex;align-items:center;gap:8px;">
@@ -1314,21 +1314,50 @@
     }
   }
 
-  // Avisa o Senova que a candidatura foi enviada → card move para CV Enviado + follow-up 7d.
-  // Usa o jobId do passe para achar o card certo (estamos no site da empresa, não no LinkedIn).
-  async function _marcarCandidatei() {
+  // Referência REAL da vaga, para o app casar o card (ou criá-lo). Serve os DOIS caminhos:
+  // (B) veio do Senova → tem jobId; (A) achada por fora → sem jobId, casa por URL real ou
+  // empresa+cargo. Antes tudo exigia jobId, e o Caminho A nunca registrava nada.
+  function _refVaga() {
     const an = _copilotoAnalise || {};
-    if (!an.jobId) return;
+    return {
+      jobId: an.jobId || null,
+      url: an.url || location.href,
+      cargo: an.cargo || '',
+      empresa: an.empresa || '',
+      canal: (location.hostname || '').replace(/^www\./, ''),
+      score: an.score,
+    };
+  }
+  function _temRefVaga() {
+    const r = _refVaga();
+    return !!(r.jobId || r.url || (r.empresa && r.cargo));
+  }
+  // Identidade estável da vaga para o marcador "vi o formulário desta vaga" — sem depender
+  // de jobId (que não existe quando a vaga foi achada por fora).
+  function _chaveVaga() {
+    const r = _refVaga();
+    if (r.jobId) return 'job:' + r.jobId;
+    if (r.empresa && r.cargo) return 'ec:' + (r.empresa + '|' + r.cargo).toLowerCase();
+    return 'url:' + (r.url || '').split('?')[0];
+  }
+
+  // Avisa o Senova que a candidatura foi enviada → card em CV Enviado + follow-up 7d
+  // (e o app CRIA o card se a vaga veio por fora e ainda não existe).
+  async function _marcarCandidatei() {
+    if (!_temRefVaga()) return;
     const btn = document.getElementById('snv-cop-candidatei');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Registrando…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', jobId: an.jobId }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', dados: _refVaga() }); } catch (_) {}
     if (res && res.ok) {
       _candidatado = true;
       _atualizarCorpo();
     } else if (btn) {
       btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#B52419'; btn.style.color = '#fff'; btn.style.borderColor = '#B52419';
-      btn.textContent = (res && res.erro === 'app_fechado') ? 'Abra o Senova e tente de novo' : 'Não consegui — tente de novo';
+      btn.textContent = (res && res.erro === 'app_fechado') ? 'Abra o Senova e tente de novo'
+                      : (res && res.erro === 'sem_funcao') ? 'Recarregue o Senova (Ctrl+Shift+R)'
+                      : (res && res.erro === 'sem_dados') ? 'Sem dados da vaga — registre no Senova'
+                      : 'Não consegui — tente de novo';
     }
   }
 
@@ -1350,8 +1379,7 @@
 
   function _checarEnvioAuto() {
     if (_candidatado || _preenchendo) return;
-    const an = _copilotoAnalise;
-    if (!an || !an.jobId) return;
+    if (!_temRefVaga()) return;
     // "Form aberto" pelo container <form>/dialog (estrito): numa /thanks sem <form> a checagem
     // segue para a confirmação. Não usar a coleta com fallback aqui — um input residual de
     // "referência" na página de obrigado pareceria form aberto e travaria a auto-detecção.
@@ -1359,38 +1387,37 @@
       _viuForm = true;
       // Persiste "vi o formulário desta vaga" — sobrevive à navegação para a página de "obrigado"
       // (portais como Teamtailor enviam e redirecionam para outra URL, zerando o estado em memória).
-      try { chrome.storage.local.set({ senova_form_visto: { jobId: an.jobId, ts: Date.now() } }); } catch (_) {}
+      try { chrome.storage.local.set({ senova_form_visto: { chave: _chaveVaga(), ts: Date.now() } }); } catch (_) {}
       return; // ainda há formulário aberto
     }
     if (!_temConfirmacaoEnvio()) return;
     if (_viuForm) { _autoMarcarCandidatura(); return; } // confirmação na MESMA página (SPA)
     // Confirmação numa página NOVA (ex.: /thanks): só marca se vimos o form DESTA vaga há pouco —
-    // jobId-scoped + janela de 45min evita falso positivo ao cair numa página de obrigado qualquer.
+    // escopo por chave da vaga + janela de 45min evita falso positivo numa página de obrigado qualquer.
     try {
+      const chave = _chaveVaga();
       chrome.storage.local.get('senova_form_visto').then(s => {
         const fv = s.senova_form_visto;
-        if (fv && fv.jobId === an.jobId && (Date.now() - fv.ts) < 45 * 60 * 1000) _autoMarcarCandidatura();
+        if (fv && fv.chave === chave && (Date.now() - fv.ts) < 45 * 60 * 1000) _autoMarcarCandidatura();
       }).catch(() => {});
     } catch (_) {}
   }
 
   async function _autoMarcarCandidatura() {
     if (_candidatado) return;
-    const an = _copilotoAnalise || {};
-    if (!an.jobId) return;
+    if (!_temRefVaga()) return;
     _candidatado = true; // trava otimista — não repete
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', jobId: an.jobId }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', dados: _refVaga() }); } catch (_) {}
     if (res && res.ok) { try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {} _atualizarCorpo(); }
     else { _candidatado = false; } // falhou — mantém o caminho manual disponível
   }
 
   async function _desfazerCandidatura() {
-    const an = _copilotoAnalise || {};
-    if (!an.jobId) return;
+    if (!_temRefVaga()) return;
     const bn = document.getElementById('snv-cop-naoenviei');
     if (bn) { bn.textContent = '…'; bn.disabled = true; }
-    try { await chrome.runtime.sendMessage({ type: 'COPILOTO_DESFAZER', jobId: an.jobId }); } catch (_) {}
+    try { await chrome.runtime.sendMessage({ type: 'COPILOTO_DESFAZER', dados: _refVaga() }); } catch (_) {}
     _candidatado = false;
     _viuForm = false; // evita re-disparo imediato da detecção
     // Limpa o marcador persistente: sem isto, um re-scan na página de "obrigado" re-marcaria

@@ -9751,34 +9751,68 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   return true;
 };
 
-// Exposto para a extensão: candidatura enviada na página da vaga → move o card para
-// "CV Enviado" (status aplicado) + follow-up 7 dias. Casa por jobId do LinkedIn (fallback
-// URL normalizada), exatamente como __senovaAtualizarDesc. Idempotente: não duplica se já
-// avançado. Retorna true só quando um card foi encontrado e movido (o background lê isso).
-window.__senovaCandidaturaEnviada=function(url){
+// Acha a vaga a partir de uma referência da extensão — PONTO ÚNICO de casamento, usado por
+// __senovaCandidaturaEnviada e __senovaDesfazerCandidatura (lógica duplicada divergindo já
+// custou caro: ver trava de arquivamento da S24). Ordem: jobId do LinkedIn → URL real da
+// vaga (cobre portais fora do LinkedIn) → empresa+cargo. Retorna índice ou -1.
+function _acharVagaRef(d){
+  d=d||{};
   const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
-  const tgtId=_jobIdLinkedIn(url);
+  const _txt=s=>(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const tgtId=d.jobId?String(d.jobId):_jobIdLinkedIn(d.url);
   let idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
-  if(idx<0){const vUrl=_norm(url);idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;}
-  if(idx<0) return false;
-  // Idempotência: a extensão pode reenviar. Já candidatado/avançado → não duplica timeline.
-  const _st=vagas[idx].status;
-  if(_st==='aplicado'||_st==='entrevista'||_st==='proposta'||_st==='aceito') return true;
-  _marcarCandidaturaEnviada(vagas[idx],'CV enviado pela vaga ('+(vagas[idx].canal||'LinkedIn')+')');
+  if(idx<0&&d.url){const vUrl=_norm(d.url);if(vUrl)idx=vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;});}
+  if(idx<0&&d.empresa&&d.cargo){const e=_txt(d.empresa),c=_txt(d.cargo);
+    if(e&&c)idx=vagas.findIndex(v=>_txt(v.empresa)===e&&_txt(v.cargo)===c);}
+  return idx;
+}
+// Exposto para a extensão: candidatura enviada na página da vaga → move o card para
+// "CV Enviado" (status aplicado) + follow-up 7 dias. Serve os DOIS caminhos do processo:
+//  (B) vaga que já veio do Senova  → acha o card e ATUALIZA;
+//  (A) vaga achada por fora        → não há card → CRIA o card já registrado (com histórico
+//      e documentos que o copiloto tiver gerado). Antes, este caso devolvia false calado.
+// Casamento robusto (não depende mais de ser LinkedIn): jobId → URL real → empresa+cargo.
+// Aceita string (URL, retrocompat) ou objeto {jobId,url,cargo,empresa,canal,cv,carta,score}.
+// Idempotente: não duplica se já avançado. Retorna {ok,...} — nunca falha em silêncio.
+window.__senovaCandidaturaEnviada=function(ref){
+  const d=(typeof ref==='string')?{url:ref}:(ref||{});
+  let idx=_acharVagaRef(d);
+  let criou=false;
+  if(idx<0){
+    // Caminho A: vaga achada por fora, sem card. Cria agora, já registrada.
+    if(!d.cargo&&!d.empresa) return {ok:false,motivo:'sem_dados'};
+    const _t=Date.now();
+    vagas.push({id:_t,empresa:d.empresa||'A definir',cargo:d.cargo||'A definir',
+      canal:d.canal||'Extensão',prioridade:'alta',status:'lead',salario:'',proxima:'',notas:'',
+      origemUrl:d.url||'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],
+      timeline:[{ts:_t,texto:'Card criado pelo copiloto ao registrar a candidatura'}]});
+    idx=vagas.length-1;criou=true;
+    if(d.cv)vagas[idx].atsCV=d.cv;
+    if(d.carta)vagas[idx].atsCarta=d.carta;
+    if(d.score)vagas[idx].atsScore=String(d.score);
+  }else{
+    // Idempotência: a extensão pode reenviar. Já candidatado/avançado → não duplica timeline.
+    const _st=vagas[idx].status;
+    if(_st==='aplicado'||_st==='entrevista'||_st==='proposta'||_st==='aceito') return {ok:true,jaRegistrado:true};
+    // Documentos que o copiloto gerou na página e o card ainda não tem (nunca sobrescreve).
+    if(d.cv&&!(vagas[idx].atsCV||'').trim())vagas[idx].atsCV=d.cv;
+    if(d.carta&&!(vagas[idx].atsCarta||'').trim())vagas[idx].atsCarta=d.carta;
+  }
+  _marcarCandidaturaEnviada(vagas[idx],'CV enviado pela vaga ('+(vagas[idx].canal||d.canal||'site da empresa')+')');
   saveVagas();
   // saveVagas NÃO redesenha o Kanban — sem isto o card não muda de coluna na tela.
   clearTimeout(window._enriqRenderT);
   window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} }, 200);
-  try{ showToast('✅ Candidatura registrada — card movido para CV Enviado'); }catch{}
-  return true;
+  try{ showToast(criou?'✅ Candidatura registrada — card criado em CV Enviado':'✅ Candidatura registrada — card movido para CV Enviado'); }catch{}
+  return {ok:true,criou,id:vagas[idx].id};
 };
 
 // Exposto para o copiloto: reverte a marcação de candidatura enviada (caso a detecção
 // automática tenha errado). Só age se o card está em "aplicado" (CV Enviado), volta para
 // Oportunidade (lead) e remove as marcas de follow-up/CV enviado. Retorna true se reverteu.
-window.__senovaDesfazerCandidatura=function(url){
-  const tgtId=_jobIdLinkedIn(url);
-  const idx=tgtId?vagas.findIndex(v=>_jobIdLinkedIn(v.origemUrl)===tgtId):-1;
+window.__senovaDesfazerCandidatura=function(ref){
+  const d=(typeof ref==='string')?{url:ref}:(ref||{});
+  const idx=_acharVagaRef(d);
   if(idx<0) return false;
   const v=vagas[idx];
   if(v.status!=='aplicado') return false; // só reverte o que o copiloto acabou de marcar
