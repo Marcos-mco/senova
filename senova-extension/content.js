@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.65
+// Content script — Senova Extension v2.66
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1076,7 +1076,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.65',
+      'SENOVA DIAG v2.66',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1147,8 +1147,10 @@
     // copiloto é te ENTREGAR o CV certo; você sobe (ou usa o "Importar do currículo" do portal).
     // Regra geral (zero código por portal): oferece o CV quando há card conhecido E estamos no
     // site de candidatura externo, OU quando há um upload de fato detectado (ex.: Easy Apply).
-    const _emCandExterna = !!(an && an.jobId) && !host.includes('linkedin.com');
-    const _temCV = !!(an && an.jobId) && (_temUpload || _emCandExterna);
+    // "Vaga conhecida" = qualquer referência utilizável (jobId, URL real ou empresa+cargo) —
+    // exigir jobId aqui escondia CV e carta em toda vaga achada por fora do Senova.
+    const _emCandExterna = _temRefVaga() && !host.includes('linkedin.com');
+    const _temCV = _temRefVaga() && (_temUpload || _emCandExterna);
 
     let scoreHTML = '';
     const score = an ? (parseInt(an.score) || 0) : 0;
@@ -1269,11 +1271,11 @@
   async function _baixarCV(formato) {
     formato = (formato === 'pdf') ? 'pdf' : 'docx';
     const an = _copilotoAnalise || {};
-    if (!an.jobId) return;
+    if (!_temRefVaga()) return;
     const btn = document.getElementById(formato === 'pdf' ? 'snv-cop-cv-pdf' : 'snv-cop-cv-docx');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = an && an.temCV ? 'Preparando…' : 'Gerando CV…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', jobId: an.jobId, formato }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', dados: _refVaga(), formato }); } catch (_) {}
     if (res && res.ok) {
       const okTxt = formato === 'pdf' ? '✓ PDF baixado' : '✓ .docx baixado';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = okTxt; }
@@ -1290,12 +1292,11 @@
   // Gera a carta de apresentação da vaga (pelo app, reusa CARTA_SYSTEM) e copia para o formulário.
   // Carta é texto para colar — não arquivo. Nunca envia; o usuário cola e revisa.
   async function _gerarCarta() {
-    const an = _copilotoAnalise || {};
-    if (!an.jobId) return;
+    if (!_temRefVaga()) return;
     const btn = document.getElementById('snv-cop-carta');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Gerando carta…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTA', jobId: an.jobId }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTA', dados: _refVaga() }); } catch (_) {}
     if (res && res.ok && res.carta) {
       let copiado = false;
       try { await navigator.clipboard.writeText(res.carta); copiado = true; } catch (_) {}

@@ -57,12 +57,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === 'COPILOTO_CV') {
     // O copiloto pede o CV da vaga para o usuário levar ao portal: 'pdf' (Executivo) ou 'docx' (ATS).
-    copilotoCV(msg.jobId, msg.formato).then(sendResponse).catch(() => sendResponse(null));
+    copilotoCV(msg.dados || { jobId: msg.jobId }, msg.formato).then(sendResponse).catch(() => sendResponse(null));
+    return true;
+  }
+  if (msg.type === 'COPILOTO_GARANTIR_CARD') {
+    // Vaga achada por fora: cria/completa o card no Senova antes de o copiloto trabalhar.
+    copilotoGarantirCard(msg.dados).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_CARTA') {
     // O copiloto pede a carta de apresentação da vaga (texto) para o usuário colar no formulário.
-    copilotoCarta(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    copilotoCarta(msg.dados || { jobId: msg.jobId }).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_CANDIDATEI') {
@@ -366,20 +371,20 @@ async function copilotoCartao() {
 // CV da vaga: sem reprocessar. Se o card já tem CV → baixa direto.
 // Se não tem → gera via Worker (ATS_SYSTEM), salva no card, baixa.
 // Card e copiloto ficam sempre em sincronia — fonte de verdade única.
-async function copilotoCV(jobId, formato) {
-  if (!jobId) return null;
+async function copilotoCV(dados, formato) {
+  const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
+  if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
   formato = (formato === 'pdf') ? 'pdf' : 'docx';
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return { erro: 'app_fechado' };
-  const url = 'https://www.linkedin.com/jobs/view/' + jobId;
 
   // Produz o artefato no formato pedido a partir do card (fonte de verdade). Ponto único de geração.
   const gerar = async () => {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u, f) => (typeof window.__senovaCopilotoGerarCV === 'function') ? window.__senovaCopilotoGerarCV(u, f) : { erro: 'sem_funcao' },
-      args: [url, formato],
+      func: (ref, f) => (typeof window.__senovaCopilotoGerarCV === 'function') ? window.__senovaCopilotoGerarCV(ref, f) : { erro: 'sem_funcao' },
+      args: [d, formato],
     });
     return (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
   };
@@ -411,8 +416,8 @@ async function copilotoCV(jobId, formato) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u, cv) => (typeof window.__senovaCopilotoSalvarCV === 'function') ? window.__senovaCopilotoSalvarCV(u, cv) : null,
-      args: [url, cvText],
+      func: (ref, cv) => (typeof window.__senovaCopilotoSalvarCV === 'function') ? window.__senovaCopilotoSalvarCV(ref, cv) : null,
+      args: [d, cvText],
     });
   } catch {}
 
@@ -426,20 +431,39 @@ async function copilotoCV(jobId, formato) {
   return r2 || { erro: 'download_falhou' };
 }
 
-// Carta de apresentação: pede ao app (que reusa CARTA_SYSTEM). Devolve o TEXTO — a carta é para
-// colar no campo do formulário, não um arquivo. Gera via Worker só se ainda não existe no card.
-async function copilotoCarta(jobId) {
-  if (!jobId) return null;
+// Garante o card no Senova para a vaga da página (Caminho A). Sem isto, CV/carta/registro não
+// tinham onde se apoiar: o app não achava card e devolvia 'sem_card'.
+async function copilotoGarantirCard(dados) {
+  const d = dados || {};
+  if (!d.cargo && !d.empresa && !d.url) return { erro: 'sem_referencia' };
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return { erro: 'app_fechado' };
-  const url = 'https://www.linkedin.com/jobs/view/' + jobId;
+  try {
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: (ref) => (typeof window.__senovaCopilotoGarantirCard === 'function') ? window.__senovaCopilotoGarantirCard(ref) : null,
+      args: [d],
+    });
+    const r = out && out[0] && out[0].result;
+    return r || { erro: 'sem_funcao' };
+  } catch { return null; }
+}
+
+// Carta de apresentação: pede ao app (que reusa CARTA_SYSTEM). Devolve o TEXTO — a carta é para
+// colar no campo do formulário, não um arquivo. Gera via Worker só se ainda não existe no card.
+async function copilotoCarta(dados) {
+  const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
+  if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
+  const tabs = await chrome.tabs.query({});
+  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  if (!senovaTab) return { erro: 'app_fechado' };
 
   const ponte = async () => {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u) => (typeof window.__senovaCopilotoGerarCarta === 'function') ? window.__senovaCopilotoGerarCarta(u) : { erro: 'sem_funcao' },
-      args: [url],
+      func: (ref) => (typeof window.__senovaCopilotoGerarCarta === 'function') ? window.__senovaCopilotoGerarCarta(ref) : { erro: 'sem_funcao' },
+      args: [d],
     });
     return (out && out[0] && out[0].result) || { erro: 'sem_funcao' };
   };
@@ -467,8 +491,8 @@ async function copilotoCarta(jobId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (u, c) => (typeof window.__senovaCopilotoSalvarCarta === 'function') ? window.__senovaCopilotoSalvarCarta(u, c) : null,
-      args: [url, carta],
+      func: (ref, c) => (typeof window.__senovaCopilotoSalvarCarta === 'function') ? window.__senovaCopilotoSalvarCarta(ref, c) : null,
+      args: [d, carta],
     });
   } catch {}
 

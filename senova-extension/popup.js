@@ -155,6 +155,14 @@ async function iniciarCopiloto() {
     url: _dadosVaga.url || _tab?.url || '',
   };
   try {
+    // Traz a vaga para o Senova ANTES de ativar o copiloto: sem card não há descrição, e sem
+    // descrição o copiloto não gera CV nem carta. É o "criar e salvar o card" do Caminho A.
+    await chrome.runtime.sendMessage({
+      type: 'COPILOTO_GARANTIR_CARD',
+      dados: { url: analise.url, cargo: analise.cargo, empresa: analise.empresa,
+               descricao: _dadosVaga.descricao || '', score: _analise?.score,
+               canal: _dadosVaga.canal || '' },
+    });
     // grava o passe e manda o content script (já rodando na página) acordar o copiloto
     await chrome.storage.local.set({ senova_passe: { ...analise, porFora: true, ts: Date.now() } });
     await chrome.tabs.sendMessage(_tab.id, { type: 'ATIVAR_COPILOTO', analise });
