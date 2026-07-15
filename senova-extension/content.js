@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.64
+// Content script — Senova Extension v2.65
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1076,7 +1076,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.64',
+      'SENOVA DIAG v2.65',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,

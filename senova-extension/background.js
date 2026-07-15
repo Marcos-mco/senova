@@ -511,6 +511,22 @@ async function salvarSinal({ titulo, empresa, url, resumo }) {
 chrome.alarms.create('senova-enrich', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-enrich') enriquecerPendentes().catch(() => {}); });
 
+// ── AUTO-RELOAD DA EXTENSÃO ──────────────────────────────────────────
+// Extensão unpacked fica em memória: mudar o arquivo no disco não a atualiza, exige clicar
+// "recarregar" em chrome://extensions. Como o Chrome serve os arquivos DO DISCO para unpacked,
+// dá para comparar a versão do manifest em disco com a que está rodando e se auto-recarregar.
+// Sem isto, toda atualização da extensão dependia de intervenção manual.
+const _VERSAO_RODANDO = chrome.runtime.getManifest().version;
+async function _checarVersaoDisco() {
+  try {
+    const r = await fetch(chrome.runtime.getURL('manifest.json') + '?t=' + Date.now(), { cache: 'no-store' });
+    const m = await r.json();
+    if (m && m.version && m.version !== _VERSAO_RODANDO) chrome.runtime.reload();
+  } catch (_) {}
+}
+chrome.alarms.create('senova-autoreload', { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'senova-autoreload') _checarVersaoDisco(); });
+
 // Ao abrir/recarregar o Senova, checa pendências logo (sem esperar o alarme de 1 min).
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
