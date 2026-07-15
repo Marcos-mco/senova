@@ -2803,6 +2803,212 @@ document.addEventListener('DOMContentLoaded', () => {
 //  DADOS BASE
 // ═══════════════════════════════════════════════
 
+const PERFIL_MARCOS = {
+  contato: {
+    nome: "Marcos Franco",
+    telefone: "(41) 99615-2224",
+    email: "marcos_mco@hotmail.com",
+    linkedin: "linkedin.com/in/marcos-franco-69153a12",
+    localizacao: "Curitiba, PR"
+  },
+  resumo_geral: "Executivo com mais de 25 anos liderando operações comerciais e de marketing de grande escala, com forte atuação em gestão de vendas, expansão de mercado e liderança de equipes de alta performance.",
+  experiencias: [
+    {
+      id: "consigliere", cargo: "Consultor Sênior", empresa: "Consigliere Consultoria",
+      local: "Curitiba, PR", inicio: "2025-12", fim: null,
+      tags_area: ["consultoria", "marketing", "operações comerciais", "gestão"], nivel: "c-level",
+      incluir_por_padrao: true,
+      bullets: ["Consultoria estratégica em marketing e operações comerciais, com atuação em projetos de expansão de receita e estruturação de processos para empresas de médio e grande porte."]
+    },
+    {
+      id: "popper", cargo: "Head de Expansão e Novos Negócios", empresa: "Popper",
+      local: "Curitiba, PR", inicio: "2024-08", fim: "2025-11",
+      tags_area: ["expansão de mercado", "vendas indiretas", "operações comerciais", "gestão"], nivel: "diretoria",
+      incluir_por_padrao: true,
+      bullets: [
+        "Liderou expansão geográfica e abertura de novos canais de receita, incluindo modelo de vendas indiretas com rede de representantes comerciais.",
+        "Estruturou processos comerciais e de governança para suportar crescimento de mercado.",
+        "Conduziu projetos especiais com foco em performance de vendas e novos territórios."
+      ]
+    },
+    {
+      id: "ribeiro-franco-mf", cargo: "Sócio-Fundador", empresa: "Ribeiro Franco MF (inclui Ribeiro Franco Marcenaria Fina)",
+      local: "Curitiba, PR", inicio: "2019-05", fim: "2024-08",
+      tags_area: ["marketing", "planejamento estratégico", "consultoria", "startups", "empreendedorismo", "gestão"], nivel: "founder",
+      incluir_por_padrao: true,
+      bullets: [
+        "Consultoria em gestão estratégica, marketing e vendas para startups, com planejamento estratégico e desenvolvimento de MVP.",
+        "Conduziu empreendimento próprio no setor moveleiro (marcenaria fina), incluindo imersão internacional em técnicas avançadas de marcenaria (Dinamarca; Chippendale International School of Furniture, Escócia)."
+      ]
+    },
+    {
+      id: "rpc-diretor", cargo: "Diretor de Marketing", empresa: "RPC – Rede Paranaense de Comunicação (Grupo Globo)",
+      local: "Curitiba, PR", inicio: "2012-04", fim: "2019-04",
+      tags_area: ["marketing", "estratégia comercial", "gestão de equipes", "mídia"], nivel: "diretoria",
+      incluir_por_padrao: true,
+      bullets: [
+        "Responsável pela estratégia comercial e de marketing das 8 afiliadas do Paraná, com equipe de 30 profissionais.",
+        "Gestão de carteira de clientes superior a R$ 500 milhões.",
+        "Liderou suporte a vendas, inteligência de mercado e treinamentos em técnicas de vendas e comportamento do consumidor."
+      ]
+    },
+    {
+      id: "rpc-gerente", cargo: "Gerente de Marketing", empresa: "RPC – Rede Paranaense de Comunicação (Grupo Globo)",
+      local: "Curitiba, PR", inicio: "2008-11", fim: "2012-04",
+      tags_area: ["marketing", "mídia", "gestão"], nivel: "gerencial",
+      incluir_por_padrao: true,
+      bullets: ["Atuou na gestão de marketing das afiliadas do Paraná, dando suporte à estratégia comercial da emissora, precedendo a promoção a Diretor de Marketing em 2012."]
+    },
+    {
+      id: "eadcon", cargo: "Diretor de Marketing", empresa: "EADCon",
+      local: "Curitiba, PR", inicio: "2006-08", fim: "2008-10",
+      tags_area: ["marketing", "educação", "gestão"], nivel: "diretoria",
+      incluir_por_padrao: true,
+      bullets: [
+        "Responsável pela operação nacional com rede de 180 parceiros e 120 mil alunos.",
+        "Gerenciou campanhas de R$ 20 milhões coordenando 25 agências simultaneamente."
+      ]
+    },
+    {
+      id: "expoente", cargo: "Diretor de Vendas", empresa: "Expoente Sistema de Ensino",
+      local: "Curitiba, PR", inicio: "2004-01", fim: "2006-04",
+      tags_area: ["vendas", "educação", "gestão comercial"], nivel: "diretoria",
+      incluir_por_padrao: true,
+      bullets: [
+        "Liderou operação comercial de R$ 40 milhões anuais, com 300 mil alunos e 900 escolas conveniadas.",
+        "Gerenciou 4 equipes regionais com 40 profissionais em cobertura nacional.",
+        "Estruturou estratégia de vendas, metas e negociação com canais em todo o território."
+      ]
+    },
+    {
+      id: "editel-superintendente", cargo: "Superintendente Regional de Vendas", empresa: "Editel Listas Telefônicas (Grupo Carvajal)",
+      local: "Curitiba, PR", inicio: "2001-01", fim: "2004-01",
+      tags_area: ["vendas", "gestão comercial", "gestão regional"], nivel: "gerencial",
+      incluir_por_padrao: true,
+      bullets: [
+        "Liderou a operação comercial da região Nordeste com equipe de 45 pessoas.",
+        "Gerenciou orçamento de vendas de R$ 5 milhões com verba de publicidade de 5% da receita.",
+        "Conduziu negociação de contratos e gestão de metas com viagens constantes na região.",
+        "Reconhecido com o Troféu Imprensa 2004 por campanha de responsabilidade social."
+      ]
+    },
+    {
+      id: "editel-gerente-nacional", cargo: "Gerente Nacional de Produção", empresa: "Editel Listas Telefônicas (Grupo Carvajal)",
+      local: "Curitiba, PR", inicio: "1996-04", fim: "2001-01",
+      tags_area: ["operações", "produção", "gestão"], nivel: "gerencial",
+      incluir_por_padrao: true,
+      bullets: [
+        "Liderou operação com equipe de até 50 pessoas em 5 estados.",
+        "Implementou modelo de autogestão que reduziu mão de obra em 73% e elevou produção em 240%.",
+        "Responsável por eficiência operacional, produtividade e gestão de recursos."
+      ]
+    },
+    {
+      id: "ghaphical-consult", cargo: "Consultor de Computação Gráfica", empresa: "Ghaphical Consult",
+      local: null, inicio: "1995-01", fim: "1996-04",
+      tags_area: ["produção gráfica", "computação gráfica", "color management", "consultoria", "início de carreira"], nivel: "operacional",
+      incluir_por_padrao: false,
+      bullets: [
+        "Consultoria em computação gráfica utilizando Apple Macintosh, com especialização em color management.",
+        "Atendeu como consultor a Editora Abril e Gráfica Positivo."
+      ]
+    },
+    {
+      id: "editora-abril", cargo: "Coordenador de Pré-Impressão", empresa: "Editora Abril",
+      local: null, inicio: "1992-01", fim: "1995-01",
+      tags_area: ["produção gráfica", "editorial", "gestão de equipe", "início de carreira"], nivel: "operacional",
+      incluir_por_padrao: false,
+      bullets: [
+        "Iniciou como Supervisor e foi promovido a Coordenador de Pré-Impressão.",
+        "Responsável pela pré-impressão de 26 revistas, liderando equipe de 15 pessoas em dois turnos."
+      ]
+    },
+    {
+      id: "intec", cargo: "Produtor Gráfico", empresa: "Intec Tecnologia",
+      local: "São Paulo, SP", inicio: "1990-01", fim: "1992-01",
+      tags_area: ["produção gráfica", "tecnologia", "revenda Apple", "início de carreira"], nivel: "operacional",
+      incluir_por_padrao: false,
+      bullets: ["Desenvolveu o Guia da TVA, primeira revista 100% gerada por computador no Brasil — trabalho que resultou no convite para ingressar na Editora Abril."]
+    },
+    {
+      id: "dls", cargo: "Produtor Gráfico", empresa: "DLS – Dória, Lara e Stalimir Associados",
+      local: null, inicio: "1989-01", fim: "1990-01",
+      tags_area: ["produção gráfica", "início de carreira"], nivel: "operacional",
+      incluir_por_padrao: false,
+      bullets: ["Responsável pelas peças gráficas das campanhas da agência."]
+    }
+  ],
+  formacao: [
+    { titulo: "Mestre em Direção de Marketing e Vendas", instituicao: "Universitat de Barcelona, Espanha", periodo: "2013/2014" },
+    { titulo: "Mestre em Marketing", instituicao: "Universidade de Évora, Portugal", periodo: "2002-2004" },
+    { titulo: "MBA em Administração de Empresas", instituicao: "FGV, Curitiba", periodo: "1998-2000" },
+    { titulo: "Publicidade e Propaganda", instituicao: "FAAP, São Paulo", periodo: "1989-1993" }
+  ],
+  idiomas: [
+    { idioma: "Português", nivel: "nativo" },
+    { idioma: "Inglês", nivel: "avançado" },
+    { idioma: "Espanhol", nivel: "avançado" }
+  ]
+};
+
+// Filtro determinístico (sem IA) que decide QUAIS experiências de PERFIL_MARCOS entram no material
+// desta vaga. Roda ANTES de qualquer chamada ao Claude — a IA nunca decide isso, só recebe a lista
+// já filtrada e otimiza a redação (ver ATS_SYSTEM/CARTA_SYSTEM/EMAIL_ENVIO_SYSTEM).
+function filtrarExperienciasRelevantes(textoVaga, nivelVaga) {
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const textoNorm = norm(textoVaga);
+  // Tags genéricas demais para servir de correspondência — bateriam em quase qualquer vaga sênior.
+  const TAGS_GENERICAS = new Set(['gestao', 'gestao de equipe', 'gestao de equipes', 'inicio de carreira', 'consultoria', 'tecnologia']);
+  const tagBate = tag => {
+    const tagNorm = norm(tag);
+    if (TAGS_GENERICAS.has(tagNorm)) return false;
+    const palavras = tagNorm.split(/\s+/).filter(p => p.length > 2);
+    return palavras.length > 0 && palavras.every(p => textoNorm.includes(p));
+  };
+  const relevante = exp => exp.fim === null
+    || exp.incluir_por_padrao
+    || (exp.tags_area || []).some(tagBate)
+    || (!!nivelVaga && norm(nivelVaga) === norm(exp.nivel));
+  const dataFim = exp => exp.fim === null ? '9999-99' : exp.fim;
+  return PERFIL_MARCOS.experiencias
+    .filter(relevante)
+    .slice()
+    .sort((a, b) => {
+      const fa = dataFim(a), fb = dataFim(b);
+      if (fa !== fb) return fa < fb ? 1 : -1;
+      return a.inicio < b.inicio ? 1 : -1;
+    });
+}
+
+// Formata as experiências já filtradas num bloco de texto-fonte (PT) para os prompts de IA.
+function formatarExperienciasPerfil(exps) {
+  return exps.map(exp => {
+    const periodo = `${exp.inicio} – ${exp.fim || 'atual'}`;
+    const local = exp.local ? ` · ${exp.local}` : '';
+    return `${exp.cargo} | ${exp.empresa}${local} (${periodo})\n` + exp.bullets.map(b => `  - ${b}`).join('\n');
+  }).join('\n\n');
+}
+
+// Bloco único de perfil (contato + resumo + experiências já filtradas + formação + idiomas) — fonte
+// única para ATS_SYSTEM, CARTA_SYSTEM e EMAIL_ENVIO_SYSTEM. A lista de experiências já vem decidida
+// e ordenada por filtrarExperienciasRelevantes; a IA que receber este bloco só traduz/otimiza redação.
+function perfilFormatadoPara(textoVaga, nivelVaga) {
+  const c = PERFIL_MARCOS.contato;
+  const exps = filtrarExperienciasRelevantes(textoVaga, nivelVaga);
+  return `${c.nome} · ${c.telefone} · ${c.email} · ${c.linkedin} · ${c.localizacao}
+
+RESUMO: ${PERFIL_MARCOS.resumo_geral}
+
+EXPERIÊNCIA (já filtrada por relevância e em ordem cronológica reversa — lista FINAL: não omita, não acrescente e não reordene nenhum item):
+${formatarExperienciasPerfil(exps)}
+
+FORMAÇÃO:
+${PERFIL_MARCOS.formacao.map(f => `- ${f.titulo}, ${f.instituicao} (${f.periodo})`).join('\n')}
+
+IDIOMAS:
+${PERFIL_MARCOS.idiomas.map(i => `- ${i.idioma}: ${i.nivel}`).join('\n')}`;
+}
+
 const CV_BASE = {
 PT:`Marcos Franco
 Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR
@@ -3086,21 +3292,21 @@ function setLang(lang,btn) {
   if(btn) btn.classList.add('active');
 }
 
-const ATS_SYSTEM = (lang) => `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
+const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
 
-PERFIL DO CANDIDATO:
-${CV_BASE[lang]}
+PERFIL DO CANDIDATO (já filtrado por relevância para esta vaga específica — ver REGRAS ABSOLUTAS):
+${perfilFormatadoPara(textoVaga, nivelVaga)}
 
 CARGO-ALVO: CMO / CSO / CEO / Diretor Comercial / Diretor de Marketing / Diretor de Negócios (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
 PRETENSÃO: R$15–25k CLT (BR — fecha a partir de R$15k; mínimo de sobrevivência R$8k em Curitiba) · €3.500–5.500/mês (ES/PT) · €5.000–8.000/mês (DE/DACH)
 
 REGRAS ABSOLUTAS:
-- NUNCA invente métricas ou fatos não presentes no CV base
+- NUNCA invente métricas ou fatos não presentes no perfil acima
 - Preserve voz elegante e profissional
 - ATS primeiro — sem tabelas, sem colunas, sem caracteres especiais (use hífens, não bullets especiais)
 - Otimize enquadramento, nunca os fatos
 - CV deve ser ATS-clean: texto simples, bullets em hífens, seções em maiúsculas
-- CORTE IMPLACÁVEL: omita experiências, formações e competências que NÃO são relevantes para esta vaga específica — CV curto e cirúrgico vale mais que CV completo
+- A lista de EXPERIÊNCIA do perfil acima já foi filtrada por relevância por um processo determinístico, ANTES desta chamada. Você NUNCA decide o que é relevante. Você NUNCA pode omitir, cortar ou acrescentar uma experiência da lista, e NUNCA pode reordená-la — a ordem cronológica reversa já está correta. Sua única tarefa sobre esse conteúdo é traduzir (se o idioma pedido não for português) e otimizar a redação — verbos de impacto, números, palavras-chave da vaga — sem alterar o que está incluído nem a ordem.
 
 Retorne EXATAMENTE neste formato com estes separadores:
 
@@ -3138,12 +3344,12 @@ PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
 OBSERVAÇÕES: [contexto relevante em 1 linha]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-const CARTA_SYSTEM = (lang) => {
+const CARTA_SYSTEM = (lang, textoVaga, nivelVaga) => {
   const ll={PT:'português (Brasil)',EN:'English',ES:'español'};
   return `Você redige cartas de apresentação executivas para Marcos Franco.
 
-PERFIL:
-${CV_BASE[lang]}
+PERFIL (já filtrado por relevância para esta vaga — as experiências abaixo são as que valem citar; não invente outras):
+${perfilFormatadoPara(textoVaga, nivelVaga)}
 
 INSTRUÇÕES:
 - Idioma: ${ll[lang]||'português (Brasil)'}
@@ -3159,16 +3365,17 @@ INSTRUÇÕES:
 
 // E-mail de ENVIO — o CORPO curto que acompanha o CV em ANEXO (não é a carta formal).
 // Voz calibrada com Marcos (10/jul/2026): 1ª pessoa no presente, fatos concretos, fecho "Grato e à disposição".
-const EMAIL_ENVIO_SYSTEM = `Você escreve, na primeira pessoa como se fosse Marcos Franco, o CORPO de um e-mail curto para se candidatar a uma vaga. O currículo vai ANEXADO em PDF — este e-mail é só a apresentação humana que acompanha o anexo, NÃO uma carta formal.
+const EMAIL_ENVIO_SYSTEM = (textoVaga, nivelVaga) => `Você escreve, na primeira pessoa como se fosse Marcos Franco, o CORPO de um e-mail curto para se candidatar a uma vaga. O currículo vai ANEXADO em PDF — este e-mail é só a apresentação humana que acompanha o anexo, NÃO uma carta formal.
 
-PERFIL (única fonte de fatos — nunca invente nada fora daqui):
-${CV_BASE.PT}
+PERFIL (única fonte de fatos — nunca invente nada fora daqui; já filtrado por relevância para esta vaga):
+${perfilFormatadoPara(textoVaga, nivelVaga)}
 
 VOZ (inegociável):
 - Primeira pessoa, no presente: "quero me apresentar". Direto e caloroso, sem pompa. Frases curtas.
 - 3 parágrafos curtos, de 80 a 130 palavras no TOTAL. Nada de encher.
 - Use 1 ou 2 FATOS CONCRETOS do perfil (número, empresa, escopo real) no lugar de adjetivos. Um fato vale mais que dez qualidades.
-- PROIBIDO usar qualquer destes clichês de IA (se der vontade, troque por um fato): "entrego resultado", "visão estratégica", "gestão financeira e transformação digital", "encontra correspondência direta", "profissional de liderança", "acelerando crescimento", "de médio a grande porte", "resultados mensuráveis", "de forma direta e honesta", "trajetória marcada por", "sinergia", "proatividade", "agregar valor".
+- REGRA DE OURO contra clichê de IA: NENHUM termo abstrato ou de competência pode aparecer sozinho. Termos reais dele — "transformação digital", "visão estratégica", "gestão financeira", "liderança" — NÃO são proibidos; só são permitidos GRUDADOS a um fato concreto que os comprove (número, empresa, escopo real). Ex. ruim: "tenho visão estratégica". Ex. bom: cite o cargo, a empresa e o número que provam essa visão. Se você não tem um fato para ancorar o termo, CORTE o termo.
+- Estes clichês são vazios por natureza (não há fato que os salve) — nunca use: "entrego resultado", "encontra correspondência direta", "profissional de liderança", "acelerando crescimento", "de médio a grande porte", "resultados mensuráveis", "de forma direta e honesta", "trajetória marcada por", "sinergia", "proatividade", "agregar valor".
 - Não repita o CV inteiro — só o essencial que faz a pessoa querer abrir o anexo.
 - Estrutura: (1) vi a vaga e quero me apresentar + quem sou em 1 linha com 1 fato forte; (2) por que esta vaga me chamou + o que já fiz que conversa com ela; (3) menciono o currículo em anexo.
 - Sem emoji. Sem "quando fizer sentido". Sem exagero de entusiasmo.
@@ -3287,7 +3494,7 @@ async function analyzeJob() {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,
-        system:ATS_SYSTEM(cvLang),
+        system:ATS_SYSTEM(cvLang,vaga),
         messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional (manual): '+c:'';})()}${(()=>{const rel=ctxBuscarRelevantes(vaga);return rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o que for relevante para esta vaga específica):\n'+rel.map(e=>'• '+e.texto).join('\n'):'';})()}`}]})
     });
     const data = await res.json();
@@ -3538,7 +3745,7 @@ async function gerarCartaATS(btn){
     const ctxStr=ctx?`\n\nContexto adicional: ${ctx}`:'';
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODELOS.rapido,max_tokens:700,
-        system:CARTA_SYSTEM(lang),
+        system:CARTA_SYSTEM(lang,analise),
         messages:[{role:'user',content:`Escreva a carta em ${langLabel[lang]||'portugu\u00eas'} para a vaga de ${cargo} na ${empresa}.\n\nAN\u00c1LISE DA VAGA (use para personalizar):\n${analise}${ctxStr}`}]
       })
     });
@@ -7219,7 +7426,7 @@ async function analisarInline(){
   const perfilComp=_rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o relevante para esta vaga específica):\n'+_rel.map(e=>'• '+e.texto).join('\n'):'';
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,system:ATS_SYSTEM(cvLang),
+      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,system:ATS_SYSTEM(cvLang,vagaTexto),
         messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull+perfilComp}]})});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
@@ -7328,10 +7535,10 @@ async function gerarDocModal(tipo){
   const ctxStr=ctx?'\n\n---\nInformação importante: '+ctx:'';
   let system,prompt;
   if(tipo==='ats'){
-    system=ATS_SYSTEM(cvLang);
+    system=ATS_SYSTEM(cvLang,vagaTexto);
     prompt='Gere apenas o CV otimizado (o texto que viria na seção ---CV--- do seu formato padrão) para esta vaga:\n\n'+vagaTexto+ctxStr;
   } else if(tipo==='carta'){
-    system=CARTA_SYSTEM(cvLang);
+    system=CARTA_SYSTEM(cvLang,vagaTexto);
     const _anaVaga=editingVagaId&&editingVagaId!=='new'?(vagas.find(v=>String(v.id)===String(editingVagaId))?.atsAnalise||''):'';
     const _anaStr=_anaVaga?`\n\nANÁLISE ANTERIOR:\n${_anaVaga.slice(0,1500)}`:'';
     prompt=`Escreva a carta para a vaga abaixo.\n\n${vagaTexto}${_anaStr}${ctxStr}`;
@@ -8640,7 +8847,7 @@ async function gerarEmailEnvio(vagaIdx,empresa,cargo,opts){
   const contexto=(v?.atsAnalise||v?.jobDescription||v?.descricao||v?.notas||'').slice(0,1500);
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.rapido,max_tokens:500,system:EMAIL_ENVIO_SYSTEM,
+      body:JSON.stringify({model:MODELOS.rapido,max_tokens:500,system:EMAIL_ENVIO_SYSTEM(contexto),
         messages:[{role:'user',content:`Escreva o corpo do e-mail para a vaga de ${cargo||'a posição'} na ${empresa||'a empresa'}.${contexto?`\n\nSobre a vaga (use para o parágrafo do "por que esta vaga"):\n${contexto}`:''}`}]})});
     if(!res.ok) throw new Error('http '+res.status);
     const data=await res.json();
@@ -9962,7 +10169,7 @@ window.__senovaCopilotoGerarCV=function(url,formato){
   const desc=(v.jobDescription||v.descricao||'').slice(0,4000);
   if(!desc) return {ok:false,motivo:'sem_descricao'};
   return {ok:false,motivo:'precisa_gerar',
-    prompt:{model:MODELOS.analise,max_tokens:2000,system:ATS_SYSTEM('PT'),
+    prompt:{model:MODELOS.analise,max_tokens:2000,system:ATS_SYSTEM('PT',desc),
       messages:[{role:'user',content:`Descrição da vaga:\n\n${desc}`}]},
     filename:baseFn, empresa:v.empresa||'', cargo:v.cargo||''};
 };
@@ -9996,7 +10203,7 @@ window.__senovaCopilotoGerarCarta=function(url){
   if(!desc) return {ok:false,motivo:'sem_descricao'};
   const cargo=v.cargo||'a posição', empresa=v.empresa||'a empresa';
   return {ok:false,motivo:'precisa_gerar',
-    prompt:{model:MODELOS.rapido,max_tokens:700,system:CARTA_SYSTEM('PT'),
+    prompt:{model:MODELOS.rapido,max_tokens:700,system:CARTA_SYSTEM('PT',desc),
       messages:[{role:'user',content:`Escreva a carta em português (Brasil) para a vaga de ${cargo} na ${empresa}.\n\nDESCRIÇÃO DA VAGA (use para personalizar):\n${desc}`}]}};
 };
 window.__senovaCopilotoSalvarCarta=function(url,carta){

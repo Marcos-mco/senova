@@ -7,7 +7,16 @@
 
 ---
 
-## Sessão 26 — 09jul/2026 (ATUAL)
+## Sessão 30 — 14jul/2026 (ATUAL — NÃO commitado, aguarda revisão de Marcos)
+**Status:** migração do gerador de CV do Anti-ATS de `CV_BASE` (texto livre) para `PERFIL_MARCOS` (dado estruturado), com filtro determinístico de experiências relevantes rodando antes de qualquer chamada à IA. Backup pré-migração: `senova_v3.67_14jul2026_pre-perfil-marcos-migracao.html`. Último commit: `da4e998`.
+
+- Novas funções: `filtrarExperienciasRelevantes(textoVaga, nivelVaga)`, `formatarExperienciasPerfil`, `perfilFormatadoPara`.
+- `ATS_SYSTEM`, `CARTA_SYSTEM`, `EMAIL_ENVIO_SYSTEM` passam a receber o texto da vaga e usar o perfil já filtrado — a IA nunca mais decide o que é relevante, só traduz/otimiza redação.
+- `CV_BASE` mantido (não removido) — segue servindo LinkedIn Optimizer e helpers de autofill do copiloto.
+
+---
+
+## Sessão 26 — 09jul/2026
 **Status:** App produção sem alteração · Extensão **v2.59** (instrumentação de diagnóstico) · Worker **v7.9** sem alteração
 **Commits-chave:** `e9aedaa` diag(extensão) iframe same-origem · `0184508` chore backup worker v7.8
 **⚠️ Sessões 23–25 não têm entrada aqui** (arquivo ficou parado na 22) — ver `VIRGILIO.md` para candidatura direta generalizada, trava de arquivamento e vazamento de e-mail multi-vaga.
