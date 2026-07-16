@@ -20,7 +20,7 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 - EADCon: Diretor de Marketing (ago/2006–out/2008) — setor educacional, 180 parceiros, 120 mil alunos, R$20mi em campanhas, 25 agências simultâneas
 - Expoente Sistema de Ensino: Diretor de Vendas (jan/2004–abr/2006) — R$40mi faturamento, 300 mil alunos, 900 escolas conveniadas, 4 equipes regionais, 40 pessoas
 - Popper: Head Expansão (2024–25)
-- Consigliere: Consultor Sênior (dez/2025–atual)
+- Consigliere: Consultor Sênior (nov/2025–atual)
 
 ## Regra CV RPC/Globo
 SEMPRE em 2 cargos separados: Gerente (nov/2008–abr/2012) + Diretor (abr/2012–abr/2019).

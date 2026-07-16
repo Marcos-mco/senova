@@ -7,8 +7,17 @@
 
 ---
 
-## Sessão 30 — 14jul/2026 (ATUAL — NÃO commitado, aguarda revisão de Marcos)
-**Status:** migração do gerador de CV do Anti-ATS de `CV_BASE` (texto livre) para `PERFIL_MARCOS` (dado estruturado), com filtro determinístico de experiências relevantes rodando antes de qualquer chamada à IA. Backup pré-migração: `senova_v3.67_14jul2026_pre-perfil-marcos-migracao.html`. Último commit: `da4e998`.
+## Sessão 31 — 16jul/2026 (ATUAL — correção de dados do Virgílio, aguarda teste de Marcos)
+**Status:** check-up confirmou que a migração `PERFIL_MARCOS` (S30) já está commitada (`03b9f14`) e completa — `ATS_SYSTEM` de 2 estágios, `CARTA_SYSTEM`/`EMAIL_ENVIO_SYSTEM` já usando `perfilFormatadoPara`. Corrigidos 2 dados incorretos apontados pelo Virgílio:
+
+- **Editel 1996–2001:** id trocado de `editel-gerente-nacional` para `editel-gerente-producao`, cargo de "Gerente Nacional de Produção" para "Gerente de Produção Gráfica", bullets substituídos pelos 2 fatos confirmados por Marcos (transição analógico→digital em computação gráfica/Macintosh/color management + autogestão -73% mão de obra/+240% produção).
+- **Consigliere:** início corrigido de dez/2025 para **nov/2025** — divergência achada em teste (código e docs diziam dez/2025, o pedido do Virgílio dizia nov/2025); Marcos confirmou nov/2025 como correto. Corrigido em `PERFIL_MARCOS` (index.html) + `CV_BASE` (3 idiomas) + `PERFIL_MARCOS.md` + `CONTEXTO_SESSAO.md`, para não ficar dado divergente entre as fontes.
+- Testado com `filtrarExperienciasRelevantes` rodando de verdade (Node, fora do browser) numa vaga sintética de Gerente Geral (Bahia, bens de consumo): ordem cronológica reversa correta, Editel e Consigliere com dados certos, Sócio-Fundador presente. `api.anthropic.com` = 0 resultados.
+
+---
+
+## Sessão 30 — 14jul/2026 (commitado em `03b9f14`)
+**Status:** migração do gerador de CV do Anti-ATS de `CV_BASE` (texto livre) para `PERFIL_MARCOS` (dado estruturado), com filtro determinístico de experiências relevantes rodando antes de qualquer chamada à IA. Backup pré-migração: `senova_v3.67_14jul2026_pre-perfil-marcos-migracao.html`.
 
 - Novas funções: `filtrarExperienciasRelevantes(textoVaga, nivelVaga)`, `formatarExperienciasPerfil`, `perfilFormatadoPara`.
 - `ATS_SYSTEM`, `CARTA_SYSTEM`, `EMAIL_ENVIO_SYSTEM` passam a receber o texto da vaga e usar o perfil já filtrado — a IA nunca mais decide o que é relevante, só traduz/otimiza redação.

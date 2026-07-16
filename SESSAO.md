@@ -1,11 +1,22 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 14/jul/2026 — Sessão 30 · **duas frentes em paralelo**: Bruno (fechar o PROCESSO PRINCIPAL) + Virgílio (migração do CV p/ `PERFIL_MARCOS`)
+> Última atualização: 16/jul/2026 — Sessão 31 · Virgílio: correção de 2 dados no `PERFIL_MARCOS` (Editel + data Consigliere)
 > ⚠️ Histórico completo e canônico vive em `VIRGILIO.md`. Este topo reflete o estado REAL.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **tudo commitado e pushado**
-Extensão **v2.66** — agora com **AUTO-RELOAD**: se atualiza sozinha quando a versão em disco muda (validado por Marcos em 14/jul; fim do "recarregue em chrome://extensions"). Worker **v7.12** (sem alteração).
+Senova app — produção em marcos-mco.github.io/senova · **working tree com correção de dados, ainda NÃO commitada — aguarda teste de Marcos**
+Extensão **v2.66** (sem alteração nesta sessão). Worker **v7.12** (sem alteração).
 Último commit `baef9b2`. Commits da S30: `2ba3b51` (CV PDF+docx na rota externa) · `da4e998` (carta) · `61a7211` (**registro do envio nos 2 caminhos**) · `03b9f14` (**PERFIL_MARCOS — do Virgílio; commitado a pedido de Marcos, NÃO revisado pelo Bruno**) · `668b238` (auto-reload) · `57f922e` (**CV/carta/card fora do LinkedIn**) · `baef9b2` (**83 testes**).
+
+---
+
+## SESSÃO 31 — VIRGÍLIO: CORREÇÃO DE DADOS DO PERFIL_MARCOS (16/jul)
+
+Check-up confirmou que a migração da S30 (`filtrarExperienciasRelevantes` + `ATS_SYSTEM`/`CARTA_SYSTEM`/`EMAIL_ENVIO_SYSTEM` em 2 estágios) já estava commitada e completa (`03b9f14`) — nada a migrar. Restava 1 correção de dado pedida pelo Virgílio; teste determinístico achou uma segunda:
+
+- **Editel 1996–2001** (`index.html`): id `editel-gerente-nacional`→`editel-gerente-producao`, cargo "Gerente Nacional de Produção"→"Gerente de Produção Gráfica", bullets trocados pelos 2 fatos confirmados por Marcos (transição analógico→digital/Macintosh/color management + autogestão -73%/+240%).
+- **Consigliere — data de início** (achado no teste, não no pedido original): código e os 2 docs de referência diziam dez/2025; o pedido do Virgílio presumia nov/2025. Perguntei a Marcos — confirmou **nov/2025**. Corrigido em 6 lugares: `PERFIL_MARCOS` + `CV_BASE` (PT/EN/ES) no `index.html`, e `PERFIL_MARCOS.md` + `CONTEXTO_SESSAO.md`.
+- Validado rodando `filtrarExperienciasRelevantes` de verdade (Node, sem browser) numa vaga sintética de Gerente Geral (Bahia, bens de consumo): ordem cronológica reversa correta, Sócio-Fundador presente, Editel e Consigliere com os dados certos. `api.anthropic.com` = 0 resultados no `index.html`.
+- **Não commitado ainda** — aguarda Marcos revisar o resumo e aprovar.
 
 ---
 

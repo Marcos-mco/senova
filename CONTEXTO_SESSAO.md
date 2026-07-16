@@ -170,7 +170,7 @@ Endereço: Rua José Casagrande, 180 — Vista Alegre — CEP 80820-580
 ### Experiência-chave
 - RPC/Globo: Gerente (nov/2008–abr/2012) + Diretor (abr/2012–abr/2019) — 30 pessoas, 8 afiliadas, R$500mi
 - Popper: Head Expansão (2024–25)
-- Consigliere: Consultor Sênior (dez/2025–atual)
+- Consigliere: Consultor Sênior (nov/2025–atual)
 
 ### Formação
 - Master's Barcelona (2014–15) · MBA FGV (1998–2000) · FAAP Publicidade (1989–93)
