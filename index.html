@@ -6616,6 +6616,8 @@ async function _mvAutoFetchDesc(modo){
     }
     const ta=document.getElementById('mv-job-desc');
     if(ta) ta.value=_desc;
+    // ta.value= não dispara oninput — chamar direto, senão empresa/cargo/"Confidencial" nunca extrai.
+    extrairDadosDescricao(_desc);
     // Salvar no card: descrição + metadados vindos do JSON-LD (Worker)
     const _vi=vagas.findIndex(v=>String(v.id)===String(cardId));
     if(_vi>=0){
