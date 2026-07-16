@@ -3329,7 +3329,7 @@ Retorne EXATAMENTE neste formato com estes separadores:
 
 ---ANALISE---
 ## Análise da Vaga
-**Candidatura direta:** [se a vaga trouxer qualquer instrução voltada a filtrar quem lê com atenção: (a) candidatar-se DIRETO por e-mail fora do portal ("envie seu CV para", "send your resume/CV to"), por WhatsApp/telefone — escreva canal: "Email"/"WhatsApp"/"Telefone" · destino: "e-mail ou telefone encontrado" e, se houver, acrescente · instrução: "palavra/código exigido"; (b) OU simplesmente pedir para mencionar uma palavra, código ou fazer alguma ação específica em algum lugar da candidatura, sem exigir nenhum canal próprio — pode estar solta no meio da descrição, longe de "como se candidatar" — nesse caso escreva só: instrução: "PALAVRA OU AÇÃO EXIGIDA" (sem canal nem destino). Se a vaga não tiver nada disso, escreva apenas "Nenhuma"]
+**Candidatura direta:** [identifique o canal REAL de candidatura sempre que ele NÃO for um botão de portal (LinkedIn Easy Apply, Gupy, etc.) — ou seja, sempre que a vaga só puder ser respondida por e-mail, WhatsApp ou telefone, com ou sem frase imperativa como "envie seu CV para" (inclui e-mail/contato de recrutador ou headhunter listado na descrição como forma de aplicação, mesmo em assinatura). Nesse caso escreva: canal: "Email"/"WhatsApp"/"Telefone" · destino: "e-mail ou telefone encontrado". Independente do canal acima, se a vaga pedir em qualquer lugar da descrição para mencionar uma palavra, código ou fazer uma ação específica na candidatura — teste de atenção, pode estar solta, longe de "como se candidatar" — acrescente · instrução: "palavra/código/ação exigida" (se não houver canal, escreva só: instrução: "..."). Se não houver canal fora de portal NEM instrução/pegadinha, escreva apenas "Nenhuma"]
 **Cargo real:** [o que precisam de fato]
 **Urgência:** [baixa/média/alta — motivo]
 **Red flags:** [ou "Nenhum"]
@@ -3597,9 +3597,11 @@ function renderATSResult(analise,cv,crm) {
   atsCanalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
   if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){
     vagas[_vi].atsCV=cv;vagas[_vi].atsCvScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;
-    vagas[_vi].canalDiretoTipo=atsCanalDiretoTipo;
-    vagas[_vi].canalDiretoDestino=atsCanalDiretoDestino;
-    vagas[_vi].canalDiretoInstrucao=atsCanalDiretoInstrucao;
+    if(atsCanalDiretoTipo||atsCanalDiretoDestino||atsCanalDiretoInstrucao){
+      vagas[_vi].canalDiretoTipo=atsCanalDiretoTipo;
+      vagas[_vi].canalDiretoDestino=atsCanalDiretoDestino;
+      vagas[_vi].canalDiretoInstrucao=atsCanalDiretoInstrucao;
+    }
     if(atsCanalDiretoTipo==='Email'&&atsCanalDiretoDestino&&!vagas[_vi].emailDest) vagas[_vi].emailDest=atsCanalDiretoDestino;
     saveVagas();
   }}
@@ -6337,6 +6339,9 @@ async function mvDescExtrairImagem(files){
       ta.value=texto;
       extrairDadosDescricao(texto);
       mvAtualizarBtnAnalise();
+      // Descrição mudou de fato (imagem substituiu o texto) — recalcula compatibilidade
+      // e candidatura direta agora, sem esperar reabertura do card (guard de score não se aplica aqui).
+      mvAutoCompatCheck();
     }
   }catch{
     if(erro) erro.style.display='flex';
