@@ -7222,9 +7222,18 @@ function mvUpdateScoreDisplay(vOpt){
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 async function mvAutoCompatCheck(){
+  const signalsEl=document.getElementById('mv-score-signals');
+  const _mvCompatMsg=t=>{if(signalsEl) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">'+t+' <span onclick="mvAutoCompatCheck()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>';};
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
+  if(!editingVagaId||editingVagaId==='new') return;
   // Não calcular com descrição incompleta (snippet de email). Espera a descrição completa (extensão).
-  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return;
+  // "Calculando análise…" é o estado-padrão de mvUpdateScoreDisplay — se saímos aqui sem avisar,
+  // o card fica preso nesse texto pra sempre (nunca é reavaliado sozinho). Por isso sempre
+  // sobrescrevemos com um estado final e acionável antes de qualquer retorno.
+  if(jobDesc.length<400){
+    if(jobDesc.length>0) _mvCompatMsg('Descrição curta demais para calcular automaticamente.');
+    return;
+  }
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return;
   const v=vagas[idx];
@@ -7233,10 +7242,10 @@ async function mvAutoCompatCheck(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
     });
-    if(!res.ok) return;
+    if(!res.ok){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     const data=await res.json();
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
-    if(!score) return;
+    if(!score){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     vagas[idx].atsScore=String(score);
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
@@ -7251,7 +7260,7 @@ async function mvAutoCompatCheck(){
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     saveVagas();
     mvUpdateScoreDisplay();
-  }catch(_){}
+  }catch(_){ _mvCompatMsg('Não foi possível calcular agora.'); }
 }
 
 // ── ACRESCENTAR SOBRE MIM (enriquece perfil + reanalisa) ─────────────────────
