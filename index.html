@@ -7260,6 +7260,7 @@ async function mvAutoCompatCheck(){
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     saveVagas();
     mvUpdateScoreDisplay();
+    mvSyncEnvioDireto();
   }catch(_){ _mvCompatMsg('Não foi possível calcular agora.'); }
 }
 
