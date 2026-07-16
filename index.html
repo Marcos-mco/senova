@@ -2109,8 +2109,8 @@ select option { background: var(--bg2); }
           <button id="mv-desc-edit-btn" onclick="mvEditarDesc()"
                   style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);font-family:var(--font);padding:2px 0;margin-left:4px;">Editar</button>
           <button id="mv-desc-img-btn" onclick="document.getElementById('mv-desc-img-input').click()"
-                  style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--action);font-family:var(--font);font-weight:600;padding:2px 0;margin-left:4px;">Importar imagem</button>
-          <input type="file" id="mv-desc-img-input" accept="image/*" style="display:none" onchange="mvDescImagemSelecionada(this.files[0]);this.value=''">
+                  style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--action);font-family:var(--font);font-weight:600;padding:2px 0;margin-left:4px;">Importar imagens</button>
+          <input type="file" id="mv-desc-img-input" accept="image/*" multiple style="display:none" onchange="mvDescImagemSelecionada(this.files);this.value=''">
         </div>
         <!-- Preview (primeiros ~300 chars) -->
         <div id="mv-desc-preview" style="display:none;font-size:13px;color:var(--text2);line-height:1.65;"></div>
@@ -2122,17 +2122,17 @@ select option { background: var(--bg2); }
                   style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:80px;"
                   oninput="extrairDadosDescricao(this.value);mvAtualizarBtnAnalise()"></textarea>
         <!-- Estados da importação por imagem — só aparecem durante a interação -->
-        <div id="mv-desc-drag-hint" style="display:none;text-align:center;font-size:12.5px;color:var(--text2);padding:10px 0;">Solte para importar — lemos o texto da imagem automaticamente</div>
-        <div id="mv-desc-img-loading" style="display:none;align-items:center;justify-content:center;gap:9px;padding:14px 0;color:var(--text3);font-size:13px;"><div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Lendo o texto da imagem…</div>
+        <div id="mv-desc-drag-hint" style="display:none;text-align:center;font-size:12.5px;color:var(--text2);padding:10px 0;">Solte para importar — lemos o texto automaticamente</div>
+        <div id="mv-desc-img-loading" style="display:none;align-items:center;justify-content:center;gap:9px;padding:14px 0;color:var(--text3);font-size:13px;"><div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Lendo as imagens…</div>
         <div id="mv-desc-img-confirm" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:var(--amber-bg);border:1.5px solid #E6C888;border-radius:var(--radius);padding:9px 12px;margin-top:8px;font-size:12.5px;color:var(--text2);">
           <span>Já há uma descrição aqui.</span>
           <span style="display:flex;gap:8px;margin-left:auto;">
             <button onclick="mvDescImagemCancelar()" style="background:none;border:1.5px solid var(--border2);color:var(--text2);border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">Manter atual</button>
-            <button onclick="mvDescImagemConfirmar()" style="background:var(--navy);color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">Substituir pela imagem</button>
+            <button onclick="mvDescImagemConfirmar()" style="background:var(--navy);color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">Substituir pelas imagens</button>
           </span>
         </div>
         <div id="mv-desc-img-erro" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:var(--red-bg);border:1.5px solid #E8B4AE;border-radius:var(--radius);padding:9px 12px;margin-top:8px;font-size:12.5px;color:var(--text2);">
-          <span>Não foi possível ler o texto da imagem.</span>
+          <span>Não foi possível ler as imagens.</span>
           <span onclick="mvDescImagemTentarNovamente()" style="color:var(--action);font-weight:600;cursor:pointer;margin-left:auto;">Tentar novamente →</span>
         </div>
         <div id="mv-analyze-hint" style="display:none;font-size:12px;color:var(--text3);margin-top:4px;">Cole a descrição acima para habilitar a análise</div>
@@ -6230,9 +6230,10 @@ function extrairDadosDescricao(texto){
   },800);
 }
 
-// ── DESCRIÇÃO — importar por imagem (drag/drop + seleção de arquivo) ────────
-let _mvDescImgPendingFile=null;
-let _mvDescImgLastFile=null;
+// ── DESCRIÇÃO — importar por imagem (drag/drop + seleção de arquivo, 1 ou várias) ──
+const MV_DESC_IMG_MAX=6;
+let _mvDescImgPendingFiles=null;
+let _mvDescImgLastFiles=null;
 function mvDescDragOver(e){
   if(!e.dataTransfer || !Array.from(e.dataTransfer.types||[]).includes('Files')) return;
   e.preventDefault();
@@ -6257,83 +6258,85 @@ function mvDescDrop(e){
   if(sec){sec.style.borderColor='';sec.style.background='';}
   const hint=document.getElementById('mv-desc-drag-hint');
   if(hint) hint.style.display='none';
-  const file=arquivos.find(f=>f.type.startsWith('image/'));
-  if(!file){ showToast('Só é possível importar imagens.'); return; }
-  mvDescImagemSelecionada(file);
+  const imagens=arquivos.filter(f=>f.type.startsWith('image/'));
+  if(!imagens.length){ showToast('Só é possível importar imagens.'); return; }
+  mvDescImagemSelecionada(imagens);
 }
-function mvDescImagemSelecionada(file){
-  if(!file || !file.type.startsWith('image/')) return;
-  if(file.size>5*1024*1024){ showToast('Imagem muito grande. Máx. 5MB.'); return; }
+function mvDescImagemSelecionada(files){
+  const lista=Array.from(files||[]).filter(f=>f&&f.type.startsWith('image/'));
+  if(!lista.length) return;
+  if(lista.length>MV_DESC_IMG_MAX){ showToast(`Máx. ${MV_DESC_IMG_MAX} imagens por vez.`); return; }
+  if(lista.some(f=>f.size>5*1024*1024)){ showToast('Imagem muito grande. Máx. 5MB cada.'); return; }
   const ta=document.getElementById('mv-job-desc');
   const temConteudo=!!(ta && ta.value.trim());
   if(temConteudo){
-    _mvDescImgPendingFile=file;
+    _mvDescImgPendingFiles=lista;
     const confirmRow=document.getElementById('mv-desc-img-confirm');
     if(confirmRow) confirmRow.style.display='flex';
     return;
   }
-  mvDescExtrairImagem(file);
+  mvDescExtrairImagem(lista);
 }
 function mvDescImagemCancelar(){
-  _mvDescImgPendingFile=null;
+  _mvDescImgPendingFiles=null;
   const confirmRow=document.getElementById('mv-desc-img-confirm');
   if(confirmRow) confirmRow.style.display='none';
 }
 function mvDescImagemConfirmar(){
   const confirmRow=document.getElementById('mv-desc-img-confirm');
   if(confirmRow) confirmRow.style.display='none';
-  const file=_mvDescImgPendingFile;
-  _mvDescImgPendingFile=null;
-  if(file) mvDescExtrairImagem(file);
+  const lista=_mvDescImgPendingFiles;
+  _mvDescImgPendingFiles=null;
+  if(lista) mvDescExtrairImagem(lista);
 }
 function mvDescImagemTentarNovamente(){
   const erro=document.getElementById('mv-desc-img-erro');
   if(erro) erro.style.display='none';
-  if(_mvDescImgLastFile) mvDescExtrairImagem(_mvDescImgLastFile);
+  if(_mvDescImgLastFiles) mvDescExtrairImagem(_mvDescImgLastFiles);
 }
-function mvDescExtrairImagem(file){
-  _mvDescImgLastFile=file;
+function _mvLerImagemBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve({type:'image',source:{type:'base64',media_type:file.type,data:String(reader.result).split(',')[1]||''}});
+    reader.onerror=()=>reject(new Error());
+    reader.readAsDataURL(file);
+  });
+}
+async function mvDescExtrairImagem(files){
+  const lista=Array.isArray(files)?files:[files];
+  _mvDescImgLastFiles=lista;
   const loading=document.getElementById('mv-desc-img-loading');
   const erro=document.getElementById('mv-desc-img-erro');
   const ta=document.getElementById('mv-job-desc');
   if(erro) erro.style.display='none';
   if(loading) loading.style.display='flex';
   if(ta) ta.disabled=true;
-  const reader=new FileReader();
-  reader.onload=async()=>{
-    try{
-      const base64=String(reader.result).split(',')[1]||'';
-      const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        model:MODELOS.rapido,
-        max_tokens:2000,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:file.type,data:base64}},
-          {type:'text',text:'Transcreva todo o texto desta imagem de uma vaga de emprego, na ordem em que aparece. Responda SOMENTE com o texto transcrito, sem comentários nem formatação adicional.'}
-        ]}]
-      })});
-      if(!res.ok) throw new Error();
-      const data=await res.json();
-      const texto=(data.content?.[0]?.text||'').trim();
-      if(!texto) throw new Error();
-      if(ta){
-        if(ta.style.display==='none') mvEditarDesc();
-        ta.value=texto;
-        extrairDadosDescricao(texto);
-        mvAtualizarBtnAnalise();
-      }
-    }catch{
-      if(erro) erro.style.display='flex';
-    }finally{
-      if(loading) loading.style.display='none';
-      if(ta) ta.disabled=false;
+  try{
+    const blocos=await Promise.all(lista.map(_mvLerImagemBase64));
+    const instrucao=lista.length>1
+      ? 'Transcreva todo o texto dessas imagens de uma vaga de emprego, na ordem em que aparecem, como um único texto contínuo (podem ser partes de um mesmo print). Responda SOMENTE com o texto transcrito, sem comentários nem formatação adicional.'
+      : 'Transcreva todo o texto desta imagem de uma vaga de emprego, na ordem em que aparece. Responda SOMENTE com o texto transcrito, sem comentários nem formatação adicional.';
+    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      model:MODELOS.rapido,
+      max_tokens:3000,
+      messages:[{role:'user',content:[...blocos,{type:'text',text:instrucao}]}]
+    })});
+    if(!res.ok) throw new Error();
+    const data=await res.json();
+    const texto=(data.content?.[0]?.text||'').trim();
+    if(!texto) throw new Error();
+    if(ta){
+      if(ta.style.display==='none') mvEditarDesc();
+      ta.value=texto;
+      extrairDadosDescricao(texto);
+      mvAtualizarBtnAnalise();
     }
-  };
-  reader.onerror=()=>{
+  }catch{
+    if(erro) erro.style.display='flex';
+  }finally{
     if(loading) loading.style.display='none';
     if(ta) ta.disabled=false;
-    if(erro) erro.style.display='flex';
-  };
-  reader.readAsDataURL(file);
+  }
 }
 function declinarVaga(){
   const p=document.getElementById('mv-declinar-panel');
