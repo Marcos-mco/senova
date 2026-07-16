@@ -6225,6 +6225,13 @@ function extrairDadosDescricao(texto){
       if(parsed.localizacao){const el=document.getElementById('mv-localizacao');if(el&&!el.value.trim()){el.value=parsed.localizacao;highlight(el);}}
       if(parsed.modelo){const el=document.getElementById('mv-modelo');if(el&&!el.value){el.value=parsed.modelo;highlight(el);}}
       if(parsed.regime){const el=document.getElementById('mv-regime');if(el&&!el.value){el.value=parsed.regime;highlight(el);}}
+      // Vaga confidencial (ex.: indicação de headhunter) — achou cargo mas não empresa
+      const empresaEl=document.getElementById('mv-empresa');
+      const cargoEl=document.getElementById('mv-cargo');
+      if(empresaEl&&!empresaEl.value.trim()&&cargoEl&&cargoEl.value.trim()){
+        empresaEl.value='Confidencial';
+        highlight(empresaEl);
+      }
       validarVagaForm();
     }catch{}
   },800);
