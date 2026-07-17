@@ -6366,15 +6366,16 @@ function confirmarDeclinar(){
   saveVaga();
 }
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
-function candidatarDoModal(){
+async function candidatarDoModal(){
   const id=editingVagaId;
   const isNew=id==='new';
   const v=isNew?null:vagas.find(x=>String(x.id)===String(id));
   if(!isNew&&!v) return;
   if(!((v&&v.atsCV)||lastCV)){
-    // sem CV salvo — redirecionar para Análise CV (lê campos do modal aberto)
-    abrirAntiATSModal();
-    return;
+    // sem CV — gera DENTRO do card (mesma geração já usada pelos botões de download), nunca navega para outra tela.
+    await _mvGarantirCV(document.getElementById('mv-doc-pill-resposta'));
+    // mvSyncDocsCV zera o buffer no card lead — a fonte confiável do CV é a global lastCV.
+    if(!lastCV) return; // analisarInline já avisou o motivo (descrição curta, erro etc.)
   }
   // tem CV — salva o modal e abre o modal-candidatura. NÃO muda o status aqui:
   // o card só vira "CV Enviado" quando o envio for confirmado (enviarCandidaturaOutlook →
@@ -6383,6 +6384,8 @@ function candidatarDoModal(){
   const savedId=saveVaga(); // fecha o modal Pipeline internamente (mantém o status atual)
   const vagaIdx=vagas.findIndex(x=>String(x.id)===String(isNew?savedId:id));
   if(vagaIdx<0) return;
+  // saveVaga() não copia lastCV para card novo — persiste aqui (card = fonte de verdade).
+  if(!vagas[vagaIdx].atsCV && lastCV){ vagas[vagaIdx].atsCV=lastCV; saveVagas(); }
   const saved=vagas[vagaIdx];
   abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
 }
