@@ -1,5 +1,7 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 17/jul/2026 — **Sessão 31 · dois bugs reais no fluxo de candidatura, fechados e confirmados por Marcos**.*
+*Atualizado: 17/jul/2026 — **Sessão 32 · bug de drag-and-drop no Kanban investigado, fix tentado NÃO resolveu, cards afetados excluídos por Marcos (eram antigos/de teste)**.*
+
+***SESSÃO 32 (17/jul):** Marcos relatou 2 cards do Kanban (um "Empresa Confidencial", um Siemens — ambos com logo de empresa reconhecido) que não conseguia arrastar pra coluna seguinte. Hipótese investigada: `<img>` do logo é nativamente arrastável no browser e, dentro do `.kcard` (`draggable="true"`), podia sequestrar o gesto de drag do card. Aplicado `draggable="false"` no `<img>` da logo (`index.html:5869`, commit `31b8102`, pushado). **Marcos testou e NÃO funcionou** — a causa raiz do travamento segue desconhecida. Ele optou por excluir os 2 cards (eram antigos, do período de teste) em vez de continuar investigando agora. **Fix do `draggable="false"` ficou no ar** (inofensivo, mas não resolveu o bug relatado — não marcar como corrigido). **Se o travamento reaparecer em um card novo, retomar a investigação** — provável próximo passo: `senova-auditor` no fluxo de `dropVaga`/`dragVagaId` (index.html:5416-5450) com um card real reproduzindo o problema, já que a leitura do código não achou bloqueio explícito. Ver [[project_kanban_drag_trava_nao_resolvida]].*
 
 ***SESSÃO 31 (16-17/jul):** dois bugs sérios no card/candidatura, achados por Marcos usando o app de verdade — não sprint planejado. **(1)** a nova importação de descrição por imagem (OCR) regrediu silenciosamente a análise automática em card NOVO/não-salvo: "Calculando análise…" ficava travado pra sempre porque não existia onde guardar o resultado antes do card existir. Corrigido com holder temporário `_mvNovoCardAnalise`, absorvido pelo `saveVaga()` no momento de criar o card (commit `7b0384a`). **(2)** mais grave: `candidatarDoModal()` desviava pra tela legada standalone "Avaliar Posição" quando o card ainda não tinha CV — Marcos rejeitou firme ("Não foi este o caminho aprovado… Nós temos um fluxo testado, aprovado e documentado") e mandou reunir a equipe antes de decidir. Escalado pro `senova-auditor`, que confirmou a causa E destravou 2 armadilhas que um fix apressado teria ignorado. Fix: `candidatarDoModal()` vira `async` e gera o CV **dentro do card** (`_mvGarantirCV`/`analisarInline`, o mesmo mecanismo já usado pelos botões de download — nunca mais navega pra outra tela) (commit `bd929c7`). **Confirmado ponta a ponta por Marcos:** e-mail nos Enviados do Outlook + card andou no Kanban. Marcos elevou o método a regra permanente: *"É assim que vc deve agir sempre. Vc é o chefe e sempre quer ter todas as informações para tomada de decisão."* Ver [[feedback_reusar_fluxo_aprovado_nao_inventar]] e [[feedback_reunir_equipe_antes_de_agir]]. **Os pendentes da Sessão 30 (abaixo) seguem intocados — este foi um desvio de bug real, não a continuação planejada.**
 
@@ -58,9 +60,9 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 32)
+## ⚠️ AO RETOMAR (Sessão 33)
 
-> **A S30 teve DUAS frentes em paralelo:** **Bruno** (fechar o PROCESSO PRINCIPAL — abaixo) e **Virgílio** (migração do CV p/ `PERFIL_MARCOS` — mais abaixo). Ambas no mesmo repo. **A S31 (16-17/jul) foi um desvio para 2 bugs reais** (análise travada em card novo + candidatura desviando pra tela legada — ver bloco no topo do arquivo); **nenhum item das frentes abaixo avançou** — seguem exatamente como estavam.
+> **A S30 teve DUAS frentes em paralelo:** **Bruno** (fechar o PROCESSO PRINCIPAL — abaixo) e **Virgílio** (migração do CV p/ `PERFIL_MARCOS` — mais abaixo). Ambas no mesmo repo. **A S31 (16-17/jul) foi um desvio para 2 bugs reais** (análise travada em card novo + candidatura desviando pra tela legada — ver bloco no topo do arquivo) e **a S32 (17/jul) foi outro desvio curto** (bug de drag-and-drop no Kanban, NÃO resolvido — ver bloco no topo do arquivo); **nenhum item das frentes abaixo avançou** — seguem exatamente como estavam.
 
 ---
 
