@@ -6088,6 +6088,7 @@ function openVagaModal(id){
     // Fechar Sofia se estava aberta de sessão anterior
     mvFecharSofia();
   } else {
+    _mvNovoCardAnalise=null; // card novo sempre começa sem análise de uma sessão anterior
     ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mv-modelo').value='';
     document.getElementById('mv-regime').value='';
@@ -6367,9 +6368,10 @@ function confirmarDeclinar(){
 function candidatarVaga(){ document.getElementById('mv-status').value='aplicado'; atualizarBotoes(); }
 function candidatarDoModal(){
   const id=editingVagaId;
-  const v=vagas.find(x=>String(x.id)===String(id));
-  if(!v) return;
-  if(!(v.atsCV||lastCV)){
+  const isNew=id==='new';
+  const v=isNew?null:vagas.find(x=>String(x.id)===String(id));
+  if(!isNew&&!v) return;
+  if(!((v&&v.atsCV)||lastCV)){
     // sem CV salvo — redirecionar para Análise CV (lê campos do modal aberto)
     abrirAntiATSModal();
     return;
@@ -6377,8 +6379,9 @@ function candidatarDoModal(){
   // tem CV — salva o modal e abre o modal-candidatura. NÃO muda o status aqui:
   // o card só vira "CV Enviado" quando o envio for confirmado (enviarCandidaturaOutlook →
   // _marcarCandidaturaEnviada). Se você desistir no modal de envio, o card fica onde estava.
-  saveVaga(); // fecha o modal Pipeline internamente (mantém o status atual)
-  const vagaIdx=vagas.findIndex(x=>x.id===id);
+  // Card novo: saveVaga() cria o processo agora (mesmo se envio for cancelado depois, o card fica salvo).
+  const savedId=saveVaga(); // fecha o modal Pipeline internamente (mantém o status atual)
+  const vagaIdx=vagas.findIndex(x=>String(x.id)===String(isNew?savedId:id));
   if(vagaIdx<0) return;
   const saved=vagas[vagaIdx];
   abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
@@ -6662,6 +6665,8 @@ function saveVaga(){
     return; // cancelado — mantém o card como estava, não arquiva
   }
   const createdAt=existing?.createdAt||parseDateBR(existing?.data)||now;
+  // Card novo com análise automática já calculada (via _mvNovoCardAnalise) — absorve aqui, uma vez só.
+  const _novoA=isNew?(_mvNovoCardAnalise||{}):{};
   const obj={
     ...(existing||{}), // trava anti-perda: preserva todo campo já gravado; os de baixo só sobrescrevem
     id:isNew?now:editingVagaId,
@@ -6685,12 +6690,18 @@ function saveVaga(){
     motivo:document.getElementById('mv-motivo').value,
     indicacao:document.getElementById('mv-indicacao')?.value||existing?.indicacao||'',
     jobDescription:document.getElementById('mv-job-desc').value,
-    atsScore:existing?.atsScore||'',
+    atsScore:existing?.atsScore||_novoA.atsScore||'',
     atsCvScore:existing?.atsCvScore||'',
     atsKeywords:existing?.atsKeywords||'',
-    atsAnalise:existing?.atsAnalise||'',
+    atsAnalise:existing?.atsAnalise||_novoA.atsAnalise||'',
     atsAnaliseData:existing?.atsAnaliseData||'',
     atsCvIdioma:existing?.atsCvIdioma||'',
+    compatClass:existing?.compatClass||_novoA.compatClass||'',
+    compatFortes:existing?.compatFortes||_novoA.compatFortes||[],
+    compatAtencao:existing?.compatAtencao||_novoA.compatAtencao||[],
+    canalDiretoTipo:existing?.canalDiretoTipo||_novoA.canalDiretoTipo||'',
+    canalDiretoDestino:existing?.canalDiretoDestino||_novoA.canalDiretoDestino||'',
+    canalDiretoInstrucao:existing?.canalDiretoInstrucao||_novoA.canalDiretoInstrucao||'',
     teveRetorno:existing?.teveRetorno||false,
     tipoRetorno:existing?.tipoRetorno||'',
     retornoData:existing?.retornoData||'',
@@ -6718,8 +6729,10 @@ function saveVaga(){
   if(editingVagaId==='new') vagas.push(obj); else vagas=vagas.map(v=>String(v.id)===String(editingVagaId)?obj:v);
   if(isNew && atsOrigemVagaId==='new') atsOrigemVagaId=obj.id;
   if(isNew) _clearDraftVaga();
+  if(isNew) _mvNovoCardAnalise=null; // absorvido no obj acima — limpa a holder pra não vazar pro próximo card novo
   saveVagas(); if(filtroAtivo) aplicarFiltros(); else renderCRM(); closeVagaModal();
   if(isNew){ showPage('crm'); setTimeout(()=>showToast('✅ Processo criado — card em Oportunidades'),60); }
+  return obj.id;
 }
 function confirmarRemoverVaga(){
   const btn=document.getElementById('mv-delete-btn');
@@ -7029,7 +7042,7 @@ function mvClicarDocResposta(btn){
 function mvSyncEnvioDireto(){
   const btn=document.getElementById('mv-doc-pill-resposta');
   if(!btn) return;
-  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  const v=editingVagaId==='new'?_mvNovoCardAnalise:(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
   const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
   const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
   const _ehEmailDireto=!!_canalDest&&(/@/.test(_canalDest)||_canalTipo==='Email');
@@ -7148,8 +7161,11 @@ function mvConcluirEditarDesc(){
 }
 
 // ── PONTUAÇÃO AO PROJETO ─────────────────────────────────────────────────────
+// Card ainda não salvo ('new') não existe em vagas[] — o resultado da análise automática
+// fica aqui até saveVaga() criar o processo e absorver estes campos.
+let _mvNovoCardAnalise=null;
 function mvUpdateScoreDisplay(vOpt){
-  const v=vOpt||(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
+  const v=vOpt||(editingVagaId==='new'?_mvNovoCardAnalise:(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null));
   // Rota de envio (candidatura direta) — SEMPRE visível, independente de score/colapso.
   // Vale para TODAS as pegadinhas: canal (Email/WhatsApp/Telefone)+destino OU instrução pura.
   const cdBanner=document.getElementById('mv-canal-direto-banner');
@@ -7227,7 +7243,8 @@ async function mvAutoCompatCheck(){
   const signalsEl=document.getElementById('mv-score-signals');
   const _mvCompatMsg=t=>{if(signalsEl) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">'+t+' <span onclick="mvAutoCompatCheck()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>';};
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  if(!editingVagaId||editingVagaId==='new') return;
+  if(!editingVagaId) return;
+  const isNew=editingVagaId==='new';
   // Não calcular com descrição incompleta (snippet de email). Espera a descrição completa (extensão).
   // "Calculando análise…" é o estado-padrão de mvUpdateScoreDisplay — se saímos aqui sem avisar,
   // o card fica preso nesse texto pra sempre (nunca é reavaliado sozinho). Por isso sempre
@@ -7236,31 +7253,38 @@ async function mvAutoCompatCheck(){
     if(jobDesc.length>0) _mvCompatMsg('Descrição curta demais para calcular automaticamente.');
     return;
   }
-  const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
-  if(idx<0) return;
-  const v=vagas[idx];
+  const idx=isNew?-1:vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+  if(!isNew&&idx<0) return;
+  // Card novo ainda não existe em vagas[] — o resultado vai para _mvNovoCardAnalise
+  // (saveVaga() absorve ao criar o processo). Card existente grava direto no array.
+  const alvo=isNew?(_mvNovoCardAnalise=_mvNovoCardAnalise||{}):vagas[idx];
+  const cargoAtual=isNew?(document.getElementById('mv-cargo')?.value||''):alvo.cargo;
+  const empresaAtual=isNew?(document.getElementById('mv-empresa')?.value||''):alvo.empresa;
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
+      body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
     });
     if(!res.ok){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     const data=await res.json();
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
     if(!score){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
-    vagas[idx].atsScore=String(score);
-    vagas[idx].compatClass=data.classificacao||'';
-    vagas[idx].compatFortes=data.pontos_fortes||[];
-    vagas[idx].compatAtencao=data.pontos_atencao||[];
+    alvo.atsScore=String(score);
+    alvo.compatClass=data.classificacao||'';
+    alvo.compatFortes=data.pontos_fortes||[];
+    alvo.compatAtencao=data.pontos_atencao||[];
     if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
-      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
-      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
-      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
-      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_destino;
+      alvo.canalDiretoTipo=data.candidatura_direta_canal||'';
+      alvo.canalDiretoDestino=data.candidatura_direta_destino||'';
+      alvo.canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
+      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!alvo.emailDest){
+        alvo.emailDest=data.candidatura_direta_destino;
+        if(isNew){ const eEl=document.getElementById('mv-email-dest'); if(eEl&&!eEl.value.trim()) eEl.value=data.candidatura_direta_destino; }
+      }
     }
-    const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
-    if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
-    saveVagas();
+    const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(alvo.atsAnalise||'');
+    if(data.resumo&&!_hasRichNow) alvo.atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
+    if(!isNew) saveVagas();
     mvUpdateScoreDisplay();
     mvSyncEnvioDireto();
   }catch(_){ _mvCompatMsg('Não foi possível calcular agora.'); }
