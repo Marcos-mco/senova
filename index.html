@@ -5866,7 +5866,7 @@ function renderCRM(){
         const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription);
         return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
-            <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
+            <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" draggable="false" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
             <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;">
