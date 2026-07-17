@@ -1,5 +1,7 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 14/jul/2026 — **Sessão 30 · DUAS FRENTES**.*
+*Atualizado: 17/jul/2026 — **Sessão 31 · dois bugs reais no fluxo de candidatura, fechados e confirmados por Marcos**.*
+
+***SESSÃO 31 (16-17/jul):** dois bugs sérios no card/candidatura, achados por Marcos usando o app de verdade — não sprint planejado. **(1)** a nova importação de descrição por imagem (OCR) regrediu silenciosamente a análise automática em card NOVO/não-salvo: "Calculando análise…" ficava travado pra sempre porque não existia onde guardar o resultado antes do card existir. Corrigido com holder temporário `_mvNovoCardAnalise`, absorvido pelo `saveVaga()` no momento de criar o card (commit `7b0384a`). **(2)** mais grave: `candidatarDoModal()` desviava pra tela legada standalone "Avaliar Posição" quando o card ainda não tinha CV — Marcos rejeitou firme ("Não foi este o caminho aprovado… Nós temos um fluxo testado, aprovado e documentado") e mandou reunir a equipe antes de decidir. Escalado pro `senova-auditor`, que confirmou a causa E destravou 2 armadilhas que um fix apressado teria ignorado. Fix: `candidatarDoModal()` vira `async` e gera o CV **dentro do card** (`_mvGarantirCV`/`analisarInline`, o mesmo mecanismo já usado pelos botões de download — nunca mais navega pra outra tela) (commit `bd929c7`). **Confirmado ponta a ponta por Marcos:** e-mail nos Enviados do Outlook + card andou no Kanban. Marcos elevou o método a regra permanente: *"É assim que vc deve agir sempre. Vc é o chefe e sempre quer ter todas as informações para tomada de decisão."* Ver [[feedback_reusar_fluxo_aprovado_nao_inventar]] e [[feedback_reunir_equipe_antes_de_agir]]. **Os pendentes da Sessão 30 (abaixo) seguem intocados — este foi um desvio de bug real, não a continuação planejada.**
 
 ***FRENTE BRUNO — o PROCESSO PRINCIPAL foi fechado no código.** Marcos reorientou: "a extensão É o copiloto", dois caminhos (por fora **cria** o card / pelo Senova **atualiza**), e "foque no processo principal, não em telas". Auditoria achou a causa raiz que travava tudo: **o processo inteiro dependia do jobId do LinkedIn** — o Caminho A (vaga achada por fora) NUNCA registrou nada (guardas `if(!an.jobId) return` matando em silêncio), o background **inventava** uma URL fake do LinkedIn (então nenhuma ponte achava card de outro portal → `sem_card` calado), e não existia criar card (sem card não há descrição, sem descrição não há CV nem carta). Corrigido com **ponto único `_acharVagaRef`** (jobId → URL real → empresa+cargo) usado pelo registro, desfazer e as 4 pontes de documento; **`__senovaCopilotoGarantirCard`** novo (ativar o copiloto por fora cria o card com a descrição da página); registro idempotente que cria card e nunca falha calado. **AUTO-RELOAD da extensão** (v2.65+, validado em campo): ela se atualiza sozinha → o Bruno não depende mais de Marcos para deployar extensão. **83 testes automatizados** (`testes/`), o projeto nunca teve. Commits `2ba3b51`, `da4e998`, `61a7211`, `668b238`, `57f922e`, `baef9b2` — tudo pushado. **NÃO fechado:** validação em campo (exige o browser de Marcos), Estação 3 (envio por formulário), e o popup reprovado. **Limite ético mantido:** Marcos pediu candidatura real 100% automática; recusei o auto-submit (irreversível, é a carreira dele, proibido pela constituição) — ele esclareceu que o objetivo era fechar o processo, e que "uma vez funcionando, sou eu que decido".*
 
@@ -56,9 +58,9 @@ passos para Marcos APROVAR**. Sem desperdiçar o tempo dele perguntando o óbvio
 
 ---
 
-## ⚠️ AO RETOMAR (Sessão 31)
+## ⚠️ AO RETOMAR (Sessão 32)
 
-> **A S30 teve DUAS frentes em paralelo:** **Bruno** (fechar o PROCESSO PRINCIPAL — abaixo) e **Virgílio** (migração do CV p/ `PERFIL_MARCOS` — mais abaixo). Ambas no mesmo repo.
+> **A S30 teve DUAS frentes em paralelo:** **Bruno** (fechar o PROCESSO PRINCIPAL — abaixo) e **Virgílio** (migração do CV p/ `PERFIL_MARCOS` — mais abaixo). Ambas no mesmo repo. **A S31 (16-17/jul) foi um desvio para 2 bugs reais** (análise travada em card novo + candidatura desviando pra tela legada — ver bloco no topo do arquivo); **nenhum item das frentes abaixo avançou** — seguem exatamente como estavam.
 
 ---
 
@@ -159,6 +161,29 @@ Depois — fundação do V1 (H4+H3 já saiu, confirmado no ar):
 - **Score + Gerar CV direto no LinkedIn** em toda vaga `/jobs/view/` (herdado S19).
 - **Dropdowns CUSTOM (div/combobox do Gupy) e RADIO** do casamento de opção (expandir COM dado do Diagnóstico).
 - Bugs baixos B6/B7/B8/B9 (ver tabela).
+
+---
+
+## O QUE FOI FEITO — SESSÃO 31 (16-17/jul/2026)
+
+**Tema:** não foi sprint planejado — Marcos usou o app de verdade e achou 2 bugs reais no fluxo de candidatura, um deles grave o bastante pra virar lição de método permanente.
+
+### 1. Importação de descrição por imagem (OCR) + regressões que ela expôs (16/jul, commits `821197a`→`04bae65`)
+- `feat(candidatura)`: importar descrição da vaga por imagem (drag/drop ou arquivo), múltiplas imagens de uma vez.
+- A feature nova expôs (não causou) uma série de gaps que já existiam no fluxo de candidatura direta e análise automática: card preso em "Calculando análise…" sem aviso; botão "Resposta por e-mail" virando "Enviar candidatura" errado após análise automática; canal de contato direto vazando pra pegadinha de atenção; "Confidencial" mal assumido quando só o cargo é identificado; empresa/cargo extraindo errado quando a descrição vinha do auto-fetch por URL. Todos corrigidos no mesmo arco, um commit por causa.
+
+### 2. Análise automática travava para sempre em card NOVO (commit `7b0384a`)
+- **Causa:** a análise automática (`mvUpdateScoreDisplay`/`mvAutoCompatCheck`) só sabia gravar resultado em `vagas[idx]` — um card recém-criado (`editingVagaId==='new'`) ainda não existe nesse array, então o resultado não tinha onde pousar e "Calculando análise…" ficava travado pra sempre.
+- **Fix:** holder temporário em memória `_mvNovoCardAnalise` — a análise de um card novo escreve ali; `saveVaga()` absorve o holder no objeto criado (com fallback `existing?.X||_novoA.X||''` pra cada campo) e limpa o holder logo depois, pra não vazar pro próximo card novo. `openVagaModal()` zera o holder ao abrir um card novo do zero.
+
+### 3. Candidatura desviava pra tela legada "Avaliar Posição" (commit `bd929c7`) — o bug sério da sessão
+- Marcos: *"O card funcionou. Cliquei em candidatar por email e veio para esta tela [Avaliar Posição]. Não sei o que fazer agora."* Bruno explicou o desvio como se fosse o fluxo aprovado — **estava errado**. Marcos corrigiu firme: *"Não foi este o caminho aprovado. Esta tela não entra neste processo… Vamos seguir a espinha aprovada"* — e, ao ver Bruno decidir sozinho de novo, mandou parar: *"vc tem uma equipe de agentes e skills… não tome decisões sem analisar o contexto todo… não façamos gambiarras."*
+- **Reunida a equipe:** relido `docs/fluxo_definitivo_card_copiloto.md` (CARD = única fonte de verdade, geração de CV vive NO CARD) e escalado pro `senova-auditor`, que confirmou a causa raiz (`candidatarDoModal()` chamava `abrirAntiATSModal()` — legado que sobreviveu à reforma de 25/jun) e destravou **2 armadilhas** que um fix apressado teria ignorado: (a) `_mvGarantirCV()` retorna `false` mesmo com sucesso em card novo/lead, porque `mvSyncDocsCV()` zera o buffer de CV logo depois de gerar — a fonte confiável é a global `lastCV`, não o retorno da função nem o buffer; (b) `saveVaga()` nunca persistia `lastCV` no `atsCV` do card recém-criado — sem esse passo o card ficaria salvo sem o CV mesmo após candidatura bem-sucedida.
+- **Fix final:** `candidatarDoModal()` vira `async`; sem CV, chama `await _mvGarantirCV(...)` (mesmo mecanismo já usado pelos botões de download — nunca mais navega pra outra tela); checa `lastCV` como sinal de sucesso; persiste `lastCV` em `vagas[idx].atsCV` se o card ainda não tinha. `abrirAntiATSModal()` não foi apagada (segue servindo a navegação legítima da sidebar "Avaliar Posição") — só o call site errado, vindo da candidatura, foi removido.
+- **Confirmado por Marcos, ponta a ponta:** e-mail visível nos Enviados do Outlook + card andou no Kanban. *"Agora sim, funcionou… Perfeito. É assim que vc deve agir sempre. Vc é o chefe e sempre quer ter todas as informações para tomada de decisão."*
+
+### Confirmado / decisões
+- ✅ QA Fase 2 (golden rule + sintaxe) passou limpo nos 2 commits principais. ✅ Marcos validou em produção real (Outlook + Kanban), não só em teste sintético. 📌 **Lição de método elevada a regra permanente:** nunca decidir sozinho em fluxo crítico sem reunir código real + skills + VIRGILIO + memória primeiro — ver [[feedback_reunir_equipe_antes_de_agir]] e [[feedback_reusar_fluxo_aprovado_nao_inventar]] (memórias novas desta sessão).
 
 ---
 
