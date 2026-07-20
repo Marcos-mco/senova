@@ -23,6 +23,7 @@ const fontes = [
   'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(',
   'window.__senovaCopilotoSalvarCarta=function(',
+  'function _extrairSoCV(',
   'window.__senovaCopilotoSalvarCV=function(',
 ].map(extrai).join('\n;\n');
 

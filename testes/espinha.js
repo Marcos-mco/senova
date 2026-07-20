@@ -17,6 +17,7 @@ const fontes = [
   'function _jobIdLinkedIn(', 'function dataAtualFormatada(', 'function _marcarCandidaturaEnviada(',
   'function _acharVagaRef(', 'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(', 'window.__senovaCopilotoSalvarCarta=function(',
+  'function _extrairSoCV(',
   'window.__senovaCopilotoSalvarCV=function(', 'window.__senovaCandidaturaEnviada=function(',
 ].map(extrai).join('\n;\n');
 

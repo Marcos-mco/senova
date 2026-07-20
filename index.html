@@ -10171,7 +10171,7 @@ window.__senovaCandidaturaEnviada=function(ref){
       origemUrl:d.url||'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],
       timeline:[{ts:_t,texto:'Card criado pelo copiloto ao registrar a candidatura'}]});
     idx=vagas.length-1;criou=true;
-    if(d.cv)vagas[idx].atsCV=d.cv;
+    if(d.cv)vagas[idx].atsCV=(typeof _extrairSoCV==='function')?_extrairSoCV(d.cv):d.cv;
     if(d.carta)vagas[idx].atsCarta=d.carta;
     if(d.score)vagas[idx].atsScore=String(d.score);
   }else{
@@ -10179,7 +10179,7 @@ window.__senovaCandidaturaEnviada=function(ref){
     const _st=vagas[idx].status;
     if(_st==='aplicado'||_st==='entrevista'||_st==='proposta'||_st==='aceito') return {ok:true,jaRegistrado:true};
     // Documentos que o copiloto gerou na página e o card ainda não tem (nunca sobrescreve).
-    if(d.cv&&!(vagas[idx].atsCV||'').trim())vagas[idx].atsCV=d.cv;
+    if(d.cv&&!(vagas[idx].atsCV||'').trim())vagas[idx].atsCV=(typeof _extrairSoCV==='function')?_extrairSoCV(d.cv):d.cv;
     if(d.carta&&!(vagas[idx].atsCarta||'').trim())vagas[idx].atsCarta=d.carta;
   }
   _marcarCandidaturaEnviada(vagas[idx],'CV enviado pela vaga ('+(vagas[idx].canal||d.canal||'site da empresa')+')');
@@ -10347,6 +10347,16 @@ window.__senovaCopilotoGarantirCard=function(d){
   window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} },200);
   return {ok:true,criou:true,id:_t};
 };
+// Extrai SÓ o CV da resposta do ATS_SYSTEM, que vem como [análise]---CV---[CV]---CRM---[CRM].
+// Sem isto, a análise interna (MATCH SCORE, "keywords a inserir", VEREDICTO) vaza para o PDF/.docx
+// que vai ao RECRUTADOR — inaceitável. Mesma separação do fluxo normal do app (analyzeJob).
+// Idempotente: um CV já limpo passa intacto.
+function _extrairSoCV(texto){
+  let t=(texto||'').trim();
+  if(t.includes('---CV---')) t=t.split('---CV---').pop();
+  if(t.includes('---CRM---')) t=t.split('---CRM---')[0];
+  return t.trim();
+}
 window.__senovaCopilotoGerarCV=function(ref,formato){
   formato=(formato==='pdf')?'pdf':'docx';
   const idx=_acharVagaRef((typeof ref==='string')?{url:ref}:ref);
@@ -10354,18 +10364,22 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
   const v=vagas[idx];
   const baseFn=`CV_MF_${(v.empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(v.cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}`;
   if(v.atsCV&&v.atsCV.trim()){
-    // CV já existe no card — devolve pronto, sem reprocessar
+    // Defesa: se um CV poluído (com a análise) foi salvo antes, limpa o card AGORA — assim o card
+    // já corrigido nunca mais gera PDF com a análise no topo.
+    const _cv=_extrairSoCV(v.atsCV);
+    if(_cv && _cv!==v.atsCV.trim()){ vagas[idx].atsCV=_cv; saveVagas(); }
+    if(!_cv) return {ok:false,motivo:'sem_card'};
     if(formato==='pdf'){
       // PDF Executivo: reusa o MESMO gerador do envio por e-mail (S28), apontando lastCV para o CV desta vaga.
       const _prev=lastCV,_prevFn=lastCVFilename;
-      lastCV=v.atsCV; lastCVFilename=baseFn;
+      lastCV=_cv; lastCVFilename=baseFn;
       let b64=null; try{ b64=_pdfExecBase64(); }catch(_){}
       lastCV=_prev; lastCVFilename=_prevFn;
       if(!b64) return {ok:false,erro:'pdf_falhou'};
       return {ok:true,dataUrl:'data:application/pdf;base64,'+b64,filename:baseFn+'_executivo.pdf'};
     }
     // .docx (texto puro) — melhor para o parser de ATS
-    const esc=v.atsCV.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const esc=_cv.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
     return {ok:true,dataUrl:'data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html))),filename:baseFn+'.doc'};
   }
@@ -10384,10 +10398,14 @@ window.__senovaCopilotoSalvarCV=function(ref,cvText){
   if(!cvText) return false;
   const idx=_acharVagaRef((typeof ref==='string')?{url:ref}:ref);
   if(idx<0) return false;
-  vagas[idx].atsCV=cvText;
+  // A resposta do ATS_SYSTEM vem como [análise]---CV---[CV]. Salvar SÓ o CV — a análise nunca
+  // pode virar documento para o recrutador (era a causa do CV com "MATCH SCORE" no topo).
+  const soCV=_extrairSoCV(cvText);
+  if(!soCV) return false;
+  vagas[idx].atsCV=soCV;
   saveVagas();
   const cvTxt=document.getElementById('mv-ats-cv-txt');
-  if(cvTxt) cvTxt.value=cvText;
+  if(cvTxt) cvTxt.value=soCV;
   const docsSec=document.getElementById('mv-docs-section');
   if(docsSec) docsSec.style.display='';
   return true;
