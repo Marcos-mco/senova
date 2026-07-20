@@ -7,7 +7,7 @@ const path = require('path');
 
 const dir = __dirname;
 const arquivos = fs.readdirSync(dir)
-  .filter(f => f.endsWith('.js') && f !== 'run.js')
+  .filter(f => f.endsWith('.js') && f !== 'run.js' && !f.startsWith('_')) // _lib.js etc. são helpers, não testes
   .sort();
 
 let falharam = [];
