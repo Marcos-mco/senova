@@ -3805,7 +3805,8 @@ function copyAtsField(id,btn){
 }
 function downloadDoc() {
   if(!window.htmlDocx){alert('html-docx-js n\u00e3o carregado \u2014 recarregue a p\u00e1gina e tente novamente.');return;}
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${lastCV}</pre></body></html>`;
+  const _cvDoc=(typeof _extrairSoCV==='function')?_extrairSoCV(lastCV):(lastCV||'');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${_cvDoc}</pre></body></html>`;
   const blob=htmlDocx.asBlob(html);
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=lastCVFilename+'.docx'; a.click(); URL.revokeObjectURL(url);
@@ -3814,7 +3815,7 @@ function downloadPDF() {
   if(!window.jspdf){alert('jsPDF não carregado — tente recarregar a página.');return;}
   const {jsPDF}=window.jspdf; const doc=new jsPDF();
   doc.setFont('helvetica'); doc.setFontSize(10);
-  const linhas=doc.splitTextToSize(lastCV,180);
+  const linhas=doc.splitTextToSize((typeof _extrairSoCV==='function')?_extrairSoCV(lastCV):(lastCV||''),180);
   let y=20;
   linhas.forEach(l=>{if(y>280){doc.addPage();y=20;}doc.text(l,15,y);y+=5;});
   doc.save(lastCVFilename+'.pdf');
@@ -9962,8 +9963,11 @@ function _buildPDFExecDoc(){
   const cinzaEsc=[74,71,64];
   const cinzaCla=[138,134,128];
   const margL=15; const margR=195; const larg=180;
-  // Extrair título específico da vaga (linha 1 do lastCV) e corpo sem cabeçalho
-  const cvLinhas=(lastCV||'').split('\n');
+  // Extrair título específico da vaga (linha 1 do lastCV) e corpo sem cabeçalho.
+  // BLINDAGEM FINAL: nunca deixar a análise (MATCH SCORE/keywords/veredicto) entrar no PDF —
+  // limpa aqui também, no ponto de renderização, cubra qual for o caminho que trouxe o CV.
+  const _cvFonte=(typeof _extrairSoCV==='function')?_extrairSoCV(lastCV):(lastCV||'');
+  const cvLinhas=_cvFonte.split('\n');
   const tituloCV=cvLinhas[1]?.trim()||'Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
   let skipAte=0;
   for(let i=0;i<Math.min(8,cvLinhas.length);i++){if(cvLinhas[i].trim()===''){skipAte=i+1;break;}}
