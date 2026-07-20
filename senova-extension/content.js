@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.66
+// Content script — Senova Extension v2.67
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1076,7 +1076,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.66',
+      'SENOVA DIAG v2.67',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1149,8 +1149,11 @@
     // site de candidatura externo, OU quando há um upload de fato detectado (ex.: Easy Apply).
     // "Vaga conhecida" = qualquer referência utilizável (jobId, URL real ou empresa+cargo) —
     // exigir jobId aqui escondia CV e carta em toda vaga achada por fora do Senova.
+    // No LinkedIn Easy Apply (Candidatura Simplificada) o CV muitas vezes não expõe um input de
+    // upload visível na hora — mas você PRECISA do CV. Então oferece o CV também nesse caso.
+    let _forma = ''; try { _forma = _detectarForma(); } catch (_) {}
     const _emCandExterna = _temRefVaga() && !host.includes('linkedin.com');
-    const _temCV = _temRefVaga() && (_temUpload || _emCandExterna);
+    const _temCV = _temRefVaga() && (_temUpload || _emCandExterna || _forma === 'easyapply');
 
     let scoreHTML = '';
     const score = an ? (parseInt(an.score) || 0) : 0;
@@ -1232,17 +1235,20 @@
         <button id="snv-cop-copiardiag" style="width:100%;margin-top:7px;background:#2E6DA4;color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Copiar para enviar ao Bruno</button>
       </details>`;
 
+    // Caixa de status: só quando há algo REAL a dizer ("✓ Preenchi X, faltam Y"). No estado
+    // inicial não enche a tela com "Você revisa e envia" — o painel fica só nota + ações.
+    const statusHTML = _respondido
+      ? `<div style="margin-top:11px;padding:9px 11px;background:#F0F4F8;border-radius:7px;font-size:12.5px;color:#3A4A5A;line-height:1.5;">${rodapeHTML}</div>`
+      : '';
+    // O "Diagnóstico Senova" é ferramenta de campo (debug) — só aparece quando o copiloto NÃO
+    // achou nenhum campo (o caso que precisa de investigação). No uso normal, some.
     const _html = `
       ${scoreHTML}
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#98989D;margin-bottom:4px;">O que esta vaga pede</div>
-      ${linhas}
       ${btnHTML}
       ${btnCvHTML}
       ${btnCandHTML}
-      <div style="margin-top:12px;padding:9px 11px;background:#F0F4F8;border-radius:7px;font-size:12.5px;color:#3A4A5A;line-height:1.55;">
-        ${rodapeHTML}
-      </div>
-      ${diagHTML}`;
+      ${statusHTML}
+      ${_leuNada ? diagHTML : ''}`;
 
     // Anti-pisca: formulários que mudam o DOM o tempo todo fazem o observer chamar isto a cada
     // 0,4s. Se o conteúdo é idêntico, NÃO re-renderiza — senão o painel "pula" e o <details> do

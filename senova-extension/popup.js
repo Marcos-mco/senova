@@ -64,31 +64,69 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!dados) { mostrarEstado('generico'); return; }
 
-  // VEIO DO SENOVA? Passe fresco com card + vaga desta página é a mesma → mostra o card do Senova
-  // (score já calculado, sem reanalisar nem gastar chamada) e oferece abrir o copiloto aqui.
-  try {
-    const ps = await chrome.storage.local.get('senova_passe');
-    const passe = ps.senova_passe;
-    if (passe && passe.jobId && !passe.porFora && (Date.now() - passe.ts) < 45 * 60 * 1000) {
-      const _n = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-      const cp = _n(dados.cargo), cpasse = _n(passe.cargo);
-      const mesmaVaga = !cp || !cpasse || cp.includes(cpasse) || cpasse.includes(cp);
-      if (mesmaVaga) { renderDoSenova(passe, dados.tipo === 'vaga' ? dados : null); return; }
-    }
-  } catch (_) {}
-
+  // A EXTENSÃO ASSUME NA PÁGINA. Clicar no ícone numa vaga ativa o copiloto AQUI mesmo (o painel)
+  // e atualiza o Senova POR TRÁS — nunca abre uma telinha de botões nem manda você para o app.
+  // (Correção da "arquitetura maluca" que tirava o usuário da página para depois voltar.)
   if (dados.tipo === 'vaga' && (dados.cargo || dados.empresa)) {
     _dadosVaga = dados;
-    renderVaga(dados);
-    await analisarComCache(dados);
-  } else if (dados.tipo === 'sinal') {
+    let passe = null;
+    try {
+      const ps = await chrome.storage.local.get('senova_passe');
+      const p = ps.senova_passe;
+      if (p && p.jobId && !p.porFora && (Date.now() - p.ts) < 45 * 60 * 1000) {
+        const _n = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+        const cp = _n(dados.cargo), cpasse = _n(p.cargo);
+        if (!cp || !cpasse || cp.includes(cpasse) || cpasse.includes(cp)) passe = p;
+      }
+    } catch (_) {}
+    await assumirNaPagina(tab, dados, passe);
+    return;
+  }
+  if (dados.tipo === 'sinal') {
     renderSinal(dados);
   } else {
-    // LinkedIn obfusca classes — sugere selecionar o texto da vaga
+    // Não é vaga → a extensão não invade. Orienta (LinkedIn obfusca classes → selecionar o texto).
     const isLinkedIn = tab.url && tab.url.includes('linkedin.com');
     mostrarEstadoGenerico(isLinkedIn);
   }
 });
+
+// Ativa o copiloto na PRÓPRIA página (o painel), calcula o score se ainda não houver, garante o
+// card no Senova por trás, e fecha o popup. Sem "iniciar/abrir copiloto", sem redirecionar.
+async function assumirNaPagina(tab, dados, passe) {
+  let analise = passe
+    ? { score: passe.score, pontos_fortes: passe.compatFortes || [], pontos_atencao: passe.compatAtencao || [] }
+    : null;
+  if (!analise && dados.descricao && dados.descricao.length > 100) {
+    try {
+      const cacheKey = 'score_' + btoa(encodeURIComponent((dados.url || dados.cargo || '').slice(0, 80)));
+      const cached = await chrome.storage.session.get(cacheKey);
+      if (cached[cacheKey]) analise = cached[cacheKey];
+      else {
+        const r = await chrome.runtime.sendMessage({ type: 'ANALISAR_VAGA', payload: { titulo: dados.cargo, empresa: dados.empresa, descricao: dados.descricao } });
+        if (r && r.score != null) { analise = r; try { await chrome.storage.session.set({ [cacheKey]: r }); } catch (_) {} }
+      }
+    } catch (_) {}
+  }
+  let dominio = ''; try { dominio = new URL(tab.url).hostname.replace(/^www\./, ''); } catch (_) {}
+  const url = (passe && passe.url) || dados.url || tab.url || '';
+  const pacote = {
+    jobId: (passe && passe.jobId) || null,
+    cargo: (passe && passe.cargo) || dados.cargo || '',
+    empresa: (passe && passe.empresa) || dados.empresa || '',
+    url, score: analise?.score,
+    compatFortes: analise?.pontos_fortes || [],
+    compatAtencao: analise?.pontos_atencao || [],
+  };
+  // Atualiza o Senova POR TRÁS: cria o card se a vaga veio por fora, ou completa a descrição.
+  try {
+    await chrome.runtime.sendMessage({ type: 'COPILOTO_GARANTIR_CARD',
+      dados: { url, cargo: pacote.cargo, empresa: pacote.empresa, descricao: dados.descricao || '', score: analise?.score, canal: dominio } });
+  } catch (_) {}
+  try { await chrome.storage.local.set({ senova_passe: { ...pacote, porFora: !passe, ts: Date.now() } }); } catch (_) {}
+  try { await chrome.tabs.sendMessage(tab.id, { type: 'ATIVAR_COPILOTO', analise: pacote }); } catch (_) {}
+  window.close();
+}
 
 // ── RENDER VAGA ─────────────────────────────────────────────────────
 
