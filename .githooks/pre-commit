@@ -1,0 +1,13 @@
+#!/bin/sh
+# Rede de segurança contra regressão: roda os testes da espinha antes de cada commit.
+# Se algum falhar, o commit é BARRADO — coisa que já estava pronta não quebra calada.
+# Emergência (usar com consciência): git commit --no-verify
+
+node testes/run.js
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✗ COMMIT BARRADO — os testes da espinha falharam (acima)."
+  echo "  Conserte o que quebrou antes de commitar."
+  echo "  (emergência real: git commit --no-verify)"
+  exit 1
+fi
