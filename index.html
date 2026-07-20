@@ -3572,6 +3572,31 @@ function _estagioReativacao(v){
   if(/entrevista/.test(t)) return 'entrevista';
   return 'aplicado';
 }
+// PORTÃO ÚNICO de mudança de status do card. SEMPRE deixa rastro no histórico e aplica a trava
+// anti-sumiço (S24) ao arquivar processo real — fecha os buracos que sumiam o TV Integração
+// (drag no Kanban, arquivamento em lote, pipeline de e-mail). Retorna false se a trava barrou
+// (o chamador reverte o DOM). NÃO persiste nem redesenha: quem chama faz saveVagas()+render
+// (mesmo padrão de _marcarCandidaturaEnviada). NUNCA escrever vaga.status= direto — o guard test
+// barra. Fora do portão: migrações one-shot do loadCRM e criação de card (status inicial, sem
+// transição a rastrear).
+// opts: {motivo, texto, skipConfirm}. texto = frase pronta do chamador (senão o portão descreve).
+function setStatus(vaga,novo,opts){
+  opts=opts||{};
+  if(!vaga||!novo) return false;
+  const antes=vaga.status;
+  if(antes===novo) return true;                 // no-op: não duplica timeline nem re-registra
+  // Trava da S24 (reaproveitada, não duplicada): arquivar processo real exige confirmação.
+  if(novo==='arquivado' && !opts.skipConfirm && !_confirmarArquivarProtegido(antes,vaga.empresa)) return false;
+  vaga.status=novo;
+  vaga.updatedAt=Date.now();
+  if(!Array.isArray(vaga.timeline)) vaga.timeline=[];
+  const texto = opts.texto
+    || (novo==='arquivado' ? 'Processo arquivado'+(opts.motivo?' — '+opts.motivo:'')
+       : antes==='arquivado' ? 'Processo reativado — '+_statusLabel(novo)
+       : _statusLabel(antes)+' → '+_statusLabel(novo));
+  vaga.timeline.unshift({ts:Date.now(),texto});
+  return true;
+}
 function renderATSResult(analise,cv,crm) {
   lastCV = cv;
   lastCRM = crm;

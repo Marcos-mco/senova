@@ -25,6 +25,9 @@ const NUCLEO = [
   'function _acharVagaRef(',
   'function _extrairSoCV(',
   'function setCV(',
+  'function setStatus(',
+  'function _statusLabel(',
+  'function _confirmarArquivarProtegido(',
   'function _marcarCandidaturaEnviada(',
 ];
 
@@ -38,6 +41,9 @@ function carregarApp(extras = [], mocks = {}) {
     document: { getElementById: () => null },
     MODELOS: { rapido: 'm', analise: 'm' },
     ATS_SYSTEM: () => 'SYS', CARTA_SYSTEM: () => 'SYS',
+    _STATUS_PROTEGIDO: ['entrevista', 'proposta', 'aceito'], // usado por _confirmarArquivarProtegido
+    confirm: () => true,                                     // trava confirma por padrão; teste sobrescreve
+    alert: () => {},
     lastCV: '', lastCVFilename: '', _pdfExecBase64: () => 'FAKEB64',
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     unescape: global.unescape || (s => decodeURIComponent(s)),
@@ -52,6 +58,12 @@ function carregarApp(extras = [], mocks = {}) {
 // Chama uma função exposta em window dentro do sandbox, serializando os args.
 function chamar(sandbox, fn, args = []) {
   return vm.runInContext('window.' + fn + '(' + args.map(a => JSON.stringify(a)).join(',') + ')', sandbox);
+}
+
+// Roda uma expressão CRUA no contexto — use quando precisar da referência real (ex.: setStatus
+// muta a vaga por referência; passar por JSON perderia a mutação). Ex.: exec(s,'setStatus(vagas[0],"entrevista")').
+function exec(sandbox, expr) {
+  return vm.runInContext(expr, sandbox);
 }
 
 // Micro-assert compartilhado. Retorna um contador; o teste chama fim() no final.
@@ -69,4 +81,4 @@ function assert() {
   return { t, fim };
 }
 
-module.exports = { extrai, carregarApp, chamar, assert, html };
+module.exports = { extrai, carregarApp, chamar, exec, assert, html };
