@@ -23,7 +23,7 @@ const fontes = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _marcarCandidaturaEnviada(',
-  'function _acharVagaRef(',
+  'function _acharVagaRef(', 'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCandidaturaEnviada=function(',
   'window.__senovaDesfazerCandidatura=function(',
 ].map(extrai).join('\n;\n');
