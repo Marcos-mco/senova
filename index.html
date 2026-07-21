@@ -3888,11 +3888,10 @@ async function candidatarVagaATS(){
   const hoje=dataAtualFormatada();
   const carta=document.getElementById('ats-carta-txt')?.value||'';
   if(idx>=0){
-    vagas[idx].status='aplicado';
+    setStatus(vagas[idx],'aplicado',{skipConfirm:true,texto:'CV enviado (registrado na Análise CV)'});
     vagas[idx].proxima='Aguardar retorno — follow-up em 7 dias';
     if(notasAts)vagas[idx].notas=notasAts;
     vagas[idx].data=hoje;
-    vagas[idx].updatedAt=Date.now();
   }else{
     const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'',proxima:'Aguardar retorno — follow-up em 7 dias',notas:notasAts,data:hoje,createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});
   }
@@ -3921,14 +3920,11 @@ function declinarVagaATS() {
   const notas = [score?'Match ATS: '+score+'/100':'','Declinada'].filter(Boolean).join(' — ');
   const hoje  = dataAtualFormatada();
   if(idx>=0) {
-    // Trava: nunca arquiva um processo real sem confirmação; sempre deixa rastro.
-    if(!_confirmarArquivarProtegido(vagas[idx].status, vagas[idx].empresa)) return;
-    vagas[idx].status='arquivado';
+    // setStatus aplica a trava (processo real pede confirmação) e deixa rastro. Se barrar, não declina.
+    if(!setStatus(vagas[idx],'arquivado',{texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')})) return;
     vagas[idx].proxima='Declinada';
     vagas[idx].notas=notas;
     vagas[idx].data=hoje;
-    vagas[idx].updatedAt=Date.now();
-    vagas[idx].timeline=[...(vagas[idx].timeline||[]),{ts:Date.now(),texto:'Declinada via Análise CV'+(score?' — score '+score+'/100':'')}];
     saveVagas();
   } else if(atsEmpresa||atsCargo) {
     const _t=Date.now();
@@ -4875,7 +4871,7 @@ function loadCRM(){
       // para TRIAGEM (Para Considerar). Não apaga nada; só toca em quem está em 'lead'
       // (promovidos/manuais intactos). Os que já passam o Critério voltam sozinhos via
       // _reavaliarTriagem() quando a config carrega.
-      vagas.forEach(v=>{ if(v.fonte==='email_alerta'&&v.status==='lead'){ v.status='triagem'; } });
+      vagas.forEach(v=>{ if(v.fonte==='email_alerta'&&v.status==='lead'){ v.status='triagem'; } }); // [status-ok] migração one-shot do loadCRM (em massa, sem transição de usuário)
       localStorage.setItem('senova_migration_email_triagem_v1','1');
     }
     try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
@@ -8405,7 +8401,7 @@ async function verificarVagasVarredura(){
         // Vaga de e-mail vai para TRIAGEM (Para Considerar), não polui o Kanban nem
         // as contagens. Enriquece/pontua igual (status incluído no enriquecimento) e
         // auto-promove sozinha quando a Compatibilidade atinge o Critério da região.
-        if(v.fonte==='email_alerta') card.status='triagem';
+        if(v.fonte==='email_alerta') card.status='triagem'; // [status-ok] status INICIAL de card novo (não é transição)
         else auto++;
         vagas.push(card);
       });
@@ -9094,7 +9090,7 @@ function _marcarCandidaturaEnviada(v,texto){
   const dd=String(fu.getDate()).padStart(2,'0');
   const mm=String(fu.getMonth()+1).padStart(2,'0');
   const fuStr=`${dd}/${mm}/${fu.getFullYear()}`;
-  v.status='aplicado';
+  v.status='aplicado'; // [status-ok] _marcarCandidaturaEnviada: já escreve timeline própria (CV enviado + follow-up) logo abaixo
   v.proxima='Follow-up — verificar retorno';
   v.data=fuStr;
   v.updatedAt=ts;
@@ -10230,7 +10226,7 @@ window.__senovaDesfazerCandidatura=function(ref){
   if(idx<0) return false;
   const v=vagas[idx];
   if(v.status!=='aplicado') return false; // só reverte o que o copiloto acabou de marcar
-  v.status='lead';
+  v.status='lead'; // [status-ok] __senovaDesfazerCandidatura: revert que REMOVE timeline (o oposto de adicionar rastro)
   if(v.proxima==='Follow-up — verificar retorno') v.proxima='';
   v.data='';
   v.updatedAt=Date.now();

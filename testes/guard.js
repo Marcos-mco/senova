@@ -31,9 +31,17 @@ checar('nenhuma escrita direta de atsCV fora de setCV()',
   /\.atsCV\s*=(?!=)/,
   (l) => /function\s+setCV/.test(l));
 
+console.log('\n=== GUARD: o status só muda pelo portão setStatus ===');
+// escrita de status com literal (o perigoso — sumiço de card). Permitido: a definição de
+// setStatus (que escreve status=novo, variável) e pontos legítimos marcados [status-ok]
+// (migração one-shot, criação de card, revert). Todo o resto passa por setStatus.
+checar('nenhuma escrita direta de status fora de setStatus (ou marcada [status-ok])',
+  /\.status\s*=\s*['"]/,
+  (l) => /\[status-ok\]/.test(l) || /function\s+setStatus/.test(l));
+
 console.log('\n──────────────────────────────');
 if (falhou) {
-  console.log('✗ GUARD FALHOU — use o portão. setCV(vaga, texto) sempre limpa a análise antes de gravar.');
+  console.log('✗ GUARD FALHOU — use o portão certo: setCV(vaga,texto) para o CV, setStatus(vaga,novo,opts) para o status. Pontos legítimos fora do portão levam o marcador [status-ok] com o motivo.');
   process.exit(1);
 }
 console.log('✓ Invariantes de arquitetura respeitadas.');
