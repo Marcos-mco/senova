@@ -1,11 +1,26 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 21/jul/2026 — Sessão 33 · CV: portão único (setCV/setStatus + guard + pre-commit) + diagramação final do PDF pelo Brand Book, aprovada e commitada
+> Última atualização: 21/jul/2026 — Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill_qa_cv.md)
 > ⚠️ Histórico completo e canônico vive em `VIRGILIO.md`. Este topo reflete o estado REAL.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **pushado, sem pendência de teste** (Marcos aprovou o PDF real antes do commit)
+Senova app — produção em marcos-mco.github.io/senova · **pushado; aguarda Marcos abrir os 2 PDFs de preview (Fase 3 do skill_qa.md)**
 Extensão **v2.66** (sem alteração nesta sessão). Worker **v7.12** (sem alteração).
-Último commit `53740ed`. Commits da S33: `328e316` (fecha a pendência da S31: Editel + data Consigliere) · `70df845` (cabeçalho do PDF sem duplicação) · `6166514`→`a04f0ba` (portão `setCV`/`setStatus` + guard + pre-commit hook — a arquitetura anti-regressão) · `8e820b3` (estrutura `_cvParaPDF`: fatos do perfil + adaptação da IA) · `53740ed` (diagramação Brand Book no PDF + fix de bloco órfão).
+Último commit `7c28a95`. Commits da S34: `0daa596` (versiona backup pendente do Worker v7.9) · `7c28a95` (curadoria nível-aware `_nivelAlvoPDF`/`_cvParaPDF` + `skill_qa_cv.md`).
+
+---
+
+## SESSÃO 34 — CV: FECHA AS 2 PENDÊNCIAS DA S33 (21/jul)
+
+Marcos: "Nada pendente. Termine 1 e 2."
+
+- **Curadoria nível-aware:** `_nivelAlvoPDF(cargoVaga)` classifica o cargo-alvo por regex na taxonomia de `PERFIL_MARCOS` (c-level/diretoria/gerencial/...); `_cvParaPDF` usa isso pra aplicar a regra já existente em `skill_cv.md` ("1 página até Gerente Sênior, 2 páginas C-Level") — nunca implementada até agora. Medido com jsPDF real no scratchpad: 9 experiências = sempre 2 páginas; pra caber em 1 mostra as 5 mais recentes, bullets completos só nas 2 mais recentes. Nível ambíguo/vazio nunca corta (default seguro). RPC nos 2 cargos preservado em qualquer cenário.
+- **`skill_qa_cv.md`** novo — formaliza os 5 eixos (veracidade, ATS, ortografia, adequação à vaga, design) pra rodar antes de qualquer candidatura real.
+- 9 testes novos em `testes/cv_estrutura.js` (26/26 · 148 casos na suíte inteira).
+- Aproveitado pra versionar um backup de Worker pendente de sessão anterior.
+
+**Pedido de teste a Marcos:** `PREVIEW_gerencial_1pag.pdf` e `PREVIEW_diretoria_2pag.pdf` na raiz do projeto (não commitados) — confirmar visualmente a versão de 1 página.
+
+Ver `VIRGILIO.md` (Sessão 34) para o detalhamento técnico completo.
 
 ---
 
@@ -19,7 +34,7 @@ Extensão **v2.66** (sem alteração nesta sessão). Worker **v7.12** (sem alter
 - **Diagramação final pelo Brand Book** (`skill_design_senova.md`+`DESIGN_SYSTEM.md`+`skill_cv.md`): mockup aprovado por Marcos, depois construído em 2 fases — `_cvParaPDF` (fatos do `PERFIL_MARCOS` + adaptação da IA por vaga) e `_buildPDFExecDoc` reescrito (Playfair Display 700 embutido só no nome, corpo Helvetica, navy+dourado). Validado com jsPDF real + extração de texto (prova ATS: texto vetorial, nunca imagem). Marcos aprovou o PDF real, pediu 1 ajuste (bloco de experiência nunca quebra deixando bullet órfão) — corrigido e revalidado.
 - Pushado para produção (`origin/main`).
 
-**NÃO fechado:** QA final do CV (skill/agente cobrindo veracidade+ATS+ortografia+design) que Marcos pediu explicitamente — ainda não construído. Curadoria de quantas experiências entram no PDF (hoje 9, vira 2 páginas) — decisão de conteúdo de Marcos, separada da diagramação.
+**Fechado na S34** — QA final do CV (`skill_qa_cv.md`) e curadoria de experiências (`_nivelAlvoPDF`).
 
 Ver `VIRGILIO.md` (Sessão 33) para o detalhamento técnico completo.
 
