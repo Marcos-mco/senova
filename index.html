@@ -9975,6 +9975,30 @@ function enviarCVModal(){
 // ═══════════════════════════════════════════════
 //  PDF EXECUTIVO (design navy/dourado)
 // ═══════════════════════════════════════════════
+// Separa CABEÇALHO e CORPO do CV para o PDF. O cabeçalho navy já traz nome + contato FIXOS —
+// então o subtítulo NÃO pode ser o contato (senão duplica). Título = a 1ª linha que seja um
+// título profissional (não nome, não contato, não seção); se não houver, o padrão. Corpo =
+// a partir da 1ª seção real (Resumo/Competências/Experiência…), pulando todo o cabeçalho do CV.
+// Testável sem jsPDF (testes/cv_pdf.js) — foi o buraco que deixou o cabeçalho duplicado passar.
+function _pdfCabecalhoCorpo(cvTexto){
+  const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto):(cvTexto||'');
+  const linhas=cv.split('\n');
+  const _ehContato=s=>/@|linkedin|\(\d{2}\)|\d{4}[-\s.]?\d{4}/i.test(s||'');
+  const _ehNome=s=>/^marcos\s+franco\s*$/i.test((s||'').trim());
+  const _ehSecao=s=>/^(resumo|compet[êe]ncias|experi[êe]ncia|forma[çc][ãa]o|idiomas?|perfil|objetivo)/i.test((s||'').trim());
+  let titulo='';
+  for(let i=0;i<Math.min(6,linhas.length);i++){
+    const t=(linhas[i]||'').trim();
+    if(!t) continue;
+    if(_ehSecao(t)) break;                 // chegou ao corpo sem achar um título
+    if(_ehNome(t)||_ehContato(t)) continue; // pula nome e contato
+    titulo=t; break;
+  }
+  if(!titulo) titulo='Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
+  let ini=linhas.findIndex(l=>_ehSecao(l));
+  if(ini<0){ ini=0; for(let i=0;i<Math.min(8,linhas.length);i++){if(!linhas[i].trim()){ini=i+1;break;}} }
+  return {titulo, corpo:linhas.slice(ini).join('\n')};
+}
 function _buildPDFExecDoc(){
   if(!window.jspdf){alert('jsPDF nao carregado.');return null;}
   const {jsPDF}=window.jspdf;
@@ -9988,12 +10012,7 @@ function _buildPDFExecDoc(){
   // Extrair título específico da vaga (linha 1 do lastCV) e corpo sem cabeçalho.
   // BLINDAGEM FINAL: nunca deixar a análise (MATCH SCORE/keywords/veredicto) entrar no PDF —
   // limpa aqui também, no ponto de renderização, cubra qual for o caminho que trouxe o CV.
-  const _cvFonte=(typeof _extrairSoCV==='function')?_extrairSoCV(lastCV):(lastCV||'');
-  const cvLinhas=_cvFonte.split('\n');
-  const tituloCV=cvLinhas[1]?.trim()||'Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
-  let skipAte=0;
-  for(let i=0;i<Math.min(8,cvLinhas.length);i++){if(cvLinhas[i].trim()===''){skipAte=i+1;break;}}
-  const cvCorpo=cvLinhas.slice(skipAte).join('\n');
+  const {titulo:tituloCV, corpo:cvCorpo}=_pdfCabecalhoCorpo(lastCV);
   let y=0;
 
   // Cabecalho navy
