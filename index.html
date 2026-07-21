@@ -5115,8 +5115,7 @@ function _reavaliarTriagem(){
   let mudou=false;
   vagas.forEach(v=>{
     if(v.status==='triagem'&&typeof v.score==='number'&&v.score>0&&v.score>=_criterioParaVaga(v)){
-      v.status='lead'; v.updatedAt=Date.now();
-      v.timeline=[...(v.timeline||[]),{ts:Date.now(),texto:`Promovida para Oportunidade (${classificacaoDoScore(v.score)?.titulo||'Compatível'})`}];
+      setStatus(v,'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(v.score)?.titulo||'Compatível'})`});
       mudou=true;
     }
   });
@@ -5275,16 +5274,14 @@ function renderWidgetRevisao(){
 function _promoverTriagem(id){
   const idx=vagas.findIndex(v=>String(v.id)===String(id)&&v.status==='triagem');
   if(idx<0) return;
-  vagas[idx].status='lead'; vagas[idx].updatedAt=Date.now();
-  vagas[idx].timeline=[...(vagas[idx].timeline||[]),{ts:Date.now(),texto:'Enviada para Processos'}];
+  setStatus(vagas[idx],'lead',{skipConfirm:true,texto:'Enviada para Processos'});
   saveVagas(); aplicarFiltros(); renderWidgetRevisao();
   showToast('✅ Enviada para Processos');
 }
 function _descartarTriagem(id){
   const idx=vagas.findIndex(v=>String(v.id)===String(id)&&v.status==='triagem');
   if(idx<0) return;
-  vagas[idx].status='arquivado'; vagas[idx].updatedAt=Date.now();
-  vagas[idx].timeline=[...(vagas[idx].timeline||[]),{ts:Date.now(),texto:'Descartada em Para Considerar'}];
+  setStatus(vagas[idx],'arquivado',{skipConfirm:true,texto:'Descartada em Para Considerar'});
   saveVagas(); renderWidgetRevisao();
 }
 function _pcToggleTodas(on){ document.querySelectorAll('#home-revisao-lista .pc-cb').forEach(cb=>cb.checked=on); }
@@ -5294,7 +5291,7 @@ function _pcEnviarSelecionadas(){
   let n=0;
   cbs.filter(cb=>cb.dataset.type==='triagem').forEach(cb=>{
     const i=vagas.findIndex(v=>String(v.id)===String(cb.dataset.id)&&v.status==='triagem');
-    if(i>=0){ vagas[i].status='lead'; vagas[i].updatedAt=Date.now(); vagas[i].timeline=[...(vagas[i].timeline||[]),{ts:Date.now(),texto:'Enviada para Processos'}]; n++; }
+    if(i>=0){ setStatus(vagas[i],'lead',{skipConfirm:true,texto:'Enviada para Processos'}); n++; }
   });
   // varredura: reler lista e remover do MAIOR índice p/ o menor (splice não bagunça)
   const idxs=cbs.filter(cb=>cb.dataset.type==='revisao').map(cb=>parseInt(cb.dataset.idx)).sort((a,b)=>b-a);
@@ -5380,7 +5377,7 @@ function descartarTodasRejeitadas(){
   if(nT>0 && !confirm(`Descartar as ${nT} vaga(s) em Para Considerar? Vão para Arquivados — recuperáveis, nada é perdido.`)) return;
   try{ localStorage.removeItem(_REVISAO_KEY); }catch{}
   const agora=Date.now();
-  vagas.forEach(v=>{ if(v.status==='triagem'){ v.status='arquivado'; v.updatedAt=agora; v.timeline=[...(v.timeline||[]),{ts:agora,texto:'Descartada em Para Considerar'}]; } });
+  vagas.forEach(v=>{ if(v.status==='triagem'){ setStatus(v,'arquivado',{skipConfirm:true,texto:'Descartada em Para Considerar'}); } });
   if(nT>0) saveVagas();
   renderWidgetRevisao();
 }
@@ -5799,9 +5796,7 @@ function limpezaExpressa(){
   const exemplos=candidatos.slice(0,3).map(v=>v.empresa||'—').join(', ')+(n>3?` e mais ${n-3}`:'');
   if(!confirm(`Arquivar ${n} oportunidade${n>1?'s':''} sem atualização há 60+ dias?\n\nExemplos: ${exemplos}\n\nVocê poderá ver os arquivados nos Processos a qualquer momento.`)) return;
   candidatos.forEach(v=>{
-    v.status='arquivado'; v.updatedAt=agora;
-    if(!v.timeline) v.timeline=[];
-    v.timeline.push({ts:agora,texto:'Arquivado via Limpeza Expressa (60+ dias inativo)'});
+    setStatus(v,'arquivado',{skipConfirm:true,texto:'Arquivado via Limpeza Expressa (60+ dias inativo)'});
   });
   saveVagas();
   atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); _avaliarLimpezaCard();
@@ -8473,8 +8468,7 @@ async function analisarLoteBackground(){
       if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
       // Auto-promover: triagem que atinge o Critério da região entra em Oportunidade.
       if(vagas[idx].status==='triagem'&&typeof data.score==='number'&&data.score>=_criterioParaVaga(vagas[idx])){
-        vagas[idx].status='lead';
-        vagas[idx].timeline=[...(vagas[idx].timeline||[]),{ts:Date.now(),texto:`Promovida para Oportunidade (${classificacaoDoScore(data.score)?.titulo||'Compatível'})`}];
+        setStatus(vagas[idx],'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(data.score)?.titulo||'Compatível'})`});
       }
       saveVagas();
       renderCRM();
