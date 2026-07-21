@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 21/jul/2026 — **Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill de QA final)**.*
+*Atualizado: 21/jul/2026 — **Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill de QA final) — aprovado por Marcos**.*
 
 ***SESSÃO 34 (21/jul):** Marcos: "Nada pendente. Termine 1 e 2" — fechar as 2 pendências deixadas em aberto na S33.
 
@@ -9,7 +9,7 @@
 
 9 testes novos em `testes/cv_estrutura.js` (26/26 no arquivo, 148 casos na suíte inteira). Commit `7c28a95`, pushado. Também aproveitada a auditoria pra versionar um backup de Worker (`senova-worker_v7.9...`) que tinha ficado pendente de uma sessão anterior (commit `0daa596`).
 
-**Pedido de teste a Marcos (Fase 3 do `skill_qa.md`):** os PDFs `PREVIEW_gerencial_1pag.pdf` e `PREVIEW_diretoria_2pag.pdf` estão na raiz do projeto (não commitados, são só review) — abrir os dois e confirmar visualmente que a versão de 1 página não ficou "pobre demais" e que a compactação (3 experiências sem bullets) ainda passa credibilidade. Se aprovar, os arquivos podem ser apagados.
+**Aprovado por Marcos (mesmo dia):** revisou os dois PDFs de preview e confirmou — formatação muito boa. Corrigiu um ponto: "não devemos ter 2 CV como raiz [padrão fixo]... o que manda é a vaga" — já é exatamente assim (`_nivelAlvoPDF` deriva do `atsCargo` da vaga, nunca um valor fixo de 1 ou 2 páginas); não havia gap, só confirmação do desenho. Os PDFs de preview foram apagados da raiz do projeto (eram só review, nunca fizeram parte do app).
 
 ***SESSÃO 33 (21/jul):** Terceira/quarta sessão seguida travada em regressão no CV (Marcos: *"voltamos a errar coisas que já estavam prontas"*) — desta vez o PDF gerado pela extensão mostrava a ANÁLISE interna (MATCH SCORE, keywords "a inserir", veredicto) no topo, o que nunca pode chegar a um recrutador. Causa raiz: o texto do CV (`atsCV`) e o status do card eram escritos em dezenas de pontos espalhados pelo código, cada um podendo esquecer de limpar a análise ou disparar uma transição sem rastro (era a mesma classe de bug que já tinha sumido o card TV Integração na S24).
 

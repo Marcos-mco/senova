@@ -1,11 +1,11 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 21/jul/2026 — Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill_qa_cv.md)
+> Última atualização: 21/jul/2026 — Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill_qa_cv.md) — aprovado por Marcos
 > ⚠️ Histórico completo e canônico vive em `VIRGILIO.md`. Este topo reflete o estado REAL.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **pushado; aguarda Marcos abrir os 2 PDFs de preview (Fase 3 do skill_qa.md)**
+Senova app — produção em marcos-mco.github.io/senova · **pushado; aprovado por Marcos**
 Extensão **v2.66** (sem alteração nesta sessão). Worker **v7.12** (sem alteração).
-Último commit `7c28a95`. Commits da S34: `0daa596` (versiona backup pendente do Worker v7.9) · `7c28a95` (curadoria nível-aware `_nivelAlvoPDF`/`_cvParaPDF` + `skill_qa_cv.md`).
+Último commit `bf1628d`. Commits da S34: `0daa596` (versiona backup pendente do Worker v7.9) · `7c28a95` (curadoria nível-aware `_nivelAlvoPDF`/`_cvParaPDF` + `skill_qa_cv.md`) · `bf1628d` (docs: fecha S34).
 
 ---
 
@@ -18,7 +18,7 @@ Marcos: "Nada pendente. Termine 1 e 2."
 - 9 testes novos em `testes/cv_estrutura.js` (26/26 · 148 casos na suíte inteira).
 - Aproveitado pra versionar um backup de Worker pendente de sessão anterior.
 
-**Pedido de teste a Marcos:** `PREVIEW_gerencial_1pag.pdf` e `PREVIEW_diretoria_2pag.pdf` na raiz do projeto (não commitados) — confirmar visualmente a versão de 1 página.
+**Aprovado por Marcos:** revisou os 2 PDFs de preview — formatação muito boa. Confirmou que a lógica já é guiada pela vaga ("o que manda é a vaga"), não um valor fixo — exatamente o que `_nivelAlvoPDF` faz. PDFs de preview apagados da raiz (nunca fizeram parte do app).
 
 Ver `VIRGILIO.md` (Sessão 34) para o detalhamento técnico completo.
 

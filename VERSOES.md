@@ -7,13 +7,13 @@
 
 ---
 
-## Sessão 34 — 21jul/2026 (ATUAL — CV: curadoria nível-aware + skill de QA final)
-**Status:** fechado e pushado (`7c28a95`). Fecha as 2 pendências deixadas em aberto na S33.
+## Sessão 34 — 21jul/2026 (ATUAL — CV: curadoria nível-aware + skill de QA final — APROVADO por Marcos)
+**Status:** fechado, pushado (`7c28a95`, docs `bf1628d`) e aprovado por Marcos. Fecha as 2 pendências deixadas em aberto na S33.
 
 - `_nivelAlvoPDF(cargoVaga)` novo: classifica o cargo-alvo por regex na taxonomia de `PERFIL_MARCOS`. `_cvParaPDF` aplica a regra já existente em `skill_cv.md` ("1 página até Gerente Sênior, 2 páginas C-Level") — nunca tinha sido implementada. Medido com jsPDF real: 9 experiências = sempre 2 páginas; caber em 1 = 5 experiências, bullets completos só nas 2 mais recentes. Nível ambíguo/vazio nunca corta.
 - `skill_qa_cv.md` novo: 5 eixos (veracidade/ATS/ortografia/adequação à vaga/design), uso sob demanda antes de candidatura real.
 - 9 testes novos em `testes/cv_estrutura.js` (26/26 · 148 casos na suíte inteira).
-- **Pendente de teste:** Marcos abrir `PREVIEW_gerencial_1pag.pdf`/`PREVIEW_diretoria_2pag.pdf` (raiz do projeto, não commitados) e confirmar a versão de 1 página.
+- **Aprovado por Marcos:** formatação muito boa; confirmou que o número de páginas é sempre guiado pela vaga (`atsCargo`), nunca fixo. PDFs de preview (raiz do projeto, não commitados) apagados após a revisão.
 
 ---
 
