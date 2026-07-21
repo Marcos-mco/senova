@@ -10020,7 +10020,21 @@ function _secaoDoCV(cv,re){
 // vêm ESTRUTURADOS do PERFIL_MARCOS — sem parser frágil. ADAPTAÇÃO por vaga (subtítulo, resumo,
 // competências) é extraída do CV da IA, com fallback ao perfil. O gerador diagrama pelo Brand Book.
 // Testável sem jsPDF (testes/cv_estrutura.js) — o buraco de QA que deixou o cabeçalho errado passar.
-function _cvParaPDF(textoVaga, cvTexto){
+// Classifica o cargo-alvo (texto livre, ex.: "Gerente Comercial") num nível da taxonomia de
+// PERFIL_MARCOS. Some sem sinal claro (string vazia) — nunca corta por dúvida, só por confirmação.
+function _nivelAlvoPDF(cargoVaga){
+  const s=String(cargoVaga||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(/\b(ceo|cmo|cso|coo|cfo|cro|cto|presidente|vice[- ]?presidente|vp|c-level|founder|socio)\b/.test(s)) return 'c-level';
+  if(/\b(diretor|diretora|head|director)\b/.test(s)) return 'diretoria';
+  if(/\b(gerente|coordenador|supervisor|especialista|analista)\b/.test(s)) return 'gerencial';
+  return '';
+}
+// Regra aprovada em skill_cv.md: 1 página até Gerente Sênior, 2 páginas para C-Level/Diretoria — mas
+// nunca inventar/apagar fatos, só decide QUANTO aparece neste documento. Medido com jsPDF real
+// (scratchpad, S34): 9 experiências = sempre 2 páginas; p/ caber em 1 mantendo o máximo de trajetória
+// visível, mostra as 5 mais recentes e detalha (bullets) só as 2 mais recentes — as demais viram
+// linha compacta (cargo · empresa · período, sem bullets). Fatos completos continuam em PERFIL_MARCOS.
+function _cvParaPDF(textoVaga, cvTexto, cargoVaga){
   const c=PERFIL_MARCOS.contato;
   const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto||''):(cvTexto||'');
   const linhas=cv.split('\n').map(l=>l.trim()).filter(Boolean);
@@ -10030,10 +10044,13 @@ function _cvParaPDF(textoVaga, cvTexto){
   let subtitulo='';
   for(const l of linhas){ if(_ehNome(l)||_ehContato(l)) continue; if(_ehSecao(l)) break; subtitulo=l; break; }
   if(!subtitulo) subtitulo='Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
-  const exps=filtrarExperienciasRelevantes(textoVaga||'','').map(e=>({
+  const nivelAlvo=_nivelAlvoPDF(cargoVaga);
+  let expsFiltradas=filtrarExperienciasRelevantes(textoVaga||'','');
+  if(nivelAlvo==='gerencial') expsFiltradas=expsFiltradas.slice(0,5);
+  const exps=expsFiltradas.map((e,idx)=>({
     cargo:e.cargo, empresa:e.empresa, local:e.local||'',
     periodo:`${_mesLabelPDF(e.inicio)} – ${_mesLabelPDF(e.fim)}`,
-    bullets:(e.bullets||[]).slice()
+    bullets:(nivelAlvo==='gerencial' && idx>=2)?[]:(e.bullets||[]).slice()
   }));
   return {
     nome:c.nome, subtitulo, contato:`${c.telefone} · ${c.email} · ${c.linkedin}`,
@@ -10069,7 +10086,7 @@ function _buildPDFExecDoc(){
   const ink2=[74,71,64], ink3=[138,134,128], hair=[231,227,218];
   const margL=18, margR=192, larg=192-18; // 174mm úteis
   const cor=(c)=>doc.setTextColor(c[0],c[1],c[2]);
-  const cv=_cvParaPDF(lastCV, lastCV); // fatos do perfil + adaptação da IA (limpa análise vazada)
+  const cv=_cvParaPDF(lastCV, lastCV, atsCargo); // fatos do perfil + adaptação da IA (limpa análise vazada); atsCargo calibra 1 vs 2 páginas
   let y=22;
   const quebraSe=(h)=>{ if(y+h>282){ doc.addPage(); y=22; } };
 
