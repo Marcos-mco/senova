@@ -7,7 +7,17 @@
 
 ---
 
-## Sessão 31 — 16jul/2026 (ATUAL — correção de dados do Virgílio, aguarda teste de Marcos)
+## Sessão 33 — 21jul/2026 (ATUAL — CV: portão único + diagramação final pelo Brand Book)
+**Status:** fechado e pushado. Correção pendente da S31 (Editel + data Consigliere) commitada em `328e316`. Arquitetura anti-regressão (`setCV`/`setStatus` + guard + pre-commit hook) fecha o vazamento de análise no PDF que travou 3-4 sessões seguidas. Diagramação final do PDF Executivo pelo Brand Book, aprovada por Marcos comparando com o CV de referência dele.
+
+- `_cvParaPDF` (`8e820b3`): estrutura do CV separa FATOS (`PERFIL_MARCOS` via `filtrarExperienciasRelevantes` — cargos/empresas/datas/bullets, nunca inventados pela IA) de ADAPTAÇÃO (subtítulo/resumo/competências extraídos do CV da IA, com fallback ao perfil).
+- `_buildPDFExecDoc` reescrito (`53740ed`): desenha bloco a bloco (não mais texto corrido). Playfair Display 700 embutido só no nome (~54KB, subset latin — TTF completo pesava 300KB, descartado por peso). Corpo/títulos em Helvetica nativa, navy+dourado. Validado com jsPDF real (Node) + extração de texto de volta: prova de ATS (texto vetorial, nunca imagem).
+- Fix pós-aprovação (mesmo commit): bloco de experiência (cargo+empresa+período+bullets) mede a própria altura antes de desenhar — nunca deixa um bullet órfão isolado ao quebrar página.
+- **Pendente:** QA final do CV (skill+agente cobrindo veracidade/ATS/ortografia/design) que Marcos pediu — ainda não construído. Curadoria de quantas experiências entram no CV (hoje 9 → 2 páginas) — decisão de conteúdo em aberto.
+
+---
+
+## Sessão 31 — 16jul/2026 (correção de dados do Virgílio — fechada em `328e316`)
 **Status:** check-up confirmou que a migração `PERFIL_MARCOS` (S30) já está commitada (`03b9f14`) e completa — `ATS_SYSTEM` de 2 estágios, `CARTA_SYSTEM`/`EMAIL_ENVIO_SYSTEM` já usando `perfilFormatadoPara`. Corrigidos 2 dados incorretos apontados pelo Virgílio:
 
 - **Editel 1996–2001:** id trocado de `editel-gerente-nacional` para `editel-gerente-producao`, cargo de "Gerente Nacional de Produção" para "Gerente de Produção Gráfica", bullets substituídos pelos 2 fatos confirmados por Marcos (transição analógico→digital em computação gráfica/Macintosh/color management + autogestão -73% mão de obra/+240% produção).

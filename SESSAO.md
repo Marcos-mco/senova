@@ -1,11 +1,27 @@
 # SESSAO.md — Estado Vivo
-> Última atualização: 16/jul/2026 — Sessão 31 · Virgílio: correção de 2 dados no `PERFIL_MARCOS` (Editel + data Consigliere)
+> Última atualização: 21/jul/2026 — Sessão 33 · CV: portão único (setCV/setStatus + guard + pre-commit) + diagramação final do PDF pelo Brand Book, aprovada e commitada
 > ⚠️ Histórico completo e canônico vive em `VIRGILIO.md`. Este topo reflete o estado REAL.
 
 ## VERSÃO ATUAL
-Senova app — produção em marcos-mco.github.io/senova · **working tree com correção de dados, ainda NÃO commitada — aguarda teste de Marcos**
+Senova app — produção em marcos-mco.github.io/senova · **pushado, sem pendência de teste** (Marcos aprovou o PDF real antes do commit)
 Extensão **v2.66** (sem alteração nesta sessão). Worker **v7.12** (sem alteração).
-Último commit `baef9b2`. Commits da S30: `2ba3b51` (CV PDF+docx na rota externa) · `da4e998` (carta) · `61a7211` (**registro do envio nos 2 caminhos**) · `03b9f14` (**PERFIL_MARCOS — do Virgílio; commitado a pedido de Marcos, NÃO revisado pelo Bruno**) · `668b238` (auto-reload) · `57f922e` (**CV/carta/card fora do LinkedIn**) · `baef9b2` (**83 testes**).
+Último commit `53740ed`. Commits da S33: `328e316` (fecha a pendência da S31: Editel + data Consigliere) · `70df845` (cabeçalho do PDF sem duplicação) · `6166514`→`a04f0ba` (portão `setCV`/`setStatus` + guard + pre-commit hook — a arquitetura anti-regressão) · `8e820b3` (estrutura `_cvParaPDF`: fatos do perfil + adaptação da IA) · `53740ed` (diagramação Brand Book no PDF + fix de bloco órfão).
+
+---
+
+## SESSÃO 33 — CV: PORTÃO ÚNICO + DIAGRAMAÇÃO FINAL PELO BRAND BOOK (21/jul)
+
+**O bug:** PDF gerado pela extensão mostrava a análise interna (MATCH SCORE, keywords, veredicto) no topo — nunca pode chegar a um recrutador. 3ª/4ª sessão seguida travada em regressão do CV; Marcos pediu algo **preventivo**, não mais corretivo.
+
+**Fechado:**
+- `setCV()`/`setStatus()` — portões únicos por onde TODO texto de CV e mudança de status passam (10 + 7 pontos migrados). `testes/guard.js` varre o `index.html` e barra qualquer escrita direta fora do portão. `.githooks/pre-commit` roda a suíte inteira (8 arquivos, 148 casos) antes de qualquer commit.
+- Cabeçalho do PDF sem duplicação de contato (`_pdfCabecalhoCorpo`).
+- **Diagramação final pelo Brand Book** (`skill_design_senova.md`+`DESIGN_SYSTEM.md`+`skill_cv.md`): mockup aprovado por Marcos, depois construído em 2 fases — `_cvParaPDF` (fatos do `PERFIL_MARCOS` + adaptação da IA por vaga) e `_buildPDFExecDoc` reescrito (Playfair Display 700 embutido só no nome, corpo Helvetica, navy+dourado). Validado com jsPDF real + extração de texto (prova ATS: texto vetorial, nunca imagem). Marcos aprovou o PDF real, pediu 1 ajuste (bloco de experiência nunca quebra deixando bullet órfão) — corrigido e revalidado.
+- Pushado para produção (`origin/main`).
+
+**NÃO fechado:** QA final do CV (skill/agente cobrindo veracidade+ATS+ortografia+design) que Marcos pediu explicitamente — ainda não construído. Curadoria de quantas experiências entram no PDF (hoje 9, vira 2 páginas) — decisão de conteúdo de Marcos, separada da diagramação.
+
+Ver `VIRGILIO.md` (Sessão 33) para o detalhamento técnico completo.
 
 ---
 
@@ -16,7 +32,7 @@ Check-up confirmou que a migração da S30 (`filtrarExperienciasRelevantes` + `A
 - **Editel 1996–2001** (`index.html`): id `editel-gerente-nacional`→`editel-gerente-producao`, cargo "Gerente Nacional de Produção"→"Gerente de Produção Gráfica", bullets trocados pelos 2 fatos confirmados por Marcos (transição analógico→digital/Macintosh/color management + autogestão -73%/+240%).
 - **Consigliere — data de início** (achado no teste, não no pedido original): código e os 2 docs de referência diziam dez/2025; o pedido do Virgílio presumia nov/2025. Perguntei a Marcos — confirmou **nov/2025**. Corrigido em 6 lugares: `PERFIL_MARCOS` + `CV_BASE` (PT/EN/ES) no `index.html`, e `PERFIL_MARCOS.md` + `CONTEXTO_SESSAO.md`.
 - Validado rodando `filtrarExperienciasRelevantes` de verdade (Node, sem browser) numa vaga sintética de Gerente Geral (Bahia, bens de consumo): ordem cronológica reversa correta, Sócio-Fundador presente, Editel e Consigliere com os dados certos. `api.anthropic.com` = 0 resultados no `index.html`.
-- **Não commitado ainda** — aguarda Marcos revisar o resumo e aprovar.
+- **Fechado na S33** — aprovado e commitado em `328e316`.
 
 ---
 
