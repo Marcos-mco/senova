@@ -9999,6 +9999,51 @@ function _pdfCabecalhoCorpo(cvTexto){
   if(ini<0){ ini=0; for(let i=0;i<Math.min(8,linhas.length);i++){if(!linhas[i].trim()){ini=i+1;break;}} }
   return {titulo, corpo:linhas.slice(ini).join('\n')};
 }
+// "2025-11" → "Novembro 2025"; null → "presente". Datas do PDF a partir do dado estruturado.
+function _mesLabelPDF(iso){
+  if(!iso) return 'presente';
+  const [a,m]=String(iso).split('-');
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return m?`${meses[parseInt(m,10)-1]||''} ${a}`.trim():String(a);
+}
+// Extrai o texto de uma seção nomeada do CV da IA (título em MAIÚSCULAS → conteúdo até a próxima).
+function _secaoDoCV(cv,re){
+  const linhas=String(cv||'').split('\n'); let dentro=false; const buf=[];
+  const ehTitulo=l=>/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}$/.test(l.trim());
+  for(const l of linhas){ const t=l.trim();
+    if(ehTitulo(t)){ if(dentro) break; dentro=re.test(t); continue; }
+    if(dentro && t) buf.push(t);
+  }
+  return buf.join(' ').replace(/\s+/g,' ').trim();
+}
+// Estrutura do CV para o PDF Executivo. FATOS (experiências filtradas, formação, idiomas, contato)
+// vêm ESTRUTURADOS do PERFIL_MARCOS — sem parser frágil. ADAPTAÇÃO por vaga (subtítulo, resumo,
+// competências) é extraída do CV da IA, com fallback ao perfil. O gerador diagrama pelo Brand Book.
+// Testável sem jsPDF (testes/cv_estrutura.js) — o buraco de QA que deixou o cabeçalho errado passar.
+function _cvParaPDF(textoVaga, cvTexto){
+  const c=PERFIL_MARCOS.contato;
+  const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto||''):(cvTexto||'');
+  const linhas=cv.split('\n').map(l=>l.trim()).filter(Boolean);
+  const _ehContato=s=>/@|linkedin|\(\d{2}\)/i.test(s);
+  const _ehNome=s=>/^marcos\s+franco/i.test(s);
+  const _ehSecao=s=>/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}$/.test(s);
+  let subtitulo='';
+  for(const l of linhas){ if(_ehNome(l)||_ehContato(l)) continue; if(_ehSecao(l)) break; subtitulo=l; break; }
+  if(!subtitulo) subtitulo='Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
+  const exps=filtrarExperienciasRelevantes(textoVaga||'','').map(e=>({
+    cargo:e.cargo, empresa:e.empresa, local:e.local||'',
+    periodo:`${_mesLabelPDF(e.inicio)} – ${_mesLabelPDF(e.fim)}`,
+    bullets:(e.bullets||[]).slice()
+  }));
+  return {
+    nome:c.nome, subtitulo, contato:`${c.telefone} · ${c.email} · ${c.linkedin}`,
+    resumo:_secaoDoCV(cv,/resumo/i)||PERFIL_MARCOS.resumo_geral,
+    experiencias:exps,
+    formacao:PERFIL_MARCOS.formacao.map(f=>({titulo:f.titulo,instituicao:f.instituicao,periodo:f.periodo})),
+    competencias:_secaoDoCV(cv,/compet/i)||'',
+    idiomas:PERFIL_MARCOS.idiomas.map(i=>`${i.idioma} (${i.nivel})`).join(' · ')
+  };
+}
 function _buildPDFExecDoc(){
   if(!window.jspdf){alert('jsPDF nao carregado.');return null;}
   const {jsPDF}=window.jspdf;
