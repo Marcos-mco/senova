@@ -5445,8 +5445,11 @@ function dropVaga(newStatus, event) {
   if(dragVagaId==null) return;
   const idx=vagas.findIndex(v=>String(v.id)===String(dragVagaId));
   if(idx>=0 && vagas[idx].status!==newStatus){
-    vagas[idx].status=newStatus;
-    vagas[idx].updatedAt=Date.now();
+    // Trava da S24 ANTES de escrever: arquivar processo real (Entrevista/Proposta/Aceito) pede
+    // confirmação, e TODA transição deixa rastro. Se a trava barrar, o card volta pra coluna de
+    // origem (renderCRM redesenha do estado real) — fim do sumiço silencioso via drag, que era o
+    // sucessor direto do bug do TV Integração.
+    if(!setStatus(vagas[idx],newStatus)){ dragVagaId=null; renderCRM(); return; }
     saveVagas();
     renderCRM();
     // Status de arquivo → captura de aprendizado
@@ -5759,12 +5762,13 @@ function arquivarSelecionadosLote(){
   const n=_limpezaSelecionados.size;
   if(n===0) return;
   if(!confirm(`Arquivar ${n} vaga${n!==1?'s':''} como descartadas?\n\nVocê pode ver os arquivados a qualquer momento pelo botão "X arquivados".`)) return;
-  const ts=Date.now();
+  // Trava S24 no lote: processo real (Entrevista/Proposta/Aceito) não some sem aviso. Pergunta
+  // UMA vez (não item a item), e confirmado, arquiva com skipConfirm — setStatus garante o rastro.
+  const _protegidos=vagas.filter(v=>_limpezaSelecionados.has(v.id)&&_STATUS_PROTEGIDO.includes(v.status)).length;
+  if(_protegidos && !confirm(`${_protegidos} desta seleção ${_protegidos>1?'estão':'está'} em processo ativo (Entrevista/Proposta/Aceito). Arquivar mesmo assim? Vão para Arquivados, recuperáveis a qualquer momento.`)) return;
   vagas.forEach(v=>{
     if(_limpezaSelecionados.has(v.id)){
-      v.status='arquivado'; v.updatedAt=ts;
-      if(!v.timeline) v.timeline=[];
-      v.timeline.push({ts,texto:`Arquivado via limpeza em lote`});
+      setStatus(v,'arquivado',{skipConfirm:true,texto:'Arquivado via limpeza em lote'});
     }
   });
   saveVagas();
@@ -8957,10 +8961,13 @@ async function atualizarPipelineEmail(stage, data, notas){
   const ehRetorno=['positivo','pipeline','negativo','hunter'].includes(_emailAtual.categoria);
   let card=vagas.find(v=>v.emailDest&&v.emailDest===emailAddr&&(v.emailAssunto||'')===(assunto||''));
   if(card){
-    card.status=stage;
+    // setStatus aplica a trava (arquivar processo real via e-mail pede confirmação) e deixa rastro
+    // da transição. teveRetorno/notas são independentes do status — um retorno pode chegar sem
+    // mudar de estágio, e o no-op guard do portão não os bloqueia.
+    setStatus(card,stage);
     card.updatedAt=_t;
     if(ehRetorno){card.teveRetorno=true;card.tipoRetorno=_emailAtual.categoria;card.retornoData=_t;}
-    if(notas) card.timeline.push({ts:_t,texto:notas});
+    if(notas){ if(!card.timeline)card.timeline=[]; card.timeline.push({ts:_t,texto:notas}); }
   } else {
     vagas.push({id:_t,empresa,cargo:assunto||'Vaga via Email',canal:'Email',prioridade:'media',status:stage,salario:'',proxima:data||'',notas:notas||'',emailDest:emailAddr,emailAssunto:assunto,origemUrl:'',data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,tags:[],
       teveRetorno:ehRetorno,tipoRetorno:ehRetorno?_emailAtual.categoria:'',retornoData:ehRetorno?_t:'',
