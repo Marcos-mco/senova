@@ -1,5 +1,15 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 21/jul/2026 — **Sessão 34 · CV: fechadas as 2 pendências da S33 (curadoria nível-aware 1x2 páginas + skill de QA final) — aprovado por Marcos**.*
+*Atualizado: 22/jul/2026 — **Sessão 35 · Kanban: destravado o drag de cards (bug de longa data) — CONFIRMADO por Marcos**.*
+
+***SESSÃO 35 (22/jul):** bug de longa data — arrastar card de **Oportunidade** para outra coluna não funcionava (esmaece mas "não solta"). Já tinha queimado 2 tentativas antes (S32 `draggable=false` no logo; início da S35 guard `_dragEmCurso` contra re-render). Nesta sessão, mais 1 tentativa errada (overlays `position:fixed` sem `pointer-events`, a partir de repro sintético do `senova-auditor`) também **não** resolveu.
+
+**O que finalmente fechou: PARAR de adivinhar lendo código e INSTRUMENTAR o app real.** Inseri um diagnóstico on-screen temporário (painel com botão "Copiar p/ o Bruno") que Marcos acionou arrastando um card de verdade. A medição bisseccionou o problema numa leitura: o `drop` **disparava** e caía na coluna certa (`Destino=aplicado`), mas `Origem=?` — o `dropVaga` não achava o card (`findIndex`→-1) e saía sem mover.
+
+**CAUSA RAIZ:** o Worker gera id de vaga de varredura como STRING `"vaga_<hash>"` (`gerarId`, senova-worker.js:1662). O template do card montava `ondragstart="dragVagaId=${c.id}"` **sem aspas** → `dragVagaId=vaga_123` é referência a variável inexistente → ReferenceError na 1ª linha do handler → `dragVagaId` quebrava. O `onclick` do MESMO card já usava aspas (`openVagaModal('${c.id}')`) — por isso abrir o card sempre funcionou e só o arraste falhava (prova interna definitiva). Explica todo o padrão: só travava em Oportunidade (onde caem as importadas de id string), intermitente (cards à mão têm id numérico e arrastam), `aplicado→entrevista` funcionava.
+
+**FIX (commit `912db8e`):** aspas no id do `ondragstart` → `dragVagaId='${c.id}'` (index.html:5892); `dropVaga` já compara `String(v.id)===String(dragVagaId)`. **CONFIRMADO por Marcos** (card move Oportunidade→CV Enviado + abre "Próxima ação"; diagnóstico mostrou `Origem=lead Destino=aplicado`). Diagnóstico temporário removido depois (`b73800c`). Ficaram como hardening legítimo (não eram a causa, mas são corretos): `pointer-events:none` nos overlays informativos (`7f2ee05`) e o guard `_dragEmCurso` (`4ed0078`). Backups locais `senova_v3.70`/`v3.71`. **Lição registrada: quando um fix não resolve, instrumentar o runtime real antes do próximo fix — vale mais que uma nova hipótese estática** ([[feedback_anti_gambiarra_instrumentar]], [[project_kanban_drag_trava_nao_resolvida]]). **Regra durável: TODO id em atributo inline (`on*`) precisa de aspas — ids de vaga são string, não só número.**
+
+**Pendente (parqueado, intocado):** "andar a espinha" de uma vaga de LIDERANÇA real ponta a ponta pela extensão (Análise→CV/carta→Envio) segue como próximo passo — ver FRENTE VIRGÍLIO abaixo. Nada dela avançou nesta sessão (foi só o bug do Kanban).*
 
 ***SESSÃO 34 (21/jul):** Marcos: "Nada pendente. Termine 1 e 2" — fechar as 2 pendências deixadas em aberto na S33.
 
