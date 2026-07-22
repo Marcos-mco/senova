@@ -10842,7 +10842,15 @@ function _mvCenterModal(){
   },true);
   document.addEventListener('drop',e=>{
     _dropFired=true;
-    rec('✅ DROP disparou sobre: '+_descrEl(document.elementFromPoint(e.clientX,e.clientY)));
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const dz=el&&el.closest?el.closest('.kanban-col-drop'):null;
+    let alvo='?';
+    if(dz){ const od=dz.getAttribute('ondrop')||''; const m=od.match(/dropVaga\('([^']+)'/); alvo=m?m[1]:'?'; }
+    let origem='?';
+    try{ const v=vagas.find(x=>String(x.id)===String(dragVagaId)); if(v) origem=v.status; }catch(_){}
+    rec('✅ DROP disparou.  Origem='+origem+'  Destino='+alvo);
+    rec(origem===alvo?'   → MESMA coluna: o código NÃO move (esperado).':'   → colunas DIFERENTES: deveria mover.');
+    rec('   (elemento sob o ponteiro: '+_descrEl(el)+')');
   },true);
   document.addEventListener('dragend',()=>{
     if(!_started) return;
