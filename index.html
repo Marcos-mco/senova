@@ -10811,6 +10811,58 @@ function _mvCenterModal(){
 
 // Rascunho automático de Novo Processo (B6) — REMOVIDO a pedido de Marcos (24/jun).
 // Card novo começa sempre limpo; sem restauração nem banner.
+
+// ============================================================================
+// DIAGNÓSTICO TEMPORÁRIO — arraste do Kanban (REMOVER após achar a causa raiz).
+// Não altera a lógica do drag: só observa o gesto nativo e mostra na tela
+// se o 'drop' disparou e o que estava embaixo do ponteiro ao soltar.
+// ============================================================================
+(function _dragDiag(){
+  let _lastX=0,_lastY=0,_log=[],_started=null,_dropFired=false;
+  const rec=(m)=>{ _log.push(m); _render(); };
+  function _descrEl(el){
+    if(!el) return '(nada)';
+    let s=el.tagName?el.tagName.toLowerCase():'?';
+    if(el.id) s+='#'+el.id;
+    if(el.className && typeof el.className==='string'){ const c=el.className.trim().split(/\s+/).slice(0,2).join('.'); if(c) s+='.'+c; }
+    const dz=el.closest?el.closest('.kanban-col-drop'):null;
+    s += dz ? '  [dentro de uma COLUNA ✓]' : '  [FORA de qualquer coluna ✗]';
+    return s;
+  }
+  document.addEventListener('dragover',e=>{ _lastX=e.clientX; _lastY=e.clientY; },true);
+  document.addEventListener('dragstart',e=>{
+    const card=e.target&&e.target.closest?e.target.closest('.kcard'):null;
+    if(!card) return;
+    _dropFired=false; _log=[]; _started={t:Date.now()};
+    const col=card.closest('.kanban-col-drop');
+    const nome=(card.querySelector('.kcard-name')?.textContent||'?').trim();
+    const colTxt=(col?.querySelector('.kanban-col-header')?.textContent||'?').trim();
+    rec('▶ Arraste iniciado: '+nome);
+    rec('   saindo da coluna: '+colTxt);
+  },true);
+  document.addEventListener('drop',e=>{
+    _dropFired=true;
+    rec('✅ DROP disparou sobre: '+_descrEl(document.elementFromPoint(e.clientX,e.clientY)));
+  },true);
+  document.addEventListener('dragend',()=>{
+    if(!_started) return;
+    if(!_dropFired) rec('❌ Soltou SEM drop. Embaixo do ponteiro: '+_descrEl(document.elementFromPoint(_lastX,_lastY)));
+    rec('■ Fim do gesto ('+(Date.now()-_started.t)+'ms)');
+    _started=null;
+  },true);
+  function _render(){
+    let p=document.getElementById('_drag-diag');
+    if(!p){
+      p=document.createElement('div');
+      p.id='_drag-diag';
+      p.style.cssText='position:fixed;left:12px;bottom:12px;max-width:min(460px,90vw);background:#1A3A5C;color:#fff;font:12px/1.55 monospace;padding:10px 12px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:2147483647;pointer-events:none;white-space:pre-wrap;border:1px solid #C9A84C;';
+      document.body.appendChild(p);
+    }
+    p.innerHTML='<div style="font-family:sans-serif;font-weight:700;color:#C9A84C;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:auto;">DIAGNÓSTICO DRAG'
+      +'<button onclick="navigator.clipboard.writeText(document.getElementById(\'_drag-diag\').innerText).then(()=>this.textContent=\'copiado!\')" style="pointer-events:auto;font:11px sans-serif;font-weight:700;background:#C9A84C;color:#1A3A5C;border:0;border-radius:5px;padding:4px 9px;cursor:pointer;">Copiar p/ o Bruno</button></div>'
+      +_log.map(l=>l.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('\n');
+  }
+})();
 </script>
 </body>
 </html>
