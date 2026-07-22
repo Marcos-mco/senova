@@ -4970,6 +4970,16 @@ async function importarVagasLead(){
     const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)) && !_deletedIds.has(String(v.id)));
 
     if(lead.length===0){
+      // "Sem novidades" pode ser mentira: uma vaga apagada da coluna Oportunidade
+      // entra numa lista de bloqueio para não voltar sozinha — o que é certo no
+      // dia a dia, mas trava quem zerou a coluna de propósito e quer refazer.
+      // A saída fica aqui, na hora exata em que ele percebe que nada veio.
+      const bloqueadas=(data.vagas||[]).filter(v=>_deletedIds.has(String(v.id))).length;
+      if(bloqueadas>0 && confirm(`Nenhuma vaga nova.\n\nMas ${bloqueadas} do radar estão bloqueadas porque você as apagou antes da coluna Oportunidade.\n\nTrazer essas ${bloqueadas} de volta e analisar de novo?\n\nSeus processos em andamento não são tocados.`)){
+        try{ localStorage.removeItem('senova_deleted_ids'); }catch{}
+        if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}
+        return importarVagasLead();
+      }
       if(btn){btn.textContent='✅ Sem novidades';btn.disabled=false;}
       setTimeout(()=>{if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}},3000);
       return;
@@ -4996,16 +5006,20 @@ async function importarVagasLead(){
       return await res.json();
     };
     const analisarUma = async v=>{
+      // Nota que o radar já traz é nota boa: não paga 13s para descobrir o que
+      // já se sabe. Só vale quando o motivo veio junto — nota sem pontos de
+      // atenção é resto de gravação incompleta e precisa ser refeita.
+      if(typeof v.score==='number' && Array.isArray(v.pontos_atencao)){
+        analisadas++;
+        if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
+        return {...v, _reaproveitada:true};
+      }
       try{
         let analise;
         try{ analise = await _pedirAnalise(v); }
         catch{ await new Promise(r=>setTimeout(r,1500)); analise = await _pedirAnalise(v); }
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
-        fetch(WORKER_URL+'/api/vagas-lead/score',{
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,pontos_atencao:analise.pontos_atencao,salario_compativel:analise.salario_compativel}),
-        }).catch(()=>{});
         // `pontos_atencao` traz os IMPEDIMENTOS (idioma que ele não fala,
         // presencial em praça recusada, salário abaixo do piso). Sem carregar
         // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
@@ -5019,7 +5033,19 @@ async function importarVagasLead(){
     };
     const resultados=[];
     for(let i=0;i<lead.length;i+=LOTE){
-      resultados.push(...await Promise.all(lead.slice(i,i+LOTE).map(analisarUma)));
+      const doLote=await Promise.all(lead.slice(i,i+LOTE).map(analisarUma));
+      resultados.push(...doLote);
+      // Devolve as notas do lote ao radar numa gravação só, e ESPERA. Antes ia
+      // uma chamada por vaga, disparadas em paralelo: como cada uma reescreve o
+      // registro inteiro, elas se atropelavam e a última apagava as outras — de
+      // 280 vagas, só 26 ficaram com nota, e toda importação recomeçava do zero.
+      const novas=doLote.filter(v=>!v._reaproveitada && typeof v.score==='number');
+      if(novas.length){
+        await fetch(WORKER_URL+'/api/vagas-lead/score',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({itens:novas.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel}))}),
+        }).catch(()=>{});
+      }
     }
 
     const agora=Date.now();

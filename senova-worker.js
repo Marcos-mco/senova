@@ -640,7 +640,7 @@ export default {
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.17',
+        status: 'ok', worker: 'senova-proxy', versao: '7.18',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -723,16 +723,26 @@ export default {
       return json({ status: 'ok' });
     }
 
+    // Aceita UMA nota ou um LOTE ({itens:[…]}). O lote existe porque cada
+    // chamada aqui é um ler-alterar-gravar do registro inteiro: notas enviadas
+    // em paralelo se atropelavam e a última gravação apagava as outras — das
+    // 280 vagas do radar, só 26 ficaram com nota. Um lote = uma gravação só.
     if (path === '/api/vagas-lead/score' && request.method === 'POST') {
-      const { id, score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel } = await request.json();
+      const corpo = await request.json();
+      const itens = Array.isArray(corpo.itens) ? corpo.itens : [corpo];
       const raw = await env.SENOVA_KV.get('vagas_lead');
       const vagasKV = raw ? JSON.parse(raw) : [];
-      const idx = vagasKV.findIndex(v => v.id === id);
-      if (idx >= 0) {
+      const porId = new Map(vagasKV.map((v, i) => [v.id, i]));
+      let atualizados = 0;
+      for (const it of itens) {
+        const idx = porId.get(it.id);
+        if (idx === undefined) continue;
+        const { score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel } = it;
         vagasKV[idx] = { ...vagasKV[idx], score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel };
-        await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasKV));
+        atualizados++;
       }
-      return json({ status: 'ok', atualizado: idx >= 0 });
+      if (atualizados) await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasKV));
+      return json({ status: 'ok', atualizado: atualizados > 0, atualizados });
     }
 
     // ── Perfil do usuário ────────────────────────────────────────────
@@ -1729,6 +1739,12 @@ async function executarVarreduraPais(paisId, env, config) {
 function processarVagas(vagas, vistosSet, vagasLead, local, fonte) {
   let novas = 0;
   const idsLead = new Set(vagasLead.map(v => v.id));
+  // Dedup por URL, não só por id. O id é um hash de título+empresa+url, então
+  // qualquer mudança em como o título é lido — foi o caso ao passar a decodificar
+  // "&#8211;" — muda o id e a MESMA vaga voltaria como card novo. A URL é a
+  // identidade de verdade e não depende de detalhe de parsing.
+  const norm = u => String(u || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase();
+  const urlsLead = new Set(vagasLead.map(v => norm(v.url)).filter(Boolean));
   // Teto por anunciante: uma agência de recrutamento em massa publica o mesmo
   // anúncio dezenas de vezes trocando a cidade. Sem este teto, um único
   // anunciante toma o radar inteiro de um termo — foi o que a primeira colheita
@@ -1741,7 +1757,8 @@ function processarVagas(vagas, vistosSet, vagasLead, local, fonte) {
     // Dedup por id do funil TAMBÉM — `vistos` é uma janela finita (últimos
     // 5000); sem esta checagem uma vaga que saiu dessa janela voltaria como
     // card duplicado no radar.
-    if (vistosSet.has(id) || idsLead.has(id)) continue;
+    const chaveUrl = norm(vaga.url);
+    if (vistosSet.has(id) || idsLead.has(id) || (chaveUrl && urlsLead.has(chaveUrl))) continue;
     vistosSet.add(id);
     // `semFiltroCargo`: numa frente onde o valor é estar perto de quem se ama,
     // jardinagem e armazém valem tanto quanto diretoria. O corte ali é o idioma,
@@ -1754,6 +1771,7 @@ function processarVagas(vagas, vistosSet, vagasLead, local, fonte) {
       porEmpresa.set(chave, qtd + 1);
     }
     idsLead.add(id);
+    if (chaveUrl) urlsLead.add(chaveUrl);
     vagasLead.push(montarCard(vaga, local, fonte));
     novas++;
   }
@@ -1834,9 +1852,11 @@ async function buscarAdzuna(query, local, env) {
   if (!resp || !resp.ok) throw new Error(`Adzuna ${ultimoErro || 'sem resposta'}`);
   const data = await resp.json();
   return (data.results || []).map(r => ({
-    titulo: r.title || '', empresa: r.company?.display_name || local.label,
-    url: r.redirect_url || '', descricao: r.description || '',
-    local: r.location?.display_name || local.label, pubDate: r.created || '',
+    // Mesmo tratamento do RSS: o Adzuna também devolve "&amp;" e tags soltas
+    // no título e na descrição — sem isso o card mostra o código, não o texto.
+    titulo: limparHtml(r.title || ''), empresa: limparHtml(r.company?.display_name || local.label),
+    url: r.redirect_url || '', descricao: limparHtml(r.description || ''),
+    local: limparHtml(r.location?.display_name || local.label), pubDate: r.created || '',
   })).filter(v => v.titulo && v.url);
 }
 
@@ -1890,11 +1910,14 @@ function parsearRSS(xml, fonte, local, janelaDias = 3, maxItens = 8) {
   const vagas = [];
   const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
   for (const item of items.slice(0, maxItens)) {
-    const titulo    = extrairTag(item, 'title') || '';
-    const url       = extrairTag(item, 'link') || extrairTag(item, 'guid') || '';
-    const empresa   = extrairTag(item, 'job_listing:company')
-                   || extrairTag(item, 'source') || extrairTag(item, 'author') || local.label;
-    const localVaga = extrairTag(item, 'job_listing:location') || '';
+    // Título, empresa e local vinham crus do XML — só a descrição era limpa.
+    // Por isso o travessão aparecia como "&#8211;" no card. A URL também é
+    // decodificada: em XML o "&" de query string vem escapado como "&amp;".
+    const titulo    = decodeEntidades(extrairTag(item, 'title') || '');
+    const url       = decodeEntidades(extrairTag(item, 'link') || extrairTag(item, 'guid') || '');
+    const empresa   = decodeEntidades(extrairTag(item, 'job_listing:company')
+                   || extrairTag(item, 'source') || extrairTag(item, 'author') || local.label);
+    const localVaga = decodeEntidades(extrairTag(item, 'job_listing:location') || '');
     const descricao = limparHtml(
       extrairTag(item, 'content:encoded') || extrairTag(item, 'description') || ''
     ).slice(0, 4000);
@@ -1911,9 +1934,38 @@ function extrairTag(xml, tag) {
   return m ? m[1].trim() : null;
 }
 
+// Entidades HTML por extenso E numéricas. A versão antiga só conhecia cinco
+// nomeadas, então travessão, aspa curva e afins chegavam crus à tela de Marcos
+// ("Data Center Sites &#8211; Remote"). &amp; fica por último de propósito:
+// desfeito antes, transformaria "&amp;#8211;" em travessão que não existia.
+// Pontuação + o conjunto acentuado das quatro línguas que o radar varre
+// (português, espanhol, alemão, inglês). Gerado a partir de pares "nome:letra"
+// para caber numa linha por acento em vez de oitenta entradas soltas.
+const ENTIDADES_NOMEADAS = Object.assign(
+  { lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ', ndash:'–', mdash:'—',
+    lsquo:'‘', rsquo:'’', ldquo:'“', rdquo:'”', hellip:'…', bull:'•',
+    euro:'€', pound:'£', deg:'°', middot:'·', iexcl:'¡', iquest:'¿', szlig:'ß' },
+  ...[
+    ['acute','aeiouyAEIOUY','áéíóúýÁÉÍÓÚÝ'],
+    ['grave','aeiouAEIOU',  'àèìòùÀÈÌÒÙ'],
+    ['circ', 'aeiouAEIOU',  'âêîôûÂÊÎÔÛ'],
+    ['tilde','anoANO',      'ãñõÃÑÕ'],
+    ['uml',  'aeiouAEIOU',  'äëïöüÄËÏÖÜ'],
+    ['cedil','cC',          'çÇ'],
+  ].map(([sufixo, letras, acentuadas]) =>
+    Object.fromEntries([...letras].map((l, i) => [l + sufixo, acentuadas[i]]))
+  )
+);
+function decodeEntidades(s) {
+  return String(s || '')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, nome) => ENTIDADES_NOMEADAS[nome.toLowerCase()] ?? m)
+    .replace(/&amp;/g, '&');
+}
+
 function limparHtml(h) {
-  return h.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<')
-          .replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/\s+/g,' ').trim();
+  return decodeEntidades(String(h || '').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();
 }
 
 function vagaRecente(d, janelaDias = 3) {
