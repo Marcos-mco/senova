@@ -5182,14 +5182,28 @@ function _dedupAdicionar(){
 // Config de varredura em cache (score mínimo por região) — para o Critério do
 // auto-promover rodar sem refetch a cada score.
 let _configVarredura=null;
+// Piso do Critério, em qualquer região. Espelha TETO_SCORE_COM_IMPEDIMENTO=45 do
+// Worker: quando a análise encontra um impedimento eliminatório (idioma que ele
+// não fala, salário abaixo do mínimo de sobrevivência, presença física impossível),
+// a nota é limitada a 45 POR CÓDIGO — não por instrução ao modelo. Logo, nota >= 46
+// significa, com garantia, "nenhum impedimento eliminatório".
+// Existe porque a Alemanha estava configurada com Critério 0: toda vaga alemã
+// entrava na coluna Oportunidade, inclusive as que exigem alemão fluente. Critério
+// abaixo de 46 é sempre a promessa de encher o Kanban de vaga impossível — e isso
+// nenhuma configuração deveria poder pedir. Baixar o Critério continua valendo para
+// dizer "aqui não exijo aderência ao perfil executivo" (é o caso da Alemanha, onde
+// serviços gerais perto da filha contam); o que ele não pode mais dizer é
+// "aqui aceito o inviável".
+const CRITERIO_MINIMO_VIAVEL=46;
 // Critério (número) da região de uma vaga/card — aceita shape de card (origemUrl/localizacao) ou de lead (url/local).
 function _criterioParaVaga(cardOuVaga){
   const cfg=_configVarredura||{score_minimo_por_regiao:{}};
-  return _scoreMinParaVaga({
+  const bruto=_scoreMinParaVaga({
     url: cardOuVaga.origemUrl||cardOuVaga.url||'',
     local: cardOuVaga.localizacao||cardOuVaga.local||'',
     fonte: cardOuVaga.fonte||'',
   }, cfg);
+  return Math.max(bruto, CRITERIO_MINIMO_VIAVEL);
 }
 // Reavalia cards em triagem que JÁ têm score contra o Critério atual — promove os
 // que passam. Cobre os recolhidos (migração) e mudanças de Critério no Perfil.
