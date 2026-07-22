@@ -1,7 +1,41 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.12
+//  SENOVA PROXY — Worker v7.16
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
+//  NOVIDADES v7.14 (22/jul/2026) — Compatibilidade pesa a VIDA, não só o CV:
+//  · PROJETO_DE_VIDA entra na análise ao lado do PERFIL: raiz em Curitiba,
+//    piso real, querer liderar de novo, estabilidade, trabalho com sentido.
+//    Vaga que afasta a pessoa do que ela quer vale menos — e diz por quê.
+//  · Campo `impedimentos`: o que torna a vaga inviável (idioma que não fala,
+//    presencial fora da base, salário abaixo do piso, trabalho operacional
+//    sob título de diretor, exigência eliminatória). Avaliado ANTES da nota.
+//  · Trava em código (não no prompt): com impedimento, a nota é limitada a 45
+//    e os impedimentos entram no TOPO de pontos_atencao. O app rotula o card
+//    pela faixa de nota — sem esta trava, vaga em alemão vinha como "Ótima
+//    oportunidade". Fecha o gap medido na S29 (nota 72 sobre requisito
+//    eliminatório operacional).
+//  · Informação insuficiente agora é dita, não preenchida com invenção.
+//
+//  NOVIDADES v7.13 (22/jul/2026) — Busca automática destravada (Camada A):
+//  · CAUSA RAIZ: a gravação do radar fazia sort((a,b)=>b.score-a.score) com
+//    score null → NaN → sort não reordena → .slice(0,100) cortava justamente
+//    as vagas novas (que entram no fim do array). O radar ficou congelado em
+//    100 itens desde 22/jun: toda varredura gravava e jogava fora. Medido em
+//    3 evidências (KV sem vaga Adzuna desde 10/jun · log do cron de 22/jul
+//    com "5 novas" que não existem no KV · cenário reproduzido em node).
+//    Agora: ordena por score real (sem score = -1) e recência, teto 500, e
+//    NADA que entrou nas últimas 48h pode ser cortado.
+//  · Log honesto: registra o que SOBREVIVEU à gravação, não o que foi achado.
+//  · Brasil é varrido todo dia + 1 país rotativo (antes: 1 país a cada 5 dias).
+//  · Rotação de termos de busca: pool de 8 por idioma, 5 por execução.
+//  · Adzuna: 20 resultados/termo (era 5), janela 7 dias, retry em 5xx/429.
+//  · Jobicy: janela de 14 dias (a de 3 dias descartava 100% do feed — medido:
+//    os itens mais recentes têm 4+ dias), termos em inglês, e empresa/local/
+//    descrição lidos das tags certas (job_listing:*) em vez de virem vazios.
+//  · Filtro de título: blocklist (júnior/analista/product manager/engenheiro)
+//    + termos executivos que faltavam (superintendente, head of, presidente).
+//  · Freio de 60 vagas novas por execução: PARA DE BUSCAR (não descarta) —
+//    o app analisa todas as pendentes em paralelo ao importar.
 //  NOVIDADES v7.12 (10/jul/2026) — anexo no envio de candidatura:
 //  · /api/emails/enviar aceita `anexos: [{ nome, conteudoBase64, tipo }]`
 //    e repassa ao Graph sendMail como fileAttachment (contentBytes base64).
@@ -170,7 +204,11 @@ function extrairVagasEmail(html) {
   return out.slice(0, 25);
 }
 
-const ADZUNA_PAISES = { br:'br', es:'es', de:'de', pt:'pt', us:'us' };
+// Portugal NÃO está aqui de propósito: o Adzuna não cobre PT e devolvia 404 em
+// toda consulta — 5 chamadas desperdiçadas a cada rodízio, com "erro" no log
+// escondendo problemas de verdade. Portugal fica no Jobicy até ganhar fonte
+// própria (InfoJobs/Net-Empregos entram na camada D).
+const ADZUNA_PAISES = { br:'br', es:'es', de:'de', us:'us' };
 
 const JOBICY_REGIOES = {
   br:'brazil', es:'spain', de:'germany', pt:'portugal', us:'usa', remoto:null
@@ -189,21 +227,97 @@ Experiências:
 - Popper: Head de Expansão & Novos Negócios (2024–2025)
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
-Pretensão: R$15–25k CLT (fecha a partir de R$15k; mínimo de sobrevivência R$8k em Curitiba) · Aceita PJ · Aceita relocação SC
+Remuneração: alvo R$15–25k CLT, mas ACEITA a partir de R$8k — declarado por ele: "qualquer cargo aqui no Brasil que ganhe 8 mil já é bom pra mim". R$8k não é piso de sobrevivência, é oferta viável. Aceita PJ · Aceita relocação SC
+Formação europeia (vale como qualificação da UE): Mestrado — Universidade de Évora, Portugal · Mestrado — Universitat de Barcelona, Espanha. Diplomas emitidos e reconhecidos dentro da União Europeia.
 Aberto a: Brasil, Espanha, Alemanha, Portugal, remoto
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
 `.trim();
 
+// Projeto de vida — a segunda metade da Compatibilidade. Até aqui a nota media
+// vaga × currículo; faltava vaga × VIDA. Sem isto, uma vaga tecnicamente perfeita
+// que afasta a pessoa do que ela quer marcava 85 e vinha rotulada "Ótima
+// oportunidade" — e uma vaga em país cujo idioma ela não fala também.
+// DERIVADO DA DOCUMENTAÇÃO (PERFIL_MARCOS.md, DOSSIE_SENOVA.md), não da voz dele:
+// é uma primeira versão para Marcos corrigir. Como PERFIL_MARCOS, é o ponto de
+// costura da identidade — multi-usuário depois só troca de quem é este bloco.
+const PROJETO_DE_VIDA = `
+PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
+- Busca RECOLOCAÇÃO EXECUTIVA estável, não um emprego qualquer. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
+- Raiz em Curitiba/PR — vida, família e comunidade estão ali. No Brasil, aceita mudar para Santa Catarina; remoto e híbrido servem. Presencial obrigatório em outra praça brasileira o afasta do que quer.
+- Está aberto ao exterior — Espanha, Portugal, e Alemanha ou EUA quando o trabalho for conduzido em inglês ou espanhol. Vaga no exterior NÃO é impedimento por ser no exterior: só é impedimento pelo idioma que ele não fala.
+- Remuneração: o ALVO é R$15–25k, mas R$8k no Brasil já é oferta boa para ele — palavras dele. Só é impedimento o que fica abaixo de R$8k. Entre R$8k e R$15k não é impedimento nem demérito: registre a distância para o alvo em pontos_atencao e siga.
+- A FILHA MORA EM RÜTHEN, Renânia do Norte-Vestfália, Alemanha (região de Lippstadt/Soest/Paderborn). Estar perto dela é prioridade declarada, e vale por si: trabalho honesto de qualquer natureza naquela região — inclusive serviços gerais, jardinagem, marcenaria, logística, produção — serve ao projeto de vida, desde que NÃO exija alemão. Ali o critério é o idioma, não o cargo.
+- Ele quer LIDERAR de novo — time, orçamento, estratégia, P&L. Esse é o alvo, não uma condição. Trabalho abaixo do porte executivo só é impedimento quando NADA mais no conjunto compensa: se aproxima da filha, ou dá residência legal na Europa, ou é o que viabiliza a vida agora, então é caminho, não retrocesso — e a análise deve dizer isso com todas as letras em vez de recusar.
+- Trabalha por trabalho com sentido: honestidade, gente e construção de longo prazo. Não quer ambiente que exija agir contra a própria consciência.
+- 57 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
+`.trim();
+
+// Pool de termos por idioma. A cada execução o Worker usa QUERIES_POR_RODADA
+// termos, avançando o ponto de partida (KV `rotacao_query_idx`) — assim o pool
+// inteiro é coberto ao longo dos dias sem estourar o teto de subrequests do
+// Worker (2 países × 5 termos × 2 fontes = 20 fetches por execução).
+const QUERIES_POR_RODADA = 5;
+
+// Teto do radar. O corte antigo era `.slice(0, 100)` DEPOIS de um sort por score —
+// e vaga nova entra com score null, então `null - null` = NaN, o sort virava no-op
+// e o corte comia exatamente as novas (que ficam no fim do array). Resultado medido:
+// funil parado desde 10/jun. Agora o corte é honesto (sem score vai por data) e
+// qualquer vaga com menos de 48h sobrevive ao teto, até o teto absoluto.
+const TETO_RADAR = 300;
+const TETO_RADAR_ABSOLUTO = 500;
+// Quantas vagas cada termo pode trazer por fonte (era 5 — teto teórico de 15/dia).
+const VAGAS_POR_TERMO = 20;
+// Freio de mão da execução: ao atingir este número de vagas novas, a varredura
+// PARA DE BUSCAR (não descarta nada — o que não foi buscado não entra em `vistos`
+// e reaparece na próxima rodada). Existe porque o app analisa todas as vagas
+// pendentes em paralelo ao importar: sem freio, uma manhã traria centenas de
+// chamadas de análise de uma vez.
+const NOVAS_POR_EXECUCAO = 60;
+// Freio POR FRENTE. Sem ele, o Brasil (mercado grande, varrido toda execução)
+// consome sozinho as 60 vagas do freio global e a frente prioritária — a região
+// da filha de Marcos — nunca chega a ser buscada.
+const NOVAS_POR_FRENTE = 20;
+// Quantas vagas do MESMO anunciante um único termo pode trazer.
+const MAX_POR_ANUNCIANTE = 3;
+// Teto de nota quando há impedimento real. O app rotula por faixa (>=75 "Ótima
+// oportunidade", >=55 "Pode valer a pena"): 45 põe a vaga abaixo das duas, sem
+// escondê-la — ela continua no radar, com o motivo à vista.
+const TETO_SCORE_COM_IMPEDIMENTO = 45;
+
 const CONFIG_PADRAO = {
   ativa: true,
   queries: {
-    pt: ['diretor comercial','diretor de vendas','head comercial','gerente geral','CMO'],
-    en: ['sales director','commercial director','country manager','VP sales','head of business development'],
-    es: ['director comercial','director de ventas','director general','jefe comercial','CMO'],
-    de: ['sales director','Vertriebsdirektor','international sales manager','commercial director','Latin America manager'],
+    pt: ['diretor comercial','diretor de vendas','diretor de marketing','head comercial',
+         'gerente geral','CMO','superintendente comercial','diretor executivo'],
+    en: ['sales director','commercial director','country manager','VP sales',
+         'head of business development','chief marketing officer','general manager','managing director'],
+    es: ['director comercial','director de ventas','director general','jefe comercial',
+         'CMO','director de marketing','country manager','director ejecutivo'],
+    de: ['sales director','Vertriebsdirektor','international sales manager','commercial director',
+         'Latin America manager','Geschäftsführer','Vertriebsleiter','country manager'],
   },
   locais: [
     { id:'br',     label:'Brasil',   ativo:true  },
+    // Frente Rüthen — a filha de Marcos mora em Rüthen (Kreis Soest, NRW).
+    // Âncora na própria Rüthen com raio de 40 km: alcança Lippstadt (21 km),
+    // Soest (25 km), Paderborn (34 km) e Meschede sem puxar o cinturão do Ruhr
+    // (Unna, Kamen, Bergkamen) — a 1ª colheita, ancorada em Lippstadt com 50 km,
+    // trouxe exatamente esse ruído do lado oposto. Aqui o critério é o IDIOMA,
+    // não o cargo: `semFiltroCargo` desliga o filtro executivo — jardinagem e
+    // armazém valem tanto quanto diretoria, desde que dispensem alemão. Termos
+    // próprios (não o pool executivo), janela larga e teto baixo por termo,
+    // porque é mercado pequeno e a variedade importa mais que o volume.
+    { id:'ruthen', label:'Rüthen e região (NRW)', ativo:true,
+      adzunaPais:'de', where:'Rüthen', distanciaKm:40, diasMax:21,
+      semFiltroCargo:true, semJobicy:true, maxPorTermo:4,
+      queries:[
+        // Primeiro os que transformam o idioma dele em qualificação — é onde
+        // 30 anos de Brasil valem mais que qualquer diploma local.
+        'Portugiesisch','Spanisch','Brasilien','english speaking','international',
+        // Depois trabalho honesto que tende a dispensar alemão de atendimento.
+        'Lagerhelfer','Produktionshelfer','Gärtner','Tischler','Hausmeister',
+        'Fahrer','Reinigung','Logistik','Kommissionierer',
+      ] },
     { id:'es',     label:'Espanha',  ativo:true  },
     { id:'de',     label:'Alemanha', ativo:true  },
     { id:'pt',     label:'Portugal', ativo:true  },
@@ -523,7 +637,7 @@ export default {
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.8',
+        status: 'ok', worker: 'senova-proxy', versao: '7.16',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -606,12 +720,12 @@ export default {
     }
 
     if (path === '/api/vagas-lead/score' && request.method === 'POST') {
-      const { id, score, classificacao, resumo, pontos_fortes, salario_compativel } = await request.json();
+      const { id, score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel } = await request.json();
       const raw = await env.SENOVA_KV.get('vagas_lead');
       const vagasKV = raw ? JSON.parse(raw) : [];
       const idx = vagasKV.findIndex(v => v.id === id);
       if (idx >= 0) {
-        vagasKV[idx] = { ...vagasKV[idx], score, classificacao, resumo, pontos_fortes, salario_compativel };
+        vagasKV[idx] = { ...vagasKV[idx], score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel };
         await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasKV));
       }
       return json({ status: 'ok', atualizado: idx >= 0 });
@@ -1345,6 +1459,19 @@ export default {
 // ═══════════════════════════════════════════════════════════════════
 //  VARREDURA COM ROTAÇÃO DE PAÍSES
 // ═══════════════════════════════════════════════════════════════════
+// A DEFINIÇÃO das frentes mora no código; o KV guarda só o que Marcos liga e
+// desliga. Sem isso, uma frente nova (Rüthen) nunca rodaria: o `config_varredura`
+// salvo no KV traz uma lista antiga de locais e sobrescreveria o padrão inteiro.
+function locaisEfetivos(config) {
+  const salvos = Array.isArray(config?.locais) ? config.locais : [];
+  const base = CONFIG_PADRAO.locais.map(l => {
+    const s = salvos.find(x => x.id === l.id);
+    return s ? { ...l, ativo: s.ativo } : l; // só o liga/desliga vem do KV
+  });
+  const extras = salvos.filter(s => !CONFIG_PADRAO.locais.some(l => l.id === s.id));
+  return [...base, ...extras];
+}
+
 async function executarVarredura(env, isCron) {
   const rawIdx = await env.SENOVA_KV.get('rotacao_idx');
   let idx = rawIdx ? parseInt(rawIdx) : 0;
@@ -1357,18 +1484,30 @@ async function executarVarredura(env, isCron) {
     return;
   }
 
-  const locaisAtivos = (config.locais || CONFIG_PADRAO.locais).filter(l => l.ativo);
+  const locaisAtivos = locaisEfetivos(config).filter(l => l.ativo);
   if (locaisAtivos.length === 0) return;
 
-  const localAtual = locaisAtivos[idx % locaisAtivos.length];
-  await env.SENOVA_KV.put('rotacao_idx', String((idx + 1) % locaisAtivos.length));
-  await executarVarreduraPais(localAtual.id, env, config);
+  // Frentes FIXAS, varridas toda execução: Brasil (mercado principal) e Rüthen
+  // (prioridade declarada — estar perto da filha). As demais seguem em rodízio,
+  // 1 por dia. Uma prioridade que só é varrida a cada 5 dias não é prioridade.
+  const FRENTES_FIXAS = ['br', 'ruthen'];
+  const fixos = locaisAtivos.filter(l => FRENTES_FIXAS.includes(l.id));
+  const rotativos = locaisAtivos.filter(l => !FRENTES_FIXAS.includes(l.id));
+  const alvos = fixos.map(l => l.id);
+  if (rotativos.length) {
+    alvos.push(rotativos[idx % rotativos.length].id);
+    await env.SENOVA_KV.put('rotacao_idx', String((idx + 1) % rotativos.length));
+  }
+  if (!alvos.length) alvos.push(locaisAtivos[0].id);
+
+  await executarVarreduraPais(alvos, env, config);
 }
 
 async function executarVarreduraPais(paisId, env, config) {
   const inicio = Date.now();
   const log = [];
   let totalNovas = 0;
+  const paises = Array.isArray(paisId) ? paisId : [paisId];
 
   try {
     if (!config) {
@@ -1376,55 +1515,112 @@ async function executarVarreduraPais(paisId, env, config) {
       config = raw ? JSON.parse(raw) : CONFIG_PADRAO;
     }
 
-    const locaisConfig = config.locais || CONFIG_PADRAO.locais;
-    const local = locaisConfig.find(l => l.id === paisId) || { id: paisId, label: paisId };
+    const locaisConfig = locaisEfetivos(config);
 
     const rawVistos = await env.SENOVA_KV.get('vagas_vistas_ids');
     const vistosSet = new Set(rawVistos ? JSON.parse(rawVistos) : []);
 
     const rawLead = await env.SENOVA_KV.get('vagas_lead');
     const vagasLead = rawLead ? JSON.parse(rawLead) : [];
+    const totalAntes = vagasLead.length;
 
-    const idioma = idiomaDoLocal(paisId);
-    const queries = (CONFIG_PADRAO.queries[idioma] || []).slice(0, 3); // sempre do código — KV só guarda score/locais
+    // Rotação de termos: cobre o pool inteiro ao longo dos dias sem estourar
+    // o teto de subrequests numa única execução.
+    const rawQIdx = await env.SENOVA_KV.get('rotacao_query_idx');
+    const qIdx = rawQIdx ? parseInt(rawQIdx) || 0 : 0;
 
-    for (const query of queries) {
-      if (paisId !== 'remoto' && ADZUNA_PAISES[paisId]) {
-        try {
-          const vagas = await buscarAdzuna(query, local, env);
-          const novas = processarVagas(vagas, vistosSet, vagasLead, local, 'Adzuna');
-          totalNovas += novas;
-          log.push(`✅ Adzuna ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas`);
-        } catch (err) {
-          log.push(`⚠️ Adzuna ${local.label} / "${query}" — ${err.message}`);
-        }
+    let freado = false;
+    for (const pid of paises) {
+      if (totalNovas >= NOVAS_POR_EXECUCAO) { freado = true; break; }
+      const local = locaisConfig.find(l => l.id === pid) || { id: pid, label: pid };
+      // Uma frente pode trazer os próprios termos (Rüthen busca ofícios e sinais
+      // de "sem alemão", não o pool executivo). Como ela só consulta o Adzuna,
+      // cabe o dobro de termos por rodada dentro do mesmo orçamento de rede.
+      let queries;
+      if (Array.isArray(local.queries) && local.queries.length) {
+        const n = Math.min(QUERIES_POR_RODADA * 2, local.queries.length);
+        queries = Array.from({ length: n }, (_, i) => local.queries[(qIdx + i) % local.queries.length]);
+      } else {
+        const idioma = idiomaDoLocal(pid);
+        const pool = CONFIG_PADRAO.queries[idioma] || []; // sempre do código — KV só guarda score/locais
+        queries = pool.length
+          ? Array.from({ length: Math.min(QUERIES_POR_RODADA, pool.length) },
+                       (_, i) => pool[(qIdx + i) % pool.length])
+          : [];
       }
-      try {
-        const vagas = await buscarJobicy(query, local);
-        const novas = processarVagas(vagas, vistosSet, vagasLead, local, 'Jobicy');
-        totalNovas += novas;
-        log.push(`✅ Jobicy ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas`);
-      } catch (err) {
-        log.push(`⚠️ Jobicy ${local.label} / "${query}" — ${err.message}`);
+
+      let novasDaFrente = 0;
+      const usaAdzuna = pid !== 'remoto' && (local.adzunaPais || ADZUNA_PAISES[pid]);
+      for (const query of queries) {
+        if (totalNovas >= NOVAS_POR_EXECUCAO) { freado = true; break; }
+        if (novasDaFrente >= NOVAS_POR_FRENTE) {
+          log.push(`⏸️ ${local.label}: ${NOVAS_POR_FRENTE} novas nesta frente — o restante volta amanhã`);
+          break;
+        }
+        if (usaAdzuna) {
+          try {
+            const vagas = await buscarAdzuna(query, local, env);
+            const novas = processarVagas(vagas, vistosSet, vagasLead, local, 'Adzuna');
+            totalNovas += novas; novasDaFrente += novas;
+            log.push(`✅ Adzuna ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas`);
+          } catch (err) {
+            log.push(`⚠️ Adzuna ${local.label} / "${query}" — ${err.message}`);
+          }
+        }
+        // Feed global de remoto não serve a uma frente local: quem procura
+        // trabalho perto de Rüthen não vai atrás de vaga remota no mundo.
+        if (local.semJobicy) continue;
+        try {
+          const vagas = await buscarJobicy(query, local);
+          const novas = processarVagas(vagas, vistosSet, vagasLead, local, 'Jobicy');
+          totalNovas += novas; novasDaFrente += novas;
+          log.push(`✅ Jobicy ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas`);
+        } catch (err) {
+          log.push(`⚠️ Jobicy ${local.label} / "${query}" — ${err.message}`);
+        }
       }
     }
 
-    await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-2000)));
-    await env.SENOVA_KV.put('vagas_lead',
-      JSON.stringify(vagasLead.sort((a,b) => b.score - a.score).slice(0, 100))
-    );
+    if (freado) log.push(`⏸️ Freio da execução: ${NOVAS_POR_EXECUCAO} vagas novas atingidas — o restante volta na próxima rodada`);
+
+    const poolMax = Math.max(...Object.values(CONFIG_PADRAO.queries).map(q => q.length));
+    await env.SENOVA_KV.put('rotacao_query_idx', String((qIdx + QUERIES_POR_RODADA) % poolMax));
+
+    // ── Gravação honesta do radar ────────────────────────────────────
+    // O corte antigo (`sort(b.score-a.score).slice(0,100)`) descartava
+    // exatamente as vagas novas: sem score, `null - null` = NaN, o sort não
+    // reordenava nada e as recém-chegadas (no fim do array) caíam fora do
+    // slice. Agora: sem score vale -1 na ordenação (mas nunca é motivo de
+    // descarte), empate desempata por recência, e nada das últimas 48h pode
+    // ser cortado — vaga nova jamais é jogada fora em silêncio.
+    const AGORA = Date.now();
+    const ts = v => { const t = new Date(v.criadoEm || 0).getTime(); return isNaN(t) ? 0 : t; };
+    const notaDe = v => (typeof v.score === 'number' && !isNaN(v.score)) ? v.score : -1;
+    const ordenadas = vagasLead.slice().sort((a, b) => (notaDe(b) - notaDe(a)) || (ts(b) - ts(a)));
+    const dentroDoTeto = ordenadas.slice(0, TETO_RADAR);
+    const recentesCortadas = ordenadas.slice(TETO_RADAR)
+      .filter(v => AGORA - ts(v) < 48 * 60 * 60 * 1000);
+    const finais = [...dentroDoTeto, ...recentesCortadas].slice(0, TETO_RADAR_ABSOLUTO);
+    const descartadas = vagasLead.length - finais.length;
+
+    await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-5000)));
+    await env.SENOVA_KV.put('vagas_lead', JSON.stringify(finais));
+
+    log.push(`📥 Radar: ${totalAntes} → ${finais.length} vagas (${totalNovas} novas gravadas${descartadas > 0 ? `, ${descartadas} antigas saíram pelo teto de ${TETO_RADAR}` : ''})`);
+
     await salvarStatus(env, {
       ultima_execucao: new Date().toISOString(),
-      pais_varrido: local.label,
+      pais_varrido: paises.join(' + '),
       duracao_ms: Date.now() - inicio,
       total_novas: totalNovas,
+      total_no_radar: finais.length,
       log, status: 'ok',
     });
 
   } catch (err) {
     await salvarStatus(env, {
       ultima_execucao: new Date().toISOString(),
-      pais_varrido: paisId,
+      pais_varrido: paises.join(' + '),
       status: 'erro', erro: err.message, log,
     });
   }
@@ -1435,25 +1631,66 @@ async function executarVarreduraPais(paisId, env, config) {
 // ═══════════════════════════════════════════════════════════════════
 function processarVagas(vagas, vistosSet, vagasLead, local, fonte) {
   let novas = 0;
-  for (const vaga of vagas.slice(0, 5)) {
+  const idsLead = new Set(vagasLead.map(v => v.id));
+  // Teto por anunciante: uma agência de recrutamento em massa publica o mesmo
+  // anúncio dezenas de vezes trocando a cidade. Sem este teto, um único
+  // anunciante toma o radar inteiro de um termo — foi o que a primeira colheita
+  // de Rüthen mostrou (20 vagas, 18 da mesma agência, todas o mesmo anúncio).
+  const porEmpresa = new Map();
+  const tetoTermo = local.maxPorTermo || VAGAS_POR_TERMO;
+  for (const vaga of vagas.slice(0, VAGAS_POR_TERMO)) {
+    if (novas >= tetoTermo) break;
     const id = gerarId(vaga);
-    if (vistosSet.has(id)) continue;
+    // Dedup por id do funil TAMBÉM — `vistos` é uma janela finita (últimos
+    // 5000); sem esta checagem uma vaga que saiu dessa janela voltaria como
+    // card duplicado no radar.
+    if (vistosSet.has(id) || idsLead.has(id)) continue;
     vistosSet.add(id);
-    if (!tituloRelevante(vaga.titulo)) continue;
+    // `semFiltroCargo`: numa frente onde o valor é estar perto de quem se ama,
+    // jardinagem e armazém valem tanto quanto diretoria. O corte ali é o idioma,
+    // e quem faz esse corte é a Compatibilidade (impedimentos), não o título.
+    if (!local.semFiltroCargo && !tituloRelevante(vaga.titulo)) continue;
+    const chave = String(vaga.empresa || '').toLowerCase().trim();
+    if (chave) {
+      const qtd = porEmpresa.get(chave) || 0;
+      if (qtd >= MAX_POR_ANUNCIANTE) continue;
+      porEmpresa.set(chave, qtd + 1);
+    }
+    idsLead.add(id);
     vagasLead.push(montarCard(vaga, local, fonte));
     novas++;
   }
   return novas;
 }
 
+// Filtro de primeira linha (antes de qualquer custo de IA): deixa passar o que
+// tem cara de posição executiva e barra o ruído que "manager"/"head" atraem —
+// Product Manager, Engineering Manager, estágio, júnior, analista. O que passa
+// daqui ainda é avaliado pela Compatibilidade; este filtro só evita gastar
+// análise (e poluir o radar) com o que nunca seria candidatura.
 function tituloRelevante(titulo) {
   if (!titulo) return false;
   const t = titulo.toLowerCase();
+  const bloqueados = [
+    'estágio','estagio','estagiário','estagiaria','intern','trainee','aprendiz',
+    'júnior','junior','jr.',' pleno','assistente','auxiliar','analista','analyst',
+    'product manager','project manager','program manager','engineering manager',
+    'product owner','scrum','desenvolvedor','developer','engineer','engenheiro',
+    'designer','recruiter','recrutador','estética','promotor','atendente',
+  ];
+  if (bloqueados.some(b => t.includes(b))) return false;
+  // Alargado em 22/jul: "qualquer cargo aqui no Brasil que ganhe 8 mil já é bom
+  // pra mim" (Marcos). Coordenação, supervisão e consultoria pagam essa faixa e
+  // estavam sendo descartadas antes de qualquer análise. Quem julga se serve é a
+  // Compatibilidade, que agora pesa o projeto de vida — não este filtro.
   const relevantes = [
-    'diretor','director','diretora','head','chief','cmo','ceo','cso','vp ',
-    'gerente','manager','marketing','comercial','negócios','negocios',
-    'expansão','expansao','regional','country','general',
-    'vendas','sales','ventas','venda','business development','account'
+    'diretor','director','diretora','head','chief','cmo','ceo','cso','coo','cro','vp ',
+    'gerente','manager','marketing','comercial','negócios','negocios','presidente',
+    'expansão','expansao','regional','country','general','superintendente','executive',
+    'vendas','sales','ventas','venda','business development','account','geschäftsführer',
+    'vertriebsleiter','vertriebsdirektor','leiter','jefe','director general','managing',
+    'coordenador','coordenadora','coordinator','supervisor','supervisora','consultor',
+    'especialista','encarregado','líder','lider','chefe','responsável','responsavel',
   ];
   return relevantes.some(r => t.includes(r));
 }
@@ -1464,19 +1701,40 @@ function tituloRelevante(titulo) {
 async function buscarAdzuna(query, local, env) {
   const appId  = env.ADZUNA_APP_ID;
   const appKey = env.ADZUNA_APP_KEY;
-  const pais   = ADZUNA_PAISES[local.id];
+  // adzunaPais permite uma frente apontar para um país sem ser o país inteiro
+  // (Rüthen usa 'de', mas ancorada em Lippstadt com raio).
+  const pais   = local.adzunaPais || ADZUNA_PAISES[local.id];
 
   const params = new URLSearchParams({
-    app_id: appId, app_key: appKey, results_per_page: '5',
-    what: query, sort_by: 'date', max_days_old: '3',
+    app_id: appId, app_key: appKey, results_per_page: String(VAGAS_POR_TERMO),
+    what: query, sort_by: 'date', max_days_old: String(local.diasMax || 7),
   });
+  // Busca ancorada numa praça: mercado local pequeno pede raio, não país.
+  if (local.where) {
+    params.set('where', local.where);
+    if (local.distanciaKm) params.set('distance', String(local.distanciaKm));
+  }
 
   const url = `https://api.adzuna.com/v1/api/jobs/${pais}/search/1?${params}`;
-  const resp = await fetch(url, {
-    headers: { 'Accept': 'application/json' },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!resp.ok) throw new Error(`Adzuna HTTP ${resp.status}`);
+  // Retry só em transitório (429/5xx/timeout) — nunca em 4xx. O log do cron de
+  // 22/jul mostrou "Adzuna HTTP 503" derrubando um termo inteiro do dia.
+  let resp = null, ultimoErro = '';
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    try {
+      resp = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (resp.ok) break;
+      ultimoErro = `HTTP ${resp.status}`;
+      if (resp.status < 500 && resp.status !== 429) break; // erro definitivo
+    } catch (e) {
+      ultimoErro = e.message || 'timeout';
+      resp = null;
+    }
+    if (tentativa === 0) await new Promise(r => setTimeout(r, 700));
+  }
+  if (!resp || !resp.ok) throw new Error(`Adzuna ${ultimoErro || 'sem resposta'}`);
   const data = await resp.json();
   return (data.results || []).map(r => ({
     titulo: r.title || '', empresa: r.company?.display_name || local.label,
@@ -1490,30 +1748,62 @@ async function buscarAdzuna(query, local, env) {
 // ═══════════════════════════════════════════════════════════════════
 async function buscarJobicy(query, local) {
   const regiao = JOBICY_REGIOES[local.id];
-  const params = new URLSearchParams({ feed:'job_feed', job_categories:'management', search_keywords:query });
+  // O feed do Jobicy é global e indexado em inglês: termo em português volta
+  // zero resultado (medido — o log de 22/jul tinha "0 vagas" em toda query pt).
+  // Traduzimos o termo para o equivalente em inglês do pool.
+  const termo = termoJobicy(query);
+  const params = new URLSearchParams({ feed:'job_feed', job_categories:'management', search_keywords:termo });
   if (regiao) params.set('search_region', regiao);
   const resp = await fetch(`https://jobicy.com/?${params}`, {
     headers: { 'User-Agent':'Mozilla/5.0 (compatible; SenovaBot/1.0)', 'Accept':'text/xml' },
     signal: AbortSignal.timeout(8000),
   });
   if (!resp.ok) return [];
-  return parsearRSS(await resp.text(), 'Jobicy', local);
+  // Janela de 14 dias: o feed publica com atraso declarado de 6h e é pouco
+  // movimentado — com a janela de 3 dias, 100% dos itens era descartado
+  // (medido contra o feed vivo: o item mais recente tinha 4 dias).
+  return parsearRSS(await resp.text(), 'Jobicy', local, 14, VAGAS_POR_TERMO);
+}
+
+// Ponte pt/es/de → en para o feed do Jobicy (indexado em inglês).
+const TERMOS_EN = {
+  'diretor comercial':'commercial director', 'diretor de vendas':'sales director',
+  'diretor de marketing':'marketing director', 'head comercial':'head of sales',
+  'gerente geral':'general manager', 'superintendente comercial':'sales director',
+  'diretor executivo':'managing director',
+  'director comercial':'commercial director', 'director de ventas':'sales director',
+  'director general':'general manager', 'jefe comercial':'head of sales',
+  'director de marketing':'marketing director', 'director ejecutivo':'managing director',
+  'vertriebsdirektor':'sales director', 'vertriebsleiter':'head of sales',
+  'geschäftsführer':'managing director', 'marketingleiter':'marketing director',
+};
+function termoJobicy(query) {
+  return TERMOS_EN[(query || '').toLowerCase()] || query;
 }
 
 // ═══════════════════════════════════════════════════════════════════
 //  PARSER RSS
 // ═══════════════════════════════════════════════════════════════════
-function parsearRSS(xml, fonte, local) {
+// `janelaDias` e `maxItens` são parâmetros porque as duas fontes que passam por
+// aqui têm ritmos diferentes: notícia é perecível (3 dias, poucos itens), feed de
+// vaga não (Jobicy publica com atraso e é pouco movimentado — com 3 dias descartava
+// 100% do feed, medido). As tags job_listing:* são do namespace do Jobicy; em feed
+// de notícia elas simplesmente não existem e o fallback antigo continua valendo.
+function parsearRSS(xml, fonte, local, janelaDias = 3, maxItens = 8) {
   const vagas = [];
   const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
-  for (const item of items.slice(0, 8)) {
+  for (const item of items.slice(0, maxItens)) {
     const titulo    = extrairTag(item, 'title') || '';
     const url       = extrairTag(item, 'link') || extrairTag(item, 'guid') || '';
-    const empresa   = extrairTag(item, 'source') || extrairTag(item, 'author') || local.label;
-    const descricao = limparHtml(extrairTag(item, 'description') || '').slice(0, 4000);
+    const empresa   = extrairTag(item, 'job_listing:company')
+                   || extrairTag(item, 'source') || extrairTag(item, 'author') || local.label;
+    const localVaga = extrairTag(item, 'job_listing:location') || '';
+    const descricao = limparHtml(
+      extrairTag(item, 'content:encoded') || extrairTag(item, 'description') || ''
+    ).slice(0, 4000);
     const pubDate   = extrairTag(item, 'pubDate') || '';
-    if (pubDate && !vagaRecente(pubDate)) continue;
-    if (titulo && url) vagas.push({ titulo, empresa, url, descricao, pubDate });
+    if (pubDate && !vagaRecente(pubDate, janelaDias)) continue;
+    if (titulo && url) vagas.push({ titulo, empresa, url, descricao, pubDate, local: localVaga });
   }
   return vagas;
 }
@@ -1529,8 +1819,8 @@ function limparHtml(h) {
           .replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/\s+/g,' ').trim();
 }
 
-function vagaRecente(d) {
-  try { return Date.now() - new Date(d).getTime() < 3*24*60*60*1000; } catch { return true; }
+function vagaRecente(d, janelaDias = 3) {
+  try { return Date.now() - new Date(d).getTime() < janelaDias*24*60*60*1000; } catch { return true; }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1549,13 +1839,31 @@ CANDIDATO: ${perfil}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
-IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do CANDIDATO acima. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma.
+IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do CANDIDATO acima. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
+
+${PROJETO_DE_VIDA}
+
+IMPEDIMENTOS — avalie ANTES de pontuar. Impedimento é o que torna esta vaga inviável ou contrária ao projeto de vida acima, não um requisito que faltou. Só é impedimento o que a descrição REALMENTE sustenta:
+· idioma local ou exigido que o candidato não fala;
+· presença física obrigatória em praça que ele não aceita (ver projeto de vida) — estar no exterior, por si só, não é impedimento;
+· remuneração declarada abaixo do piso do candidato (ver projeto de vida — o piso é baixo de propósito);
+· nível do trabalho abaixo do porte dele SEM nada que compense — execução individual, operação, porta em porta, "consultor de vendas" com carteira própria, ainda que o TÍTULO diga gerente ou diretor. Julgue pelas responsabilidades, nunca pelo título. ATENÇÃO: isto NÃO é impedimento quando a vaga serve a outra prioridade do projeto de vida (proximidade da filha, residência legal na Europa, viabilizar a vida agora) — aí registre a perda de nível em pontos_atencao e siga;
+· exigência eliminatória objetiva que ele não tem (registro em conselho, certificação obrigatória, formação específica).
+Liste cada um em "impedimentos" em UMA frase curta (máx. 20 palavras), dizendo o que impede. Sem impedimento, devolva []. NUNCA repita um impedimento dentro de pontos_atencao — o app já mostra os dois juntos, e repetir faz a pessoa ler a mesma coisa duas vezes.
+
+CONCISÃO: no máximo 4 pontos_fortes e 4 pontos_atencao, os que MAIS pesam, uma linha cada (máx. 20 palavras). Quem lê é um executivo decidindo em segundos, não um relatório. Nada de repetir entre si nem reexplicar o que já está no resumo.
+
+PONTUAÇÃO: mede o encontro entre a vaga e a VIDA do candidato, não só entre a vaga e o currículo. Vaga tecnicamente compatível que o afasta do projeto de vida vale MENOS, e o motivo tem de aparecer em pontos_atencao. Vaga que serve à vida dele pesa MAIS mesmo com alguma lacuna técnica. Nada que seja impedimento pode ser listado como ponto forte.
+
+INFORMAÇÃO INSUFICIENTE: se a descrição for curta ou vazia demais para julgar de verdade, não invente nem impedimento nem ponto forte. Diga em pontos_atencao que a avaliação foi feita com pouca informação e mantenha a nota contida — é honesto ficar em dúvida.
+
+O campo "resumo" tem 2 linhas: a primeira diz o que é a vaga; a segunda diz, sem rodeio, o que ela faz com o projeto de vida dele — aproxima, é neutra, ou afasta.
 
 CANDIDATURA DIRETA: identifique o canal REAL de candidatura sempre que ele NÃO for um botão de portal (LinkedIn Easy Apply, Gupy, etc.) — ou seja, sempre que a vaga só puder ser respondida por e-mail, WhatsApp ou telefone, com ou sem frase imperativa como "envie seu CV para" (inclui e-mail/contato de recrutador ou headhunter listado na descrição como forma de aplicação, mesmo em assinatura). Nesse caso extraia candidatura_direta_canal ("Email"|"WhatsApp"|"Telefone") e candidatura_direta_destino (e-mail ou telefone encontrado). Se não houver nenhum canal de candidatura fora de portal, deixe candidatura_direta_canal e candidatura_direta_destino como "". Independente do canal acima, se a vaga pedir em qualquer lugar da descrição para mencionar uma palavra, código ou fazer uma ação específica na candidatura — teste de atenção, pode estar solta, longe de "como se candidatar" — preencha candidatura_direta_instrucao com essa palavra/código/ação. Se não houver nada disso, retorne "" nos três campos.${_scoreAnt ? `
 
 SCORE ANTERIOR desta vaga (antes do perfil complementar mais recente abaixo): ${_scoreAnt}. Se a SUA nova pontuação for MENOR que ${_scoreAnt}, preencha "explicacao_queda" com uma frase curta e direta (1 linha, tom neutro) explicando o motivo real da queda — ex.: a informação nova já constava de forma mais específica no perfil complementar; a informação é vaga demais para mudar a avaliação; ou algum requisito da vaga passou a pesar mais nesta leitura completa. Nunca invente um motivo — só descreva o que de fato pesou. Se a pontuação não diminuiu, deixe "explicacao_queda" como "".` : ''}
 
-JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|""),"candidatura_direta_canal":"canal extraído ou ''","candidatura_direta_destino":"e-mail ou telefone extraído ou ''","candidatura_direta_instrucao":"palavra/ação exigida ou ''","explicacao_queda":"motivo da queda de score ou ''"}`;
+JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resumo":"2 linhas","pontos_fortes":["p1","p2"],"pontos_atencao":["p1"],"impedimentos":[],"salario_compativel":(true|false),"localizacao":"cidade/estado extraído ou ''","modelo":("hibrido"|"remoto"|"presencial"|""),"regime":("CLT"|"PJ"|"ambos"|""),"candidatura_direta_canal":"canal extraído ou ''","candidatura_direta_destino":"e-mail ou telefone extraído ou ''","candidatura_direta_instrucao":"palavra/ação exigida ou ''","explicacao_queda":"motivo da queda de score ou ''"}`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1576,14 +1884,56 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
     const data = await resp.json();
-    return JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+    const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+
+    // Trava de honestidade: impedimento não pode virar nota alta. O app decide o
+    // rótulo do card pelo NÚMERO (>=75 "Ótima oportunidade", >=55 "Pode valer a
+    // pena"), então sem este teto uma vaga inviável apareceria como ótima. Aqui é
+    // código, não instrução — não depende de o modelo obedecer. E os impedimentos
+    // entram no topo de pontos_atencao porque é esse campo que o app já mostra:
+    // não existe impedimento invisível.
+    const imped = Array.isArray(r.impedimentos) ? r.impedimentos.filter(i => typeof i === 'string' && i.trim()) : [];
+    r.impedimentos = imped.slice(0, 4);
+    r.pontos_fortes = (Array.isArray(r.pontos_fortes) ? r.pontos_fortes : []).slice(0, 4);
+    let atencao = (Array.isArray(r.pontos_atencao) ? r.pontos_atencao : []).slice(0, 4);
+    if (r.impedimentos.length) {
+      // O modelo tende a reescrever o impedimento com outras palavras dentro de
+      // pontos_atencao; comparação literal não pega. Aqui compara o CONTEÚDO
+      // (palavras significativas em comum) para a pessoa não ler duas vezes.
+      atencao = atencao.filter(a => !r.impedimentos.some(i => textoRepetido(a, i)));
+      r.pontos_atencao = [...r.impedimentos, ...atencao].slice(0, 6);
+      if (typeof r.score === 'number' && r.score > TETO_SCORE_COM_IMPEDIMENTO) r.score = TETO_SCORE_COM_IMPEDIMENTO;
+      if (r.classificacao === 'candidatar') r.classificacao = 'analisar';
+    } else {
+      r.pontos_atencao = atencao;
+    }
+    return r;
   } catch (err) {
     console.error('analisarVaga falhou:', err.message);
     // Nunca fingir um resultado: score:null é honesto e cai nos guards que já existem no app
     // (mvAutoCompatCheck/mvReanalisarCompat/analisarLoteBackground/importar vagas), que tratam
     // "sem score" como falha real — avisam o usuário ou re-tentam, em vez de gravar nota falsa.
-    return { erro:true, score:null, classificacao:'', resumo:'', pontos_fortes:[], pontos_atencao:[], salario_compativel:null, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
+    return { erro:true, score:null, classificacao:'', resumo:'', pontos_fortes:[], pontos_atencao:[], impedimentos:[], salario_compativel:null, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
   }
+}
+
+// Duas frases dizem a mesma coisa? Compara as palavras que CARREGAM sentido
+// (sem acento, sem conectivo): metade em comum já é repetição para quem lê.
+// Rede de segurança do prompt — na dúvida NÃO corta, porque descartar um ponto
+// legítimo custa mais ao leitor do que ver uma repetição.
+const VAZIAS = new Set(['nao','sim','uma','uns','das','dos','com','sem','por','pelo','pela','que','mais','menos','muito','pode','deve','ser','esta','este','isso','ainda','tambem','entre','sobre','apenas','real','mesmo','ele','ela','seu','sua','aos','nas','nos','ate','tem','foi','vaga']);
+function textoRepetido(a, b) {
+  const norm = s => new Set(
+    String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+      .filter(p => p.length >= 3 && !VAZIAS.has(p))
+      .map(p => p.slice(0, 5)) // radical tosco: "conduzida"/"conduzido" e "alemão"/"Alemanha" contam como a mesma ideia
+  );
+  const A = norm(a), B = norm(b);
+  if (!A.size || !B.size) return false;
+  let comuns = 0;
+  for (const p of A) if (B.has(p)) comuns++;
+  return comuns / Math.min(A.size, B.size) >= 0.5;
 }
 
 // ═══════════════════════════════════════════════════════════════════

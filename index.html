@@ -4975,10 +4975,15 @@ async function importarVagasLead(){
       return;
     }
 
-    // Analisa em paralelo com progresso
+    // Analisa em lotes, com progresso. NÃO em paralelo total: com o radar
+    // destravado a importação passou a trazer centenas de vagas, e disparar
+    // tudo de uma vez fazia a API recusar chamadas — a vaga voltava sem nota e
+    // virava card mudo, sem ninguém perceber. 6 por vez leva mais tempo e
+    // devolve resposta de verdade em todas.
     if(btn) btn.textContent=`⏳ Analisando 0/${lead.length}…`;
     let analisadas=0;
-    const resultados = await Promise.all(lead.map(async v=>{
+    const LOTE=6;
+    const analisarUma = async v=>{
       try{
         const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
           method:'POST',
@@ -4990,14 +4995,23 @@ async function importarVagasLead(){
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
         fetch(WORKER_URL+'/api/vagas-lead/score',{
           method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,salario_compativel:analise.salario_compativel}),
+          body:JSON.stringify({id:v.id,score:analise.score,classificacao:analise.classificacao,resumo:analise.resumo,pontos_fortes:analise.pontos_fortes,pontos_atencao:analise.pontos_atencao,salario_compativel:analise.salario_compativel}),
         }).catch(()=>{});
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||''};
+        // `pontos_atencao` traz os IMPEDIMENTOS (idioma que ele não fala,
+        // presencial em praça recusada, salário abaixo do piso). Sem carregar
+        // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
+        // vaga fraca sem dizer por quê.
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||''};
       }catch{
         analisadas++;
+        if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
         return {...v, score:null};
       }
-    }));
+    };
+    const resultados=[];
+    for(let i=0;i<lead.length;i+=LOTE){
+      resultados.push(...await Promise.all(lead.slice(i,i+LOTE).map(analisarUma)));
+    }
 
     const agora=Date.now();
     let novas=0;
