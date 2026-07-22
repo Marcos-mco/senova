@@ -8,4 +8,4 @@ binding = "SENOVA_KV"
 id = "e0f1fc09836b48d1be86fcdf217ef7dd"
 
 [triggers]
-crons = ["0 10 * * *"]
+crons = ["0 10 * * *", "0 */3 * * *"]

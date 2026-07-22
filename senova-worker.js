@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.16
+//  SENOVA PROXY — Worker v7.17
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
 //  NOVIDADES v7.14 (22/jul/2026) — Compatibilidade pesa a VIDA, não só o CV:
@@ -636,12 +636,16 @@ export default {
       const token = await getValidToken(env);
       const wl = await getWhitelist(env);
       const statsHoje = await env.SENOVA_KV.get('stats_' + new Date().toISOString().slice(0,10), 'json') || { novos: 0, alertas: 0 };
+      // Colheita de e-mail à vista: uma entrada que falha em silêncio já custou
+      // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
+      const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.16',
+        status: 'ok', worker: 'senova-proxy', versao: '7.17',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
         statsHoje,
+        colheita_email: colheita || 'ainda não rodou',
       });
     }
 
@@ -849,99 +853,12 @@ export default {
         };
       });
 
-      const isAlertaFn = e => {
-        const f = (e.from || '').toLowerCase();
-        const subj = (e.subject || '').toLowerCase();
-        if (f.includes('linkedin')) return false;
-        if (f.includes('adzuna')) return false; // Adzuna job listings → fluxo normal de vaga
-        // Google Alert sobre vagas → email normal, não signal de mercado
-        if ((f.includes('googlealerts-noreply') || f.includes('google-alerts')) &&
-            /vaga|emprego|\bjob\b|oportunidade|candidatura|hiring/i.test(subj)) return false;
-        return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
-               f.includes('alertas@') ||
-               (f.includes('jobalerts') && !f.includes('linkedin')) ||
-               (f.includes('job-alert') && !f.includes('linkedin'));
-      };
-
-      // Fetch HTML individual só para emails com aparência de vaga — extrai hrefs reais
-      const JOB_FROM_PATTERN = /linkedin|gupy|greenhouse|lever|workday|indeed|michaelpage|roberthalf|catho|vagas\.com|empregos\.com|infojobs|jobscore/i;
-      const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
-      // HTML fetch individual: para qualquer e-mail com cara de vaga (extrai
-      // TODAS as vagas, mesmo que o texto já tenha achado uma) ou alerta.
-      // Não bloqueia o fluxo se falhar.
-      // Cap de subrequests: o prefixo síncrono do .map serializa o contador,
-      // então o limite é respeitado mesmo com execução concorrente.
-      let _htmlCount = 0;
-      const HTML_CAP = 20;
-      await Promise.allSettled(emailsBase.map(async e => {
-        const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
-        const isAlerta = isAlertaFn(e);
-        const precisaHtml = mightBeVaga || isAlerta;
-        if (!precisaHtml) return;
-        if (_htmlCount >= HTML_CAP) return;
-        _htmlCount++;
-        try {
-          const r = await fetch(
-            `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}?$select=body`,
-            { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="html"' },
-              signal: AbortSignal.timeout(4000) }
-          );
-          if (!r.ok) return;
-          const d = await r.json();
-          const html = d.body?.content || '';
-          const linksHtml = extrairLinksEmail(html);
-          const linkHtml = detectarLinkVaga(linksHtml);
-          if (linkHtml) { e.links = linksHtml; e.link_vaga = linkHtml; }
-          if (isAlerta) e.artigos = extrairArtigosGoogleAlert(html);
-          if (mightBeVaga) e.vagas_extraidas = extrairVagasEmail(html);
-        } catch {}
-      }));
+      await enriquecerEmailsComHtml(emailsBase, token, isAlertaFn);
 
       const emails = emailsBase;
 
       // ── Vazamento zero: vagas escondidas em e-mail multi-vaga → funil vagas_lead ──
-      // Alimenta o MESMO funil da varredura. Dedup por id (jobid/URL) via
-      // vagas_vistas_ids; filtro de relevância; score + gate por limiar
-      // acontecem no cliente (importarVagasLead → renderWidgetRevisao).
-      // Best-effort: encapsulado; nunca quebra /api/emails.
-      try {
-        const rawLead = await env.SENOVA_KV.get('vagas_lead');
-        const vagasLead = rawLead ? JSON.parse(rawLead) : [];
-        const rawVistos = await env.SENOVA_KV.get('vagas_vistas_ids');
-        const vistosSet = new Set(rawVistos ? JSON.parse(rawVistos) : []);
-        const idsLead = new Set(vagasLead.map(v => v.id));
-        let extraidas = 0, novasLead = 0, emailsMulti = 0;
-        for (const e of emails) {
-          const vs = e.vagas_extraidas || [];
-          if (vs.length > 1) emailsMulti++;
-          for (const v of vs) {
-            extraidas++;
-            const id = gerarId({ titulo: v.titulo, empresa: '', url: v.url });
-            if (vistosSet.has(id) || idsLead.has(id)) continue;   // dedup jobid/URL
-            if (!tituloRelevante(v.titulo)) continue;             // filtra ruído
-            vistosSet.add(id); idsLead.add(id);
-            vagasLead.push({
-              id, titulo: v.titulo, empresa: '', local: 'Brasil', url: v.url,
-              descricao: '', canal: 'Email', fonte: 'email_alerta',
-              data: new Date().toLocaleDateString('pt-BR'),
-              score: null, resumo: '', pontos_fortes: [], pontos_atencao: [],
-              forma_candidatura: '', badge: 'Email',
-              criadoEm: new Date().toISOString(), status: 'lead',
-            });
-            novasLead++;
-          }
-        }
-        if (novasLead > 0) {
-          await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasLead.slice(-250)));
-          await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-2000)));
-        }
-        await env.SENOVA_KV.put('email_vagas_stats', JSON.stringify({
-          ultima: new Date().toISOString(),
-          emails_multivaga: emailsMulti,
-          vagas_extraidas: extraidas,
-          vagas_novas_lead: novasLead,
-        }));
-      } catch (err) { /* extração é best-effort; não derruba a rota */ }
+      await alimentarFunilComEmail(emails, env);
 
       // Alertas: artigos já extraídos no fetch HTML individual acima
       const todosAlertas = emails.filter(isAlertaFn);
@@ -1450,15 +1367,202 @@ export default {
     return json({ erro: 'Rota não encontrada' }, 404);
   },
 
-  // Cron: "0 10 * * *" = 07:00 BRT
+  // Dois crons:
+  //  "0 10 * * *"   = 07:00 BRT — varredura de vagas nas fontes (Adzuna/Jobicy)
+  //  "0 */3 * * *"  = de 3 em 3 horas — colhe as vagas que chegam por e-mail.
+  // A colheita é frequente de propósito: alerta de vaga é perecível, e esperar
+  // Marcos abrir o app custou uma candidatura já encerrada.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(executarVarredura(env, true));
+    if (event.cron === '0 10 * * *') ctx.waitUntil(executarVarredura(env, true));
+    else ctx.waitUntil(colherVagasDeEmail(env));
   },
 };
 
 // ═══════════════════════════════════════════════════════════════════
+//  COLHEITA DE VAGAS NO E-MAIL
+//  Estas três funções eram um trecho solto dentro de GET /api/emails, o que
+//  significava que uma vaga só existia no Senova quando Marcos abrisse o app.
+//  Medido em 22/jul: alerta do LinkedIn chegou 21/07 23:42 e a vaga entrou no
+//  radar 22/07 15:26 — 15h44 de atraso, tempo suficiente para a candidatura
+//  fechar. Agora o cron colhe sozinho, e a rota continua usando o mesmo código.
+// ═══════════════════════════════════════════════════════════════════
+const JOB_FROM_PATTERN = /linkedin|gupy|greenhouse|lever|workday|indeed|michaelpage|roberthalf|catho|vagas\.com|empregos\.com|infojobs|jobscore/i;
+const JOB_SUBJ_PATTERN = /vaga|emprego|oportunidade|job|career|position|role|hiring|processo seletivo/i;
+const HTML_CAP = 20;
+
+function isAlertaFn(e) {
+  const f = (e.from || '').toLowerCase();
+  const subj = (e.subject || '').toLowerCase();
+  if (f.includes('linkedin')) return false;
+  if (f.includes('adzuna')) return false; // Adzuna job listings → fluxo normal de vaga
+  // Google Alert sobre vagas → email normal, não signal de mercado
+  if ((f.includes('googlealerts-noreply') || f.includes('google-alerts')) &&
+      /vaga|emprego|\bjob\b|oportunidade|candidatura|hiring/i.test(subj)) return false;
+  return f.includes('googlealerts-noreply') || f.includes('google-alerts') ||
+         f.includes('alertas@') ||
+         (f.includes('jobalerts') && !f.includes('linkedin')) ||
+         (f.includes('job-alert') && !f.includes('linkedin'));
+}
+
+// Fetch HTML individual só para e-mails com aparência de vaga — o texto puro do
+// Graph perde os hrefs, e é neles que moram as vagas do alerta multi-vaga.
+// Cap de subrequests: o prefixo síncrono do .map serializa o contador, então o
+// limite é respeitado mesmo com execução concorrente.
+async function enriquecerEmailsComHtml(emails, token, ehAlerta = isAlertaFn) {
+  let _htmlCount = 0;
+  await Promise.allSettled(emails.map(async e => {
+    const mightBeVaga = JOB_FROM_PATTERN.test(e.from) || JOB_SUBJ_PATTERN.test(e.subject);
+    const isAlerta = ehAlerta(e);
+    if (!mightBeVaga && !isAlerta) return;
+    if (_htmlCount >= HTML_CAP) return;
+    _htmlCount++;
+    try {
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(e.id)}?$select=body`,
+        { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="html"' },
+          signal: AbortSignal.timeout(4000) }
+      );
+      if (!r.ok) return;
+      const d = await r.json();
+      const html = d.body?.content || '';
+      const linksHtml = extrairLinksEmail(html);
+      const linkHtml = detectarLinkVaga(linksHtml);
+      if (linkHtml) { e.links = linksHtml; e.link_vaga = linkHtml; }
+      if (isAlerta) e.artigos = extrairArtigosGoogleAlert(html);
+      if (mightBeVaga) e.vagas_extraidas = extrairVagasEmail(html);
+    } catch {}
+  }));
+  return _htmlCount;
+}
+
+// Alimenta o MESMO funil da varredura. Dedup por id (jobid/URL) via
+// vagas_vistas_ids; filtro de relevância; score e gate por limiar acontecem no
+// cliente. Best-effort: encapsulado, nunca derruba quem a chamou.
+async function alimentarFunilComEmail(emails, env) {
+  try {
+    const rawLead = await env.SENOVA_KV.get('vagas_lead');
+    const vagasLead = rawLead ? JSON.parse(rawLead) : [];
+    const rawVistos = await env.SENOVA_KV.get('vagas_vistas_ids');
+    const vistosSet = new Set(rawVistos ? JSON.parse(rawVistos) : []);
+    const idsLead = new Set(vagasLead.map(v => v.id));
+    let extraidas = 0, novasLead = 0, emailsMulti = 0;
+    for (const e of emails) {
+      const vs = e.vagas_extraidas || [];
+      if (vs.length > 1) emailsMulti++;
+      for (const v of vs) {
+        extraidas++;
+        const id = gerarId({ titulo: v.titulo, empresa: '', url: v.url });
+        if (vistosSet.has(id) || idsLead.has(id)) continue;   // dedup jobid/URL
+        if (!tituloRelevante(v.titulo)) continue;             // filtra ruído
+        vistosSet.add(id); idsLead.add(id);
+        vagasLead.push({
+          id, titulo: v.titulo, empresa: '', local: 'Brasil', url: v.url,
+          descricao: '', canal: 'Email', fonte: 'email_alerta',
+          data: new Date().toLocaleDateString('pt-BR'),
+          score: null, resumo: '', pontos_fortes: [], pontos_atencao: [],
+          forma_candidatura: '', badge: 'Email',
+          criadoEm: new Date().toISOString(), status: 'lead',
+        });
+        novasLead++;
+      }
+    }
+    if (novasLead > 0) {
+      // Mesmo corte honesto da varredura: nada das últimas 48h é descartado.
+      // O `slice(-250)` antigo cortava pela ponta e podia jogar fora vaga boa.
+      await env.SENOVA_KV.put('vagas_lead', JSON.stringify(cortarRadar(vagasLead)));
+      await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-5000)));
+    }
+    await env.SENOVA_KV.put('email_vagas_stats', JSON.stringify({
+      ultima: new Date().toISOString(),
+      emails_multivaga: emailsMulti,
+      vagas_extraidas: extraidas,
+      vagas_novas_lead: novasLead,
+    }));
+    return { extraidas, novasLead, emailsMulti };
+  } catch (err) {
+    return { erro: err.message };
+  }
+}
+
+// Colheita agendada. Faz SÓ o que precisa ser feito na hora: buscar, abrir o
+// HTML dos que têm cara de vaga e alimentar o funil. NÃO classifica com IA, NÃO
+// marca como visto, NÃO move de pasta — se mexesse nisso, o e-mail sumiria da
+// tela de Marcos antes de ele ler. A rota /api/emails continua dona disso.
+async function colherVagasDeEmail(env) {
+  const inicio = Date.now();
+  try {
+    const token = await getValidToken(env);
+    if (!token) {
+      await env.SENOVA_KV.put('colheita_email_status', JSON.stringify({
+        quando: new Date().toISOString(), status: 'sem_token',
+        detalhe: 'Outlook desconectado — reconectar em Configurações',
+      }));
+      return;
+    }
+    const dataMinima = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0,10) + 'T00:00:00Z';
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages?$top=60&$filter=receivedDateTime ge ${dataMinima}&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview`,
+      { headers: { Authorization: `Bearer ${token}`, 'Prefer': 'outlook.body-content-type="text"' } }
+    );
+    if (!res.ok) throw new Error('Graph HTTP ' + res.status);
+    const data = await res.json();
+    const emails = (data.value || []).map(e => ({
+      id: e.id, subject: e.subject || '',
+      from: e.from?.emailAddress?.address || '',
+      date: e.receivedDateTime,
+    }));
+    // Sem esta memória o teto de 20 aberturas viraria vazamento permanente: a
+    // ordem é sempre a mesma (mais recente primeiro), então o 21º e-mail da
+    // janela nunca seria aberto — as vagas dele se perderiam para sempre.
+    // Guardando quem já foi colhido, cada rodada abre os 20 seguintes e o
+    // acúmulo se esvazia em poucas horas.
+    const rawColhidos = await env.SENOVA_KV.get('emails_colhidos_ids');
+    const colhidos = new Set(rawColhidos ? JSON.parse(rawColhidos) : []);
+    const pendentes = emails.filter(e => !colhidos.has(e.id));
+
+    const abertos = await enriquecerEmailsComHtml(pendentes, token);
+    const r = await alimentarFunilComEmail(pendentes, env);
+
+    // Só marca como colhido o que foi REALMENTE aberto (tem o campo preenchido).
+    // O que não chegou a ser aberto volta na próxima rodada.
+    for (const e of pendentes) {
+      if ('vagas_extraidas' in e || 'artigos' in e) colhidos.add(e.id);
+    }
+    await env.SENOVA_KV.put('emails_colhidos_ids', JSON.stringify([...colhidos].slice(-2000)));
+
+    await env.SENOVA_KV.put('colheita_email_status', JSON.stringify({
+      quando: new Date().toISOString(), status: 'ok',
+      emails_na_janela: emails.length,
+      pendentes_de_colheita: pendentes.length, emails_abertos: abertos,
+      vagas_extraidas: r.extraidas, vagas_novas: r.novasLead,
+      duracao_ms: Date.now() - inicio,
+    }));
+  } catch (err) {
+    await env.SENOVA_KV.put('colheita_email_status', JSON.stringify({
+      quando: new Date().toISOString(), status: 'erro', erro: err.message,
+    }));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  VARREDURA COM ROTAÇÃO DE PAÍSES
 // ═══════════════════════════════════════════════════════════════════
+// Corte honesto do radar, usado por TODO caminho que grava vagas_lead (varredura
+// e colheita de e-mail). Sem score vale -1 na ordenação, mas isso nunca é motivo
+// de descarte; empate desempata por recência; e nada das últimas 48h pode ser
+// cortado — vaga nova jamais é jogada fora em silêncio. Foi o corte antigo
+// (`sort(b.score-a.score).slice(0,100)`) que matou o funil por 42 dias.
+function cortarRadar(vagasLead) {
+  const AGORA = Date.now();
+  const ts = v => { const t = new Date(v.criadoEm || 0).getTime(); return isNaN(t) ? 0 : t; };
+  const notaDe = v => (typeof v.score === 'number' && !isNaN(v.score)) ? v.score : -1;
+  const ordenadas = vagasLead.slice().sort((a, b) => (notaDe(b) - notaDe(a)) || (ts(b) - ts(a)));
+  const dentroDoTeto = ordenadas.slice(0, TETO_RADAR);
+  const recentesCortadas = ordenadas.slice(TETO_RADAR)
+    .filter(v => AGORA - ts(v) < 48 * 60 * 60 * 1000);
+  return [...dentroDoTeto, ...recentesCortadas].slice(0, TETO_RADAR_ABSOLUTO);
+}
+
 // A DEFINIÇÃO das frentes mora no código; o KV guarda só o que Marcos liga e
 // desliga. Sem isso, uma frente nova (Rüthen) nunca rodaria: o `config_varredura`
 // salvo no KV traz uma lista antiga de locais e sobrescreveria o padrão inteiro.
@@ -1593,14 +1697,7 @@ async function executarVarreduraPais(paisId, env, config) {
     // slice. Agora: sem score vale -1 na ordenação (mas nunca é motivo de
     // descarte), empate desempata por recência, e nada das últimas 48h pode
     // ser cortado — vaga nova jamais é jogada fora em silêncio.
-    const AGORA = Date.now();
-    const ts = v => { const t = new Date(v.criadoEm || 0).getTime(); return isNaN(t) ? 0 : t; };
-    const notaDe = v => (typeof v.score === 'number' && !isNaN(v.score)) ? v.score : -1;
-    const ordenadas = vagasLead.slice().sort((a, b) => (notaDe(b) - notaDe(a)) || (ts(b) - ts(a)));
-    const dentroDoTeto = ordenadas.slice(0, TETO_RADAR);
-    const recentesCortadas = ordenadas.slice(TETO_RADAR)
-      .filter(v => AGORA - ts(v) < 48 * 60 * 60 * 1000);
-    const finais = [...dentroDoTeto, ...recentesCortadas].slice(0, TETO_RADAR_ABSOLUTO);
+    const finais = cortarRadar(vagasLead);
     const descartadas = vagasLead.length - finais.length;
 
     await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-5000)));
