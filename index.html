@@ -4983,14 +4983,23 @@ async function importarVagasLead(){
     if(btn) btn.textContent=`⏳ Analisando 0/${lead.length}…`;
     let analisadas=0;
     const LOTE=6;
+    // Uma análise leva ~13s. Sem timeout, uma chamada pendurada trava o lote
+    // inteiro; sem retentativa, um 429 isolado condena a vaga a ficar sem nota.
+    const _pedirAnalise = async v=>{
+      const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||'',contexto:ctxTextoAtivos()}),
+        signal:AbortSignal.timeout(45000),
+      });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return await res.json();
+    };
     const analisarUma = async v=>{
       try{
-        const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||'',contexto:ctxTextoAtivos()}),
-        });
-        const analise = await res.json();
+        let analise;
+        try{ analise = await _pedirAnalise(v); }
+        catch{ await new Promise(r=>setTimeout(r,1500)); analise = await _pedirAnalise(v); }
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
         fetch(WORKER_URL+'/api/vagas-lead/score',{
@@ -5022,7 +5031,17 @@ async function importarVagasLead(){
       const similar = _vagaSimilarExistente(v);
       if(similar){ dupsPendentes.push({nova:v, existente:similar, agora}); return; }
       const scoreMin=_scoreMinParaVaga(v,config);
-      if(typeof v.score==='number'&&v.score<scoreMin){
+      // Vaga SEM nota confiável não vira processo. O portão antigo só barrava
+      // quando havia número, então toda análise que falhava entrava direto no
+      // Kanban como card mudo — e só revelava a nota real quando Marcos abria o
+      // card (foi assim que uma vaga de 12% chegou à coluna Oportunidade).
+      // Sem nota, o destino honesto é "Para Considerar": visível, descartável em
+      // bloco, e quem decide é ele — nunca o silêncio.
+      if(typeof v.score!=='number'){
+        paraRevisar.push({...v,_limiar:scoreMin,_semNota:true});
+        return;
+      }
+      if(v.score<scoreMin){
         paraRevisar.push({...v,_limiar:scoreMin});
         return;
       }
@@ -5191,9 +5210,28 @@ function _vagaJaExiste(v){
 const _REVISAO_KEY = 'senova_revisao_pendente';
 
 function mostrarRevisaoRejeitadas(lista){
-  try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
+  // ACUMULA, não substitui: a versão antiga sobrescrevia a lista inteira, então
+  // uma segunda importação apagava em silêncio tudo que ainda esperava decisão.
+  let atual=[]; try{ atual=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+  const ids=new Set(atual.map(v=>String(v.id)));
+  const juntas=[...atual, ...lista.filter(v=>!ids.has(String(v.id)))];
+  // Descrição inteira (4 mil caracteres por vaga) estoura a cota do localStorage
+  // quando a lista passa de duas centenas — e a gravação falharia calada,
+  // levando junto o que já estava lá. 1200 caracteres bastam para o card.
+  const enxutas=juntas.map(v=>v.descricao&&v.descricao.length>1200?{...v,descricao:v.descricao.slice(0,1200)}:v);
+  try{
+    localStorage.setItem(_REVISAO_KEY, JSON.stringify(enxutas));
+  }catch{
+    showToast('⚠️ Não coube guardar todas para revisão — descarte as antigas na Home');
+    return;
+  }
   renderWidgetRevisao();
-  showToast(`${lista.length} vaga${lista.length>1?'s':''} abaixo do limiar — revise na Home`);
+  const semNota=lista.filter(v=>v._semNota).length;
+  const baixas=lista.length-semNota;
+  const partes=[];
+  if(baixas) partes.push(`${baixas} abaixo do limiar`);
+  if(semNota) partes.push(`${semNota} sem análise`);
+  showToast(`${partes.join(' e ')} — revise na Home`);
 }
 
 // "Para Considerar" (design §6): superfície única do que NÃO entrou direto nos
@@ -5269,7 +5307,7 @@ function renderWidgetRevisao(){
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
         <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
       </div>
-      ${_compatChip(v.score)}
+      ${v._semNota?`<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:2px 9px;border-radius:10px;white-space:nowrap;">Sem análise</span>`:_compatChip(v.score)}
       ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
       <button onclick="adicionarVagaRejeitada(${i})" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Enviar</button>
       <button onclick="descartarVagaRejeitada(${i})" style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
