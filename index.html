@@ -4956,6 +4956,94 @@ async function dispararVarreduraManual(){
   }
 }
 
+// Uma análise leva ~10s. Sem timeout, uma chamada pendurada trava o lote
+// inteiro; sem retentativa, um 429 isolado condena a vaga a ficar sem nota.
+async function _pedirAnaliseVaga(titulo, empresa, descricao){
+  const chamar = async ()=>{
+    const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({titulo:titulo||'',empresa:empresa||'',descricao:descricao||'',contexto:ctxTextoAtivos()}),
+      signal:AbortSignal.timeout(45000),
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  };
+  try{ return await chamar(); }
+  catch{ await new Promise(r=>setTimeout(r,1500)); return await chamar(); }
+}
+
+// Devolve ao radar, numa gravação só, as notas de um lote já analisado.
+async function _gravarNotasNoRadar(itens){
+  if(!itens.length) return;
+  try{
+    await fetch(WORKER_URL+'/api/vagas-lead/score',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({itens:itens.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel}))}),
+    });
+  }catch{}
+}
+
+function _cardSemNota(v){
+  return !(typeof v.score==='number' && v.score>0) && !(v.atsScore && parseInt(v.atsScore)>0);
+}
+
+// Saneamento dos cards mudos: até 22/jul o portão da importação só barrava vaga
+// que TINHA nota, então toda análise que falhava virava card na coluna
+// Oportunidade sem nota nenhuma. Isto reavalia esses cards de uma vez.
+// Nada é apagado: quem fica abaixo do critério vai para "Para Considerar", na
+// Home. Processo real (CV Enviado em diante) e card criado à mão nunca entram.
+async function sanearOportunidadesSemNota(config, btn){
+  const alvo = (vagas||[]).filter(v => v.status==='lead' && v.canal==='Busca automática' && _cardSemNota(v));
+  if(!alvo.length) return 0;
+  const minutos = Math.max(1, Math.ceil(alvo.length*10/6/60));
+  if(!confirm(`${alvo.length} vaga${alvo.length>1?'s':''} está${alvo.length>1?'ão':''} na coluna Oportunidade sem análise — entraram por uma falha que já foi corrigida.\n\nAnalisar agora e arrumar a coluna?\n\nAs que ficarem abaixo do seu critério vão para "Para Considerar", na Home. Nenhuma é apagada, e seus processos em andamento não são tocados.\n\nLeva cerca de ${minutos} minuto${minutos>1?'s':''} — pode deixar rodando.`)) return 0;
+
+  const LOTE=6, paraConsiderar=[], idsFora=new Set();
+  let feitas=0, mantidas=0;
+  for(let i=0;i<alvo.length;i+=LOTE){
+    const doLote = await Promise.all(alvo.slice(i,i+LOTE).map(async card=>{
+      const desc = card.descricao||'';
+      // Descrição curta não dá para julgar. Em vez de fingir uma nota, o card
+      // sai da coluna e vai para "Para Considerar" — visível, e você decide.
+      if(desc.length<400) return {card, analise:null};
+      try{ return {card, analise: await _pedirAnaliseVaga(card.cargo, card.empresa, desc)}; }
+      catch{ return {card, analise:null}; }
+    }));
+    feitas += doLote.length;
+    if(btn) btn.textContent=`⏳ Arrumando ${feitas}/${alvo.length}…`;
+    const paraRadar=[];
+    for(const {card, analise} of doLote){
+      const nota = typeof analise?.score==='number' ? analise.score : null;
+      const limiar = _scoreMinParaVaga({url:card.origemUrl, local:card.localizacao, fonte:card.fonte}, config);
+      if(nota===null || nota<limiar){
+        idsFora.add(String(card.id));
+        paraConsiderar.push({ id:card.id, titulo:card.cargo, empresa:card.empresa, url:card.origemUrl,
+          descricao:card.descricao, fonte:card.fonte, local:card.localizacao,
+          score:nota, classificacao:analise?.classificacao||null, resumo:analise?.resumo||null,
+          pontos_fortes:analise?.pontos_fortes||[], pontos_atencao:analise?.pontos_atencao||[],
+          _limiar:limiar, _semNota:nota===null });
+      }else{
+        card.score=nota; card.atsScore=String(Math.round(nota));
+        card.classificacao=analise.classificacao||card.classificacao;
+        card.resumo=analise.resumo||card.resumo;
+        card.compatFortes=analise.pontos_fortes||[]; card.pontos_fortes=analise.pontos_fortes||[];
+        card.compatAtencao=analise.pontos_atencao||[];
+        mantidas++;
+      }
+      if(nota!==null) paraRadar.push({id:card.id, score:nota, classificacao:analise.classificacao, resumo:analise.resumo, pontos_fortes:analise.pontos_fortes, pontos_atencao:analise.pontos_atencao, salario_compativel:analise.salario_compativel});
+    }
+    await _gravarNotasNoRadar(paraRadar);
+    // Salva a cada lote: se você fechar no meio, o que já foi arrumado fica.
+    if(idsFora.size) vagas = vagas.filter(v=>!idsFora.has(String(v.id)));
+    idsFora.clear();
+    saveVagas();
+  }
+  if(paraConsiderar.length) mostrarRevisaoRejeitadas(paraConsiderar);
+  aplicarFiltros();
+  showToast(`Coluna arrumada — ${mantidas} dentro do critério, ${paraConsiderar.length} em Para Considerar`);
+  return alvo.length;
+}
+
 async function importarVagasLead(){
   const btn = document.getElementById('btn-importar-vagas');
   if(btn){btn.textContent='⏳ Buscando…';btn.disabled=true;}
@@ -4966,8 +5054,18 @@ async function importarVagasLead(){
     ]);
     const data   = await resLead.json();
     const config = await resConfig.json();
+    // Antes de trazer coisa nova, arruma o que entrou errado: card mudo na
+    // coluna Oportunidade é ruído em cima do que importa, e importar por cima
+    // dele só piora. Não faz nada se não houver nenhum.
+    await sanearOportunidadesSemNota(config, btn);
     const _deletedIds=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
-    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)) && !_deletedIds.has(String(v.id)));
+    // Quem já está em "Para Considerar" não é novidade. Sem isto, toda
+    // importação reanalisava — a 10s cada — tudo que o critério já tinha
+    // reprovado, e o saneamento acima devolveria os cards à coluna no mesmo
+    // clique em que os tirou de lá.
+    let _emRevisao=[]; try{ _emRevisao=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+    const _idsRevisao=new Set(_emRevisao.map(v=>String(v.id)));
+    const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)) && !_deletedIds.has(String(v.id)) && !_idsRevisao.has(String(v.id)));
 
     if(lead.length===0){
       // "Sem novidades" pode ser mentira: uma vaga apagada da coluna Oportunidade
@@ -4993,18 +5091,6 @@ async function importarVagasLead(){
     if(btn) btn.textContent=`⏳ Analisando 0/${lead.length}…`;
     let analisadas=0;
     const LOTE=6;
-    // Uma análise leva ~13s. Sem timeout, uma chamada pendurada trava o lote
-    // inteiro; sem retentativa, um 429 isolado condena a vaga a ficar sem nota.
-    const _pedirAnalise = async v=>{
-      const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({titulo:v.titulo||'',empresa:v.empresa||'',descricao:v.descricao||'',contexto:ctxTextoAtivos()}),
-        signal:AbortSignal.timeout(45000),
-      });
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      return await res.json();
-    };
     const analisarUma = async v=>{
       // Nota que o radar já traz é nota boa: não paga 13s para descobrir o que
       // já se sabe. Só vale quando o motivo veio junto — nota sem pontos de
@@ -5015,9 +5101,7 @@ async function importarVagasLead(){
         return {...v, _reaproveitada:true};
       }
       try{
-        let analise;
-        try{ analise = await _pedirAnalise(v); }
-        catch{ await new Promise(r=>setTimeout(r,1500)); analise = await _pedirAnalise(v); }
+        const analise = await _pedirAnaliseVaga(v.titulo, v.empresa, v.descricao);
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
         // `pontos_atencao` traz os IMPEDIMENTOS (idioma que ele não fala,
@@ -5039,13 +5123,7 @@ async function importarVagasLead(){
       // uma chamada por vaga, disparadas em paralelo: como cada uma reescreve o
       // registro inteiro, elas se atropelavam e a última apagava as outras — de
       // 280 vagas, só 26 ficaram com nota, e toda importação recomeçava do zero.
-      const novas=doLote.filter(v=>!v._reaproveitada && typeof v.score==='number');
-      if(novas.length){
-        await fetch(WORKER_URL+'/api/vagas-lead/score',{
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({itens:novas.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel}))}),
-        }).catch(()=>{});
-      }
+      await _gravarNotasNoRadar(doLote.filter(v=>!v._reaproveitada && typeof v.score==='number'));
     }
 
     const agora=Date.now();
