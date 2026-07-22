@@ -5353,6 +5353,34 @@ function _exibVagaConsiderar(v){
   if(!_tituloIlegivel(emp))   return {titulo:emp, sub:[loc,fonteTxt].filter(Boolean).join(' · ')};
   return {titulo:(jid?'Vaga do LinkedIn':'Vaga'), sub:fonteTxt+' · avaliando'};
 }
+// Nota de vaga em qualquer um dos dois formatos que passam por aqui: card do app
+// (compatAtencao) e item da fila de revisão (pontos_atencao).
+function _notaDeQualquer(v){
+  if(v && v._semNota) return null;
+  const n=_notaDoCard(v);
+  return n!==null ? n : (typeof v?.score==='number' && v.score>0 ? v.score : null);
+}
+// O que INVIABILIZA a vaga, em uma frase. O Worker põe os impedimentos no TOPO de
+// pontos_atencao justamente para isto. Era calculado, gravado no card e nunca
+// mostrado — Marcos tinha de abrir a vaga para descobrir por que ela foi recusada.
+function _motivoDaVaga(v){
+  const l=(v?.compatAtencao&&v.compatAtencao.length)?v.compatAtencao:(v?.pontos_atencao||[]);
+  return (l[0]||'').trim();
+}
+// Vaga com impedimento eliminatório não entra na lista. Decisão de Marcos (22/jul):
+// "exige alemão, não falo absolutamente nada de alemão, então nem precisa listar".
+// A fronteira é a mesma CRITERIO_MINIMO_VIAVEL: nota <= 45 significa, por trava em
+// código do Worker, que a análise achou um impedimento real. Nada é apagado nem
+// arquivado — só não é listado, e o rodapé diz quantas são e deixa abrir.
+// Vaga SEM nota nunca é escondida: não saber ainda é diferente de ser inviável.
+function _vagaInviavel(v){
+  const n=_notaDeQualquer(v);
+  return n!==null && n<CRITERIO_MINIMO_VIAVEL;
+}
+let _pcVisiveis=15;      // quantas linhas a lista mostra por vez
+let _pcVerInviaveis=false; // rodapé abre as escondidas sob demanda
+function _pcMaisQuinze(){ _pcVisiveis+=15; renderWidgetRevisao(); }
+function _pcToggleInviaveis(){ _pcVerInviaveis=!_pcVerInviaveis; _pcVisiveis=15; renderWidgetRevisao(); }
 function renderWidgetRevisao(){
   const sinalTxt = document.getElementById('sinal-vagas-txt');
   const listaEl = document.getElementById('home-revisao-lista');
@@ -5360,7 +5388,15 @@ function renderWidgetRevisao(){
   const triagem = vagas.filter(v=>v.status==='triagem');
   let revisao = [];
   try{ revisao = JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
-  const qtd = triagem.length + revisao.length;
+  // Guarda o índice original: os botões da fila de revisão trabalham por posição
+  // no array salvo, e filtrar sem isto faria "Enviar" agir na vaga errada.
+  const itens = [
+    ...triagem.map(v=>({v, tipo:'triagem'})),
+    ...revisao.map((v,i)=>({v, tipo:'revisao', i})),
+  ];
+  const inviaveis = itens.filter(it=>_vagaInviavel(it.v));
+  const listaveis = _pcVerInviaveis ? itens : itens.filter(it=>!_vagaInviavel(it.v));
+  const qtd = listaveis.length;
   const expandido = listaEl.dataset.expandido === '1';
   const ch=document.getElementById('sinal-vagas-chevron');
   if(ch) ch.style.transform=expandido?'rotate(90deg)':'';
@@ -5370,47 +5406,66 @@ function renderWidgetRevisao(){
     sinalTxt.innerHTML = `<strong>${qtd}</strong> para considerar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
   }
   if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
-  const rowTriagem=(v)=>{
-    const url=urlSegura(v.origemUrl||'');
-    const ex=_exibVagaConsiderar(v);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <input type="checkbox" class="pc-cb" data-type="triagem" data-id="${v.id}" style="accent-color:var(--navy);width:16px;height:16px;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
-        <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
-      </div>
-      ${_compatChip(_notaDoCard(v))}
-      ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
-      <button onclick="_promoverTriagem('${v.id}')" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Enviar</button>
-      <button onclick="_descartarTriagem('${v.id}')" style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
-    </div>`;
-  };
-  const rowRevisao=(v,i)=>{
-    const url=urlSegura(v.url||v.link||v.origemUrl||'');
-    const ex=_exibVagaConsiderar(v);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <input type="checkbox" class="pc-cb" data-type="revisao" data-idx="${i}" style="accent-color:var(--navy);width:16px;height:16px;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
-        <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
-      </div>
-      ${v._semNota?`<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:2px 9px;border-radius:10px;white-space:nowrap;">Sem análise</span>`:_compatChip(v.score)}
-      ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
-      <button onclick="adicionarVagaRejeitada(${i})" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Enviar</button>
-      <button onclick="descartarVagaRejeitada(${i})" style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
-    </div>`;
-  };
+
   // Melhor primeiro. Com dezenas de vagas aqui, ordem de chegada é ruído: o que
   // Marcos precisa ver no topo é o que tem mais chance, não o que caiu antes.
   // Sem nota vai para o fim — ainda não se sabe nada sobre ela.
-  const _nota=v=>{ const n=_notaDoCard(v); return n===null?-1:n; };
-  const linhas = [...triagem].sort((a,b)=>_nota(b)-_nota(a)).map(rowTriagem).join('')
-    + revisao.map((v,i)=>rowRevisao(v,i)).join('');
-  const footer = qtd>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 2px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;color:var(--text2);"><input type="checkbox" id="pc-all" onchange="_pcToggleTodas(this.checked)" style="accent-color:var(--navy);width:16px;height:16px;"> Selecionar todas</label>
-      <button onclick="_pcEnviarSelecionadas()" style="font-size:12.5px;font-weight:700;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:9px 15px;cursor:pointer;font-family:var(--font);min-height:40px;">Enviar selecionadas para Processos</button>
+  const ord=it=>{ const n=_notaDeQualquer(it.v); return n===null?-1:n; };
+  const ordenados=[...listaveis].sort((a,b)=>ord(b)-ord(a));
+  const mostrados=ordenados.slice(0, _pcVisiveis);
+  const restam=ordenados.length-mostrados.length;
+
+  const linha=(it)=>{
+    const v=it.v, ehTriagem=it.tipo==='triagem';
+    const url=urlSegura(ehTriagem ? (v.origemUrl||'') : (v.url||v.link||v.origemUrl||''));
+    const ex=_exibVagaConsiderar(v);
+    const nota=_notaDeQualquer(v);
+    const cls=nota===null?null:classificacaoDoScore(nota);
+    const motivo=_motivoDaVaga(v);
+    const cb=ehTriagem?`data-type="triagem" data-id="${escHtml(String(v.id))}"`:`data-type="revisao" data-idx="${it.i}"`;
+    const enviar=ehTriagem?`_promoverTriagem('${escHtml(String(v.id))}')`:`adicionarVagaRejeitada(${it.i})`;
+    const descartar=ehTriagem?`_descartarTriagem('${escHtml(String(v.id))}')`:`descartarVagaRejeitada(${it.i})`;
+    return `<div style="display:flex;gap:11px;padding:14px 4px;border-bottom:1px solid var(--border);">
+      <input type="checkbox" class="pc-cb" ${cb} style="accent-color:var(--navy);width:16px;height:16px;flex-shrink:0;margin-top:2px;">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">
+        <div style="font-size:14.5px;font-weight:600;line-height:1.35;color:var(--text);">${escHtml(ex.titulo)}</div>
+        <div style="font-size:12.5px;color:var(--text3);">${escHtml(ex.sub)}</div>
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          ${nota===null
+            ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Avaliando…</span>`
+            : `<span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:10px;color:${cls.cor};background:${bgDoScore(nota)};">${nota} · ${cls.titulo}</span>`}
+        </div>
+        ${motivo?`<div style="display:flex;gap:6px;font-size:12.5px;color:var(--amber);background:var(--amber-bg);border-radius:7px;padding:7px 9px;line-height:1.45;">
+          <span style="flex:none;font-weight:700;">△</span><span>${escHtml(motivo)}</span></div>`:''}
+        <div style="display:flex;align-items:center;gap:14px;margin-top:3px;">
+          ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12.5px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
+          <span style="flex:1;"></span>
+          <button onclick="${enviar}" style="font-size:12.5px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:5px 11px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Enviar para Processos</button>
+          <button onclick="${descartar}" style="font-size:14px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  // Comandos no começo da coluna (pedido de Marcos, 22/jul): no rodapé, depois de
+  // uma centena de linhas, eram inalcançáveis.
+  const rotuloTodas = restam>0 ? `Selecionar as ${mostrados.length} à mostra` : 'Selecionar todas';
+  const barra = mostrados.length>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 10px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);"><input type="checkbox" id="pc-all" onchange="_pcToggleTodas(this.checked)" style="accent-color:var(--navy);width:16px;height:16px;"> ${rotuloTodas}</label>
+      <button onclick="_pcEnviarSelecionadas()" style="font-size:12.5px;font-weight:700;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:10px 15px;cursor:pointer;font-family:var(--font);min-height:40px;">Enviar para Processos</button>
     </div>` : '';
-  listaEl.innerHTML = linhas + footer;
+
+  const maisBtn = restam>0 ? `<button onclick="_pcMaisQuinze()" style="display:block;width:100%;text-align:center;padding:13px;font-size:13px;font-weight:600;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);">Mostrar mais ${Math.min(15,restam)} &nbsp;·&nbsp; restam ${restam}</button>` : '';
+
+  // Nada some em silêncio. O rodapé conta quantas ficaram de fora e por quê, e
+  // deixa abrir — se a análise errou o impedimento, Marcos consegue ver e corrigir.
+  const rodapeInviaveis = inviaveis.length ? `<div style="padding:12px 6px 4px;font-size:12.5px;color:var(--text3);line-height:1.5;">
+      ${_pcVerInviaveis
+        ? `Mostrando também as ${inviaveis.length} com impedimento. <button onclick="_pcToggleInviaveis()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Esconder</button>`
+        : `${inviaveis.length} não listada${inviaveis.length>1?'s':''} — impedimento que inviabiliza (idioma, salário, praça). <button onclick="_pcToggleInviaveis()" style="font-size:12.5px;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:underline;">Ver assim mesmo</button>`}
+    </div>` : '';
+
+  listaEl.innerHTML = barra + mostrados.map(linha).join('') + maisBtn + rodapeInviaveis;
 }
 function _promoverTriagem(id){
   const idx=vagas.findIndex(v=>String(v.id)===String(id)&&v.status==='triagem');
