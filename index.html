@@ -4654,6 +4654,7 @@ const DEFAULT_CONTATOS=[
 ];
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
+let _dragEmCurso=false, _renderPendenteDrag=false; // trava: nenhum re-render de fundo pode destruir o card no meio do gesto de arrastar
 let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos', contatoOrdemFilter='temp';
 let _limpezaSelecionados=new Set();
 let colFilters={};
@@ -5435,6 +5436,7 @@ let _diasInativo=Math.max(3,Math.min(30,parseInt(localStorage.getItem('senova_di
 function dropVaga(newStatus, event) {
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  _dragEmCurso=false; // drop sempre dispara antes de dragend: libera a trava aqui pro render abaixo valer
   if(dragVagaId==null) return;
   const idx=vagas.findIndex(v=>String(v.id)===String(dragVagaId));
   if(idx>=0 && vagas[idx].status!==newStatus){
@@ -5832,6 +5834,8 @@ function setCrmTab(tab,btn){
 }
 
 function renderCRM(){
+  if(_dragEmCurso){ _renderPendenteDrag=true; return; } // adia: um drag nativo em curso morre se o .kcard-fonte for recriado
+  _renderPendenteDrag=false;
   renderCRMKpiStrip();
 
   const listaBase = _crmFiltroInativo ? vagas.filter(isInativo) : (vagasFiltradas || vagas);
@@ -5885,7 +5889,7 @@ function renderCRM(){
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
         const _logo=_companyLogo(c.empresa||'',c.origemUrl||'');
         const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription);
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
+        return `<div class="kcard" draggable="true" ondragstart="dragVagaId=${c.id};_dragEmCurso=true;this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');_dragEmCurso=false;if(_renderPendenteDrag){_renderPendenteDrag=false;if(filtroAtivo)aplicarFiltros();else renderCRM();}" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
             <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" draggable="false" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
             <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
