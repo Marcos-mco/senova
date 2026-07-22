@@ -4983,65 +4983,18 @@ async function _gravarNotasNoRadar(itens){
   }catch{}
 }
 
-function _cardSemNota(v){
-  return !(typeof v.score==='number' && v.score>0) && !(v.atsScore && parseInt(v.atsScore)>0);
+// Nota do card, venha de onde vier: a importação grava em `score`, o modal
+// grava em `atsScore`. Quem só olhava um dos dois via card pontuado como mudo.
+function _notaDoCard(v){
+  if(typeof v?.score==='number' && v.score>0) return v.score;
+  const n=parseInt(v?.atsScore);
+  return (!isNaN(n) && n>0) ? n : null;
 }
-
-// Saneamento dos cards mudos: até 22/jul o portão da importação só barrava vaga
-// que TINHA nota, então toda análise que falhava virava card na coluna
-// Oportunidade sem nota nenhuma. Isto reavalia esses cards de uma vez.
-// Nada é apagado: quem fica abaixo do critério vai para "Para Considerar", na
-// Home. Processo real (CV Enviado em diante) e card criado à mão nunca entram.
-async function sanearOportunidadesSemNota(config, btn){
-  const alvo = (vagas||[]).filter(v => v.status==='lead' && v.canal==='Busca automática' && _cardSemNota(v));
-  if(!alvo.length) return 0;
-  const minutos = Math.max(1, Math.ceil(alvo.length*10/6/60));
-  if(!confirm(`${alvo.length} vaga${alvo.length>1?'s':''} está${alvo.length>1?'ão':''} na coluna Oportunidade sem análise — entraram por uma falha que já foi corrigida.\n\nAnalisar agora e arrumar a coluna?\n\nAs que ficarem abaixo do seu critério vão para "Para Considerar", na Home. Nenhuma é apagada, e seus processos em andamento não são tocados.\n\nLeva cerca de ${minutos} minuto${minutos>1?'s':''} — pode deixar rodando.`)) return 0;
-
-  const LOTE=6, paraConsiderar=[], idsFora=new Set();
-  let feitas=0, mantidas=0;
-  for(let i=0;i<alvo.length;i+=LOTE){
-    const doLote = await Promise.all(alvo.slice(i,i+LOTE).map(async card=>{
-      const desc = card.descricao||'';
-      // Descrição curta não dá para julgar. Em vez de fingir uma nota, o card
-      // sai da coluna e vai para "Para Considerar" — visível, e você decide.
-      if(desc.length<400) return {card, analise:null};
-      try{ return {card, analise: await _pedirAnaliseVaga(card.cargo, card.empresa, desc)}; }
-      catch{ return {card, analise:null}; }
-    }));
-    feitas += doLote.length;
-    if(btn) btn.textContent=`⏳ Arrumando ${feitas}/${alvo.length}…`;
-    const paraRadar=[];
-    for(const {card, analise} of doLote){
-      const nota = typeof analise?.score==='number' ? analise.score : null;
-      const limiar = _scoreMinParaVaga({url:card.origemUrl, local:card.localizacao, fonte:card.fonte}, config);
-      if(nota===null || nota<limiar){
-        idsFora.add(String(card.id));
-        paraConsiderar.push({ id:card.id, titulo:card.cargo, empresa:card.empresa, url:card.origemUrl,
-          descricao:card.descricao, fonte:card.fonte, local:card.localizacao,
-          score:nota, classificacao:analise?.classificacao||null, resumo:analise?.resumo||null,
-          pontos_fortes:analise?.pontos_fortes||[], pontos_atencao:analise?.pontos_atencao||[],
-          _limiar:limiar, _semNota:nota===null });
-      }else{
-        card.score=nota; card.atsScore=String(Math.round(nota));
-        card.classificacao=analise.classificacao||card.classificacao;
-        card.resumo=analise.resumo||card.resumo;
-        card.compatFortes=analise.pontos_fortes||[]; card.pontos_fortes=analise.pontos_fortes||[];
-        card.compatAtencao=analise.pontos_atencao||[];
-        mantidas++;
-      }
-      if(nota!==null) paraRadar.push({id:card.id, score:nota, classificacao:analise.classificacao, resumo:analise.resumo, pontos_fortes:analise.pontos_fortes, pontos_atencao:analise.pontos_atencao, salario_compativel:analise.salario_compativel});
-    }
-    await _gravarNotasNoRadar(paraRadar);
-    // Salva a cada lote: se você fechar no meio, o que já foi arrumado fica.
-    if(idsFora.size) vagas = vagas.filter(v=>!idsFora.has(String(v.id)));
-    idsFora.clear();
-    saveVagas();
-  }
-  if(paraConsiderar.length) mostrarRevisaoRejeitadas(paraConsiderar);
-  aplicarFiltros();
-  showToast(`Coluna arrumada — ${mantidas} dentro do critério, ${paraConsiderar.length} em Para Considerar`);
-  return alvo.length;
+// Card que a busca automática colocou em Oportunidade e que Marcos ainda não
+// tocou. Só esses podem ser movidos de volta sem consultá-lo: o que ele mexeu
+// tem uma decisão dele dentro, e decisão de humano não se desfaz sozinha.
+function _cardIntocadoDaBusca(v){
+  return v.status==='lead' && v.canal==='Busca automática' && (v.timeline||[]).length<=1;
 }
 
 async function importarVagasLead(){
@@ -5054,15 +5007,10 @@ async function importarVagasLead(){
     ]);
     const data   = await resLead.json();
     const config = await resConfig.json();
-    // Antes de trazer coisa nova, arruma o que entrou errado: card mudo na
-    // coluna Oportunidade é ruído em cima do que importa, e importar por cima
-    // dele só piora. Não faz nada se não houver nenhum.
-    await sanearOportunidadesSemNota(config, btn);
     const _deletedIds=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
     // Quem já está em "Para Considerar" não é novidade. Sem isto, toda
     // importação reanalisava — a 10s cada — tudo que o critério já tinha
-    // reprovado, e o saneamento acima devolveria os cards à coluna no mesmo
-    // clique em que os tirou de lá.
+    // reprovado.
     let _emRevisao=[]; try{ _emRevisao=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
     const _idsRevisao=new Set(_emRevisao.map(v=>String(v.id)));
     const lead = (data.vagas||[]).filter(v => !vagas.some(e=>String(e.id)===String(v.id)) && !_deletedIds.has(String(v.id)) && !_idsRevisao.has(String(v.id)));
@@ -5248,8 +5196,27 @@ function _criterioParaVaga(cardOuVaga){
 function _reavaliarTriagem(){
   let mudou=false;
   vagas.forEach(v=>{
-    if(v.status==='triagem'&&typeof v.score==='number'&&v.score>0&&v.score>=_criterioParaVaga(v)){
-      setStatus(v,'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(v.score)?.titulo||'Compatível'})`});
+    const nota=_notaDoCard(v);
+    if(nota===null){
+      // Sem nota E sem descrição para analisar: a esteira nunca vai pontuar
+      // este card (analisarLoteBackground exige texto), então ele ficaria em
+      // Oportunidade para sempre sem ninguém ter dito que é uma. Vai para
+      // Para Considerar, onde Marcos decide olhando o link. Nada é apagado.
+      if(_cardIntocadoDaBusca(v)&&(v.jobDescription||v.descricao||'').trim().length<=120){
+        setStatus(v,'triagem',{skipConfirm:true,texto:'Sem descrição para analisar — foi para Para Considerar'});
+        mudou=true;
+      }
+      return;
+    }
+    if(v.status==='triagem'&&nota>=_criterioParaVaga(v)){
+      setStatus(v,'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(nota)?.titulo||'Compatível'})`});
+      mudou=true;
+    }
+    // Mesma régua na direção contrária, para os cards que já estavam pontuados
+    // quando a simetria não existia: reprovado pelo Critério não fica ocupando
+    // o Kanban. Só os que a busca automática pôs lá e Marcos nunca tocou.
+    else if(_cardIntocadoDaBusca(v)&&nota<_criterioParaVaga(v)){
+      setStatus(v,'triagem',{skipConfirm:true,texto:`Abaixo do Critério da região (${nota}/100) — foi para Para Considerar`});
       mudou=true;
     }
   });
@@ -5281,7 +5248,9 @@ function _montarCardVarredura(v, agora){
     proxima:'', notas:'',
     data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
     createdAt:agora, updatedAt:agora,
-    timeline:[{ts:agora,texto:`Importado via varredura — score ${v.score}/100`}],
+    // "score undefined/100" era o que aparecia quando a vaga chegava sem nota —
+    // e desde a v7.18 a maioria chega assim, para ser analisada aqui.
+    timeline:[{ts:agora,texto:`Importado via varredura`+(typeof v.score==='number'&&v.score>0?` — score ${v.score}/100`:` — aguardando análise`)}],
     origemUrl:v.url||'',
     score:v.score, atsScore:(typeof v.score==='number'&&v.score>0)?String(Math.round(v.score)):'', classificacao:v.classificacao, resumo:v.resumo,
     pontos_fortes:v.pontos_fortes||[], compatFortes:v.pontos_fortes||[], compatAtencao:v.pontos_atencao||[], descricao:v.descricao||'', fonte:v.fonte||'',
@@ -5396,7 +5365,7 @@ function renderWidgetRevisao(){
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.titulo)}</div>
         <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(ex.sub)}</div>
       </div>
-      ${_compatChip(v.score)}
+      ${_compatChip(_notaDoCard(v))}
       ${url?`<a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--action);text-decoration:none;white-space:nowrap;">Ver vaga ↗</a>`:''}
       <button onclick="_promoverTriagem('${v.id}')" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:1px solid var(--action);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Enviar</button>
       <button onclick="_descartarTriagem('${v.id}')" style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
@@ -5417,7 +5386,12 @@ function renderWidgetRevisao(){
       <button onclick="descartarVagaRejeitada(${i})" style="font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px;line-height:1;" title="Descartar">×</button>
     </div>`;
   };
-  const linhas = triagem.map(rowTriagem).join('') + revisao.map((v,i)=>rowRevisao(v,i)).join('');
+  // Melhor primeiro. Com dezenas de vagas aqui, ordem de chegada é ruído: o que
+  // Marcos precisa ver no topo é o que tem mais chance, não o que caiu antes.
+  // Sem nota vai para o fim — ainda não se sabe nada sobre ela.
+  const _nota=v=>{ const n=_notaDoCard(v); return n===null?-1:n; };
+  const linhas = [...triagem].sort((a,b)=>_nota(b)-_nota(a)).map(rowTriagem).join('')
+    + revisao.map((v,i)=>rowRevisao(v,i)).join('');
   const footer = qtd>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 2px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;color:var(--text2);"><input type="checkbox" id="pc-all" onchange="_pcToggleTodas(this.checked)" style="accent-color:var(--navy);width:16px;height:16px;"> Selecionar todas</label>
       <button onclick="_pcEnviarSelecionadas()" style="font-size:12.5px;font-weight:700;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:9px 15px;cursor:pointer;font-family:var(--font);min-height:40px;">Enviar selecionadas para Processos</button>
@@ -8555,20 +8529,32 @@ async function verificarVagasVarredura(){
     _vagasLeadPendentes=[];
     if(pendentes.length>0){
       const agora=Date.now();
-      let auto=0;
       pendentes.forEach(v=>{
         const card=_montarCardVarredura(v,agora);
-        // Vaga de e-mail vai para TRIAGEM (Para Considerar), não polui o Kanban nem
-        // as contagens. Enriquece/pontua igual (status incluído no enriquecimento) e
-        // auto-promove sozinha quando a Compatibilidade atinge o Critério da região.
-        if(v.fonte==='email_alerta') card.status='triagem'; // [status-ok] status INICIAL de card novo (não é transição)
-        else auto++;
+        // NADA entra no Kanban sem nota. Toda vaga vinda de fora nasce em
+        // TRIAGEM ("Para Considerar") e só vira Oportunidade quando a
+        // Compatibilidade atinge o Critério da região — a promoção é
+        // automática, logo abaixo, no analisarLoteBackground.
+        // A regra já valia para o e-mail; a busca automática empurrava direto
+        // para a coluna, sem nota nenhuma. Foi assim que 152 vagas ocuparam o
+        // Kanban de Marcos, uma delas com 12% de compatibilidade.
+        card.status='triagem'; // [status-ok] status INICIAL de card novo (não é transição)
         vagas.push(card);
       });
       saveVagas();
-      _vagasLeadAutoAdicionadas=auto; // só conta as visíveis (varredura), não as de triagem
-      analisarLoteBackground();
+      // Nenhuma nasce em Oportunidade: o contador de "novas da busca" só volta
+      // a subir quando a nota promover alguma. Chamar de oportunidade o que
+      // ainda não foi avaliado é justamente a mentira que estamos tirando daqui.
+      _vagasLeadAutoAdicionadas=0;
     }
+    // FORA do if de propósito. Antes só rodava quando chegava vaga nova, então
+    // os cards mudos que JÁ estavam no Kanban nunca eram analisados — e é
+    // exatamente esse o estoque de hoje. E é _recalcLeadsReset, não
+    // analisarLoteBackground: aquela processa um lote de 5 e para, e como
+    // ninguém a rechamava, das 152 vagas apenas 5 ganhavam nota.
+    // Sai na hora se não houver nenhuma sem nota, e a trava de reentrância
+    // impede duas esteiras sobre a mesma fila.
+    _recalcLeadsReset();
     atualizarSinalVarredura();
     try{ renderParaConsiderar(); }catch{}
   }catch{ atualizarSinalVarredura(); }
@@ -8601,45 +8587,82 @@ function atualizarSinalOportunidades(){
 }
 function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
 
+// Vagas cuja análise falhou nesta sessão. Sem esta lista a esteira reescolhe
+// eternamente as mesmas 5 primeiras — elas nunca ganham nota, nunca saem da
+// fila, e as outras 147 atrás delas nunca chegam a ser analisadas.
+// É memória de sessão de propósito: no próximo Ctrl+Shift+R tenta de novo.
+const _analiseFalhou=new Set();
+function _elegivelParaAnalise(v){
+  return (v.status==='lead'||v.status==='triagem')
+    && ((v.jobDescription||v.descricao||'').trim().length>120)
+    && typeof v.score!=='number' && !v.atsScore
+    && !_analiseFalhou.has(String(v.id));
+}
 async function analisarLoteBackground(){
-  const semScore=vagas.filter(v=>(v.status==='lead'||v.status==='triagem')&&((v.jobDescription||v.descricao||'').trim().length>120)&&typeof v.score!=='number'&&!v.atsScore).slice(0,5);
+  const semScore=vagas.filter(_elegivelParaAnalise).slice(0,5);
   if(!semScore.length) return;
   semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
   renderCRM();
-  for(const v of semScore){
+  // As 5 em paralelo, não uma atrás da outra. Medido no Worker: 6 análises
+  // simultâneas voltam em ~10s no total, as mesmas 6 em fila levam ~60s. Com
+  // 150 vagas na esteira isso é a diferença entre 5 minutos e meia hora.
+  const respostas=await Promise.all(semScore.map(async v=>{
     try{
       const desc=v.descricao||v.jobDescription||'';
       const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos()})});
       _loteEmAnalise.delete(String(v.id));
-      if(!res.ok){renderCRM();continue;}
-      const data=await res.json();
-      if(typeof data.score!=='number'){renderCRM();continue;}
-      const idx=vagas.findIndex(x=>String(x.id)===String(v.id));
-      if(idx<0){renderCRM();continue;}
-      vagas[idx].score=data.score;
-      vagas[idx].atsScore=String(Math.round(data.score));
-      if(data.classificacao) vagas[idx].classificacao=data.classificacao;
-      if(data.resumo) vagas[idx].resumo=data.resumo;
-      if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }
-      if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
-      // Auto-promover: triagem que atinge o Critério da região entra em Oportunidade.
-      if(vagas[idx].status==='triagem'&&typeof data.score==='number'&&data.score>=_criterioParaVaga(vagas[idx])){
-        setStatus(vagas[idx],'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(data.score)?.titulo||'Compatível'})`});
-      }
-      saveVagas();
-      renderCRM();
-      try{ renderParaConsiderar(); }catch{}
-    }catch{_loteEmAnalise.delete(String(v.id));renderCRM();}
+      if(!res.ok) return {v,data:null};
+      return {v, data: await res.json()};
+    }catch{ _loteEmAnalise.delete(String(v.id)); return {v,data:null}; }
+  }));
+  const paraRadar=[];
+  for(const {v,data} of respostas){
+    if(!data || typeof data.score!=='number'){ _analiseFalhou.add(String(v.id)); continue; }
+    const idx=vagas.findIndex(x=>String(x.id)===String(v.id));
+    if(idx<0) continue;
+    vagas[idx].score=data.score;
+    vagas[idx].atsScore=String(Math.round(data.score));
+    if(data.classificacao) vagas[idx].classificacao=data.classificacao;
+    if(data.resumo) vagas[idx].resumo=data.resumo;
+    if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }
+    if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
+    const criterio=_criterioParaVaga(vagas[idx]);
+    // Auto-promover: triagem que atinge o Critério da região entra em Oportunidade.
+    if(vagas[idx].status==='triagem'&&data.score>=criterio){
+      setStatus(vagas[idx],'lead',{skipConfirm:true,texto:`Promovida para Oportunidade (${classificacaoDoScore(data.score)?.titulo||'Compatível'})`});
+    }
+    // Espelho da promoção. Sem ele a porta só abria: card da busca automática
+    // que a análise reprovava ficava em Oportunidade para sempre, porque nada
+    // no app o tirava de lá. Era o caso da vaga de 12% que Marcos encontrou.
+    else if(_cardIntocadoDaBusca(vagas[idx]) && data.score<criterio){
+      setStatus(vagas[idx],'triagem',{skipConfirm:true,texto:`Abaixo do Critério da região (${data.score}/100) — foi para Para Considerar`});
+    }
+    paraRadar.push({id:v.id,score:data.score,classificacao:data.classificacao,resumo:data.resumo,pontos_fortes:data.pontos_fortes,pontos_atencao:data.pontos_atencao,salario_compativel:data.salario_compativel});
   }
+  saveVagas();
+  renderCRM();
+  try{ renderParaConsiderar(); }catch{}
+  // Devolve as notas ao radar: sem isto, cada rodada paga de novo os ~10s por
+  // vaga para redescobrir o que já se sabia.
+  _gravarNotasNoRadar(paraRadar);
 }
 // Recalcula TODOS os leads sem score (lote processa 5 por vez; aqui repetimos até zerar).
+let _recalcRodando=false;
 async function _recalcLeadsReset(){
-  let guard=0;
-  while(guard++<30){
-    const restam=vagas.filter(v=>(v.status==='lead'||v.status==='triagem')&&((v.jobDescription||v.descricao||'').trim().length>=400)&&typeof v.score!=='number'&&!v.atsScore).length;
-    if(!restam) break;
-    await analisarLoteBackground();
-  }
+  // Reentrância: verificarVagasVarredura roda a cada visita à Home. Sem esta
+  // trava, duas esteiras andariam sobre a mesma fila, analisando em dobro.
+  if(_recalcRodando) return;
+  _recalcRodando=true;
+  try{
+    // _elegivelParaAnalise é o MESMO predicado que escolhe o lote — se as duas
+    // contas divergirem, a esteira para achando que acabou (ou roda em falso
+    // achando que sobrou). 60 rodadas × 5 = 300 vagas, folga sobre o radar.
+    let guard=0;
+    while(guard++<60){
+      if(!vagas.some(_elegivelParaAnalise)) break;
+      await analisarLoteBackground();
+    }
+  } finally { _recalcRodando=false; }
 }
 function toggleOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');
