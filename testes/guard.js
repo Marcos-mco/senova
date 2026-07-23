@@ -39,9 +39,18 @@ checar('nenhuma escrita direta de status fora de setStatus (ou marcada [status-o
   /\.status\s*=\s*['"]/,
   (l) => /\[status-ok\]/.test(l) || /function\s+setStatus/.test(l));
 
+console.log('\n=== GUARD: o CV só é GERADO pelo portão montarPedidoCV ===');
+// O portão setCV cobria a ESCRITA do CV, não a GERAÇÃO. Por essa fresta passaram quatro prompts
+// diferentes para o mesmo documento — a extensão chegou a gerar com max_tokens 2000 e descrição
+// cortada, produzindo um CV truncado (sem COMPETÊNCIAS) que foi para um recrutador de verdade.
+// Um pedido de CV = um prompt. Único ponto permitido: a definição de montarPedidoCV.
+checar('nenhuma chamada a ATS_SYSTEM fora de montarPedidoCV()',
+  /ATS_SYSTEM\s*\(/,
+  (l) => /const\s+ATS_SYSTEM/.test(l) || /o\.idioma\s*\|\|\s*cvLang/.test(l));
+
 console.log('\n──────────────────────────────');
 if (falhou) {
-  console.log('✗ GUARD FALHOU — use o portão certo: setCV(vaga,texto) para o CV, setStatus(vaga,novo,opts) para o status. Pontos legítimos fora do portão levam o marcador [status-ok] com o motivo.');
+  console.log('✗ GUARD FALHOU — use o portão certo: montarPedidoCV(o) para PEDIR o CV, setCV(vaga,texto) para GRAVAR o CV, setStatus(vaga,novo,opts) para o status. Pontos legítimos fora do portão levam o marcador [status-ok] com o motivo.');
   process.exit(1);
 }
 console.log('✓ Invariantes de arquitetura respeitadas.');

@@ -1288,6 +1288,10 @@
     } else {
       const m = (res && res.erro === 'pdf_falhou') ? 'Recarregue o app'
               : (res && res.motivo === 'sem_cv') ? 'Gere o CV no Senova'
+              // Mesmo piso do card: CV de descrição curta sai genérico. Melhor dizer isto do
+              // que entregar um documento fraco ao recrutador.
+              : (res && res.motivo === 'descricao_curta') ? 'Abra a vaga inteira e tente de novo'
+              : (res && res.motivo === 'sem_descricao') ? 'Falta a descrição da vaga'
               : (res && res.erro === 'app_fechado') ? 'Abra o Senova'
               : (res && res.erro === 'sem_funcao') ? 'Recarregue o app'
               : 'Tente de novo';

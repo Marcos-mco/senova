@@ -3361,6 +3361,40 @@ PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
 OBSERVAÇÕES: [contexto relevante em 1 linha]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
+// Piso de descrição para gerar CV: abaixo disto é snippet, não vaga. Gerar CV de snippet produz
+// documento genérico — a mesma regra que a Compatibilidade já aplica ("não calcular de snippet").
+const CV_DESC_MINIMA = 400;
+
+// PORTÃO ÚNICO de GERAÇÃO do CV. Todo caminho que pede um CV à IA — aba Análise CV, card
+// (Avaliação de Posição), regerar documento e o copiloto na extensão — monta o pedido AQUI.
+// Foi exatamente esta fresta que produziu dois CVs diferentes para a mesma pessoa: a extensão
+// tinha prompt próprio (max_tokens 2000, descrição cortada em 4000 chars, idioma fixo 'PT', sem
+// PERFIL COMPLEMENTAR) e devolvia um CV truncado — sem COMPETÊNCIAS e com menos experiências.
+// O portão de ESCRITA (setCV) já existia; faltava o de LEITURA. O guard test (testes/guard.js)
+// barra o commit se alguém voltar a chamar ATS_SYSTEM fora daqui.
+// Referência de comportamento: o caminho do card, que é o aprovado por Marcos.
+//   o = {descricao, localizacao, modelo, regime, contexto, idioma}
+function montarPedidoCV(o){
+  o = o || {};
+  const desc = String(o.descricao || '');
+  const metaVaga = [o.localizacao && `Localização: ${o.localizacao}`, o.modelo && `Modelo: ${o.modelo}`, o.regime && `Regime: ${o.regime}`].filter(Boolean).join('\n');
+  const vagaTexto = (metaVaga ? metaVaga + '\n\n' : '') + desc;
+  const contextoFull = o.contexto ? '\n\n---\nContexto desta rodada: ' + o.contexto : '';
+  // Complementos do Perfil ("acrescentar sobre mim") relevantes para esta vaga — o CV parte
+  // sempre do CV original + complementos do Perfil + o que se acrescenta na hora.
+  const _rel = (typeof ctxBuscarRelevantes === 'function') ? ctxBuscarRelevantes(desc) : [];
+  const perfilComp = _rel.length ? '\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o relevante para esta vaga específica):\n' + _rel.map(e => '• ' + e.texto).join('\n') : '';
+  return {
+    vagaTexto,
+    curta: desc.trim().length < CV_DESC_MINIMA,
+    body: {
+      model: MODELOS.analise, max_tokens: 4000,
+      system: ATS_SYSTEM(o.idioma || cvLang, vagaTexto),
+      messages: [{ role: 'user', content: 'Analise esta vaga e gere o CV adaptado:\n\n' + vagaTexto + contextoFull + perfilComp }]
+    }
+  };
+}
+
 const CARTA_SYSTEM = (lang, textoVaga, nivelVaga) => {
   const ll={PT:'português (Brasil)',EN:'English',ES:'español'};
   return `Você redige cartas de apresentação executivas para Marcos Franco.
@@ -3510,9 +3544,7 @@ async function analyzeJob() {
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,
-        system:ATS_SYSTEM(cvLang,vaga),
-        messages:[{role:'user',content:`Analise esta vaga e gere o CV adaptado:\n\n${vaga}${(()=>{const c=document.getElementById('ats-contexto')?.value.trim();return c?'\n\n---\nContexto adicional (manual): '+c:'';})()}${(()=>{const rel=ctxBuscarRelevantes(vaga);return rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o que for relevante para esta vaga específica):\n'+rel.map(e=>'• '+e.texto).join('\n'):'';})()}`}]})
+      body:JSON.stringify(montarPedidoCV({descricao:vaga,contexto:document.getElementById('ats-contexto')?.value.trim()||''}).body)
     });
     const data = await res.json();
     const text = data.content?.find(b=>b.type==='text')?.text||'';
@@ -7476,7 +7508,7 @@ async function mvAutoCompatCheck(){
   // "Calculando análise…" é o estado-padrão de mvUpdateScoreDisplay — se saímos aqui sem avisar,
   // o card fica preso nesse texto pra sempre (nunca é reavaliado sozinho). Por isso sempre
   // sobrescrevemos com um estado final e acionável antes de qualquer retorno.
-  if(jobDesc.length<400){
+  if(jobDesc.length<CV_DESC_MINIMA){
     if(jobDesc.length>0) _mvCompatMsg('Descrição curta demais para calcular automaticamente.');
     return;
   }
@@ -7599,7 +7631,7 @@ async function mvEnriquecerPerfil(){
 // porque foi pedida explicitamente pelo usuário ao acrescentar contexto.
 async function mvReanalisarCompat(){
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  if(jobDesc.length<400||!editingVagaId||editingVagaId==='new') return null;
+  if(jobDesc.length<CV_DESC_MINIMA||!editingVagaId||editingVagaId==='new') return null;
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return null;
   const v=vagas[idx];
@@ -7793,7 +7825,7 @@ async function analisarInline(){
   const modelo=document.getElementById('mv-modelo')?.value||'';
   const regime=document.getElementById('mv-regime')?.value||'';
   // Piso de 400 chars: não gerar CV de snippet (mesma regra da Compatibilidade — "não calcular de snippet").
-  if(jobDesc.trim().length<400){
+  if(jobDesc.trim().length<CV_DESC_MINIMA){
     const isLead=document.getElementById('mv-status')?.value==='lead';
     const url=document.getElementById('mv-origem-url')?.value.trim()||'';
     const _id=String(editingVagaId);
@@ -7817,18 +7849,11 @@ async function analisarInline(){
   if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Analisando…';}
   const resultEl=document.getElementById('mv-analise-result');
   if(resultEl&&!isLeadAnalise){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
-  const metaVaga=[localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
-  const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
-  const contextoFull=ctx?'\n\n---\nContexto desta rodada: '+ctx:'';
-  // Complementos do Perfil ("acrescentar sobre mim") relevantes para esta vaga —
-  // mesmo mecanismo da Análise de Vaga. Assim o CV do card também parte do CV original
-  // + complementos do Perfil + o que se acrescenta na hora.
-  const _rel=ctxBuscarRelevantes(jobDesc);
-  const perfilComp=_rel.length?'\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o relevante para esta vaga específica):\n'+_rel.map(e=>'• '+e.texto).join('\n'):'';
+  const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx});
+  const vagaTexto=_pedido.vagaTexto;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.analise,max_tokens:4000,system:ATS_SYSTEM(cvLang,vagaTexto),
-        messages:[{role:'user',content:'Analise esta vaga e gere o CV adaptado:\n\n'+vagaTexto+contextoFull+perfilComp}]})});
+      body:JSON.stringify(_pedido.body)});
     const data=await res.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
     const parts=text.split('---CV---');
@@ -7934,10 +7959,11 @@ async function gerarDocModal(tipo){
   const metaVaga=[cargo&&`Cargo: ${cargo}`,empresa&&`Empresa: ${empresa}`,localizacao&&`Localização: ${localizacao}`,modelo&&`Modelo: ${modelo}`,regime&&`Regime: ${regime}`].filter(Boolean).join('\n');
   const vagaTexto=(metaVaga?metaVaga+'\n\n':'')+jobDesc;
   const ctxStr=ctx?'\n\n---\nInformação importante: '+ctx:'';
-  let system,prompt;
+  let system,prompt,bodyReq=null;
   if(tipo==='ats'){
-    system=ATS_SYSTEM(cvLang,vagaTexto);
-    prompt='Gere apenas o CV otimizado (o texto que viria na seção ---CV--- do seu formato padrão) para esta vaga:\n\n'+vagaTexto+ctxStr;
+    // Mesmo pedido do card e da extensão — portão único. Antes daqui saía um CV de outro
+    // modelo, com outro tamanho e sem PERFIL COMPLEMENTAR: regerar mudava o CV sem motivo.
+    bodyReq=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx}).body;
   } else if(tipo==='carta'){
     system=CARTA_SYSTEM(cvLang,vagaTexto);
     const _anaVaga=editingVagaId&&editingVagaId!=='new'?(vagas.find(v=>String(v.id)===String(editingVagaId))?.atsAnalise||''):'';
@@ -7949,10 +7975,10 @@ async function gerarDocModal(tipo){
   }
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODELOS.rapido,max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify(bodyReq||{model:MODELOS.rapido,max_tokens:3000,system,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     let text=data.content?.find(b=>b.type==='text')?.text||'';
-    if(tipo==='ats'){const cvPart=text.split('---CV---')[1];if(cvPart) text=cvPart.split('---CRM---')[0].trim();else text=text.trim();lastCV=text;}
+    if(tipo==='ats'){text=_extrairSoCV(text);lastCV=text;}
     if(outEl) outEl.value=text;
     if(editingVagaId&&editingVagaId!=='new'){
       const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
@@ -7989,11 +8015,11 @@ function downloadPDFExecFromModal(btn){
   const cv=document.getElementById('mv-ats-cv-txt')?.value;
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
-  const _prev=lastCV; const _prevFn=lastCVFilename;
-  lastCV=cv;
+  const _prev=lastCV; const _prevFn=lastCVFilename; const _prevCargo=atsCargo;
+  lastCV=cv; atsCargo=cargo; // atsCargo calibra 1 vs 2 páginas — vem do card, nunca do resíduo global
   lastCVFilename=`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
   downloadPDFExecutivo();
-  lastCV=_prev; lastCVFilename=_prevFn;
+  lastCV=_prev; lastCVFilename=_prevFn; atsCargo=_prevCargo;
   _mvEscolherCV('exec', btn);
   });
 }
@@ -10786,11 +10812,13 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
     if(_cv && _cv!==v.atsCV.trim()){ setCV(vagas[idx],v.atsCV); saveVagas(); }
     if(!_cv) return {ok:false,motivo:'sem_card'};
     if(formato==='pdf'){
-      // PDF Executivo: reusa o MESMO gerador do envio por e-mail (S28), apontando lastCV para o CV desta vaga.
-      const _prev=lastCV,_prevFn=lastCVFilename;
-      lastCV=_cv; lastCVFilename=baseFn;
+      // PDF Executivo: reusa o MESMO gerador do envio por e-mail (S28), apontando lastCV para o CV
+      // desta vaga. atsCargo entra junto — é ele que calibra 1 vs 2 páginas em _nivelAlvoPDF; sem
+      // isto o PDF da extensão saía calibrado pelo resíduo da última análise feita no app.
+      const _prev=lastCV,_prevFn=lastCVFilename,_prevCargo=atsCargo;
+      lastCV=_cv; lastCVFilename=baseFn; atsCargo=v.cargo||'';
       let b64=null; try{ b64=_pdfExecBase64(); }catch(_){}
-      lastCV=_prev; lastCVFilename=_prevFn;
+      lastCV=_prev; lastCVFilename=_prevFn; atsCargo=_prevCargo;
       if(!b64) return {ok:false,erro:'pdf_falhou'};
       return {ok:true,dataUrl:'data:application/pdf;base64,'+b64,filename:baseFn+'_executivo.pdf'};
     }
@@ -10799,12 +10827,16 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
     const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Calibri,sans-serif;font-size:11pt;white-space:pre-wrap;line-height:1.5">${esc}</pre></body></html>`;
     return {ok:true,dataUrl:'data:application/msword;base64,'+btoa(unescape(encodeURIComponent(html))),filename:baseFn+'.doc'};
   }
-  // Precisa gerar — devolve o prompt (síncrono), background faz o fetch, salva e re-chama neste formato
-  const desc=(v.jobDescription||v.descricao||'').slice(0,4000);
-  if(!desc) return {ok:false,motivo:'sem_descricao'};
+  // Precisa gerar — devolve o pedido (síncrono), background faz o fetch, salva e re-chama neste
+  // formato. O pedido sai do PORTÃO ÚNICO (montarPedidoCV): o mesmo do card e da aba de Avaliação
+  // de Posição, sem descrição cortada e sem idioma fixo. Antes daqui saía um CV degradado.
+  const desc=v.jobDescription||v.descricao||'';
+  if(!desc.trim()) return {ok:false,motivo:'sem_descricao'};
+  const _ped=montarPedidoCV({descricao:desc,localizacao:v.localizacao||'',modelo:v.modelo||'',regime:v.regime||''});
+  // Mesmo piso do card: CV de snippet sai genérico — melhor avisar do que entregar documento fraco.
+  if(_ped.curta) return {ok:false,motivo:'descricao_curta'};
   return {ok:false,motivo:'precisa_gerar',
-    prompt:{model:MODELOS.analise,max_tokens:2000,system:ATS_SYSTEM('PT',desc),
-      messages:[{role:'user',content:`Descrição da vaga:\n\n${desc}`}]},
+    prompt:_ped.body,
     filename:baseFn, empresa:v.empresa||'', cargo:v.cargo||''};
 };
 
