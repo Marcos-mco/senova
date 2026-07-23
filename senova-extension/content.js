@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.68
+// Content script — Senova Extension v2.69
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1015,6 +1015,12 @@
   // candidatura, candidatos a "Enviar". Mede com dado real (qualquer portal) se o MOMENTO do
   // envio é detectável, ANTES de ligar a marcação automática. Não muda comportamento.
   const _RE_ENVIAR = /\b(enviar|envie|envio|submeter|candidatar|candidate|aplicar|aplica[çc][ãa]o|finalizar|concluir|submit|apply|send|bewerben|absenden|postular)\b/i;
+  // O painel do copiloto e o FAB vivem no DOM da própria página. Sem esta exclusão, toda varredura
+  // que cai no `document` (quando não achamos o container) devolve os botões do PRÓPRIO Senova
+  // — "PDF Executivo", "Carta de apresentação", "Copiar para enviar ao Bruno" — como se fossem da
+  // página. O sensor mentia justamente onde ele é a única fonte de verdade (23/jul/2026,
+  // emprego.com). _scanPaginaCampos e o scanner de ação já excluíam; a varredura de botões não.
+  const _daExtensao = el => { try { return !!(el && el.closest && el.closest('#snv-copiloto,#snv-fab')); } catch (_) { return false; } };
   function _botoesEnvio() {
     let cont = null;
     try { cont = _acharContainerCandidatura(); } catch (_) {}
@@ -1023,6 +1029,7 @@
     try {
       const els = escopo.querySelectorAll('button, input[type=submit], input[type=button], [role=button]');
       for (const el of els) {
+        if (_daExtensao(el)) continue;                    // botão do painel do Senova, não da página
         const txt = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim();
         const ehSubmit = (el.type === 'submit') || (el.tagName === 'BUTTON' && !el.getAttribute('type'));
         if (!ehSubmit && !_RE_ENVIAR.test(txt)) continue;
@@ -1043,14 +1050,14 @@
       (c.grupo === 'selecao' && c.chave && _seleVazia(c.el))
     )).length;
     let inputs = 0;
-    try { inputs = document.querySelectorAll(_CAMPO_SEL).length; } catch (_) {}
+    try { inputs = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(el => !_daExtensao(el)).length; } catch (_) {}
     // Por que campos não são lidos? Conta visíveis na página e dentro do container, quantos
     // ficam SEM rótulo, e mostra uma amostra dos rótulos achados. Diz se o container está errado
     // (campos fora dele) ou se a leitura de rótulo é que falha neste DOM.
     let visDoc = 0, visEsc = 0, semRotulo = 0; const amostra = [];
     try {
-      visDoc = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(_visivel).length;
-      const vis = Array.from((cont || document).querySelectorAll(_CAMPO_SEL)).filter(_visivel);
+      visDoc = Array.from(document.querySelectorAll(_CAMPO_SEL)).filter(el => _visivel(el) && !_daExtensao(el)).length;
+      const vis = Array.from((cont || document).querySelectorAll(_CAMPO_SEL)).filter(el => _visivel(el) && !_daExtensao(el));
       visEsc = vis.length;
       for (const el of vis) {
         const r = _rotuloCampo(el);
@@ -1063,7 +1070,7 @@
     // coisa (fileN=0: drag-drop, iframe, widget) — sem supor.
     let fileN = 0, fileVis = 0;
     try {
-      const fl = Array.from((cont || document).querySelectorAll('input[type=file]'));
+      const fl = Array.from((cont || document).querySelectorAll('input[type=file]')).filter(el => !_daExtensao(el));
       fileN = fl.length; fileVis = fl.filter(_visivel).length;
     } catch (_) {}
     // iframes: um formulário de candidatura dentro de iframe cross-origin é invisível para nós.
@@ -1107,7 +1114,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.68',
+      'SENOVA DIAG v2.69',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
