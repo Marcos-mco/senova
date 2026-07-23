@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.67
+// Content script — Senova Extension v2.68
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -366,14 +366,45 @@
 
   // ── GENÉRICO ─────────────────────────────────────────────────────
 
+  // O detector genérico é a última linha de defesa: vale para todo site sem extrator próprio
+  // (adzuna, agregadores, página de carreira de empresa). Ele só falava português e inglês, então
+  // uma vaga espanhola de verdade — "Jefe de Ventas Nacional · Empleos en España", adzuna.es —
+  // caía como "sinal de mercado" e os botões de candidatura nem apareciam. O radar do Senova
+  // varre BR, ES e DE: o detector tem de falar as três línguas, senão duas frentes inteiras do
+  // radar não candidatam.
+  // Na URL, só termos que aparecem em CAMINHO de vaga — "oferta" solto casaria com e-commerce.
+  const RX_URL_VAGA = /(vaga|emprego|job|career|carreira|oportunidade|process|empleo|ofertas?-de-(?:trabajo|empleo)|vacante|puesto|carrera|stelle|stellenangebot|karriere|bewerbung)/i;
+  // No título, termos de vaga + cargos de liderança nas quatro línguas.
+  const RX_TITULO_VAGA = /(vaga|emprego|job|cargo|oportunidade|diretor|gerente|head|CEO|CMO|CSO|empleo|oferta de (?:trabajo|empleo)|vacante|puesto|jefe|jefa|director|responsable|gerencia|stelle|stellenangebot|karriere|leiter|leitung|gesch[äa]ftsf[üu]hrer)/i;
+
+  // Meta tags chegam com entidades HTML e, em sites com dupla codificação, com &amp;amp;.
+  // Sem decodificar, "Mur&Partners" virava "Mur&amp;Partners" no painel — e daí no card, no
+  // prompt e no CV que o recrutador recebe. Textarea é RCDATA: não executa nada do que entra.
+  function _decodeEntidades(s) {
+    let out = String(s || '');
+    if (!/&[#\w]+;/.test(out)) return out;
+    const el = document.createElement('textarea');
+    for (let i = 0; i < 2; i++) {          // 2 passadas cobrem a dupla codificação; mais que isso, não
+      const antes = out;
+      el.innerHTML = out;
+      out = el.value;
+      if (out === antes) break;
+    }
+    return out;
+  }
+
+  function meta(prop) {
+    return _decodeEntidades(document.querySelector('meta[property="' + prop + '"]')?.content || '');
+  }
+
   function extractGenerico() {
     const selecao   = window.getSelection()?.toString().trim().slice(0, 5000) || '';
-    const metaTitle = document.querySelector('meta[property="og:title"]')?.content || document.title || '';
-    const metaDesc  = document.querySelector('meta[property="og:description"]')?.content || '';
-    const empresaOg = document.querySelector('meta[property="og:site_name"]')?.content || host;
+    const metaTitle = meta('og:title') || document.title || '';
+    const metaDesc  = meta('og:description');
+    const empresaOg = meta('og:site_name') || host;
 
-    const isVagaUrl   = /(vaga|emprego|job|career|oportunidade|process)/i.test(url);
-    const isVagaTitulo = /(vaga|emprego|job|cargo|oportunidade|diretor|gerente|head|CEO|CMO|CSO)/i.test(metaTitle);
+    const isVagaUrl    = RX_URL_VAGA.test(url);
+    const isVagaTitulo = RX_TITULO_VAGA.test(metaTitle);
 
     if (isVagaUrl || isVagaTitulo) {
       const h1 = document.querySelector('h1')?.innerText?.trim() || '';
@@ -1076,7 +1107,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.67',
+      'SENOVA DIAG v2.68',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
