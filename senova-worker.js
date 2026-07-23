@@ -1,6 +1,22 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.20
+//  SENOVA PROXY — Worker v7.21
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.21 (22/jul/2026) — a regra do piso, dita por Marcos:
+//  "se não informar o salário não tem problema, mas eliminamos as que forem
+//  abaixo". Era o que a v7.20 já fazia; esta versão tira as consequências.
+//  · O piso deixa de ser exclusividade de BR/ES e passa a valer em TODA frente
+//    que busca posição executiva (entra em `de` e `nrw_intl`). A regra é sobre
+//    ELE, não sobre um mercado. Única exceção, deliberada: `ruthen` — ali o que
+//    ele foi buscar não é remuneração, é estar perto da filha, e o piso
+//    executivo cortaria justamente o trabalho honesto que ele disse aceitar.
+//  · Numa FAIXA declarada vale o TETO: R$60k–120k/ano passa, porque pode
+//    chegar aos R$10k/mês. Eliminar por causa do piso da negociação seria
+//    recusar a vaga pelo pior cenário dela.
+//  · Corte contado e no log da varredura ("N fora pelo piso salarial").
+//    Descarte silencioso é como se perde confiança num filtro: se o piso ou a
+//    moeda estiverem errados, sem esse número ninguém descobre — só nota que
+//    "vem pouca vaga". Mesmo princípio da trava de arquivamento silencioso.
 //
 //  NOVIDADES v7.20 (22/jul/2026) — Brasil e Espanha reforçados, piso de R$8k
 //  aplicado onde há dado. Pedido de Marcos. Medido antes de mexer, no radar
@@ -397,6 +413,10 @@ const CONFIG_PADRAO = {
     // armazém valem tanto quanto diretoria, desde que dispensem alemão. Termos
     // próprios (não o pool executivo), janela larga e teto baixo por termo,
     // porque é mercado pequeno e a variedade importa mais que o volume.
+    // ÚNICA frente SEM piso salarial (`salarioMinAnual`), de propósito: aqui o
+    // que Marcos foi buscar não é remuneração, é estar perto da filha. Aplicar
+    // o piso executivo nesta frente cortaria exatamente o trabalho honesto que
+    // ele disse aceitar — jardinagem, armazém, marcenaria — e mataria a frente.
     { id:'ruthen', label:'Rüthen e região (NRW)', ativo:true,
       adzunaPais:'de', where:'Rüthen', distanciaKm:40, diasMax:21,
       semFiltroCargo:true, semJobicy:true, maxPorTermo:4,
@@ -430,7 +450,7 @@ const CONFIG_PADRAO = {
     // ser a posição executiva/comercial, porque é disso que esse empregador precisa.
     { id:'nrw_intl', label:'NRW internacional (empregador anglófono/ibérico)', ativo:true,
       adzunaPais:'de', where:'Düsseldorf', distanciaKm:60, diasMax:21,
-      semJobicy:true, maxPorTermo:4,
+      semJobicy:true, maxPorTermo:4, salarioMinAnual:18000,
       queries:[
         // Idioma dele como qualificação — nunca testado em inglês até aqui.
         'Portuguese','Spanish speaking','Brazil','Iberia',
@@ -447,7 +467,11 @@ const CONFIG_PADRAO = {
     // "comercial autónomo" sem fixo (que entupiram a colheita) sem arriscar uma
     // vaga real. Marcos manda trocar quando tiver o número dele.
     { id:'es',     label:'Espanha',  ativo:true, semJobicy:true, salarioMinAnual:18000 },
-    { id:'de',     label:'Alemanha', ativo:true  },
+    // Piso salarial aqui também: a regra de Marcos ("eliminamos as que forem
+    // abaixo") não é sobre Brasil e Espanha, é sobre ele. Vale em toda frente
+    // que busca posição executiva — EXCETO `ruthen`, e só ali, porque naquela
+    // frente o que ele foi buscar não é remuneração, é estar perto da filha.
+    { id:'de',     label:'Alemanha', ativo:true, salarioMinAnual:18000 },
     { id:'pt',     label:'Portugal', ativo:true  },
     { id:'us',     label:'EUA',      ativo:false },
     { id:'remoto', label:'Remoto',   ativo:true  },
@@ -768,7 +792,7 @@ export default {
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.20',
+        status: 'ok', worker: 'senova-proxy', versao: '7.21',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -1810,7 +1834,8 @@ async function executarVarreduraPais(paisId, env, config) {
             const vagas = await buscarAdzuna(query, local, env);
             const novas = processarVagas(vagas, vistosSet, vagasLead, local, 'Adzuna');
             totalNovas += novas; novasDaFrente += novas;
-            log.push(`✅ Adzuna ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas`);
+            const cortes = vagas.cortadasPorSalario ? `, ${vagas.cortadasPorSalario} fora pelo piso salarial` : '';
+            log.push(`✅ Adzuna ${local.label} / "${query}" — ${vagas.length} vagas, ${novas} novas${cortes}`);
           } catch (err) {
             log.push(`⚠️ Adzuna ${local.label} / "${query}" — ${err.message}`);
           }
@@ -1985,7 +2010,7 @@ async function buscarAdzuna(query, local, env) {
   }
   if (!resp || !resp.ok) throw new Error(`Adzuna ${ultimoErro || 'sem resposta'}`);
   const data = await resp.json();
-  return (data.results || []).map(r => {
+  const brutas = (data.results || []).map(r => {
     // Salário: a Adzuna devolve `salary_min`/`salary_max` ANUALIZADOS e um flag
     // `salary_is_predicted` que diz se o número foi ESTIMADO por ela ou declarado
     // pelo anunciante. Estávamos descartando os três — o dado chegava a cada
@@ -2002,19 +2027,30 @@ async function buscarAdzuna(query, local, env) {
       local: limparHtml(r.location?.display_name || local.label), pubDate: r.created || '',
       salarioMin: min, salarioMax: max, salarioDeclarado: declarado && (min || max) ? true : false,
     };
-  }).filter(v => {
+  });
+
+  // Piso salarial — de propósito NÃO enviado à Adzuna como `salary_min`. O
+  // filtro da API opera também sobre o salário PREDITO por ela, e uma predição
+  // baixa em vaga que não informa nada faria a vaga sumir sem ninguém saber.
+  // Aqui o corte é determinístico e auditável, e a regra é a de Marcos (22/jul):
+  // "se não informar o salário não tem problema, mas eliminamos as que forem
+  // abaixo". Ou seja: silêncio passa, declaração abaixo do piso não passa.
+  // Numa FAIXA declarada, o que vale é o TETO — uma vaga de R$60k a R$120k/ano
+  // pode chegar aos R$10k/mês, e recusá-la seria eliminar por causa do piso da
+  // negociação, não do resultado dela.
+  let cortadasPorSalario = 0;
+  const out = brutas.filter(v => {
     if (!v.titulo || !v.url) return false;
-    // Piso salarial — de propósito NÃO enviado à Adzuna como `salary_min`. O
-    // filtro da API opera também sobre o salário PREDITO por ela, e uma predição
-    // baixa em vaga que não informa nada faria a vaga sumir sem ninguém saber.
-    // Aqui o corte é determinístico e auditável: só descarta quando o ANUNCIANTE
-    // declarou um teto e esse teto está abaixo do que Marcos aceita. Quem não
-    // informa salário — a esmagadora maioria (medido: 2 anúncios em 114 no
-    // Brasil traziam valor) — passa direto e é a Compatibilidade que julga.
     if (!local.salarioMinAnual || !v.salarioDeclarado) return true;
     const teto = v.salarioMax || v.salarioMin;
-    return !(teto && teto < local.salarioMinAnual);
+    if (teto && teto < local.salarioMinAnual) { cortadasPorSalario++; return false; }
+    return true;
   });
+  // Corte contado e devolvido para o log da varredura. Descarte silencioso é
+  // como se perde confiança num filtro: se o piso ou a moeda estiverem errados,
+  // sem este número ninguém descobre — só nota que "vem pouca vaga".
+  out.cortadasPorSalario = cortadasPorSalario;
+  return out;
 }
 
 // Põe a faixa salarial no COMEÇO da descrição quando o anunciante a declarou.
