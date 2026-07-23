@@ -10776,18 +10776,29 @@ window.__senovaDesfazerCandidatura=function(ref){
   return true;
 };
 
-// Exposto para a extensão (modelo PULL): devolve a análise de Compatibilidade de uma
-// vaga já no pipeline, casada por jobId do LinkedIn. A extensão chama isto na página da
-// vaga para mostrar a Compatibilidade — leva SÓ a análise (nunca CV/carta, que nascem
-// na página sob demanda). Retorna null se não houver card com esse jobId ou sem nota.
-window.__senovaAnaliseDoCard=function(jobId){
-  if(!jobId) return null;
-  const v=(vagas||[]).find(x=>_jobIdLinkedIn(x.origemUrl)===String(jobId));
-  if(!v) return null;
+// Exposto para a extensão (modelo PULL): devolve o estado do card de uma vaga já no
+// pipeline. A extensão chama isto na página da vaga para mostrar a Compatibilidade e
+// saber se já houve candidatura — leva SÓ a leitura (nunca CV/carta, que nascem na
+// página sob demanda). Retorna null se não houver card para a referência.
+//
+// Casamento por _acharVagaRef — o PONTO ÚNICO (jobId → URL real → empresa+cargo). Até a
+// v3.74 esta função tinha casamento PRÓPRIO, só por jobId do LinkedIn: fora do LinkedIn
+// não existe jobId, então o copiloto ficava CEGO em todo portal externo mesmo com o card
+// analisado no app — e o aviso "você já se candidatou a esta vaga" nunca acendia, porque
+// depende do `status` que nunca chegava. Casamento duplicado divergindo já custou caro
+// antes (S24, TV Integração). Aceita string (jobId, formato antigo) ou objeto de ref.
+window.__senovaAnaliseDoCard=function(ref){
+  const d=(typeof ref==='string'||typeof ref==='number')?{jobId:String(ref)}:(ref||{});
+  if(!d.jobId&&!d.url&&!(d.empresa&&d.cargo)) return null;
+  const idx=_acharVagaRef(d);
+  if(idx<0) return null;
+  const v=vagas[idx];
+  // Sem nota ainda NÃO é "nada a entregar": o card recém-criado pelo copiloto (Caminho A)
+  // nasce sem score, e mesmo assim o painel precisa saber que ele existe (status, temCV).
+  // Quem exige nota para aparecer é o chamador, não esta função.
   const _score=(v.atsScore&&parseInt(v.atsScore))||(typeof v.score==='number'?v.score:null);
-  if(!_score) return null; // card existe mas ainda sem análise → nada a entregar
   return {
-    score:_score,
+    score:_score||null,
     atsScore:v.atsScore||'',
     compatFortes:Array.isArray(v.compatFortes)?v.compatFortes:[],
     compatAtencao:Array.isArray(v.compatAtencao)?v.compatAtencao:[],

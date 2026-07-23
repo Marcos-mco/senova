@@ -37,7 +37,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === 'GET_ANALISE') {
     // PULL: o content.js da página da vaga pede a análise que o app já tem para este jobId.
-    buscarAnaliseDoApp(msg.jobId).then(sendResponse).catch(() => sendResponse(null));
+    buscarAnaliseDoApp(msg.ref || msg.jobId).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_RESPOSTA') {
@@ -255,19 +255,22 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
   }
 }
 
-// PULL da análise: encontra a aba do app e pede a Compatibilidade que ele já tem para
-// este jobId (window.__senovaAnaliseDoCard). world:'MAIN' é obrigatório. Retorna null se
-// o app não estiver aberto ou não houver card analisado para a vaga.
-async function buscarAnaliseDoApp(jobId) {
-  if (!jobId) return null;
+// PULL do card: encontra a aba do app e pede o estado que ele já tem para esta vaga
+// (window.__senovaAnaliseDoCard). world:'MAIN' é obrigatório. Retorna null se o app não
+// estiver aberto ou não houver card para a vaga.
+// Recebe a REFERÊNCIA inteira {jobId,url,empresa,cargo} — não só o jobId. Exigir jobId
+// aqui deixava o copiloto cego em todo portal fora do LinkedIn (onde jobId não existe).
+async function buscarAnaliseDoApp(ref) {
+  const d = (typeof ref === 'string' || typeof ref === 'number') ? { jobId: String(ref) } : (ref || {});
+  if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return null;
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
   if (!senovaTab) return null;
   try {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
-      func: (jid) => (typeof window.__senovaAnaliseDoCard === 'function') ? window.__senovaAnaliseDoCard(jid) : null,
-      args: [String(jobId)],
+      func: (r) => (typeof window.__senovaAnaliseDoCard === 'function') ? window.__senovaAnaliseDoCard(r) : null,
+      args: [d],
     });
     return (out && out[0] && out[0].result) || null;
   } catch { return null; }

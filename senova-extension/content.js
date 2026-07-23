@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.70
+// Content script — Senova Extension v2.71
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1116,6 +1116,11 @@
       // copiloto não lê nada, que é onde o botão da carta mais importa (23/jul/2026, emprego.com).
       passe: _ultimoPasse === undefined ? 'não lido' : !_ultimoPasse ? 'nenhum'
         : `jobId ${_ultimoPasse.jobId} · ${new Date(_ultimoPasse.ts).toTimeString().slice(0, 5)}`,
+      // Instrumentação do PULL do card (v2.71): mostra se o app respondeu com o card desta
+      // página. Sem esta linha, "o painel está cego" e "o card não existe" pareciam a mesma
+      // coisa na tela — e foi adivinhando entre as duas que já se perdeu sessão inteira.
+      card: !an.status ? 'não casou (app fechado ou vaga sem card)'
+        : `${an.status}${an.score ? ' · compat ' + an.score : ' · sem nota'}${an.temCV ? ' · com CV' : ''}`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
       iframesMesmaOrigem: mesmaOrigem,
@@ -1125,10 +1130,11 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.70',
+      'SENOVA DIAG v2.71',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
+      'card no app: ' + d.card,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
@@ -1395,6 +1401,37 @@
   function _temRefVaga() {
     const r = _refVaga();
     return !!(r.jobId || r.url || (r.empresa && r.cargo));
+  }
+
+  // PULL do card em QUALQUER portal. Até a v2.70 o estado do card (Compatibilidade, status,
+  // temCV) só chegava ao painel na página da vaga no LinkedIn, porque o pedido exigia jobId.
+  // Fora do LinkedIn o painel vivia de um retrato congelado (o "passe", de até 45min) ou de
+  // nada — e o aviso "você já se candidatou a esta vaga" nunca acendia, porque depende do
+  // `status`, que jamais chegava. Agora perguntamos ao app pela referência real da página.
+  // O card é a fonte de verdade; o que veio da página só preenche buraco. Falha (app fechado,
+  // sem card) é silenciosa e inofensiva: o painel segue com o que já tinha.
+  function _puxarCardDoApp() {
+    let ref; try { ref = _refVaga(); } catch (_) { return; }
+    if (!ref || (!ref.jobId && !ref.url && !(ref.empresa && ref.cargo))) return;
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_ANALISE', ref })
+        .then(card => {
+          if (!card) return;
+          const a = _copilotoAnalise || {};
+          _copilotoAnalise = Object.assign({}, a, {
+            score: card.score || a.score,
+            atsScore: card.atsScore || a.atsScore,
+            compatFortes: (card.compatFortes && card.compatFortes.length) ? card.compatFortes : a.compatFortes,
+            compatAtencao: (card.compatAtencao && card.compatAtencao.length) ? card.compatAtencao : a.compatAtencao,
+            cargo: card.cargo || a.cargo,
+            empresa: card.empresa || a.empresa,
+            status: card.status || a.status,
+            temCV: !!card.temCV,
+          });
+          try { _atualizarCorpo(); } catch (_) { }
+        })
+        .catch(() => { });
+    } catch (_) { }
   }
   // Identidade estável da vaga para o marcador "vi o formulário desta vaga" — sem depender
   // de jobId (que não existe quando a vaga foi achada por fora).
@@ -1752,9 +1789,12 @@
   if (host.includes('linkedin.com') && /\/jobs\/view\/(\d+)/.test(url)) {
     const _jid = (url.match(/\/jobs\/view\/(\d+)/) || [])[1];
     if (_jid) {
-      chrome.runtime.sendMessage({ type: 'GET_ANALISE', jobId: _jid })
+      chrome.runtime.sendMessage({ type: 'GET_ANALISE', ref: { jobId: _jid, url } })
         .then(an => {
-          if (!an) return;
+          // No LinkedIn quem manda aparecer continua sendo a NOTA: card sem análise não
+          // acorda o copiloto aqui (comportamento de sempre). A função do app agora devolve
+          // o card mesmo sem nota — a decisão de exibir é de cada chamador, não dela.
+          if (!an || !an.score) return;
           an.jobId = _jid;
           window.__senovaAnalise = an;
           injetarCopiloto(an);
@@ -1783,6 +1823,7 @@
           jobId: passe.jobId, score: passe.score, compatFortes: passe.compatFortes,
           compatAtencao: passe.compatAtencao, cargo: passe.cargo, empresa: passe.empresa
         });
+        _puxarCardDoApp();   // o passe é um retrato congelado; o card é a fonte de verdade
       };
       if (document.body) inject(); else window.addEventListener('DOMContentLoaded', inject);
     }).catch(() => { _ultimoPasse = null; });
@@ -1803,6 +1844,7 @@
       }
       _copilotoFechadoManual = false; // você pediu para abrir → reativa a persistência
       try { injetarCopiloto(an); } catch (_) {}
+      _puxarCardDoApp();   // caminho do popup: sem isto o painel nunca soube do card
     }
   });
 
