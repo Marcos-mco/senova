@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.69
+// Content script — Senova Extension v2.70
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -647,6 +647,13 @@
   let _copilotoObserver = null;
   let _copilotoT = null;
   let _preenchendo = false;
+  // Ação em curso (CV, carta): o re-render do painel não pode acontecer no meio, senão apaga a
+  // resposta do botão — "Gerando carta…", "✓ Carta copiada" ou o motivo da falha — e o clique
+  // parece não ter feito nada. _preenchendo já protegia o autofill; faltava proteger o resto.
+  let _ocupado = false;
+  function _ocupar() { _ocupado = true; }
+  // Solta o painel só depois que o usuário teve tempo de LER a resposta.
+  function _soltar(ms) { setTimeout(() => { _ocupado = false; try { _atualizarCorpo(); } catch (_) {} }, ms || 9000); }
   let _respondido = false;
   let _candidatado = false;
   let _viuForm = false;
@@ -1103,8 +1110,12 @@
       fileN, fileVis,
       classificados: campos.length, pessoal: porGrupo('pessoal'), perguntas: porGrupo('pergunta'),
       selecao: porGrupo('selecao'),
+      // Hora absoluta, não "há Nmin": o relativo mudava a cada minuto, o HTML do painel mudava
+      // junto e o anti-pisca deixava o corpo ser re-renderizado — apagando a resposta do botão que
+      // o usuário acabara de clicar. O diagnóstico é justamente o bloco que aparece quando o
+      // copiloto não lê nada, que é onde o botão da carta mais importa (23/jul/2026, emprego.com).
       passe: _ultimoPasse === undefined ? 'não lido' : !_ultimoPasse ? 'nenhum'
-        : `jobId ${_ultimoPasse.jobId} · há ${Math.round((Date.now() - _ultimoPasse.ts) / 60000)}min`,
+        : `jobId ${_ultimoPasse.jobId} · ${new Date(_ultimoPasse.ts).toTimeString().slice(0, 5)}`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
       iframesMesmaOrigem: mesmaOrigem,
@@ -1114,7 +1125,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.69',
+      'SENOVA DIAG v2.70',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1154,7 +1165,7 @@
 
   function _atualizarCorpo() {
     const corpo = document.getElementById('snv-cop-corpo');
-    if (!corpo || _preenchendo) return;
+    if (!corpo || _preenchendo || _ocupado) return;
     const an = _copilotoAnalise;
 
     // Aviso especial: vaga já tem candidatura registrada no Senova
@@ -1316,6 +1327,7 @@
     formato = (formato === 'pdf') ? 'pdf' : 'docx';
     const an = _copilotoAnalise || {};
     if (!_temRefVaga()) return;
+    _ocupar();
     const btn = document.getElementById(formato === 'pdf' ? 'snv-cop-cv-pdf' : 'snv-cop-cv-docx');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = an && an.temCV ? 'Preparando…' : 'Gerando CV…'; }
     let res = null;
@@ -1335,12 +1347,14 @@
               : 'Tente de novo';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.fontSize = '10.5px'; btn.textContent = m; }
     }
+    _soltar();
   }
 
   // Gera a carta de apresentação da vaga (pelo app, reusa CARTA_SYSTEM) e copia para o formulário.
   // Carta é texto para colar — não arquivo. Nunca envia; o usuário cola e revisa.
   async function _gerarCarta() {
     if (!_temRefVaga()) return;
+    _ocupar();
     const btn = document.getElementById('snv-cop-carta');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Gerando carta…'; }
     let res = null;
@@ -1361,6 +1375,7 @@
               : 'Não consegui — tente de novo';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.fontSize = '11px'; btn.textContent = m; }
     }
+    _soltar();
   }
 
   // Referência REAL da vaga, para o app casar o card (ou criá-lo). Serve os DOIS caminhos:

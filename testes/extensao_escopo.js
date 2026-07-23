@@ -69,6 +69,37 @@ for (const alvo of ['inputs = Array.from(document.querySelectorAll(_CAMPO_SEL)).
   t('filtra: ' + alvo.slice(0, 46) + '…', src.includes(alvo));
 }
 
+// ── O painel não pode apagar a própria resposta ──────────────────────────────
+// "Cliquei na carta e nada aconteceu" (Marcos, 23/jul/2026, emprego.com). O corpo do painel é
+// re-renderizado a cada ~0,4s pelo observer, com um anti-pisca que só evita o re-render quando o
+// HTML é IDÊNTICO. O bloco de diagnóstico — que aparece justamente quando o copiloto não lê nada,
+// que é onde o botão da carta mais importa — trazia "há Nmin": o HTML mudava sozinho a cada
+// minuto, o corpo era refeito e a resposta do botão ("Gerando carta…", "✓ Carta copiada", ou o
+// motivo da falha) sumia. O clique parecia não ter feito nada.
+console.log('\n=== o diagnóstico não muda sozinho com a passagem do tempo ===');
+const mPasse = src.match(/passe: _ultimoPasse === undefined[\s\S]{0,260}?,\n/);
+t('a linha do passe existe', !!mPasse);
+if (mPasse) {
+  const expr = mPasse[0].replace(/^\s*passe:\s*/, '').replace(/,\s*$/, '');
+  const sb = { _ultimoPasse: { jobId: '4267', ts: new Date('2026-07-23T09:29:00').getTime() }, Date, console };
+  vm.createContext(sb);
+  const a = vm.runInContext('(' + expr + ')', sb);
+  const b = vm.runInContext('(' + expr + ')', sb);   // "depois", com o relógio adiante
+  t('o passe NÃO usa tempo relativo ("há Nmin")', !/\bhá\b/.test(expr), expr.slice(0, 80));
+  t('mostra a hora do passe', /\d{2}:\d{2}/.test(a), a);
+  t('o mesmo passe rende SEMPRE o mesmo texto (não força re-render)', a === b, a + ' vs ' + b);
+}
+
+console.log('\n=== ação em curso trava o re-render (senão a resposta do botão some) ===');
+t('_atualizarCorpo respeita _ocupado', /if \(!corpo \|\| _preenchendo \|\| _ocupado\) return;/.test(src));
+t('_ocupar/_soltar existem', /function _ocupar\(\)/.test(src) && /function _soltar\(ms\)/.test(src));
+const carta = extrai('async function _gerarCarta(');
+const cv = extrai('async function _baixarCV(');
+t('a carta ocupa o painel e o solta no fim', /_ocupar\(\);/.test(carta) && /_soltar\(\);/.test(carta));
+t('o CV ocupa o painel e o solta no fim', /_ocupar\(\);/.test(cv) && /_soltar\(\);/.test(cv));
+t('a carta nunca termina calada: todo caminho escreve no botão',
+  (carta.match(/btn\.textContent =/g) || []).length >= 3, (carta.match(/btn\.textContent =/g) || []).length + ' mensagens');
+
 console.log('\n──────────────────────────────');
 console.log(fail === 0 ? `ESCOPO DA EXTENSÃO: ${ok}/${ok} ✓` : `${ok} passaram · ${fail} FALHARAM`);
 process.exit(fail ? 1 : 0);
