@@ -1,28 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.19
+//  SENOVA PROXY — Worker v7.17
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
-//
-//  NOVIDADES v7.19 (22/jul/2026) — a via alemã, refeita sobre medição:
-//  MEDIDO no radar vivo (281 vagas, 176 com nota): das 75 alemãs colhidas, 35
-//  pontuadas, UMA passou do piso de viabilidade — 2%. Contra 45 viáveis no
-//  Brasil e 2 na Espanha. O gargalo alemão NÃO é o termo de busca: o país pede
-//  alemão para quase tudo, inclusive Lagerhelfer e Gärtner (medidos em 8–28).
-//  Duas hipóteses testadas e uma refutada, para não repetir o erro:
-//   · idioma do ANÚNCIO — descrição em inglês tem média 26,4 contra 16,6 em
-//     alemão, mas ainda só 1 de 11 passa. Sinal fraco. Não virou regra.
-//   · marcador (m/f/d) internacional vs (m/w/d) alemão — média 23,2 vs 17,0.
-//     Fraco também. Descartado como discriminador.
-//  O que a única sobrevivente tem (Clarios, Hannover, 62): empregador
-//  multinacional e escopo EMEA — o cargo não vende para o mercado alemão.
-//  Daí as duas mudanças:
-//  · Pool `de` refeito: fora os títulos alemães (Vertriebsdirektor,
-//    Geschäftsführer, Vertriebsleiter, country manager — todos ≤42, todos
-//    exigindo alemão por natureza), dentro o escopo supranacional.
-//  · Frente nova `nrw_intl`: o empregador cujo idioma de trabalho não é o
-//    alemão, no corredor Reno-Ruhr (Düsseldorf + 60 km). Termos em inglês —
-//    as formas alemãs já rodam em `ruthen` e nenhuma vaga do radar carrega
-//    esses sinais. Entra em RODÍZIO, não como frente fixa: é hipótese em
-//    teste, e `ruthen` (estar perto da filha) segue sendo a prioridade fixa.
 //
 //  NOVIDADES v7.14 (22/jul/2026) — Compatibilidade pesa a VIDA, não só o CV:
 //  · PROJETO_DE_VIDA entra na análise ao lado do PERFIL: raiz em Curitiba,
@@ -315,17 +293,8 @@ const CONFIG_PADRAO = {
          'head of business development','chief marketing officer','general manager','managing director'],
     es: ['director comercial','director de ventas','director general','jefe comercial',
          'CMO','director de marketing','country manager','director ejecutivo'],
-    // Alemanha, refeito em 22/jul sobre a colheita real (75 vagas alemãs no radar,
-    // 35 com nota): TODA vaga de título alemão morreu no gate de impedimento —
-    // `Vertriebsdirektor`/`Geschäftsführer`/`Vertriebleiter` trazem anúncio escrito
-    // em alemão, para vender a cliente alemão, e nenhuma passou de 42. Buscar por
-    // esses termos é pagar consulta para colher vaga que Marcos não pode aceitar.
-    // A ÚNICA alemã viável do radar inteiro (Clarios, Hannover, 62) é de escopo
-    // EMEA com anúncio em inglês. O pool passa a caçar esse escopo, não o cargo
-    // local. `country manager` saiu junto: country = território alemão = alemão.
-    de: ['EMEA','international sales director','Latin America','export manager',
-         'global account director','international business development','LATAM',
-         'commercial director international'],
+    de: ['sales director','Vertriebsdirektor','international sales manager','commercial director',
+         'Latin America manager','Geschäftsführer','Vertriebsleiter','country manager'],
   },
   locais: [
     { id:'br',     label:'Brasil',   ativo:true  },
@@ -348,35 +317,6 @@ const CONFIG_PADRAO = {
         // Depois trabalho honesto que tende a dispensar alemão de atendimento.
         'Lagerhelfer','Produktionshelfer','Gärtner','Tischler','Hausmeister',
         'Fahrer','Reinigung','Logistik','Kommissionierer',
-      ] },
-    // Frente NRW internacional — o empregador cujo idioma de trabalho NÃO é o
-    // alemão. Medido em 22/jul: das 75 vagas alemãs colhidas, 35 pontuadas, UMA
-    // passou do piso de viabilidade (Clarios, multinacional americana, anúncio em
-    // inglês, escopo EMEA). O gargalo alemão não é o termo de busca — é que o país
-    // pede alemão para quase tudo, inclusive armazém. A única brecha medida é o
-    // empregador internacional, e ele não está no campo: está no corredor
-    // Reno-Ruhr, onde multinacional americana, brasileira e ibérica mantém
-    // escritório. Âncora em Düsseldorf com 60 km alcança Köln, Duisburg, Essen,
-    // Dortmund, Wuppertal e Bonn.
-    //
-    // HONESTIDADE DE DISTÂNCIA: isto NÃO é perto da filha. Rüthen fica a ~100 km
-    // de Düsseldorf — mesmo estado, não mesma cidade. É a frente da via alemã
-    // possível, não a frente de estar perto de quem ele ama; essa é a `ruthen`,
-    // e continua fixa e intocada.
-    //
-    // Termos em INGLÊS de propósito: as formas alemãs (`Portugiesisch`, `Spanisch`,
-    // `Brasilien`) já rodam em `ruthen` e nenhuma vaga do radar carrega esses
-    // sinais — o empregador internacional anuncia em inglês, não em alemão.
-    // Filtro de cargo LIGADO (ao contrário de `ruthen`): aqui o critério volta a
-    // ser a posição executiva/comercial, porque é disso que esse empregador precisa.
-    { id:'nrw_intl', label:'NRW internacional (empregador anglófono/ibérico)', ativo:true,
-      adzunaPais:'de', where:'Düsseldorf', distanciaKm:60, diasMax:21,
-      semJobicy:true, maxPorTermo:4,
-      queries:[
-        // Idioma dele como qualificação — nunca testado em inglês até aqui.
-        'Portuguese','Spanish speaking','Brazil','Iberia',
-        // Escopo que dispensa vender em alemão (foi o da única sobrevivente).
-        'LATAM','Latin America','EMEA','international sales','export','english speaking',
       ] },
     { id:'es',     label:'Espanha',  ativo:true  },
     { id:'de',     label:'Alemanha', ativo:true  },
@@ -700,7 +640,7 @@ export default {
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.19',
+        status: 'ok', worker: 'senova-proxy', versao: '7.18',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
