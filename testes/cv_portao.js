@@ -18,6 +18,9 @@ if (!mDesc) { console.log('  FAIL  CV_DESC_MINIMA não existe mais no index.html
 const CV_DESC_MINIMA = parseInt(mDesc[1], 10);
 
 const fontes = [
+  'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDoPedido(',
+  'function _extrairPerfilTraduzido(',
+  'function _pdfCtxUsar(', 'function _pdfCtxDoCard(',
   'function montarPedidoCV(',
   'function _jobIdLinkedIn(', 'function _acharVagaRef(', 'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoGerarCV=function(',
@@ -30,8 +33,9 @@ const sandbox = {
   MODELOS: { analise: 'modelo-analise', rapido: 'modelo-rapido' },
   ATS_SYSTEM: (lang, textoVaga) => 'SYS[' + lang + ']' + textoVaga,
   ctxBuscarRelevantes: () => [{ texto: 'complemento relevante do Perfil' }],
-  CV_DESC_MINIMA, cvLang: 'PT',
-  lastCV: '', lastCVFilename: '', atsCargo: '',
+  CV_DESC_MINIMA, cvLang: 'PT', cvLangManual: false,
+  PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [] },
+  lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null,
   _pdfExecBase64: () => 'FAKEB64',
   btoa: s => Buffer.from(s, 'binary').toString('base64'),
   unescape: global.unescape || (s => decodeURIComponent(s)), encodeURIComponent, console,

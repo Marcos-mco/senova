@@ -28,6 +28,8 @@ const fontes = [
 ].map(extrai).join('\n;\n');
 
 const sandbox = {
+  _idiomaDoPedido: () => 'PT', _extrairPerfilTraduzido: () => null,
+
   vagas: [], filtroAtivo: null,
   saveVagas: () => {}, renderCRM: () => {}, aplicarFiltros: () => {},
   showToast: () => {}, setTimeout: () => 0, clearTimeout: () => {},

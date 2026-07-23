@@ -4,6 +4,8 @@ const { t, fim } = assert();
 const s = carregarApp([
   'const PERFIL_MARCOS = {',
   'function filtrarExperienciasRelevantes(',
+  'const _PDF_LABELS={',
+  'function _pdfLabels(',
   'function _mesLabelPDF(',
   'function _secaoDoCV(',
   'function _nivelAlvoPDF(',

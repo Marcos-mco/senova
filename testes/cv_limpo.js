@@ -3,7 +3,8 @@ const fs=require('fs'), vm=require('vm');
 const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
 function extrai(a){const i=html.indexOf(a);if(i<0)throw new Error('nao achei: '+a);const ab=html.indexOf('{',i);let d=0,j=ab;for(;j<html.length;j++){const c=html[j];if(c==='{')d++;else if(c==='}'){d--;if(d===0)break;}}return html.slice(i,j+1);}
 const fontes=['function _jobIdLinkedIn(','function _acharVagaRef(','function _extrairSoCV(','function setCV(','window.__senovaCopilotoSalvarCV=function(','window.__senovaCopilotoGerarCV=function('].map(extrai).join('\n;\n');
-const sandbox={vagas:[],saveVagas:()=>{},document:{getElementById:()=>null},MODELOS:{analise:'m'},ATS_SYSTEM:()=>'SYS',lastCV:'',lastCVFilename:'',atsCargo:'',cvLang:'PT',_pdfExecBase64:()=>'FAKEB64',btoa:s=>Buffer.from(s,'binary').toString('base64'),unescape:global.unescape||(s=>decodeURIComponent(s)),encodeURIComponent,console};
+const sandbox={vagas:[],saveVagas:()=>{},document:{getElementById:()=>null},MODELOS:{analise:'m'},ATS_SYSTEM:()=>'SYS',lastCV:'',lastCVFilename:'',atsCargo:'',cvLang:'PT',
+  _idiomaDoPedido:()=>'PT',_extrairPerfilTraduzido:()=>null,lastCVLang:'PT',lastCVTrad:null,_pdfCtxDoCard:()=>(()=>{}),_pdfExecBase64:()=>'FAKEB64',btoa:s=>Buffer.from(s,'binary').toString('base64'),unescape:global.unescape||(s=>decodeURIComponent(s)),encodeURIComponent,console};
 sandbox.window=sandbox;vm.createContext(sandbox);vm.runInContext(fontes,sandbox);
 let ok=0,fail=0;const t=(n,c,d)=>{if(c){ok++;console.log('  PASS  '+n);}else{fail++;console.log('  FAIL  '+n+(d?'  → '+d:''));}};
 

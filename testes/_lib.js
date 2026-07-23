@@ -29,6 +29,13 @@ const NUCLEO = [
   'function _statusLabel(',
   'function _confirmarArquivarProtegido(',
   'function _marcarCandidaturaEnviada(',
+  // Idioma do CV: decidido pela vaga (ver _idiomaDoPedido). Entra no núcleo porque o portão de
+  // escrita e a ponte da extensão dependem dele.
+  'const _IDIOMA_MARCAS = {',
+  'function _idiomaDaVaga(',
+  'function _idiomaDoCV(',
+  'function _idiomaDoPedido(',
+  'function _extrairPerfilTraduzido(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).
@@ -44,7 +51,10 @@ function carregarApp(extras = [], mocks = {}) {
     _STATUS_PROTEGIDO: ['entrevista', 'proposta', 'aceito'], // usado por _confirmarArquivarProtegido
     confirm: () => true,                                     // trava confirma por padrão; teste sobrescreve
     alert: () => {},
-    lastCV: '', lastCVFilename: '', _pdfExecBase64: () => 'FAKEB64',
+    lastCV: '', lastCVFilename: '', atsCargo: '', _pdfExecBase64: () => 'FAKEB64',
+    cvLang: 'PT', cvLangManual: false, lastCVLang: 'PT', lastCVTrad: null,
+    // Perfil mínimo: quem testa os fatos traduzidos carrega o PERFIL_MARCOS real nos `extras`.
+    PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [] },
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     unescape: global.unescape || (s => decodeURIComponent(s)),
     encodeURIComponent, console,

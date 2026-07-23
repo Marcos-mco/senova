@@ -6,6 +6,18 @@ const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const linhas = html.split('\n');
 
+// Nome da função que contém cada linha. Antes o guard adivinhava o portão por um trecho da própria
+// linha ("o.idioma || cvLang") — bastava o portão crescer uma linha para o guard acusar o portão de
+// violar a si mesmo. Agora ele pergunta em QUE função a linha está, que é o que a regra diz.
+function funcaoDaLinha(i) {
+  for (let j = i; j >= 0; j--) {
+    const m = linhas[j].match(/^(?:const\s+(\w+)\s*=\s*(?:\([^)]*\)|\w+)\s*=>|function\s+(\w+)\s*\()/);
+    if (m) return m[1] || m[2];
+    if (/^\}/.test(linhas[j]) && j < i) return '';            // saiu do corpo antes de achar a assinatura
+  }
+  return '';
+}
+
 let falhou = false;
 function checar(nome, regexEscrita, ehPortao) {
   const viol = [];
@@ -13,7 +25,7 @@ function checar(nome, regexEscrita, ehPortao) {
     const t = l.trim();
     if (t.startsWith('//') || t.startsWith('*')) return;      // comentário
     if (!regexEscrita.test(l)) return;                        // não é escrita desse estado
-    if (ehPortao(l)) return;                                  // é a definição do portão — ok
+    if (ehPortao(l, funcaoDaLinha(i))) return;                // está DENTRO do portão — ok
     viol.push('    ' + (i + 1) + ': ' + t.slice(0, 95));
   });
   if (viol.length) {
@@ -29,7 +41,7 @@ console.log('=== GUARD: o CV só é escrito pelo portão setCV ===');
 // escrita = .atsCV = (mas não == / ===); o único ponto permitido é a definição de setCV
 checar('nenhuma escrita direta de atsCV fora de setCV()',
   /\.atsCV\s*=(?!=)/,
-  (l) => /function\s+setCV/.test(l));
+  (l, fn) => fn === 'setCV');
 
 console.log('\n=== GUARD: o status só muda pelo portão setStatus ===');
 // escrita de status com literal (o perigoso — sumiço de card). Permitido: a definição de
@@ -37,7 +49,7 @@ console.log('\n=== GUARD: o status só muda pelo portão setStatus ===');
 // (migração one-shot, criação de card, revert). Todo o resto passa por setStatus.
 checar('nenhuma escrita direta de status fora de setStatus (ou marcada [status-ok])',
   /\.status\s*=\s*['"]/,
-  (l) => /\[status-ok\]/.test(l) || /function\s+setStatus/.test(l));
+  (l, fn) => /\[status-ok\]/.test(l) || fn === 'setStatus');
 
 console.log('\n=== GUARD: o CV só é GERADO pelo portão montarPedidoCV ===');
 // O portão setCV cobria a ESCRITA do CV, não a GERAÇÃO. Por essa fresta passaram quatro prompts
@@ -46,7 +58,7 @@ console.log('\n=== GUARD: o CV só é GERADO pelo portão montarPedidoCV ===');
 // Um pedido de CV = um prompt. Único ponto permitido: a definição de montarPedidoCV.
 checar('nenhuma chamada a ATS_SYSTEM fora de montarPedidoCV()',
   /ATS_SYSTEM\s*\(/,
-  (l) => /const\s+ATS_SYSTEM/.test(l) || /o\.idioma\s*\|\|\s*cvLang/.test(l));
+  (l, fn) => fn === 'montarPedidoCV' || fn === 'ATS_SYSTEM');
 
 console.log('\n──────────────────────────────');
 if (falhou) {
