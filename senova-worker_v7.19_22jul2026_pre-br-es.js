@@ -1,37 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.20
+//  SENOVA PROXY — Worker v7.19
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
-//
-//  NOVIDADES v7.20 (22/jul/2026) — Brasil e Espanha reforçados, piso de R$8k
-//  aplicado onde há dado. Pedido de Marcos. Medido antes de mexer, no radar
-//  vivo (281 vagas): BR 114 colhidas / média 39,5 / 36 viáveis · ES 29 colhidas
-//  / média 48,4 (a MAIOR de todas as fontes) / topo absoluto do radar (85) ·
-//  DE 75 colhidas / média 19,3 / 1 viável.
-//  · O achado que reorientou tudo: o filtro `tituloRelevante` já tinha sido
-//    alargado para coordenação/supervisão (a faixa de R$8–15k), mas o POOL DE
-//    BUSCA seguia só com diretoria. A Adzuna devolve o que se pede: alargar o
-//    filtro sem alargar a busca não colhe uma vaga a mais. Pools pt e es vão
-//    de 8 para 14 termos, com a faixa de gerência incluída.
-//  · Espanha vira FRENTE FIXA (era 1 dia a cada 5). Melhor rendimento medido
-//    do radar, e ele tem espanhol avançado + mestrado em Barcelona.
-//  · Custo de execução INALTERADO: BR e ES deixaram de consultar o Jobicy
-//    (feed global de remoto, já coberto pela frente `remoto`, rendimento
-//    medido de 1 viável em 10) e os fetches liberados pagam a Espanha fixa.
-//  · Freio da execução 60 → 80: com 4 frentes fixas e NOVAS_POR_FRENTE=20, um
-//    teto de 60 deixaria as duas últimas da fila passando fome.
-//  · Salário: a Adzuna sempre devolveu salary_min/max/is_predicted e nós
-//    jogávamos fora. Agora a faixa DECLARADA pelo anunciante entra no topo da
-//    descrição (logo, no card e na Compatibilidade) e vaga cujo teto declarado
-//    fica abaixo do piso é descartada na colheita. O filtro `salary_min` da
-//    própria API foi recusado de propósito: ele opera também sobre o salário
-//    PREDITO pela Adzuna, e uma predição baixa sumiria com vaga boa em
-//    silêncio. Salário estimado nunca vira impedimento.
-//  · HONESTIDADE: o mercado quase não publica salário — 2 anúncios em 114 no
-//    Brasil traziam valor, e ambos abaixo do piso (R$3.500 e R$5.500, já
-//    barrados pela nota). O piso de R$8k continua sendo garantido sobretudo
-//    pelo gate de impedimento; este filtro é o cinto extra para quando o
-//    número existe. O piso espanhol (€18.000/ano) é SUPOSIÇÃO minha, não
-//    número declarado por Marcos.
 //
 //  NOVIDADES v7.19 (22/jul/2026) — a via alemã, refeita sobre medição:
 //  MEDIDO no radar vivo (281 vagas, 176 com nota): das 75 alemãs colhidas, 35
@@ -325,11 +294,7 @@ const VAGAS_POR_TERMO = 20;
 // e reaparece na próxima rodada). Existe porque o app analisa todas as vagas
 // pendentes em paralelo ao importar: sem freio, uma manhã traria centenas de
 // chamadas de análise de uma vez.
-// Subiu de 60 para 80 em 22/jul junto com a 4ª frente fixa (Espanha): com
-// NOVAS_POR_FRENTE=20 e 4 frentes, o teto natural é 80, e um freio global de 60
-// fazia as duas últimas frentes da fila passarem fome — a Espanha e a frente do
-// rodízio seriam varridas para nada em toda execução movimentada.
-const NOVAS_POR_EXECUCAO = 80;
+const NOVAS_POR_EXECUCAO = 60;
 // Freio POR FRENTE. Sem ele, o Brasil (mercado grande, varrido toda execução)
 // consome sozinho as 60 vagas do freio global e a frente prioritária — a região
 // da filha de Marcos — nunca chega a ser buscada.
@@ -344,29 +309,12 @@ const TETO_SCORE_COM_IMPEDIMENTO = 45;
 const CONFIG_PADRAO = {
   ativa: true,
   queries: {
-    // Brasil e Portugal. Ampliado em 22/jul sobre uma medição desconfortável: o
-    // filtro `tituloRelevante` já tinha sido alargado para coordenação/supervisão
-    // ("qualquer cargo aqui no Brasil que ganhe 8 mil já é bom pra mim"), mas o
-    // POOL DE BUSCA continuou só com diretoria — e a Adzuna só devolve o que se
-    // pede. Alargar o filtro sem alargar a busca não colhe UMA vaga a mais: o
-    // filtro só reprova o que já chegou. A faixa de R$8–15k mora em gerência,
-    // coordenação e supervisão, não em diretoria; são estes termos que faltavam.
     pt: ['diretor comercial','diretor de vendas','diretor de marketing','head comercial',
-         'gerente geral','CMO','superintendente comercial','diretor executivo',
-         'gerente comercial','gerente de vendas','gerente de marketing','gerente regional',
-         'coordenador comercial','supervisor de vendas'],
+         'gerente geral','CMO','superintendente comercial','diretor executivo'],
     en: ['sales director','commercial director','country manager','VP sales',
          'head of business development','chief marketing officer','general manager','managing director'],
-    // Espanha. Mesmo alargamento do pool pt, e por um motivo medido: a Espanha é
-    // o mercado mais subaproveitado do radar — 29 vagas colhidas, a MAIOR média
-    // de nota de todas as fontes (48,4 contra 39,5 do Brasil e 19,3 da Alemanha)
-    // e a nota mais alta do radar inteiro (85). Estava sendo varrida 1 dia a
-    // cada 5. Ele tem espanhol avançado e mestrado em Barcelona: ali o idioma é
-    // qualificação, não barreira.
     es: ['director comercial','director de ventas','director general','jefe comercial',
-         'CMO','director de marketing','country manager','director ejecutivo',
-         'gerente comercial','responsable comercial','jefe de ventas','director regional',
-         'responsable de marketing','director de expansión'],
+         'CMO','director de marketing','country manager','director ejecutivo'],
     // Alemanha, refeito em 22/jul sobre a colheita real (75 vagas alemãs no radar,
     // 35 com nota): TODA vaga de título alemão morreu no gate de impedimento —
     // `Vertriebsdirektor`/`Geschäftsführer`/`Vertriebleiter` trazem anúncio escrito
@@ -380,14 +328,7 @@ const CONFIG_PADRAO = {
          'commercial director international'],
   },
   locais: [
-    // Brasil — mercado principal, medido: 114 vagas no radar, 36 acima do piso de
-    // viabilidade (31%), a maior colheita absoluta de longe.
-    // `semJobicy`: o Jobicy é um feed GLOBAL de vagas remotas em inglês; pedir
-    // "gerente comercial" a ele devolvia zero e as poucas que vieram renderam 1
-    // viável em 10. A frente `remoto` já consulta esse mesmo feed — aqui era
-    // consulta paga duas vezes pelo mesmo dado. O orçamento liberado é o que
-    // paga a Espanha virar frente fixa (custo total da execução fica igual).
-    { id:'br',     label:'Brasil',   ativo:true, semJobicy:true, salarioMinAnual:96000 },
+    { id:'br',     label:'Brasil',   ativo:true  },
     // Frente Rüthen — a filha de Marcos mora em Rüthen (Kreis Soest, NRW).
     // Âncora na própria Rüthen com raio de 40 km: alcança Lippstadt (21 km),
     // Soest (25 km), Paderborn (34 km) e Meschede sem puxar o cinturão do Ruhr
@@ -437,16 +378,7 @@ const CONFIG_PADRAO = {
         // Escopo que dispensa vender em alemão (foi o da única sobrevivente).
         'LATAM','Latin America','EMEA','international sales','export','english speaking',
       ] },
-    // Espanha — passa a FRENTE FIXA (ver FRENTES_FIXAS). Medido em 22/jul: melhor
-    // média de nota do radar e a única praça estrangeira com vaga viável de
-    // verdade, e ainda assim varrida 1 dia a cada 5.
-    // `salarioMinAnual` em EUROS: Marcos declarou o piso em reais (R$8k/mês) e
-    // não declarou piso para a Espanha — €18.000/ano (~€1.500/mês) é SUPOSIÇÃO
-    // MINHA, deliberadamente conservadora: fica acima do salário mínimo espanhol
-    // e muito abaixo de qualquer cargo de direção, então corta estágio e
-    // "comercial autónomo" sem fixo (que entupiram a colheita) sem arriscar uma
-    // vaga real. Marcos manda trocar quando tiver o número dele.
-    { id:'es',     label:'Espanha',  ativo:true, semJobicy:true, salarioMinAnual:18000 },
+    { id:'es',     label:'Espanha',  ativo:true  },
     { id:'de',     label:'Alemanha', ativo:true  },
     { id:'pt',     label:'Portugal', ativo:true  },
     { id:'us',     label:'EUA',      ativo:false },
@@ -768,7 +700,7 @@ export default {
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.20',
+        status: 'ok', worker: 'senova-proxy', versao: '7.19',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -1732,13 +1664,7 @@ async function executarVarredura(env, isCron) {
   // Frentes FIXAS, varridas toda execução: Brasil (mercado principal) e Rüthen
   // (prioridade declarada — estar perto da filha). As demais seguem em rodízio,
   // 1 por dia. Uma prioridade que só é varrida a cada 5 dias não é prioridade.
-  // Espanha entrou em 22/jul por medição, não por gosto: das 5 vagas espanholas
-  // já pontuadas a média foi 48,4 — a maior de todas as fontes — e a nota mais
-  // alta do radar inteiro (85) é espanhola. Uma praça com esse rendimento sendo
-  // varrida 1 dia a cada 5 é orçamento mal gasto. Entra sem custo novo: BR e ES
-  // deixaram de consultar o Jobicy (feed global de remoto, já coberto pela
-  // frente `remoto`), e os 10 fetches liberados pagam exatamente esta frente.
-  const FRENTES_FIXAS = ['br', 'ruthen', 'es'];
+  const FRENTES_FIXAS = ['br', 'ruthen'];
   const fixos = locaisAtivos.filter(l => FRENTES_FIXAS.includes(l.id));
   const rotativos = locaisAtivos.filter(l => !FRENTES_FIXAS.includes(l.id));
   const alvos = fixos.map(l => l.id);
@@ -1985,49 +1911,13 @@ async function buscarAdzuna(query, local, env) {
   }
   if (!resp || !resp.ok) throw new Error(`Adzuna ${ultimoErro || 'sem resposta'}`);
   const data = await resp.json();
-  return (data.results || []).map(r => {
-    // Salário: a Adzuna devolve `salary_min`/`salary_max` ANUALIZADOS e um flag
-    // `salary_is_predicted` que diz se o número foi ESTIMADO por ela ou declarado
-    // pelo anunciante. Estávamos descartando os três — o dado chegava a cada
-    // consulta e ia para o lixo, e a Compatibilidade tinha de adivinhar a
-    // remuneração pelo cargo para aplicar um piso que Marcos declarou em reais.
-    const declarado = r.salary_is_predicted !== '1' && r.salary_is_predicted !== 1;
-    const min = typeof r.salary_min === 'number' ? r.salary_min : null;
-    const max = typeof r.salary_max === 'number' ? r.salary_max : null;
-    return {
-      // Mesmo tratamento do RSS: o Adzuna também devolve "&amp;" e tags soltas
-      // no título e na descrição — sem isso o card mostra o código, não o texto.
-      titulo: limparHtml(r.title || ''), empresa: limparHtml(r.company?.display_name || local.label),
-      url: r.redirect_url || '', descricao: prefixarSalario(limparHtml(r.description || ''), min, max, declarado, pais),
-      local: limparHtml(r.location?.display_name || local.label), pubDate: r.created || '',
-      salarioMin: min, salarioMax: max, salarioDeclarado: declarado && (min || max) ? true : false,
-    };
-  }).filter(v => {
-    if (!v.titulo || !v.url) return false;
-    // Piso salarial — de propósito NÃO enviado à Adzuna como `salary_min`. O
-    // filtro da API opera também sobre o salário PREDITO por ela, e uma predição
-    // baixa em vaga que não informa nada faria a vaga sumir sem ninguém saber.
-    // Aqui o corte é determinístico e auditável: só descarta quando o ANUNCIANTE
-    // declarou um teto e esse teto está abaixo do que Marcos aceita. Quem não
-    // informa salário — a esmagadora maioria (medido: 2 anúncios em 114 no
-    // Brasil traziam valor) — passa direto e é a Compatibilidade que julga.
-    if (!local.salarioMinAnual || !v.salarioDeclarado) return true;
-    const teto = v.salarioMax || v.salarioMin;
-    return !(teto && teto < local.salarioMinAnual);
-  });
-}
-
-// Põe a faixa salarial no COMEÇO da descrição quando o anunciante a declarou.
-// Fica no texto (e não só num campo novo) porque é assim que ela chega inteira
-// aos dois lugares que importam sem mexer em nenhuma assinatura: o card que
-// Marcos lê e o prompt da Compatibilidade, que recebe a descrição. Salário
-// ESTIMADO pela Adzuna nunca entra — chute não pode virar impedimento.
-function prefixarSalario(descricao, min, max, declarado, pais) {
-  if (!declarado || (!min && !max)) return descricao;
-  const moeda = pais === 'br' ? 'R$' : (pais === 'us' ? 'US$' : '€');
-  const fmt = n => moeda + ' ' + Math.round(n).toLocaleString('pt-BR');
-  const faixa = (min && max && min !== max) ? `${fmt(min)} a ${fmt(max)}` : fmt(max || min);
-  return `[Faixa salarial declarada pelo anunciante: ${faixa} por ano]\n${descricao}`;
+  return (data.results || []).map(r => ({
+    // Mesmo tratamento do RSS: o Adzuna também devolve "&amp;" e tags soltas
+    // no título e na descrição — sem isso o card mostra o código, não o texto.
+    titulo: limparHtml(r.title || ''), empresa: limparHtml(r.company?.display_name || local.label),
+    url: r.redirect_url || '', descricao: limparHtml(r.description || ''),
+    local: limparHtml(r.location?.display_name || local.label), pubDate: r.created || '',
+  })).filter(v => v.titulo && v.url);
 }
 
 // ═══════════════════════════════════════════════════════════════════
