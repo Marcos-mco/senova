@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.71
+// Content script — Senova Extension v2.72
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1046,6 +1046,26 @@
     return cands;
   }
 
+  // "Você já enviou esta candidatura" — sinal GENÉRICO, não do emprego.com. Uma página que
+  // oferece RETIRAR/CANCELAR a candidatura (ou diz "candidatura em <data>") só existe DEPOIS do
+  // envio. É o gatilho da estação de Registro pós-envio: o portal continua conversando com você
+  // (carta, mensagem ao recrutador) e o Senova precisa saber que a candidatura aconteceu — senão
+  // o card fica preso em Oportunidade e o funil registra menos candidaturas do que houve.
+  // Regra dura (skill anti-gambiarra): o verbo de retirada tem de vir COLADO ao substantivo de
+  // candidatura — "Cancelar" sozinho (fechar um modal) não conta. Cobre PT/EN/ES/DE.
+  const _RE_JA_ENVIADA = /(retirar|cancelar|remover|desistir|excluir)[^.]{0,24}(candidatura|postulaci[óo]n|solicitud|application|bewerbung)|\bwithdraw(\s+application)?\b|zur[üu]ckziehen/i;
+  function _pareceJaEnviada() {
+    try {
+      const els = document.querySelectorAll('button, a, [role=button], input[type=submit], input[type=button]');
+      for (const el of els) {
+        if (_daExtensao(el)) continue;                    // nunca o próprio painel
+        const txt = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim();
+        if (txt && _RE_JA_ENVIADA.test(txt) && _visivel(el)) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function _diagnostico() {
     let cont = null;
     try { cont = _acharContainerCandidatura(); } catch (_) {}
@@ -1098,8 +1118,12 @@
       }
     }
     const an = _copilotoAnalise || {};
-    const origem = !an.jobId ? 'popup/sem-card'
-      : host.includes('linkedin.com') ? 'card-linkedin' : 'passe-externo';
+    // `status` só existe quando o card do app casou (só __senovaAnaliseDoCard o preenche). Era
+    // errado deduzir "sem card" de `!an.jobId`: fora do LinkedIn não há jobId e mesmo assim há
+    // card. Rótulo que mente já custou sessões (S32/S35) — aqui ele reflete o casamento real.
+    const origem = an.status
+      ? (host.includes('linkedin.com') ? 'card-linkedin' : an.jobId ? 'card-externo' : 'card-externo (por url/empresa)')
+      : an.jobId ? 'linkedin-sem-status' : 'popup/sem-card';
     const container = !cont ? 'NÃO ENCONTRADO'
       : (cont.matches && cont.matches('.jobs-easy-apply-modal')) ? 'easy-apply-modal'
       : (cont.tagName === 'FORM') ? 'form' : 'dialog';
@@ -1121,6 +1145,7 @@
       // coisa na tela — e foi adivinhando entre as duas que já se perdeu sessão inteira.
       card: !an.status ? 'não casou (app fechado ou vaga sem card)'
         : `${an.status}${an.score ? ' · compat ' + an.score : ' · sem nota'}${an.temCV ? ' · com CV' : ''}`,
+      jaEnviada: (() => { try { return _pareceJaEnviada() ? 'sim (portal mostra candidatura enviada)' : 'não'; } catch (_) { return '?'; } })(),
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
       iframesMesmaOrigem: mesmaOrigem,
@@ -1130,11 +1155,12 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.71',
+      'SENOVA DIAG v2.72',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
       'card no app: ' + d.card,
+      'já enviada (pós-envio): ' + d.jaEnviada,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
@@ -1243,6 +1269,12 @@
     // O botão só aparece ONDE a candidatura acontece (site da empresa ou formulário aberto) —
     // não na página da vaga do LinkedIn, onde você ainda nem foi candidatar.
     const _emContextoCand = _temRefVaga() && (!host.includes('linkedin.com') || !!_acharContainerCandidatura());
+    // Página pós-envio detectada (botão "Retirar candidatura" etc.) COM card ainda em aberto:
+    // o copiloto reconhece por conta própria e ativamente propõe registrar — em vez de deixar
+    // um botão passivo "Já me candidatei" que você teria de saber que existe. É a diferença
+    // entre uma ferramenta que espera e um copiloto que percebe.
+    const _jaEnviada = (() => { try { return _pareceJaEnviada(); } catch (_) { return false; } })();
+    const _proporRegistro = _jaEnviada && _temRefVaga() && an && an.status && an.status !== 'aplicado';
     const btnCandHTML = _candidatado
       ? `<div style="margin-top:9px;background:#EAF7EF;border:1px solid rgba(26,104,64,0.25);border-radius:8px;padding:10px 12px;">
            <div style="display:flex;align-items:center;gap:8px;">
@@ -1251,6 +1283,12 @@
            </div>
            <div style="font-size:12px;color:#2C2C2A;line-height:1.45;margin-top:6px;">O card avançou para <b>CV Enviado</b> no Senova. Acompanhe seu e-mail (e o spam) nos próximos dias — quando houver retorno, atualize o processo no Senova.</div>
          </div>`
+      : _proporRegistro
+        ? `<div style="margin-top:9px;background:#FBF6E9;border:1px solid rgba(201,168,76,0.5);border-radius:8px;padding:11px 13px;">
+             <div style="font-size:13px;font-weight:700;color:#1A3A5C;line-height:1.35;">Você já enviou esta candidatura aqui.</div>
+             <div style="font-size:12.5px;color:#2C2C2A;line-height:1.45;margin-top:5px;">No Senova ela ainda está em <b>Oportunidade</b>. Quer registrar como <b>CV Enviado</b> para acompanhar o retorno?</div>
+             <button id="snv-cop-candidatei" style="width:100%;margin-top:9px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Registrar como CV Enviado</button>
+           </div>`
       : _emContextoCand
         ? `<button id="snv-cop-candidatei" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Já me candidatei</button>`
         : '';
@@ -1297,11 +1335,16 @@
       : '';
     // O "Diagnóstico Senova" é ferramenta de campo (debug) — só aparece quando o copiloto NÃO
     // achou nenhum campo (o caso que precisa de investigação). No uso normal, some.
+    // Numa página pós-envio, registrar é a ação principal — vai ANTES de preencher/CV (que ali
+    // já não fazem sentido). No fluxo normal (ainda preenchendo), registrar fica no fim: você
+    // registra depois de mandar. Mesma peça, posição conforme o momento.
+    const _regNoTopo = _proporRegistro || _candidatado;
     const _html = `
       ${scoreHTML}
+      ${_regNoTopo ? btnCandHTML : ''}
       ${btnHTML}
       ${btnCvHTML}
-      ${btnCandHTML}
+      ${_regNoTopo ? '' : btnCandHTML}
       ${statusHTML}
       ${_leuNada ? diagHTML : ''}`;
 
