@@ -94,4 +94,15 @@ t('o caminho do passe externo puxa o card', /injetarCopiloto\(\{[\s\S]{0,220}\}\
 t('no LinkedIn continua exigindo nota para aparecer', /if \(!an \|\| !an\.score\) return;/.test(ct));
 t('o diagnóstico mostra se o card casou', /'card no app: ' \+ d\.card/.test(ct));
 
+// ── O painel OFERECE o CV sempre que o card casou ────────────────────────────────────────────
+// 24/jul: Marcos no passo "Carregar currículo" do Easy Apply (Jobgether) — a extensão não alcança
+// o modal (upload 0, container NÃO ENCONTRADO), então a trava antiga (_temUpload || externa ||
+// easyapply) escondia o botão JUSTAMENTE onde ele precisava gerar o CV. O CV não depende de a
+// extensão "ver" o campo de upload — depende só de haver um card conhecido.
+console.log('\n=== o CV/carta são oferecidos sempre que o card casou (não só onde há upload) ===');
+t('_temCV é apenas _temRefVaga() (card conhecido basta)', /const _temCV = _temRefVaga\(\);/.test(ct));
+t('a trava antiga por upload/forma saiu', !/_temCV = _temRefVaga\(\) && \(_temUpload/.test(ct));
+t('a variável morta _emCandExterna foi removida', !/_emCandExterna/.test(ct));
+t('o bloco "Documentos para levar" depende de _temCV', /const btnCvHTML = _temCV/.test(ct));
+
 fim('PAINEL VÊ O CARD');

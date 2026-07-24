@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.72
+// Content script — Senova Extension v2.73
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1155,7 +1155,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.72',
+      'SENOVA DIAG v2.73',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1224,17 +1224,15 @@
     const _nPreencher = _nPessoal + _nPerg + _nSelecao;
     const _temUpload = _campos.some(c => c.grupo === 'cv');
     // O CV NÃO depende de "enxergar" o campo de upload: portais como a DHL usam um widget próprio
-    // (campos de arquivo: 0) e cada ATS é diferente — caçar isso seria gambiarra. O papel do
-    // copiloto é te ENTREGAR o CV certo; você sobe (ou usa o "Importar do currículo" do portal).
-    // Regra geral (zero código por portal): oferece o CV quando há card conhecido E estamos no
-    // site de candidatura externo, OU quando há um upload de fato detectado (ex.: Easy Apply).
-    // "Vaga conhecida" = qualquer referência utilizável (jobId, URL real ou empresa+cargo) —
-    // exigir jobId aqui escondia CV e carta em toda vaga achada por fora do Senova.
-    // No LinkedIn Easy Apply (Candidatura Simplificada) o CV muitas vezes não expõe um input de
-    // upload visível na hora — mas você PRECISA do CV. Então oferece o CV também nesse caso.
-    let _forma = ''; try { _forma = _detectarForma(); } catch (_) {}
-    const _emCandExterna = _temRefVaga() && !host.includes('linkedin.com');
-    const _temCV = _temRefVaga() && (_temUpload || _emCandExterna || _forma === 'easyapply');
+    // (campos de arquivo: 0), o Easy Apply do LinkedIn abre o passo do currículo num modal/iframe
+    // que a extensão não alcança (upload 0, container NÃO ENCONTRADO), e cada ATS é diferente —
+    // caçar isso seria gambiarra. O papel do copiloto é te ENTREGAR o CV certo; você sobe (ou usa
+    // o "Carregar currículo"/"Importar do currículo" do portal).
+    // Regra geral (zero código por portal): se há um card conhecido, oferece o CV — na página da
+    // vaga (para levar pronto) ou no passo de envio. "Vaga conhecida" = qualquer referência
+    // utilizável (jobId, URL real ou empresa+cargo). Amarrar isso a upload/forma escondia o CV
+    // justamente na hora em que você precisa dele (ex.: modal de currículo do Easy Apply).
+    const _temCV = _temRefVaga();
 
     let scoreHTML = '';
     const score = an ? (parseInt(an.score) || 0) : 0;
