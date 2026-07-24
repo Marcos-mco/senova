@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.73
+// Content script — Senova Extension v2.74
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -1155,7 +1155,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.73',
+      'SENOVA DIAG v2.74',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1378,7 +1378,7 @@
     const btn = document.getElementById(formato === 'pdf' ? 'snv-cop-cv-pdf' : 'snv-cop-cv-docx');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = an && an.temCV ? 'Preparando…' : 'Gerando CV…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', dados: _refVaga(), formato }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', dados: _dadosVagaCompletos(), formato }); } catch (_) {}
     if (res && res.ok) {
       const okTxt = formato === 'pdf' ? '✓ PDF baixado' : '✓ .docx baixado';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = okTxt; }
@@ -1389,6 +1389,9 @@
               // que entregar um documento fraco ao recrutador.
               : (res && res.motivo === 'descricao_curta') ? 'Abra a vaga inteira e tente de novo'
               : (res && res.motivo === 'sem_descricao') ? 'Falta a descrição da vaga'
+              // sem_card só sobra quando nem o Caminho A conseguiu criar o card (não reconheci
+              // cargo/empresa na página). Antes caía no genérico "Tente de novo", que escondia a causa.
+              : (res && res.motivo === 'sem_card') ? 'Abra a página da vaga e tente de novo'
               : (res && res.erro === 'app_fechado') ? 'Abra o Senova'
               : (res && res.erro === 'sem_funcao') ? 'Recarregue o app'
               : 'Tente de novo';
@@ -1405,7 +1408,7 @@
     const btn = document.getElementById('snv-cop-carta');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Gerando carta…'; }
     let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTA', dados: _refVaga() }); } catch (_) {}
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTA', dados: _dadosVagaCompletos() }); } catch (_) {}
     if (res && res.ok && res.carta) {
       let copiado = false;
       try { await navigator.clipboard.writeText(res.carta); copiado = true; } catch (_) {}
@@ -1417,7 +1420,7 @@
     } else {
       const m = (res && res.erro === 'app_fechado') ? 'Abra o Senova'
               : (res && res.motivo === 'sem_descricao') ? 'Falta a descrição da vaga'
-              : (res && res.motivo === 'sem_card') ? 'Vaga não está no Senova'
+              : (res && res.motivo === 'sem_card') ? 'Abra a página da vaga e tente de novo'
               : (res && res.erro === 'sem_funcao') ? 'Recarregue o Senova'
               : 'Não consegui — tente de novo';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.fontSize = '11px'; btn.textContent = m; }
@@ -1442,6 +1445,20 @@
   function _temRefVaga() {
     const r = _refVaga();
     return !!(r.jobId || r.url || (r.empresa && r.cargo));
+  }
+  // Dados COMPLETOS da vaga da página, COM a descrição. Caminho A: gerar CV/carta de uma vaga
+  // achada por fora exige criar o card, e criar o card exige a descrição — que _refVaga() de
+  // propósito não carrega (ele é a chave de casamento, leve). extract() relê a página no mesmo
+  // formato dos extratores; a referência manda em jobId/score. Sem isto, gerar CV de vaga que
+  // ainda não é card morria em 'sem_card' (a mensagem "Tente de novo" que o Marcos viu).
+  function _dadosVagaCompletos() {
+    const r = _refVaga();
+    let p = {}; try { p = extract() || {}; } catch (_) {}
+    return {
+      jobId: r.jobId, url: r.url || p.url || location.href,
+      cargo: r.cargo || p.cargo || '', empresa: r.empresa || p.empresa || '',
+      descricao: p.descricao || '', canal: r.canal, score: r.score,
+    };
   }
 
   // PULL do card em QUALQUER portal. Até a v2.70 o estado do card (Compatibilidade, status,

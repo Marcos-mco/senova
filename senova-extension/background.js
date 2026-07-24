@@ -396,6 +396,20 @@ async function copilotoCV(dados, formato) {
   let r = null;
   try { r = await gerar(); } catch { return null; }
 
+  // Caminho A: a vaga foi achada por fora e ainda não é card no Senova (análise transitória do
+  // popup, nunca persistida) → 'sem_card'. Cria o card com a descrição da página (que veio em
+  // `dados`) e tenta UMA vez de novo. Reusa o garantir-card já testado (documentos.js/espinha.js).
+  if (r && r.motivo === 'sem_card' && (d.descricao || d.cargo || d.empresa)) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: senovaTab.id }, world: 'MAIN',
+        func: (ref) => (typeof window.__senovaCopilotoGarantirCard === 'function') ? window.__senovaCopilotoGarantirCard(ref) : null,
+        args: [d],
+      });
+      r = await gerar();
+    } catch { return null; }
+  }
+
   if (r && r.ok) {
     try { await chrome.downloads.download({ url: r.dataUrl, filename: r.filename, saveAs: false }); return { ok: true }; }
     catch { return { erro: 'download_falhou' }; }
@@ -474,6 +488,20 @@ async function copilotoCarta(dados) {
   // Passo 1: carta pronta no card, ou o prompt para gerar
   let r = null;
   try { r = await ponte(); } catch { return null; }
+
+  // Caminho A (igual ao CV): vaga achada por fora sem card → cria o card com a descrição da
+  // página e tenta uma vez de novo, em vez de morrer em 'sem_card'.
+  if (r && r.motivo === 'sem_card' && (d.descricao || d.cargo || d.empresa)) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: senovaTab.id }, world: 'MAIN',
+        func: (ref) => (typeof window.__senovaCopilotoGarantirCard === 'function') ? window.__senovaCopilotoGarantirCard(ref) : null,
+        args: [d],
+      });
+      r = await ponte();
+    } catch { return null; }
+  }
+
   if (r && r.ok) return { ok: true, carta: r.carta };
   if (!r || r.motivo !== 'precisa_gerar') return r;
 
