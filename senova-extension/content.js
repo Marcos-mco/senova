@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.74
+// Content script — Senova Extension v2.75
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -644,6 +644,12 @@
   // Desenho oficial: docs/copiloto_candidatura.v1.0.md
 
   let _copilotoAnalise = null;
+  // A qual VAGA o status/estado de _copilotoAnalise pertence de fato. _copilotoAnalise sobrevive
+  // à troca de vaga (o painel precisa sobreviver ao re-render do SPA), então o status de uma vaga
+  // que você REALMENTE enviou vazava para a próxima vaga na tela quando o PULL da nova não casava
+  // card (app fechado OU sem card — indistinguíveis). Amarrando o status à identidade da vaga,
+  // o "já se candidatou" só acende para a vaga em que a análise foi de fato estabelecida.
+  let _analiseChave = null;
   let _copilotoObserver = null;
   let _copilotoT = null;
   let _preenchendo = false;
@@ -1145,6 +1151,16 @@
       // coisa na tela — e foi adivinhando entre as duas que já se perdeu sessão inteira.
       card: !an.status ? 'não casou (app fechado ou vaga sem card)'
         : `${an.status}${an.score ? ' · compat ' + an.score : ' · sem nota'}${an.temCV ? ' · com CV' : ''}`,
+      // v2.75: o status só vale para a vaga em que a análise foi estabelecida. Se "NÃO casa", o
+      // "já se candidatou" fica suprimido de propósito — é o estado de outra vaga sobrevivendo.
+      identidade: (() => {
+        try {
+          const atual = _chaveVaga();
+          return _analiseChave === atual
+            ? 'status casa a vaga na tela (' + atual + ')'
+            : 'status NÃO casa → suprimido (análise: ' + (_analiseChave || 'nenhuma') + ' · tela: ' + atual + ')';
+        } catch (_) { return '?'; }
+      })(),
       jaEnviada: (() => { try { return _pareceJaEnviada() ? 'sim (portal mostra candidatura enviada)' : 'não'; } catch (_) { return '?'; } })(),
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
@@ -1155,11 +1171,12 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.74',
+      'SENOVA DIAG v2.75',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
       'card no app: ' + d.card,
+      'identidade do status: ' + d.identidade,
       'já enviada (pós-envio): ' + d.jaEnviada,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
@@ -1201,7 +1218,7 @@
     const an = _copilotoAnalise;
 
     // Aviso especial: vaga já tem candidatura registrada no Senova
-    if (an && an.status === 'aplicado' && !_candidatado) {
+    if (an && _statusVagaAtual(an) === 'aplicado' && !_candidatado) {
       const score = parseInt(an.score) || 0;
       const cor = score >= 75 ? '#1A6840' : score >= 55 ? '#9C5800' : '#B52419';
       corpo.innerHTML = `
@@ -1471,6 +1488,7 @@
   function _puxarCardDoApp() {
     let ref; try { ref = _refVaga(); } catch (_) { return; }
     if (!ref || (!ref.jobId && !ref.url && !(ref.empresa && ref.cargo))) return;
+    const chaveRef = _chaveVaga(ref); // a qual vaga a resposta pertence (mesmo se você já navegou)
     try {
       chrome.runtime.sendMessage({ type: 'GET_ANALISE', ref })
         .then(card => {
@@ -1486,6 +1504,7 @@
             status: card.status || a.status,
             temCV: !!card.temCV,
           });
+          _analiseChave = chaveRef; // o card casou por ESTA referência → status confiável para ela
           try { _atualizarCorpo(); } catch (_) { }
         })
         .catch(() => { });
@@ -1493,11 +1512,19 @@
   }
   // Identidade estável da vaga para o marcador "vi o formulário desta vaga" — sem depender
   // de jobId (que não existe quando a vaga foi achada por fora).
-  function _chaveVaga() {
-    const r = _refVaga();
+  function _chaveVaga(r) {
+    r = r || _refVaga();
     if (r.jobId) return 'job:' + r.jobId;
     if (r.empresa && r.cargo) return 'ec:' + (r.empresa + '|' + r.cargo).toLowerCase();
     return 'url:' + (r.url || '').split('?')[0];
+  }
+
+  // O status do card (aplicado, etc.) só vale para a vaga NA TELA. Sem esta trava, o
+  // "já se candidatou" de uma vaga anterior vazava para a próxima (ver _analiseChave).
+  function _statusVagaAtual(an) {
+    if (!an) return '';
+    try { if (_analiseChave !== _chaveVaga()) return ''; } catch (_) { return ''; }
+    return an.status || '';
   }
 
   // Avisa o Senova que a candidatura foi enviada → card em CV Enviado + follow-up 7d
@@ -1756,6 +1783,10 @@
     if (_copilotoAnalise && _copilotoAnalise.jobId && (!an || !an.jobId) && document.getElementById('snv-copiloto')) {
       _atualizarCorpo(); return;
     }
+    // Análise NOVA (objeto diferente) → o status vale para a vaga na tela AGORA. Reinjeção do
+    // watchdog passa o MESMO objeto (an === _copilotoAnalise): não recarimbar, senão o status
+    // antigo seria revalidado na vaga nova.
+    if (an !== _copilotoAnalise) { try { _analiseChave = _chaveVaga(); } catch (_) { _analiseChave = null; } }
     _copilotoAnalise = an;
     if (document.getElementById('snv-copiloto')) { _atualizarCorpo(); return; }
 
