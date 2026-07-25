@@ -5262,10 +5262,27 @@ function _tokenSim(a, b){
   let c=0; for(const t of ta) if(tb.has(t)) c++;
   return c/Math.min(ta.size,tb.size);
 }
+// Duas grafias da mesma empresa? O nome às vezes chega como hashtag de campanha
+// ("#SejaSicoobSul") — colado, sem espaço — e o comparador por tokens não enxerga:
+// não há tokens em comum com "Sicoob Sul". Sem os espaços, um contém o outro
+// ("sejasicoobsul" ⊇ "sicoobsul"). Piso de 5 letras evita casar siglas curtas por
+// acidente. Ser generoso aqui é seguro: a duplicata é SUGERIDA (modal), nunca criada calada.
+function _mesmaEmpresa(a,b){
+  const na=_normStr(a), nb=_normStr(b);
+  if(!na||!nb) return false;
+  if(na===nb || _tokenSim(a,b)>=0.7) return true;
+  const ca=na.replace(/ /g,''), cb=nb.replace(/ /g,'');
+  const menor=ca.length<=cb.length?ca:cb, maior=ca.length<=cb.length?cb:ca;
+  return menor.length>=5 && maior.includes(menor);
+}
 function _vagaSimilarExistente(nova){
+  const _normU=u=>(u||'').split('?')[0].split('#')[0].toLowerCase().replace(/\/$/,'');
+  const uNova=_normU(nova.url||nova.origemUrl);
   return vagas.find(v=>{
-    const mesmaEmpresa = _normStr(nova.empresa)===_normStr(v.empresa) || _tokenSim(nova.empresa,v.empresa)>=0.7;
-    if(!mesmaEmpresa) return false;
+    // URL real igual = mesma vaga, não importa como a empresa veio grafada nesta varredura.
+    const uV=_normU(v.origemUrl||v.url);
+    if(uNova&&uV&&uNova===uV) return true;
+    if(!_mesmaEmpresa(nova.empresa, v.empresa)) return false;
     return _tokenSim(nova.titulo||nova.cargo, v.cargo||v.titulo)>=0.6;
   }) || null;
 }
