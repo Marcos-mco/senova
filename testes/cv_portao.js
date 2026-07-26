@@ -21,6 +21,7 @@ const fontes = [
   'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
   'function _pdfCtxUsar(', 'function _pdfCtxDoCard(',
+  'function _nivelAlvoPDF(',
   'function montarPedidoCV(',
   'function _jobIdLinkedIn(', 'function _acharVagaRef(', 'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoGerarCV=function(',
@@ -76,7 +77,7 @@ sandbox.vagas.push({
 });
 const rExt = run('window.__senovaCopilotoGerarCV({url:"https://emprego.com/v/1"},"pdf")');
 t('sem CV no card, a extensão pede para gerar', rExt.motivo === 'precisa_gerar', JSON.stringify(rExt).slice(0, 120));
-const pedCard = run('montarPedidoCV(' + JSON.stringify({ descricao: DESC, localizacao: 'Curitiba, PR', modelo: 'Presencial', regime: 'CLT' }) + ')');
+const pedCard = run('montarPedidoCV(' + JSON.stringify({ descricao: DESC, localizacao: 'Curitiba, PR', modelo: 'Presencial', regime: 'CLT', cargo: 'Head de Vendas' }) + ')');
 t('o pedido da extensão é IDÊNTICO ao do card',
   JSON.stringify(rExt.prompt) === JSON.stringify(pedCard.body),
   'divergiram — voltou a haver dois CVs');

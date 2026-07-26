@@ -3324,6 +3324,10 @@ function setLang(lang,btn) {
 const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
   const nomeIdioma = { PT: 'português do Brasil', EN: 'English', ES: 'español' }[lang] || 'português do Brasil';
   const traduzir = lang === 'EN' || lang === 'ES';
+  // Calibração de NÍVEL (raiz do "CV C-level para vaga de analista", S37): o enquadramento —
+  // subtítulo e resumo — mira o nível DESTA vaga, nunca o ápice da carreira. Vender C-level numa
+  // vaga de execução desqualifica por sobrequalificação. Os FATOS não mudam; muda só o DESTAQUE.
+  const nivelRotulo = { 'c-level': 'C-Level / Diretoria executiva (CMO, CSO, CEO, COO)', 'diretoria': 'Diretoria', 'gerencial': 'Gerência / Coordenação / Especialista / Analista (execução)' }[nivelVaga] || 'inferir do título e das responsabilidades desta vaga';
   return `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
 
 IDIOMA DE SAÍDA DO CV: ${nomeIdioma}. O CV inteiro sai neste idioma — títulos de seção, subtítulo, resumo, cargos, bullets, formação e competências. Nomes próprios (empresas, instituições, cidades) não se traduzem. A ANÁLISE e o CRM continuam em português, que é para leitura de Marcos.
@@ -3331,7 +3335,11 @@ IDIOMA DE SAÍDA DO CV: ${nomeIdioma}. O CV inteiro sai neste idioma — título
 PERFIL DO CANDIDATO (já filtrado por relevância para esta vaga específica — ver REGRAS ABSOLUTAS):
 ${perfilFormatadoPara(textoVaga, nivelVaga, traduzir)}
 
-CARGO-ALVO: CMO / CSO / CEO / Diretor Comercial / Diretor de Marketing / Diretor de Negócios (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
+NÍVEL-ALVO DESTA VAGA: ${nivelRotulo}.
+CALIBRAÇÃO DE ENQUADRAMENTO (regra decisiva de qualidade — não negociável):
+- O SUBTÍTULO (linha logo abaixo do nome) e o RESUMO espelham o CARGO e a linguagem DESTA vaga, não o ápice da carreira. Numa vaga de execução (analista, especialista, coordenação), o subtítulo é a ÁREA da vaga (ex.: para "Analista de Marketing de Produto" → "Marketing de Produto | Lançamento, Portfólio e Inteligência de Mercado"). NUNCA use "CMO · CSO · CEO" nem "Diretor" como subtítulo de uma vaga abaixo desse nível — rótulo acima do nível da vaga desqualifica por sobrequalificação.
+- Os FATOS não mudam: a trajetória executiva permanece íntegra e completa nas experiências. Muda só o DESTAQUE — o RESUMO (2–3 frases diretas, específicas desta vaga, sem clichê corporativo) e as COMPETÊNCIAS trazem à frente exatamente o que ESTA vaga pede, com as palavras-chave do título e das responsabilidades.
+CARGO-ALVO DE REFERÊNCIA (só quando a vaga for de fato executiva): CMO / CSO / CEO / Diretor Comercial / Diretor de Marketing / Diretor de Negócios (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
 PRETENSÃO: R$15–25k CLT (BR — fecha a partir de R$15k; mínimo de sobrevivência R$8k em Curitiba) · €3.500–5.500/mês (ES/PT) · €5.000–8.000/mês (DE/DACH)
 
 REGRAS ABSOLUTAS:
@@ -3440,7 +3448,7 @@ function _idiomaDoPedido(desc, explicito){
 // O portão de ESCRITA (setCV) já existia; faltava o de LEITURA. O guard test (testes/guard.js)
 // barra o commit se alguém voltar a chamar ATS_SYSTEM fora daqui.
 // Referência de comportamento: o caminho do card, que é o aprovado por Marcos.
-//   o = {descricao, localizacao, modelo, regime, contexto, idioma}
+//   o = {descricao, localizacao, modelo, regime, contexto, idioma, cargo}
 function montarPedidoCV(o){
   o = o || {};
   const desc = String(o.descricao || '');
@@ -3451,6 +3459,10 @@ function montarPedidoCV(o){
   // sempre do CV original + complementos do Perfil + o que se acrescenta na hora.
   const _rel = (typeof ctxBuscarRelevantes === 'function') ? ctxBuscarRelevantes(desc) : [];
   const perfilComp = _rel.length ? '\n\n---\nPERFIL COMPLEMENTAR (inclua apenas o relevante para esta vaga específica):\n' + _rel.map(e => '• ' + e.texto).join('\n') : '';
+  // Nível da vaga → calibra o enquadramento do CV (ver ATS_SYSTEM: subtítulo/resumo no nível da
+  // vaga, nunca C-level para vaga de execução). Vem do cargo quando o caller o conhece (card e
+  // extensão passam o cargo); senão, do título no topo da descrição; senão '' e a IA infere da JD.
+  const nivelVaga = _nivelAlvoPDF(String(o.cargo || '')) || _nivelAlvoPDF((desc.split('\n').map(s => s.trim()).find(Boolean) || '').slice(0, 120)) || '';
   const idioma = _idiomaDoPedido(desc, o.idioma);
   // Fora do português, a resposta traz também os FATOS traduzidos (bloco ---PERFIL---): sem isso
   // o PDF sairia meio espanhol (resumo) e meio português (cargos, bullets, formação), porque
@@ -3461,7 +3473,7 @@ function montarPedidoCV(o){
     curta: desc.trim().length < CV_DESC_MINIMA,
     body: {
       model: MODELOS.analise, max_tokens: idioma === 'PT' ? 4000 : 6000,
-      system: ATS_SYSTEM(idioma, vagaTexto),
+      system: ATS_SYSTEM(idioma, vagaTexto, nivelVaga),
       messages: [{ role: 'user', content: 'Analise esta vaga e gere o CV adaptado:\n\n' + vagaTexto + contextoFull + perfilComp }]
     }
   };
@@ -7963,7 +7975,7 @@ async function analisarInline(){
   if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Analisando…';}
   const resultEl=document.getElementById('mv-analise-result');
   if(resultEl&&!isLeadAnalise){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
-  const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx});
+  const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
   const vagaTexto=_pedido.vagaTexto;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -8079,7 +8091,7 @@ async function gerarDocModal(tipo){
   if(tipo==='ats'){
     // Mesmo pedido do card e da extensão — portão único. Antes daqui saía um CV de outro
     // modelo, com outro tamanho e sem PERFIL COMPLEMENTAR: regerar mudava o CV sem motivo.
-    _pedidoDoc=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx});
+    _pedidoDoc=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
     bodyReq=_pedidoDoc.body;
   } else if(tipo==='carta'){
     system=CARTA_SYSTEM(cvLang,vagaTexto);
@@ -10457,7 +10469,9 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
   const _ehSecao=s=>/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}$/.test(s);
   let subtitulo='';
   for(const l of linhas){ if(_ehNome(l)||_ehContato(l)) continue; if(_ehSecao(l)) break; subtitulo=l; break; }
-  if(!subtitulo) subtitulo='Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR';
+  // Fallback calibrado (S37): quando a IA não emitiu subtítulo, NUNCA cair em C-level chumbado
+  // (era o "smoking gun" do CV da Kapazi). Posiciona pela vaga; sem cargo, área neutra e verdadeira.
+  if(!subtitulo) subtitulo=(cargoVaga&&String(cargoVaga).trim())?String(cargoVaga).trim()+' · Curitiba, PR':'Marketing · Vendas · Operações Comerciais · Curitiba, PR';
   const nivelAlvo=_nivelAlvoPDF(cargoVaga);
   let expsFiltradas=filtrarExperienciasRelevantes(textoVaga||'','');
   if(nivelAlvo==='gerencial') expsFiltradas=expsFiltradas.slice(0,5);
@@ -11025,7 +11039,7 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
   // de Posição, sem descrição cortada e sem idioma fixo. Antes daqui saía um CV degradado.
   const desc=v.jobDescription||v.descricao||'';
   if(!desc.trim()) return {ok:false,motivo:'sem_descricao'};
-  const _ped=montarPedidoCV({descricao:desc,localizacao:v.localizacao||'',modelo:v.modelo||'',regime:v.regime||''});
+  const _ped=montarPedidoCV({descricao:desc,localizacao:v.localizacao||'',modelo:v.modelo||'',regime:v.regime||'',cargo:v.cargo||''});
   // Mesmo piso do card: CV de snippet sai genérico — melhor avisar do que entregar documento fraco.
   if(_ped.curta) return {ok:false,motivo:'descricao_curta'};
   return {ok:false,motivo:'precisa_gerar',

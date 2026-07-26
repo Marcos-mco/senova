@@ -37,9 +37,13 @@ t('RPC aparece nos 2 cargos (regra inviolável)', r.experiencias.filter(e => /RP
 t('formação estruturada (4)', r.formacao.length === 4 && /Barcelona/.test(r.formacao[0].instituicao));
 t('idiomas', /Português.*Inglês.*Espanhol/.test(r.idiomas));
 
-console.log('\n=== fallback: sem CV da IA, usa o perfil ===');
+console.log('\n=== fallback: sem CV da IA, subtítulo neutro/calibrado — NUNCA C-level chumbado (S37) ===');
 r = chamar(s, '_cvParaPDF', ['', '']);
-t('subtítulo cai no posicionamento padrão', /Executivo de Marketing/.test(r.subtitulo));
+t('sem cargo da vaga, subtítulo cai em posicionamento neutro por área', /Marketing · Vendas · Operações Comerciais/.test(r.subtitulo), r.subtitulo);
+t('fallback NUNCA é o C-level chumbado (era o smoking gun da Kapazi)', !/CMO · CSO · CEO/.test(r.subtitulo), r.subtitulo);
+r = chamar(s, '_cvParaPDF', ['', '', 'Analista de Marketing de Produto']);
+t('com cargo da vaga, fallback posiciona PELA VAGA (não pelo ápice da carreira)', /^Analista de Marketing de Produto · Curitiba/.test(r.subtitulo), r.subtitulo);
+r = chamar(s, '_cvParaPDF', ['', '']);
 t('resumo cai no resumo_geral do perfil', r.resumo.length > 20);
 t('experiências ainda vêm (fatos)', r.experiencias.length > 0);
 
