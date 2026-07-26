@@ -1,6 +1,18 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.21
+//  SENOVA PROXY — Worker v7.22
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.22 (26/jul/2026) — score "sobe como viável, com ressalva"
+//  (Fase 3, S37). Vaga cujo CONTEÚDO/ÁREA é a praia dele (marketing/produto/
+//  comercial) passa a ser VIÁVEL mesmo num nível abaixo do pico: a
+//  sobrequalificação vira RESSALVA em pontos_atencao, não impedimento nem
+//  motivo para afundar a nota. Antes, a Kapazi (Analista de Marketing de
+//  Produto, match forte de conteúdo) marcava 18 "fora do perfil".
+//  · Régua salarial ESCALONADA por nível: executiva R$15–25k; analista/paralela
+//    R$8–12k é faixa ADEQUADA (não é demérito). Piso duro R$8k em qualquer
+//    nível — inalterado. TETO_SCORE_COM_IMPEDIMENTO=45 (código) intacto.
+//  · Match forte de área entra na lista do que COMPENSA a perda de nível
+//    (junto de filha/Europa/viabilizar a vida) — não vira impedimento.
 //
 //  NOVIDADES v7.21 (22/jul/2026) — a regra do piso, dita por Marcos:
 //  "se não informar o salário não tem problema, mas eliminamos as que forem
@@ -314,9 +326,9 @@ PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
 - Busca RECOLOCAÇÃO EXECUTIVA estável, não um emprego qualquer. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
 - Raiz em Curitiba/PR — vida, família e comunidade estão ali. No Brasil, aceita mudar para Santa Catarina; remoto e híbrido servem. Presencial obrigatório em outra praça brasileira o afasta do que quer.
 - Está aberto ao exterior — Espanha, Portugal, e Alemanha ou EUA quando o trabalho for conduzido em inglês ou espanhol. Vaga no exterior NÃO é impedimento por ser no exterior: só é impedimento pelo idioma que ele não fala.
-- Remuneração: o ALVO é R$15–25k, mas R$8k no Brasil já é oferta boa para ele — palavras dele. Só é impedimento o que fica abaixo de R$8k. Entre R$8k e R$15k não é impedimento nem demérito: registre a distância para o alvo em pontos_atencao e siga.
+- Remuneração — a régua depende do NÍVEL da vaga: em vaga EXECUTIVA (diretoria, head, C-level) o alvo é R$15–25k; em vaga de ANALISTA ou paralela/lateral ele aceita R$8–12k como faixa ADEQUADA ao nível — aí a remuneração não é demérito nem distância a registrar. Só é impedimento o que fica abaixo de R$8k, em QUALQUER nível. Numa vaga executiva entre R$8k e R$15k, registre a distância para o alvo em pontos_atencao e siga — não é impedimento.
 - A FILHA MORA EM RÜTHEN, Renânia do Norte-Vestfália, Alemanha (região de Lippstadt/Soest/Paderborn). Estar perto dela é prioridade declarada, e vale por si: trabalho honesto de qualquer natureza naquela região — inclusive serviços gerais, jardinagem, marcenaria, logística, produção — serve ao projeto de vida, desde que NÃO exija alemão. Ali o critério é o idioma, não o cargo.
-- Ele quer LIDERAR de novo — time, orçamento, estratégia, P&L. Esse é o alvo, não uma condição. Trabalho abaixo do porte executivo só é impedimento quando NADA mais no conjunto compensa: se aproxima da filha, ou dá residência legal na Europa, ou é o que viabiliza a vida agora, então é caminho, não retrocesso — e a análise deve dizer isso com todas as letras em vez de recusar.
+- Ele quer LIDERAR de novo — time, orçamento, estratégia, P&L. Esse é o alvo, não uma condição. Trabalho abaixo do porte executivo só é impedimento quando NADA mais no conjunto compensa: se aproxima da filha, ou dá residência legal na Europa, ou é o que viabiliza a vida agora, então é caminho, não retrocesso — e a análise deve dizer isso com todas as letras em vez de recusar. E há mais uma coisa que compensa: quando a ÁREA e o conteúdo da vaga são a especialidade dele (marketing, produto, comercial, claramente a praia dele), a vaga é VIÁVEL mesmo num nível abaixo do pico — a sobrequalificação vira RESSALVA em pontos_atencao (pode ser visto como caro ou sobrequalificado; faixa de analista), nunca motivo para recusar nem para afundar a nota. Liderar de novo é o ALVO, não um filtro que elimina boa vaga de nível menor.
 - Trabalha por trabalho com sentido: honestidade, gente e construção de longo prazo. Não quer ambiente que exija agir contra a própria consciência.
 - 57 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
 `.trim();
@@ -2202,13 +2214,13 @@ IMPEDIMENTOS — avalie ANTES de pontuar. Impedimento é o que torna esta vaga i
 · idioma local ou exigido que o candidato não fala;
 · presença física obrigatória em praça que ele não aceita (ver projeto de vida) — estar no exterior, por si só, não é impedimento;
 · remuneração declarada abaixo do piso do candidato (ver projeto de vida — o piso é baixo de propósito);
-· nível do trabalho abaixo do porte dele SEM nada que compense — execução individual, operação, porta em porta, "consultor de vendas" com carteira própria, ainda que o TÍTULO diga gerente ou diretor. Julgue pelas responsabilidades, nunca pelo título. ATENÇÃO: isto NÃO é impedimento quando a vaga serve a outra prioridade do projeto de vida (proximidade da filha, residência legal na Europa, viabilizar a vida agora) — aí registre a perda de nível em pontos_atencao e siga;
+· nível do trabalho abaixo do porte dele SEM nada que compense — execução individual, operação, porta em porta, "consultor de vendas" com carteira própria, ainda que o TÍTULO diga gerente ou diretor. Julgue pelas responsabilidades, nunca pelo título. ATENÇÃO: isto NÃO é impedimento quando a vaga serve a outra prioridade do projeto de vida (proximidade da filha, residência legal na Europa, viabilizar a vida agora) OU quando a ÁREA/conteúdo é um match forte com a experiência dele (é claramente a praia dele) — aí registre a perda de nível em pontos_atencao e siga;
 · exigência eliminatória objetiva que ele não tem (registro em conselho, certificação obrigatória, formação específica).
 Liste cada um em "impedimentos" em UMA frase curta (máx. 20 palavras), dizendo o que impede. Sem impedimento, devolva []. NUNCA repita um impedimento dentro de pontos_atencao — o app já mostra os dois juntos, e repetir faz a pessoa ler a mesma coisa duas vezes.
 
 CONCISÃO: no máximo 4 pontos_fortes e 4 pontos_atencao, os que MAIS pesam, uma linha cada (máx. 20 palavras). Quem lê é um executivo decidindo em segundos, não um relatório. Nada de repetir entre si nem reexplicar o que já está no resumo.
 
-PONTUAÇÃO: mede o encontro entre a vaga e a VIDA do candidato, não só entre a vaga e o currículo. Vaga tecnicamente compatível que o afasta do projeto de vida vale MENOS, e o motivo tem de aparecer em pontos_atencao. Vaga que serve à vida dele pesa MAIS mesmo com alguma lacuna técnica. Nada que seja impedimento pode ser listado como ponto forte.
+PONTUAÇÃO: mede o encontro entre a vaga e a VIDA do candidato, não só entre a vaga e o currículo. Vaga tecnicamente compatível que o afasta do projeto de vida vale MENOS, e o motivo tem de aparecer em pontos_atencao. Vaga que serve à vida dele pesa MAIS mesmo com alguma lacuna técnica. Nada que seja impedimento pode ser listado como ponto forte. Um match forte de ÁREA/conteúdo — a vaga é claramente a especialidade dele — chega a candidato VIÁVEL mesmo com a senioridade abaixo do pico: registre o gap de nível em pontos_atencao, mas a senioridade abaixo do pico, sozinha, não pode afundar a nota de uma vaga que é a praia dele.
 
 INFORMAÇÃO INSUFICIENTE: se a descrição for curta ou vazia demais para julgar de verdade, não invente nem impedimento nem ponto forte. Diga em pontos_atencao que a avaliação foi feita com pouca informação e mantenha a nota contida — é honesto ficar em dúvida.
 
