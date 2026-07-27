@@ -280,7 +280,7 @@ function renderScore(r) {
   const v = score >= 75
     ? { titulo: 'Ótima oportunidade', sub: 'Vale uma análise completa — alto alinhamento com seu perfil.', cor: '#1A7A4A', bg: '#EAF7EF', bc: '#1A7A4A33' }
     : score >= 55
-    ? { titulo: 'Pode valer a pena', sub: 'Alinhamento parcial — analise antes de se candidatar.', cor: '#B8670A', bg: '#FFF8EC', bc: '#C9A84C44' }
+    ? { titulo: 'Vale a pena avaliar', sub: 'Alinhamento parcial — analise antes de se candidatar.', cor: '#B8670A', bg: '#FFF8EC', bc: '#C9A84C44' }
     : { titulo: 'Fora do seu perfil', sub: 'Provavelmente não vale o tempo — mas você decide.', cor: '#C0281E', bg: '#FEF0EF', bc: '#C0281E33' };
 
   const sw = el('score-wrap');

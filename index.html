@@ -1053,7 +1053,7 @@ select option { background: var(--bg2); }
                 <span id="pt-otima-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">75</span>
               </div>
               <div style="display:flex;align-items:center;gap:10px;">
-                <span style="font-size:12.5px;color:var(--text2);width:210px;flex-shrink:0;">"Pode valer a pena" a partir de</span>
+                <span style="font-size:12.5px;color:var(--text2);width:210px;flex-shrink:0;">"Vale a pena avaliar" a partir de</span>
                 <input type="range" id="pt-valer" min="20" max="70" step="5" value="55" style="flex:1;accent-color:var(--navy);" oninput="_onAjusteFino()">
                 <span id="pt-valer-v" style="font-size:13px;font-weight:700;color:var(--navy);min-width:26px;text-align:right;">55</span>
               </div>
@@ -3694,7 +3694,7 @@ function _toggleAjusteFino(){const box=document.getElementById('ajuste-fino-box'
 function _onAjusteFino(){let o=parseInt(document.getElementById('pt-otima').value);let v=parseInt(document.getElementById('pt-valer').value);if(v>=o){v=o-5;document.getElementById('pt-valer').value=v;}document.getElementById('pt-otima-v').textContent=o;document.getElementById('pt-valer-v').textContent=v;_setPontosTermos(o,v);}
 function corDoScore(s){return s>=_PONTOS_TERMOS.otima?'#1A7A4A':s>=_PONTOS_TERMOS.valer?'#B8670A':s>0?'#C0281E':'var(--border2)';}
 function bgDoScore(s){return s>=_PONTOS_TERMOS.otima?'#EAF7EF':s>=_PONTOS_TERMOS.valer?'#FFF8EC':'#FEF0EF';}
-function classificacaoDoScore(s){return s>=_PONTOS_TERMOS.otima?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}:s>=_PONTOS_TERMOS.valer?{titulo:'Pode valer a pena',cor:'#B8670A'}:s>0?{titulo:'Fora do seu perfil',cor:'#C0281E'}:null;}
+function classificacaoDoScore(s){return s>=_PONTOS_TERMOS.otima?{titulo:'Ótima oportunidade',cor:'#1A7A4A'}:s>=_PONTOS_TERMOS.valer?{titulo:'Vale a pena avaliar',cor:'#B8670A'}:s>0?{titulo:'Fora do seu perfil',cor:'#C0281E'}:null;}
 const MODELOS={analise:'claude-opus-4-8',rapido:'claude-sonnet-4-6'};
 // ── TRAVA DE ARQUIVAMENTO (VIRGILIO Sessão 17, estendida ao STATUS) ──────────
 // A trava da S17 protege contra DELETE. Esta protege o outro lado: um processo
