@@ -85,7 +85,7 @@
 //
 //  NOVIDADES v7.14 (22/jul/2026) — Compatibilidade pesa a VIDA, não só o CV:
 //  · PROJETO_DE_VIDA entra na análise ao lado do PERFIL: raiz em Curitiba,
-//    piso real, querer liderar de novo, estabilidade, trabalho com sentido.
+//    piso de dignidade, ponte digna até os 65, estabilidade, trabalho com sentido.
 //    Vaga que afasta a pessoa do que ela quer vale menos — e diz por quê.
 //  · Campo `impedimentos`: o que torna a vaga inviável (idioma que não fala,
 //    presencial fora da base, salário abaixo do piso, trabalho operacional
@@ -298,7 +298,7 @@ const JOBICY_REGIOES = {
 const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 
 const PERFIL_MARCOS = `
-Marcos Franco, 57 anos, Curitiba/PR — Brasil.
+Marcos Franco, 59 anos (nasceu em 15/07/1967), Curitiba/PR — Brasil.
 Executivo sênior com 30 anos de experiência em marketing, vendas/comercial e negócios.
 Formação: Master em Vendas/Sales · Barcelona (2014–15); MBA Administração · FGV; FAAP Publicidade.
 Idiomas: português nativo, inglês avançado, espanhol avançado.
@@ -308,7 +308,7 @@ Experiências:
 - Popper: Head de Expansão & Novos Negócios (2024–2025)
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
-Remuneração: alvo R$15–25k CLT, mas ACEITA a partir de R$8k — declarado por ele: "qualquer cargo aqui no Brasil que ganhe 8 mil já é bom pra mim". R$8k não é piso de sobrevivência, é oferta viável. Aceita PJ · Aceita relocação SC
+Remuneração: IDEAL R$15–25k CLT; ACEITA a partir de R$8k para viver com dignidade — R$8k paga as contas dele e tira a filha do papel de sustentá-lo. R$8k é o PISO DE DIGNIDADE: abaixo disso, impedimento. Entre R$8k e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
 Formação europeia (vale como qualificação da UE): Mestrado — Universidade de Évora, Portugal · Mestrado — Universitat de Barcelona, Espanha. Diplomas emitidos e reconhecidos dentro da União Europeia.
 Aberto a: Brasil, Espanha, Alemanha, Portugal, remoto
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
@@ -323,14 +323,14 @@ IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equ
 // costura da identidade — multi-usuário depois só troca de quem é este bloco.
 const PROJETO_DE_VIDA = `
 PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
-- Busca RECOLOCAÇÃO EXECUTIVA estável, não um emprego qualquer. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
+- OBJETIVO DE VIDA na RAIZ (tudo abaixo é julgado por quanto serve a ele): deixar de depender financeiramente das filhas, fazer a ponte com trabalho DIGNO até os 65 anos (2032) e chegar a uma aposentadoria mínima tranquila (~R$5k/mês). O tipo de cargo (executivo ou não) NÃO é objetivo nem preocupação — uma vaga que garante dignidade e sustento já serve ao projeto, mesmo temporária e mesmo abaixo do porte. O que tem faixa ideal é a remuneração (ver abaixo), não a senioridade. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
 - Raiz em Curitiba/PR — vida, família e comunidade estão ali. No Brasil, aceita mudar para Santa Catarina; remoto e híbrido servem. Presencial obrigatório em outra praça brasileira o afasta do que quer.
 - Está aberto ao exterior — Espanha, Portugal, e Alemanha ou EUA quando o trabalho for conduzido em inglês ou espanhol. Vaga no exterior NÃO é impedimento por ser no exterior: só é impedimento pelo idioma que ele não fala.
-- Remuneração — a régua depende do NÍVEL da vaga: em vaga EXECUTIVA (diretoria, head, C-level) o alvo é R$15–25k; em vaga de ANALISTA ou paralela/lateral ele aceita R$8–12k como faixa ADEQUADA ao nível — aí a remuneração não é demérito nem distância a registrar. Só é impedimento o que fica abaixo de R$8k, em QUALQUER nível. Numa vaga executiva entre R$8k e R$15k, registre a distância para o alvo em pontos_atencao e siga — não é impedimento.
+- Remuneração: IDEAL R$15–25k; ACEITA a partir de R$8k para viver com dignidade (R$8k paga as contas e tira a filha do sustento). R$8k é o PISO DE DIGNIDADE — abaixo disso, impedimento em QUALQUER nível. Entre R$8k e R$15k a vaga é VIÁVEL e serve ao projeto: registre no máximo uma nota leve de "abaixo do ideal" em pontos_atencao, NUNCA um demérito que afunde a nota. O nível/porte da vaga não é filtro salarial — o que decide é passar do piso de dignidade rumo ao ideal.
 - A FILHA MORA EM RÜTHEN, Renânia do Norte-Vestfália, Alemanha (região de Lippstadt/Soest/Paderborn). Estar perto dela é prioridade declarada, e vale por si: trabalho honesto de qualquer natureza naquela região — inclusive serviços gerais, jardinagem, marcenaria, logística, produção — serve ao projeto de vida, desde que NÃO exija alemão. Ali o critério é o idioma, não o cargo.
-- Ele quer LIDERAR de novo — time, orçamento, estratégia, P&L. Esse é o alvo, não uma condição. Trabalho abaixo do porte executivo só é impedimento quando NADA mais no conjunto compensa: se aproxima da filha, ou dá residência legal na Europa, ou é o que viabiliza a vida agora, então é caminho, não retrocesso — e a análise deve dizer isso com todas as letras em vez de recusar. E há mais uma coisa que compensa: quando a ÁREA e o conteúdo da vaga são a especialidade dele (marketing, produto, comercial, claramente a praia dele), a vaga é VIÁVEL mesmo num nível abaixo do pico — a sobrequalificação vira RESSALVA em pontos_atencao (pode ser visto como caro ou sobrequalificado; faixa de analista), nunca motivo para recusar nem para afundar a nota. Liderar de novo é o ALVO, não um filtro que elimina boa vaga de nível menor.
+- Cargo e senioridade NÃO são objetivo nem filtro. Liderar de novo, porte executivo, nível — nada disso é meta a atingir: o que decide é servir ao objetivo de vida (dignidade, sustento, ponte até os 65). Trabalho abaixo do porte executivo NUNCA é retrocesso nem impedimento por ser abaixo do porte — se garante o sustento, aproxima da filha, dá residência legal na Europa ou viabiliza a vida agora, é caminho, e a análise deve dizer isso com todas as letras em vez de recusar. Quando a ÁREA e o conteúdo da vaga são a especialidade dele (marketing, produto, comercial, claramente a praia dele), a vaga é VIÁVEL mesmo num nível abaixo do pico — a sobrequalificação vira no máximo RESSALVA em pontos_atencao (pode ser visto como caro ou sobrequalificado; faixa de analista), nunca motivo para recusar nem para afundar a nota.
 - Trabalha por trabalho com sentido: honestidade, gente e construção de longo prazo. Não quer ambiente que exija agir contra a própria consciência.
-- 57 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
+- 59 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
 `.trim();
 
 // Pool de termos por idioma. A cada execução o Worker usa QUERIES_POR_RODADA

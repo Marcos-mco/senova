@@ -104,9 +104,18 @@ viável, com ressalva** — o score reflete o match de conteúdo, e a sobrequali
   senioridade abaixo do pico, com o gap de nível registrado em `pontos_atencao` — a senioridade
   abaixo do pico, sozinha, não pode arrasar a nota.
 
+**Régua salarial subordinada ao PROJETO DE VIDA (reframe de Marcos, 26-27/jul/S37 — ver [[user-marcos-salario]] e [[project_projeto_de_vida_raiz]]):**
+- O objetivo na raiz NÃO é carreira: é deixar de depender das filhas + ponte digna até os 65 (2032) + aposentadoria ~R$5k.
+- **IDEAL R$15–25k; PISO DE DIGNIDADE R$8k.** Abaixo de R$8k = impedimento em QUALQUER nível.
+- Entre **R$8k e R$15k**: vaga VIÁVEL — no máximo nota leve "abaixo do ideal", NUNCA demérito que afunde a nota.
+- **O nível/porte da vaga não é filtro salarial** — cargo e senioridade (inclusive "liderar de novo") deixaram de ser objetivo/filtro (era erro de comunicação). O que decide é passar do piso rumo ao ideal.
+→ Provado por dado (Worker v7.22, 27/jul): a Kapazi (analista, ~R$8–12k) subiu de **18 → 62 · "analisar"**,
+`impedimentos: []`, sobrequalificação virou ressalva, texto cita a ponte até os 65. Chamada direta a
+`/api/analisar-vaga` (rota sem segredo), sem pedir nada a Marcos.
+
 **Invariantes a preservar (S36):** impedimento REAL (idioma que não fala, presença física recusada,
-< R$8k) continua com teto 45 em código (`TETO_SCORE_COM_IMPEDIMENTO`); sobrequalificação **não** é
-impedimento eliminatório. Idioma DE→EN, piso salarial R$8k, projeto de vida — tudo intacto.
+salário < R$8k) continua com teto 45 em código (`TETO_SCORE_COM_IMPEDIMENTO`); sobrequalificação
+**não** é impedimento eliminatório. Idioma DE→EN, projeto de vida — tudo intacto.
 
 **Antes de codar:** reler `senova-worker.js` 2190-2260 inteiro para não quebrar os outros
 invariantes. Deploy separado via `npx wrangler deploy`.
