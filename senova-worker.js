@@ -2337,6 +2337,21 @@ async function parecerSofia(dados, env, perfilCandidato) {
   // Compatibilidade leu, então divergir dela sem explicar é o bug de origem.
   const nota = (typeof d.score === 'number' && d.score > 0) ? d.score
              : (parseInt(d.score) > 0 ? parseInt(d.score) : 0);
+  // ONDE O PROCESSO ESTÁ. Sem isto a Sofia aconselhava sobre um estágio já vencido
+  // ("antes de enviar o currículo…" num card cujo CV foi enviado) — conselho sobre o
+  // passado, que corrói a confiança mais rápido que conselho errado. O estágio chega
+  // como RÓTULO pronto (o app é dono do vocabulário), não como código interno.
+  const estagio = campo(d.estagio, '');
+  const proximaAcao = campo(d.proximaAcao, '');
+  const proximaData = campo(d.proximaData, '');
+  const historico = (Array.isArray(d.historico) ? d.historico : [])
+    .filter(h => typeof h === 'string' && h.trim())
+    .slice(0, 6).map(h => '· ' + h.trim().slice(0, 200));
+  // "Já se candidatou" é o divisor: antes dele o conselho é sobre DECIDIR, depois
+  // dele é sobre CONDUZIR. Lista por rótulo porque é o que o app manda; qualquer
+  // rótulo desconhecido cai no lado seguro (tratar como decisão ainda aberta).
+  const JA_ENVIOU = ['CV Enviado', 'Entrevista', 'Proposta', 'Aceito'];
+  const jaEnviou = JA_ENVIOU.some(s => estagio.toLowerCase() === s.toLowerCase());
 
   const prompt = `Você é Sofia, conselheira de carreira do Senova. Aconselhe com franqueza — sem eufemismo e sem entusiasmo de vendedor.
 
@@ -2350,13 +2365,22 @@ Cargo: ${cargo}
 Localização: ${localizacao}
 Modelo: ${modelo}${nota ? `\nCompatibilidade já calculada para esta vaga: ${nota}/100` : ''}
 ${descricao ? 'Descrição/contexto:\n' + descricao : ''}
+${estagio ? `
+ONDE ESTE PROCESSO JÁ ESTÁ — leia antes de aconselhar:
+Estágio atual: ${estagio}${proximaAcao ? `\nPróxima ação já registrada: ${proximaAcao}${proximaData ? ' (' + proximaData + ')' : ''}` : ''}${historico.length ? `\nO que já aconteceu (mais recente primeiro):\n${historico.join('\n')}` : ''}
+
+REGRA DE ESTÁGIO — obrigatória: aconselhe a partir de onde o processo ESTÁ, nunca de onde ele já saiu. NUNCA recomende algo que já foi feito.${jaEnviou ? `
+A candidatura JÁ FOI ENVIADA. Está fora de questão sugerir "candidatar-se", "enviar o currículo", "avaliar se vale a pena se candidatar" ou "confirmar isso antes de enviar" — essa decisão está tomada e não se desfaz. O que cabe agora é conduzir o que está em curso: como e quando fazer o follow-up e com quem, o que preparar para a próxima conversa, que pergunta fazer para esclarecer o que ficou em aberto (remuneração inclusive — só que agora é assunto de conversa, não critério de envio), e o que fazer se a resposta vier ruim ou não vier. Se algo que você teria alertado antes já não tem conserto, diga em uma frase e siga para o que ainda pode ser feito — sem recriminação e sem refazer a análise da decisão.` : `
+A candidatura ainda NÃO foi enviada: aqui a decisão de avançar ou não é legítima e é o coração do parecer.`}` : ''}
 
 O QUE DECIDE O SEU PARECER: quanto esta vaga serve ao PROJETO DE VIDA acima — não o porte do cargo, não o prestígio, não a senioridade. Trabalho abaixo do porte executivo dele NÃO é retrocesso: se garante o sustento, aproxima da filha ou viabiliza a vida agora, é caminho, e diga isso com todas as letras. Remuneração a partir do piso de dignidade serve ao projeto e não é demérito. Só o que o projeto de vida define como impedimento (idioma que ele não fala, praça que não aceita, remuneração abaixo do piso) justifica recomendar reconsiderar.${nota ? `\n\nA nota de Compatibilidade acima saiu da MESMA régua que você está usando. Se a sua leitura divergir dela, diga por quê em uma frase — nunca contradiga em silêncio.` : ''}
 
 FORMATO — exatamente 3 parágrafos, nesta ordem, 4-5 frases cada:
 1º o que está bem alinhado com o projeto de vida dele;
-2º o principal ponto de atenção;
-3º a recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
+2º o principal ponto de atenção${jaEnviou ? ' daqui pra frente (o que ainda pode ser influenciado)' : ''};
+3º ${jaEnviou
+  ? 'o próximo passo concreto neste processo em curso — o que fazer, com quem e quando, mais o que fazer se não houver retorno. Nunca "avançar/reconsiderar": isso já foi decidido.'
+  : 'a recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.'}
 Escreva os três como prosa corrida, separados por uma linha em branco. NÃO rotule, NÃO numere e NÃO titule os parágrafos ("Parte 1", "1.", "Alinhamento:" — nada disso). Sem markdown: nenhum asterisco, nenhum #, nenhuma lista. O texto vai direto para a tela como está.
 Complete sempre os três. Nada de clichê corporativo.`;
 

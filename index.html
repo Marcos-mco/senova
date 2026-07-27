@@ -7874,9 +7874,21 @@ async function mvCallSofia(){
   // daqui ficou para trás: era ela que fazia a Sofia dar um veredicto e a Compatibilidade dar
   // outro, no MESMO card. Agora só os FATOS DA VAGA saem daqui; PERFIL_MARCOS + PROJETO_DE_VIDA
   // vivem no Worker (parecerSofia), os mesmos que a Compatibilidade usa. Não recopiar aqui.
+  //
+  // ONDE O PROCESSO ESTÁ (S38): sem isto a Sofia aconselhava um estágio que já passou — num card
+  // em CV Enviado ela dizia "antes de enviar o currículo, confirme a faixa salarial". Conselho
+  // sobre o passado não é conselho. O estágio vem do seletor (é a verdade da tela, e vale para o
+  // card ainda não salvo) e o histórico vem da timeline, o rastro que setStatus já grava.
+  const statusAtual=document.getElementById('mv-status')?.value||v?.status||'lead';
+  const proximaAcao=document.getElementById('mv-proxima')?.value||'';
+  const proximaData=document.getElementById('mv-proxima-data')?.value||'';
+  const historico=(v?.timeline||[]).slice(0,6)          // timeline entra por unshift: 0 é o mais recente
+    .map(e=>{const d=e?.ts?new Date(e.ts).toLocaleDateString('pt-BR'):'';return (d?d+' — ':'')+String(e?.texto||'').slice(0,160);})
+    .filter(t=>t.replace(/^\d{2}\/\d{2}\/\d{4}\s*—\s*/,'').trim());
   try{
     const res=await fetch(WORKER_URL+'/api/sofia-parecer',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({empresa,cargo,localizacao,modelo,descricao:jobContext,score:ats})});
+      body:JSON.stringify({empresa,cargo,localizacao,modelo,descricao:jobContext,score:ats,
+        estagio:_statusLabel(statusAtual),proximaAcao,proximaData,historico})});
     const data=await res.json();
     const text=(data&&!data.erro&&data.texto)?data.texto:'';
     if(!text){ content.innerHTML='<span style="color:var(--text2);font-size:13px;">Não consegui analisar esta vaga agora. <span onclick="mvCallSofia()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>'; return; }
