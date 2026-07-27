@@ -10370,10 +10370,18 @@ function _showProximaTip(el){
 }
 function _hideProximaTip(){const tip=document.getElementById('_kcard_tip');if(tip)tip.style.display='none';}
 
+// Abre o link da vaga EXATAMENTE como a fonte o entregou. Até 27/jul esta função
+// apagava utm_source/utm_medium por achá-los rastreamento — mas no link da Adzuna
+// o utm_source É a credencial da API (nosso APP_ID). Medido em 27/jul, 4 de 4
+// vagas vivas: com os parâmetros = HTTP 200; sem eles = 403/429. O card abria um
+// link mutilado e Marcos lia "essa vaga não está mais disponível". A limpeza era
+// cosmética (não há ganho ao abrir em aba nova) e a deduplicação usa _normU, não
+// esta função — por isso a regra agora é geral: nunca reescrever URL de terceiro.
 function verOrigemCard(url){
   if(!url) return;
   if(url.includes('@')){window.location.href='mailto:'+url;return;}
-  try{const u=new URL(url.startsWith('http')?url:'https://'+url);['trackingId','refId','trk','utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid'].forEach(p=>u.searchParams.delete(p));url=u.toString();}catch{}
+  // Único ajuste que sobra: URL colada sem protocolo abriria como caminho relativo.
+  if(!/^https?:\/\//i.test(url)) url='https://'+url;
   window.open(url,'_blank','noopener,noreferrer');
 }
 
