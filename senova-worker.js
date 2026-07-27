@@ -365,6 +365,9 @@ const QUERIES_POR_RODADA = 5;
 // qualquer vaga com menos de 48h sobrevive ao teto, até o teto absoluto.
 const TETO_RADAR = 300;
 const TETO_RADAR_ABSOLUTO = 500;
+// Janela de relevância (Marcos, 27/jul): "só me importa as vagas dos últimos 7 dias".
+// Não é prova de morte — é relevância. Quem prova que o anúncio abre é verificarLinkVaga.
+const JANELA_RADAR_DIAS = 7;
 // Quantas vagas cada termo pode trazer por fonte (era 5 — teto teórico de 15/dia).
 const VAGAS_POR_TERMO = 20;
 // Freio de mão da execução: ao atingir este número de vagas novas, a varredura
@@ -823,13 +826,16 @@ export default {
       // Colheita de e-mail à vista: uma entrada que falha em silêncio já custou
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
+      // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
+      const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.25',
+        status: 'ok', worker: 'senova-proxy', versao: '7.26',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
         statsHoje,
         colheita_email: colheita || 'ainda não rodou',
+        radar_higiene: higiene || 'ainda não rodou',
       });
     }
 
@@ -876,7 +882,8 @@ export default {
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
     if (path === '/api/varredura-manual' && request.method === 'POST') {
-      ctx.waitUntil(executarVarredura(env, false));
+      // Mesma sequência do cron: entra o novo, depois sai o morto e o fora da janela.
+      ctx.waitUntil(executarVarredura(env, false).then(() => higienizarRadar(env)));
       return json({ status: 'Varredura iniciada', timestamp: new Date().toISOString() });
     }
 
@@ -1588,9 +1595,12 @@ export default {
   //  "0 */3 * * *"  = de 3 em 3 horas — colhe as vagas que chegam por e-mail.
   // A colheita é frequente de propósito: alerta de vaga é perecível, e esperar
   // Marcos abrir o app custou uma candidatura já encerrada.
+  // A higiene roda DEPOIS da entrada de vagas nas duas pontas: primeiro entra o que é novo,
+  // depois sai o que já morreu ou saiu da janela — nunca o contrário, senão a rodada limpa
+  // o radar velho e devolve lixo novo no mesmo minuto.
   async scheduled(event, env, ctx) {
-    if (event.cron === '0 10 * * *') ctx.waitUntil(executarVarredura(env, true));
-    else ctx.waitUntil(colherVagasDeEmail(env));
+    if (event.cron === '0 10 * * *') ctx.waitUntil(executarVarredura(env, true).then(() => higienizarRadar(env)));
+    else ctx.waitUntil(colherVagasDeEmail(env).then(() => higienizarRadar(env)));
   },
 };
 
@@ -1840,6 +1850,70 @@ async function verificarLinkVaga(alvo) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  HIGIENE DO RADAR — o que já morreu sai da frente
+// ═══════════════════════════════════════════════════════════════════
+// Camadas 2 e 3 da frente do link. Nenhuma das duas prova que o anúncio abre AGORA — só a
+// verificação na hora do uso prova (ver verificarLinkVaga). O que elas fazem é impedir que
+// Marcos abra um radar em que 86 de 444 links já nasceram mortos. Duas remoções, critérios
+// diferentes: a JANELA de 7 dias (relevância, aplicada em cortarRadar) e a MORTE PROVADA —
+// 404/410 ou a página dizendo que encerrou. **Inconclusivo nunca sai**: bloqueio de portal
+// não é prova de morte, e foi essa prudência que evitou apagar 24 leads bons no dia 27/jul.
+// Nada sai em silêncio: o que foi removido fica em `radar_higiene`, legível no /health.
+const LINKS_POR_HIGIENE = 30;      // teto de subrequests por rodada; 7 rodadas/dia varrem o radar
+const REVERIFICAR_APOS_H = 12;     // link vivo hoje de manhã pode ter morrido à tarde
+async function higienizarRadar(env) {
+  const inicio = Date.now();
+  try {
+    const leads = await env.SENOVA_KV.get('vagas_lead', 'json') || [];
+    const antes = leads.length;
+    const agora = Date.now();
+
+    // Rede de segurança do PRIMEIRO corte: esta é a única vez em que a janela remove um radar
+    // inteiro de uma vez (444 leads acumulados). Guarda-se uma cópia, uma vez só, que nenhuma
+    // rodada seguinte sobrescreve — nesta casa vaga já sumiu 3 vezes e a lição foi cara.
+    if (antes && !(await env.SENOVA_KV.get('radar_antes_da_janela'))) {
+      await env.SENOVA_KV.put('radar_antes_da_janela', JSON.stringify(leads));
+    }
+
+    // (1) Janela de relevância — mesmo corte que a varredura usa, um mecanismo só.
+    const naJanela = cortarRadar(leads);
+    const foraDaJanelaN = antes - naJanela.length;
+
+    // (2) Revalidação em lote: primeiro quem nunca foi verificado, depois o verificado
+    //     há mais tempo. Assim o radar inteiro passa pela fila sem repetir os mesmos.
+    const nunca = naJanela.filter(v => v.url && !v.linkVerificadoEm);
+    const antigos = naJanela.filter(v => v.url && v.linkVerificadoEm && (agora - v.linkVerificadoEm) > REVERIFICAR_APOS_H * 3600 * 1000)
+      .sort((a, b) => a.linkVerificadoEm - b.linkVerificadoEm);
+    const devidos = [...nunca, ...antigos].slice(0, LINKS_POR_HIGIENE);
+
+    const mortas = [], remover = new Set();   // marca o objeto, não o id: lead sem id existe
+    for (let i = 0; i < devidos.length; i += 5) {               // 5 por vez: não estoura o tempo do cron
+      await Promise.all(devidos.slice(i, i + 5).map(async v => {
+        const r = await verificarLinkVaga(v.url);
+        v.linkEstado = r.estado;
+        v.linkVerificadoEm = Date.now();
+        if (r.estado === 'morto') { remover.add(v); mortas.push({ titulo: v.titulo || '', url: v.url, motivo: r.motivo }); }
+      }));
+    }
+    const finais = remover.size ? naJanela.filter(v => !remover.has(v)) : naJanela;
+
+    await env.SENOVA_KV.put('vagas_lead', JSON.stringify(finais));
+    await env.SENOVA_KV.put('radar_higiene', JSON.stringify({
+      quando: new Date().toISOString(), status: 'ok',
+      radar: `${antes} → ${finais.length}`,
+      fora_da_janela: foraDaJanelaN, verificados: devidos.length, mortos_removidos: mortas.length,
+      // o rastro: o que saiu e por quê (os 20 primeiros, para não estourar o valor no KV)
+      removidos: mortas.slice(0, 20),
+      duracao_ms: Date.now() - inicio,
+    }));
+  } catch (err) {
+    await env.SENOVA_KV.put('radar_higiene', JSON.stringify({
+      quando: new Date().toISOString(), status: 'erro', erro: err.message,
+    }));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  VARREDURA COM ROTAÇÃO DE PAÍSES
 // ═══════════════════════════════════════════════════════════════════
 // Corte honesto do radar, usado por TODO caminho que grava vagas_lead (varredura
@@ -1847,11 +1921,21 @@ async function verificarLinkVaga(alvo) {
 // de descarte; empate desempata por recência; e nada das últimas 48h pode ser
 // cortado — vaga nova jamais é jogada fora em silêncio. Foi o corte antigo
 // (`sort(b.score-a.score).slice(0,100)`) que matou o funil por 42 dias.
+// A JANELA entra aqui e só aqui: vaga com mais de 7 dias sai do radar, por alta que seja
+// a nota — era assim que uma vaga de 22/mai liderava o radar em 27/jul, morta havia semanas.
+// Lead sem `criadoEm` legível NÃO é lead velho, é lead sem carimbo: a janela não o alcança
+// (senão o mesmo bug do `null - null` volta, agora comendo o que não tem data).
+function foraDaJanela(v, agora) {
+  const t = new Date(v.criadoEm || 0).getTime();
+  if (!t || isNaN(t)) return false;
+  return (agora - t) > JANELA_RADAR_DIAS * 24 * 60 * 60 * 1000;
+}
 function cortarRadar(vagasLead) {
   const AGORA = Date.now();
   const ts = v => { const t = new Date(v.criadoEm || 0).getTime(); return isNaN(t) ? 0 : t; };
   const notaDe = v => (typeof v.score === 'number' && !isNaN(v.score)) ? v.score : -1;
-  const ordenadas = vagasLead.slice().sort((a, b) => (notaDe(b) - notaDe(a)) || (ts(b) - ts(a)));
+  const ordenadas = vagasLead.filter(v => !foraDaJanela(v, AGORA))
+    .sort((a, b) => (notaDe(b) - notaDe(a)) || (ts(b) - ts(a)));
   const dentroDoTeto = ordenadas.slice(0, TETO_RADAR);
   const recentesCortadas = ordenadas.slice(TETO_RADAR)
     .filter(v => AGORA - ts(v) < 48 * 60 * 60 * 1000);
