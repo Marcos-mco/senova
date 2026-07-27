@@ -2054,8 +2054,16 @@ select option { background: var(--bg2); }
               <span id="mv-verd-num" style="display:none;font-size:13px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>
             </div>
             <div id="mv-verd-track" class="mv-score-bar-track" style="display:none;margin-top:9px;"><div id="mv-verd-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
+            <!-- O resumo: duas linhas — o que é a vaga, e o que ela faz com o projeto de vida.
+                 Sempre visível, junto da frase e da nota. É o enunciado do veredicto, não um
+                 segundo veredicto: por isso entra sem o rótulo "VEREDICTO:" que existia antes. -->
+            <div id="mv-verd-resumo" style="display:none;font-size:13px;color:var(--text);line-height:1.65;margin-top:9px;"></div>
             <div id="mv-verd-hint" style="display:none;font-size:13px;color:var(--text2);line-height:1.6;margin-top:7px;"></div>
           </div>
+          <!-- A DOBRA: o porquê (Sofia) e a evidência (bullets). Começa fechada e é o
+               raciocínio — nunca a conclusão. A conclusão fica acima, sempre à vista. -->
+          <button id="mv-verd-fold-btn" onclick="mvToggleVerdicto()" style="display:none;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--border);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--action);padding:10px 15px;">Ver o porquê e as evidências ▾</button>
+          <div id="mv-verd-fold" style="display:none;">
           <!-- Sofia: o porquê, na voz dela. Fica guardado no card, como o CV -->
           <div id="mv-sofia-bloco" style="display:none;padding:13px 15px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
@@ -2071,6 +2079,7 @@ select option { background: var(--bg2); }
           </div>
           <!-- Evidência: o que sustenta a conclusão -->
           <div id="mv-score-signals" style="display:none;padding:12px 15px 13px;border-top:1px solid var(--border);background:var(--bg);"></div>
+          </div>
         </div>
         <!-- Acrescentar sobre mim — enriquece o perfil e reanalisa esta vaga (só estágio Oportunidade) -->
         <div id="mv-enriquecer-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
@@ -6356,6 +6365,7 @@ function _renderMercadoSinais(){
 function openVagaModal(id){
   editingVagaId=id;
   _mvDadosAberto=(id==='new'); // Dados da vaga: aberto ao criar à mão, recolhido ao reabrir
+  _mvVerdAberto=false;         // Veredicto: a conclusão à vista, o raciocínio sob demanda
   const isNew=id==='new';
   document.getElementById('modal-vaga-title').value=isNew?'Novo Processo':'Editar Processo';
   document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
@@ -6788,7 +6798,9 @@ function irParaVaga(){
 
 // mvToggleCompat removida (S38): o veredicto era um accordion que abria no lead e ficava
 // recolhido — a resposta à única pergunta do card exigia um clique para aparecer. Agora o
-// bloco é sempre o mesmo, aberto, em todos os estágios. Não há o que dobrar.
+// bloco é sempre o mesmo, aberto, em todos os estágios.
+// O que se dobra hoje (mvToggleVerdicto) é outra coisa: a conclusão — frase, nota, barra e
+// resumo — nunca se esconde; o que fica sob demanda é o raciocínio que a sustenta.
 
 let _mvDadosAberto=false;
 function mvToggleDadosVaga(){
@@ -7077,7 +7089,9 @@ function saveVaga(){
     tags:existing?.tags||[],
     score:existing?.score,
     classificacao:existing?.classificacao,
-    resumo:existing?.resumo,
+    // Mesma trava anti-perda dos bullets e do parecer: o card novo já foi analisado antes de
+    // existir, e o resumo dessa análise não pode ficar para trás na hora de criar o card.
+    resumo:existing?.resumo||_novoA.resumo||'',
     fonte:existing?.fonte,
     pontos_fortes:existing?.pontos_fortes||[],
     timeline:isNew?[{ts:now,texto:'Card criado'}]:(existing?.timeline||[{ts:createdAt,texto:'Card criado'}]),
@@ -7596,6 +7610,18 @@ function mvUpdateScoreDisplay(vOpt){
       : 'Cole a descrição da vaga abaixo — sem ela eu analisaria no escuro.');
     hintEl.style.display=temAnalise?'none':'';
   }
+  // ── O RESUMO ────────────────────────────────────────────────────────────────
+  // Ele era pedido ao Worker, pago e gravado — e não chegava à tela. O único caminho que o
+  // exibia era o fallback de prosa, que só roda quando NÃO há bullets; e esse mesmo caminho
+  // filtrava as linhas "VEREDICTO:"/"MATCH SCORE:". Quando matamos o rótulo em caixa alta,
+  // levamos o conteúdo junto. Volta aqui, no topo, sem rótulo nenhum.
+  const resumoEl=document.getElementById('mv-verd-resumo');
+  if(resumoEl){
+    const _txt=String(v?.resumo||'').trim()||_mvResumoLegado(v);
+    const _mostra=!!(temAnalise&&_txt);
+    resumoEl.innerHTML=_mostra?_txt.split('\n').filter(l=>l.trim()).map(l=>escHtml(l.trim())).join('<br>'):'';
+    resumoEl.style.display=_mostra?'':'none';
+  }
   // ── EVIDÊNCIA: o que sustenta a conclusão, agrupado a favor / contra ──
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
@@ -7629,6 +7655,37 @@ function mvUpdateScoreDisplay(vOpt){
   mvRenderSofia(v);
 }
 
+// Cards analisados antes desta versão nunca gravaram v.resumo: o texto foi parar dentro de
+// atsAnalise, atrás do rótulo "VEREDICTO:". Resgatamos de lá em vez de pedir de novo — a
+// análise já foi paga uma vez, e o texto é exatamente o que gerou aquela nota.
+function _mvResumoLegado(v){
+  return String(v?.atsAnalise||'').split('\n')
+    .map(l=>l.trim()).filter(l=>/^\*{0,2}VEREDICTO:/i.test(l))
+    .map(l=>l.replace(/^\*{0,2}VEREDICTO:\*{0,2}\s*/i,'').trim())
+    .filter(Boolean).join('\n');
+}
+
+// ── A DOBRA DO VEREDICTO ─────────────────────────────────────────────────────
+// Não é o accordion que a S38 matou: aquele escondia a CONCLUSÃO (a frase e a nota), e o card
+// exigia um clique para responder à única pergunta que importa. Este esconde o RACIOCÍNIO —
+// o parecer da Sofia e os bullets de evidência. A conclusão fica sempre à vista, acima.
+let _mvVerdAberto=false;
+function _mvSyncVerdFold(){
+  const btn=document.getElementById('mv-verd-fold-btn');
+  const fold=document.getElementById('mv-verd-fold');
+  if(!btn||!fold) return;
+  const temSofia=document.getElementById('mv-sofia-bloco')?.style.display!=='none';
+  const temSinais=document.getElementById('mv-score-signals')?.style.display!=='none';
+  const tem=temSofia||temSinais;
+  btn.style.display=tem?'':'none';
+  fold.style.display=(tem&&_mvVerdAberto)?'':'none';
+  // O rótulo promete só o que está lá dentro: cards analisados antes da Sofia existir têm as
+  // evidências e mais nada, e "ver o porquê" seria uma promessa que a dobra não cumpre.
+  const _oQueTem=temSofia&&temSinais?'o porquê e as evidências':(temSofia?'o porquê':'as evidências');
+  btn.textContent=(_mvVerdAberto?'Ocultar ':'Ver ')+_oQueTem+(_mvVerdAberto?' ▴':' ▾');
+}
+function mvToggleVerdicto(){ _mvVerdAberto=!_mvVerdAberto; _mvSyncVerdFold(); }
+
 // ── SOFIA DENTRO DO VEREDICTO ────────────────────────────────────────────────
 // O parecer fica guardado no card (v.sofiaParecer), como o CV fica. Reabrir o card não
 // gasta uma chamada nova nem devolve um texto diferente do que Marcos já leu: só "Analisar"
@@ -7638,10 +7695,14 @@ function mvRenderSofia(v){
   const content=document.getElementById('mv-sofia-content');
   if(!bloco||!content) return;
   const texto=String(v?.sofiaParecer||'').trim();
-  if(!texto){ bloco.style.display='none'; content.innerHTML=''; return; }
+  if(!texto){ bloco.style.display='none'; content.innerHTML=''; _mvSyncVerdFold(); return; }
   bloco.style.display='';
   content.innerHTML='<p>'+texto.split(/\n\s*\n/).filter(p=>p.trim())
     .map(p=>escHtml(p.trim()).replace(/\n/g,'<br>')).join('</p><p style="margin-top:9px;">')+'</p>';
+  // A dobra é ajustada aqui porque mvRenderSofia é o último passo dos DOIS caminhos de
+  // mvUpdateScoreDisplay (com e sem análise) — é o único ponto em que Sofia e sinais já
+  // estão ambos decididos.
+  _mvSyncVerdFold();
 }
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
@@ -7690,6 +7751,9 @@ async function mvAutoCompatCheck(){
         if(isNew){ const eEl=document.getElementById('mv-email-dest'); if(eEl&&!eEl.value.trim()) eEl.value=data.candidatura_direta_destino; }
       }
     }
+    // v.resumo é o campo canônico do resumo (é o que o radar já grava). A cópia em atsAnalise
+    // continua porque telas antigas leem de lá, mas quem manda na tela do card é este campo.
+    if(data.resumo) alvo.resumo=String(data.resumo);
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(alvo.atsAnalise||'');
     if(data.resumo&&!_hasRichNow) alvo.atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     if(!isNew) saveVagas();
@@ -7815,6 +7879,7 @@ async function mvReanalisarCompat(){
       vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
       if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_destino;
     }
+    if(data.resumo) vagas[idx].resumo=String(data.resumo);   // campo canônico — ver mvAutoCompatCheck
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
     vagas[idx].updatedAt=Date.now();
@@ -7889,6 +7954,9 @@ async function mvCallSofia(){
   if(!bloco||!content) return;
   bloco.style.display='';
   content.innerHTML='<span style="color:var(--text3);font-size:13px;">Lendo esta vaga contra o seu plano…</span>';
+  // Sincroniza a dobra já no início: se a chamada falhar, os caminhos de erro escrevem dentro
+  // do bloco e voltam sem re-renderizar — sem isto o recado ficaria atrás de um botão oculto.
+  _mvSyncVerdFold();
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
