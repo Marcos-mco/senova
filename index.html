@@ -2007,6 +2007,9 @@ select option { background: var(--bg2); }
       <!-- Meta info: localização · modelo · canal · data + link vaga -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
         <span id="mv-meta-info" style="font-size:12px;color:var(--text3);flex:1;line-height:1.5;"></span>
+        <!-- O anúncio ainda existe? Verificado ao abrir o card, que é quando ele decide
+             trabalhar nesta vaga. Três estados, nunca dois — ver mvVerificarLink. -->
+        <span id="mv-link-estado" style="display:none;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;cursor:default;"></span>
         <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer"
            style="display:none;font-size:12px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;"
            onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
@@ -6521,6 +6524,7 @@ function openVagaModal(id){
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
   mvAtualizarEnriquecer();
+  mvVerificarLink();   // o anúncio ainda existe? a resposta que importa é a de agora
   // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
   if(editingVagaId&&editingVagaId!=='new'){
     const _vCheck=vagas.find(x=>String(x.id)===String(editingVagaId));
@@ -6790,6 +6794,46 @@ function registrarResultado(){ document.getElementById('mv-status').value='propo
 function aceitarProposta(){ document.getElementById('mv-status').value='aceito'; document.getElementById('mv-motivo').value='aceito'; atualizarBotoes(); }
 function encerrarVaga(motivo){ document.getElementById('mv-status').value='arquivado'; document.getElementById('mv-motivo').value=motivo; atualizarBotoes(); }
 function reativarVaga(){ const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null; document.getElementById('mv-status').value=v?_estagioReativacao(v):'aplicado'; document.getElementById('mv-motivo').value=''; atualizarBotoes(); }
+
+// ── O ANÚNCIO AINDA EXISTE? ──────────────────────────────────────────────────
+// Verificado ao ABRIR o card — não na varredura, não de madrugada. Um anúncio pode encerrar
+// no mesmo dia (na mesma hora) em que entrou no Senova; a idade do lead não prova nada, e a
+// revalidação noturna só prova que estava vivo de madrugada. O instante que importa é este:
+// aquele em que ele vai gastar um CV. Quem abre o link é o Worker — o browser não consegue
+// ler resposta de terceiro (CORS).
+let _mvLinkSeq=0;
+async function mvVerificarLink(){
+  const el=document.getElementById('mv-link-estado');
+  if(!el) return;
+  const url=(document.getElementById('mv-origem-url')?.value||'').trim();
+  const seq=++_mvLinkSeq;               // trocou de card no meio? a resposta velha não escreve
+  if(!/^https?:\/\//i.test(url)){ el.style.display='none'; el.textContent=''; el.title=''; return; }
+  el.style.display=''; el.style.color='var(--text3)'; el.title=''; el.textContent='verificando o anúncio…';
+  try{
+    const r=await fetch(WORKER_URL+'/api/link-vivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await r.json();
+    if(seq===_mvLinkSeq) _mvPintarEstadoLink(d);
+  }catch(_){ if(seq===_mvLinkSeq) _mvPintarEstadoLink({estado:'inconclusivo'}); }
+}
+function _mvPintarEstadoLink(d){
+  const el=document.getElementById('mv-link-estado');
+  if(!el) return;
+  const e=(d&&d.estado)||'inconclusivo';
+  if(e==='vivo'){
+    el.textContent='✓ anúncio no ar'; el.style.color='#1A7A4A';
+    el.title='O link abriu agora e a página não diz que a vaga encerrou.';
+  } else if(e==='morto'){
+    el.textContent='△ anúncio encerrado'; el.style.color='#B8670A';
+    // A afirmação vem com a prova: ou a página sumiu, ou ela mesma diz que acabou.
+    el.title=d&&d.trecho?('A própria página diz: "'+String(d.trecho).slice(0,220)+'"')
+                        :'A página deste anúncio não existe mais (404/410).';
+  } else {
+    el.textContent='● não consegui verificar'; el.style.color='var(--text3)';
+    // Nunca chamar de morto o que só foi bloqueado: 403/429 é o portal recusando robô.
+    el.title='O portal não respondeu ou bloqueou a verificação. Isso NÃO quer dizer que a vaga encerrou.';
+  }
+  el.style.display='';
+}
 
 function irParaVaga(){
   const url=document.getElementById('mv-origem-url')?.value.trim()||'';

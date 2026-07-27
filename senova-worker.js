@@ -824,7 +824,7 @@ export default {
       // 42 dias de funil morto. Se parar de rodar, tem que dar para ver aqui.
       const colheita = await env.SENOVA_KV.get('colheita_email_status', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.21',
+        status: 'ok', worker: 'senova-proxy', versao: '7.25',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -860,6 +860,18 @@ export default {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const body = await request.json();
       return json(await parecerSofia(body, env, body.perfilCandidato));
+    }
+
+    // ── O anúncio ainda existe? ──────────────────────────────────────
+    // Um link de vaga apodrece em dias — e pode apodrecer no MESMO dia em que entrou aqui.
+    // Nem a idade do lead nem a revalidação da madrugada provam que ele abre AGORA, que é o
+    // instante em que Marcos gasta um CV. Só a verificação na hora do uso prova, e ela precisa
+    // sair do Worker: o browser não consegue ler resposta de terceiro (CORS).
+    // Exige o segredo — uma rota que busca URL arbitrária é um proxy aberto se ficar sem gate.
+    if (path === '/api/link-vivo' && request.method === 'POST') {
+      if (!(await rateLimit(request, env, 60, 60))) return json({ estado: 'inconclusivo', motivo: 'limite_de_uso' });
+      const { url: alvo } = await request.json();
+      return json(await verificarLinkVaga(alvo));
     }
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
@@ -1746,6 +1758,85 @@ async function colherVagasDeEmail(env) {
       quando: new Date().toISOString(), status: 'erro', erro: err.message,
     }));
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  O ANÚNCIO AINDA EXISTE?
+// ═══════════════════════════════════════════════════════════════════
+// TRÊS respostas, nunca duas: vivo, morto e INCONCLUSIVO. A terceira é a que protege.
+// Bloqueio de portal (403/429), timeout e erro de rede NÃO são prova de morte — medido em
+// 27/jul nos 444 links do radar, 24 dos "mortos" eram só bloqueio, e tratá-los como morte
+// teria apagado leads bons. Onde não há prova, o Senova diz que não sabe.
+// A Adzuna responde HTTP 200 com a página dizendo que encerrou, então o status sozinho não
+// basta: é preciso ler o texto. Frases fortes só — nada de "expirou" solto, que aparece em
+// rodapé de página viva.
+const SINAIS_DE_ENCERRAMENTO = [
+  /n[ãa]o est[áa] mais dispon[íi]vel/i,
+  /vaga (encerrada|expirada|preenchida)/i,
+  /esta (vaga|oportunidade)[^.]{0,40}(encerrad|expirad|preenchid)/i,
+  /processo seletivo (encerrado|finalizado)/i,
+  /no longer (available|accepting applications)/i,
+  /this (job|position|vacancy)[^.]{0,30}(expired|is closed|has been filled)/i,
+  /ya no est[áa] disponible/i,
+  /(oferta|vacante) (caducada|cerrada|expirada)/i,
+  /nicht mehr verf[üu]gbar/i,
+  /(anzeige|stelle)[^.]{0,20}abgelaufen/i,
+];
+// Buscar URL arbitrária a partir do Worker é poder de proxy: sem esta trava, um endereço
+// interno entraria pelo mesmo caminho. O gate de segredo já barra o estranho; isto barra o
+// alvo.
+function _hostProibido(h) {
+  const host = String(h || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!host || host === 'localhost' || host === '::1') return true;
+  if (/(^|\.)(localhost|local|internal|home\.arpa)$/.test(host)) return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const [a, b] = host.split('.').map(Number);
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 169 && b === 254) return true;   // metadados de nuvem
+  }
+  return false;
+}
+async function verificarLinkVaga(alvo) {
+  let u;
+  try { u = new URL(String(alvo || '')); } catch { return { estado: 'inconclusivo', motivo: 'url_invalida' }; }
+  if (!/^https?:$/.test(u.protocol))    return { estado: 'inconclusivo', motivo: 'protocolo_nao_suportado' };
+  if (u.username || u.password)         return { estado: 'inconclusivo', motivo: 'url_com_credencial' };
+  if (_hostProibido(u.hostname))        return { estado: 'inconclusivo', motivo: 'host_nao_permitido' };
+  const ctrl = new AbortController();
+  const relogio = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    // A URL vai INTEIRA (o utm_source da Adzuna é a nossa credencial, não rastreador — mutilá-la
+    // devolve 403 e faria o Senova chamar de morta uma vaga viva). Mesmo user-agent do browser:
+    // portal que recusa robô devolve 403, que aqui é inconclusivo, não morte.
+    const r = await fetch(u.toString(), {
+      method: 'GET', redirect: 'follow', signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8,es;q=0.7',
+      },
+    });
+    if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
+    if (r.status === 403 || r.status === 429 || r.status >= 500) return { estado: 'inconclusivo', motivo: 'portal_bloqueou', http: r.status };
+    if (!r.ok) return { estado: 'inconclusivo', motivo: 'resposta_inesperada', http: r.status };
+    const html = (await r.text()).slice(0, 200000);
+    const texto = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                      .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ');
+    for (const re of SINAIS_DE_ENCERRAMENTO) {
+      const m = texto.match(re);
+      if (m) return {
+        estado: 'morto', motivo: 'anuncio_encerrado', http: r.status,
+        // o trecho volta para que a afirmação seja auditável — nunca "confie em mim"
+        trecho: texto.slice(Math.max(0, m.index - 60), m.index + 140).trim(),
+      };
+    }
+    return { estado: 'vivo', http: r.status };
+  } catch (e) {
+    return { estado: 'inconclusivo', motivo: (e && e.name === 'AbortError') ? 'demorou_demais' : 'nao_consegui_abrir' };
+  } finally { clearTimeout(relogio); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
