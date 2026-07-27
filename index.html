@@ -2019,6 +2019,8 @@ select option { background: var(--bg2); }
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
         Analisar
       </button>
+      <button id="mv-gerar-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()" disabled
+              style="flex-shrink:0;opacity:0.45;cursor:not-allowed;">Gerar CV</button>
       <button id="mv-btn-sofia" class="btn btn-ghost" onclick="mvCallSofia()"
               style="flex-shrink:0;border-color:var(--gold);color:var(--navy);">✨ Sofia</button>
     </div>
@@ -2220,7 +2222,8 @@ select option { background: var(--bg2); }
       <!-- ZONA 8 — GESTÃO (compacta) -->
       <div class="mv-sec">
         <div class="mv-sec-head"><span class="mv-sec-title" id="mv-andamento-title">Dados da vaga</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+        <!-- auto-fit: quando um campo sai por já estar nos pills do topo, os que ficam preenchem a linha -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:8px;">
           <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;" oninput="mvUpdateScoreDisplay()">
           <select id="mv-modelo" style="font-size:13px;" onchange="mvUpdateScoreDisplay()">
             <option value="">Modelo</option>
@@ -6507,6 +6510,11 @@ function openVagaModal(id){
     mvFecharSofia();
   }
   document.getElementById('modal-vaga').style.display='flex';
+  // Abrir sempre pelo começo. O corpo do card é um div rolável, e o navegador guarda o
+  // scroll de quando ele foi escondido: reabrir um card caía no ponto onde Marcos tinha
+  // parado — em geral lá embaixo, no Histórico. O card começa onde a leitura começa.
+  const _mvBody=document.querySelector('#modal-vaga .modal-body');
+  if(_mvBody) _mvBody.scrollTop=0;
   _mvCenterModal();
   atualizarBotoesModal();
   mvAtualizarBtnAnalise();
@@ -6761,7 +6769,7 @@ async function candidatarDoModal(){
     // sem CV — gera DENTRO do card (mesma geração já usada pelos botões de download), nunca navega para outra tela.
     await _mvGarantirCV(document.getElementById('mv-doc-pill-resposta'));
     // mvSyncDocsCV zera o buffer no card lead — a fonte confiável do CV é a global lastCV.
-    if(!lastCV) return; // analisarInline já avisou o motivo (descrição curta, erro etc.)
+    if(!lastCV) return; // gerarCVInline já avisou o motivo (descrição curta, erro etc.)
   }
   // tem CV — salva o modal e abre o modal-candidatura. NÃO muda o status aqui:
   // o card só vira "CV Enviado" quando o envio for confirmado (enviarCandidaturaOutlook →
@@ -7027,8 +7035,11 @@ async function _mvAutoFetchDesc(modo){
     const _parcial=data.parcial||_desc.length<500;
     _mvRenderDescGuide(_parcial?'partial':null);
     // Automático = só Compatibilidade (não gera documento). CV só sob comando explícito.
+    // Retoma o verbo que pediu a busca — analisar e gerar CV são caminhos distintos (S38).
     if(modo==='gerar'){
-      analisarInline(); // se ainda <400, analisarInline avisa "descrição incompleta" (id segue marcado → sem loop)
+      gerarCVInline(); // se ainda <400, o guard avisa "descrição incompleta" (id segue marcado → sem loop)
+    } else if(modo==='analisar'){
+      analisarInline();
     } else {
       if(_parcial) _mvFetchAttempted.delete(cardId); // parcial: libera nova tentativa ao reabrir o card
       mvAutoCompatCheck();
@@ -7454,10 +7465,10 @@ async function _mvGarantirCV(btn){
   const cvTxt=document.getElementById('mv-ats-cv-txt');
   if(cvTxt&&cvTxt.value.trim()) return true;
   const _lbl=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='Gerando CV…'; }
-  try{ await analisarInline(); }catch(e){}
+  try{ await gerarCVInline(); }catch(e){}   // gerar o CV é gerarCVInline; analisar não escreve documento
   if(btn){ btn.disabled=false; btn.textContent=_lbl; }
   const cv2=document.getElementById('mv-ats-cv-txt');
-  return !!(cv2&&cv2.value.trim()); // se seguir vazio, analisarInline já avisou (sem descrição/erro)
+  return !!(cv2&&cv2.value.trim()); // se seguir vazio, gerarCVInline já avisou (sem descrição/erro)
 }
 
 function mvAtualizarBtnAnalise(){
@@ -7466,6 +7477,14 @@ function mvAtualizarBtnAnalise(){
   const btn=document.getElementById('mv-analyze-btn');
   const hint=document.getElementById('mv-analyze-hint');
   if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
+  // Gerar CV segue a mesma condição (sem descrição não há o que adaptar) e vira "Refazer CV"
+  // quando já existe um: o rótulo diz o que o clique faz, sem prometer documento novo escondido.
+  const btnCV=document.getElementById('mv-gerar-cv-btn');
+  if(btnCV){
+    const _v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+    btnCV.disabled=!temDesc;btnCV.style.opacity=temDesc?'':'0.45';btnCV.style.cursor=temDesc?'':'not-allowed';
+    if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML=(_v&&_v.atsCV)?'Refazer CV':'Gerar CV';
+  }
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
   // Botão lead inline: sempre ativo no estado Oportunidade (busca + analisa juntos)
   const leadBtn=document.getElementById('mv-lead-analyze-btn');
@@ -7808,7 +7827,7 @@ async function mvReanalisarCompat(){
 function mvUpdateMetaInfo(v){
   const el=document.getElementById('mv-meta-info');
   if(!el) return;
-  if(!v){el.innerHTML='';return;}
+  if(!v){el.innerHTML='';_mvOcultarDadosDuplicados(null);return;}  // card novo: nada no topo, tudo editável embaixo
   const _pill=(t,col)=>`<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;background:${col}18;color:${col};border:1px solid ${col}33;margin-right:4px;margin-bottom:2px;white-space:nowrap;">${t}</span>`;
   let html='';
   if(v.localizacao){const loc=v.localizacao.split('·')[0].split('•')[0].trim();if(loc)html+=_pill(loc,'#1A3A5C');}
@@ -7817,6 +7836,22 @@ function mvUpdateMetaInfo(v){
   if(v.regime)  html+=_pill(v.regime,'#1A3A5C');
   if(v.salario) html+=_pill(v.salario,'#1A6840');
   el.innerHTML=html;
+  _mvOcultarDadosDuplicados(v);
+}
+
+// Um dado da vaga aparece UMA vez. Localização, modelo e regime estavam nos pills do
+// cabeçalho E como campos em "Dados da vaga", no fim do card — a mesma informação lida
+// duas vezes, e duas fontes que podiam divergir. Some do rodapé o que já está no topo;
+// o campo vazio continua lá, porque aí ele não é repetição, é onde se preenche.
+// O pill de localização mostra só o trecho antes do "·": se houve corte, o campo fica
+// (o topo não está mostrando tudo, então esconder embaixo esconderia informação).
+function _mvOcultarDadosDuplicados(v){
+  const _no=(id,mostrar)=>{const el=document.getElementById(id);if(el)el.style.display=mostrar?'':'none';};
+  const loc=(v?.localizacao||'').trim();
+  const locNoPill=loc.split('·')[0].split('•')[0].trim();
+  _no('mv-localizacao',!(loc&&locNoPill===loc));
+  _no('mv-modelo',!(v?.modelo||'').trim());
+  _no('mv-regime',!(v?.regime||'').trim());
 }
 
 function mvAtualizarLogo(empresa, origemUrl){
@@ -7957,7 +7992,68 @@ function saveVagaSilent(){
   if(filtroAtivo) aplicarFiltros(); else renderCRM();
 }
 
+// ANALISAR ≠ GERAR CV (S38) ───────────────────────────────────────────────────
+// Este botão fazia as duas coisas numa chamada só: um prompt devolvia ---ANALISE---
+// e ---CV--- juntos. Duas consequências. A primeira, prática: não dava para reavaliar
+// uma vaga sem reescrever o currículo, nem gerar o CV sem repontuar. A segunda, séria:
+// aquela análise era um SEGUNDO produtor de veredicto, concorrendo com /api/analisar-vaga
+// — a mesma raiz que fazia a Sofia contradizer a Compatibilidade no mesmo card. Nos
+// estados de processo (CV Enviado em diante) valia o veredicto do CV; na Oportunidade,
+// o do Worker. Agora analisar é só analisar, e quem analisa é sempre o Worker.
+// Guarda comum aos dois verbos: sem descrição de verdade não se faz nem um nem outro.
+// Devolve false quando já tratou o caso (avisou ou disparou a busca da descrição).
+function _mvTemDescricaoPara(modo){
+  const jobDesc=document.getElementById('mv-job-desc')?.value||'';
+  if(jobDesc.trim().length>=CV_DESC_MINIMA) return true;
+  const isLead=document.getElementById('mv-status')?.value==='lead';
+  const url=document.getElementById('mv-origem-url')?.value.trim()||'';
+  const _id=String(editingVagaId);
+  // Lead com URL e ainda sem fetch: buscar a descrição completa antes (uma vez só — sem loop).
+  if(isLead&&url&&editingVagaId&&editingVagaId!=='new'&&!_mvFetchAttempted.has(_id)){
+    _mvRenderDescGuide('loading');
+    _mvAutoFetchDesc(modo);
+    return false;
+  }
+  const _oQue=modo==='gerar'?'gerar o CV':'analisar';
+  showToast(jobDesc.trim()
+    ? 'Descrição incompleta — abra a vaga (Ir para vaga ↗) para importar o texto completo antes de '+_oQue+'.'
+    : '⚠️ Adicione a URL da vaga para carregar a descrição automaticamente.');
+  return false;
+}
+
+// ANALISAR — só pontua. Um único produtor de análise: /api/analisar-vaga, via
+// mvReanalisarCompat (que já grava score, fortes, atenção, impedimentos e canal direto).
 async function analisarInline(){
+  if(!_mvTemDescricaoPara('analisar')) return;
+  saveVagaSilent();
+  // saveVagaSilent só cria o card se houver empresa; sem card não há o que pontuar, e a
+  // reanálise devolveria null sem dizer por quê. Falha honesta e específica.
+  if(!editingVagaId||editingVagaId==='new'){ showToast('Informe a empresa para analisar esta vaga.'); return; }
+  const btn=document.getElementById('mv-analyze-btn');
+  const _lbl=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando…';}
+  // O resultado aparece no placar de Compatibilidade, no topo do card — mvReanalisarCompat
+  // já grava e redesenha tudo (nota, fortes, atenção, impedimentos, canal direto), e já avisa
+  // sozinho quando falha. Nada a renderizar aqui embaixo: a análise é uma coisa só, num lugar só.
+  const score=await mvReanalisarCompat();
+  if(typeof score==='number'){
+    const v=vagas.find(x=>String(x.id)===String(editingVagaId));
+    const veredicto=(v?.atsAnalise||'').match(/VEREDICTO:\s*([\s\S]+)/)?.[1]?.trim()||'';
+    const sofiaInline=document.getElementById('mv-sofia-inline');
+    if(sofiaInline&&veredicto){
+      sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${escHtml(veredicto)}</span>`;
+      sofiaInline.style.display='';
+    }
+  }
+  if(btn){btn.disabled=false;btn.innerHTML=_lbl;}
+  mvAtualizarBtnAnalise();
+  atualizarBotoesModal();
+}
+
+// GERAR CV — só escreve o documento. Passa pelo portão montarPedidoCV (um pedido de
+// CV = um prompt) e grava pelo portão setCV. Não pontua e não sobrescreve a análise.
+async function gerarCVInline(){
+  if(!_mvTemDescricaoPara('gerar')) return;
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
@@ -7965,33 +8061,14 @@ async function analisarInline(){
   const localizacao=document.getElementById('mv-localizacao')?.value||'';
   const modelo=document.getElementById('mv-modelo')?.value||'';
   const regime=document.getElementById('mv-regime')?.value||'';
-  // Piso de 400 chars: não gerar CV de snippet (mesma regra da Compatibilidade — "não calcular de snippet").
-  if(jobDesc.trim().length<CV_DESC_MINIMA){
-    const isLead=document.getElementById('mv-status')?.value==='lead';
-    const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-    const _id=String(editingVagaId);
-    // Lead com URL e ainda sem fetch: buscar a descrição completa antes de gerar (uma vez só — sem loop).
-    if(isLead&&url&&editingVagaId&&editingVagaId!=='new'&&!_mvFetchAttempted.has(_id)){
-      _mvRenderDescGuide('loading');
-      _mvAutoFetchDesc('gerar');
-      return;
-    }
-    showToast(jobDesc.trim()
-      ? 'Descrição incompleta — abra a vaga (Ir para vaga ↗) para importar o texto completo antes de gerar o CV.'
-      : '⚠️ Adicione a URL da vaga para carregar a descrição automaticamente.');
-    return;
-  }
   saveVagaSilent();
   const isLeadAnalise=document.getElementById('mv-status')?.value==='lead';
-  const btn=document.getElementById('mv-analyze-btn');
+  const btn=document.getElementById('mv-gerar-cv-btn');
   const leadBtn=document.getElementById('mv-lead-analyze-btn');
-  const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...';
+  const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Gerando…';
   if(btn){btn.disabled=true;btn.innerHTML=loadingHtml;}
-  if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Analisando…';}
-  const resultEl=document.getElementById('mv-analise-result');
-  if(resultEl&&!isLeadAnalise){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--text3);font-size:13px;">Mapeando keywords · calculando match · otimizando CV…</span>';}
+  if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Gerando…';}
   const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
-  const vagaTexto=_pedido.vagaTexto;
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(_pedido.body)});
@@ -8002,7 +8079,6 @@ async function analisarInline(){
     const rest=parts[1]||'';
     const cv=rest.split('---CRM---')[0].trim();
     const score=parseInt(analise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||0);
-    const veredicto=analise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';
     const keywords=analise.match(/\*\*Presentes no CV:\*\*\s*([^\n]+)/)?.[1]?.trim()||analise.match(/Presentes no CV:\s*([^\n]+)/)?.[1]?.trim()||'';
     const canalDiretoLinha=analise.match(/\*{0,2}Candidatura direta:\*{0,2}\s*([^\n]+)/i)?.[1]?.trim()||'';
     const canalDiretoAusente=!canalDiretoLinha||/^nenhuma?$/i.test(canalDiretoLinha);
@@ -8019,15 +8095,15 @@ async function analisarInline(){
     } else if(editingVagaId&&editingVagaId!=='new'){
       const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
       if(idx>=0){
-        // Gerar CV não deve apagar uma análise já rica (Cargo real/Urgência/Red flags/Empresa-Cultura) —
-        // ela só é refeita de fato pelo fluxo de "acrescentar sobre mim" (mvReanalisarCompat).
-        const _analisePrevia=vagas[idx].atsAnalise||'';
-        const _previaRica=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(_analisePrevia);
         setCV(vagas[idx],text);  // texto BRUTO: o portão limpa a análise e guarda os fatos traduzidos
         vagas[idx].atsCvScore=score?String(score):'';vagas[idx].atsKeywords=keywords;
-        if(!_previaRica) vagas[idx].atsAnalise=analise;
+        // atsAnalise NÃO é escrito aqui (S38). Gerar um documento não é opinar sobre a vaga:
+        // era esta linha que fazia o veredicto do CV sobrepor o da Compatibilidade nos estados
+        // de processo. Quem escreve a análise é analisarInline/mvReanalisarCompat, e só ele.
         vagas[idx].jobDescription=document.getElementById('mv-job-desc')?.value||'';vagas[idx].atsAnaliseData=Date.now();vagas[idx].atsCvIdioma=_pedido.idioma;vagas[idx].updatedAt=Date.now();
-        if(canalDiretoTipo||canalDiretoDestino||canalDiretoInstrucao){
+        // Canal direto: o dono é a análise (P1 extrai os mesmos três campos). Aqui é só rede
+        // de segurança para o card que gerou CV sem nunca ter sido analisado — nunca sobrescreve.
+        if((canalDiretoTipo||canalDiretoDestino||canalDiretoInstrucao)&&!vagas[idx].canalDiretoTipo&&!vagas[idx].canalDiretoDestino){
           vagas[idx].canalDiretoTipo=canalDiretoTipo;
           vagas[idx].canalDiretoDestino=canalDiretoDestino;
           vagas[idx].canalDiretoInstrucao=canalDiretoInstrucao;
@@ -8040,46 +8116,33 @@ async function analisarInline(){
         saveVagas();
       }
     }
-    const scoreCol=corDoScore(score);
-    const scoreBg=bgDoScore(score);
-    const badge=document.getElementById('mv-ats-score-badge');
-    // Badge "Score" do CV suprimido (vocabulário + evita confundir com a Compatibilidade).
+    // O veredicto que vinha junto com o CV não é mais exibido nem guardado: quem opina
+    // sobre a vaga é a Compatibilidade (e a Sofia, a partir dela). Aqui só se fala do CV.
     mvUpdateScoreDisplay();
+    const kwEl=document.getElementById('mv-ats-keywords');
+    if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
+    const cvTxt=document.getElementById('mv-ats-cv-txt');
+    if(cv&&cvTxt) cvTxt.value=cv;
+    const docsSec=document.getElementById('mv-docs-section');
+    if(cv&&docsSec) docsSec.style.display='';
     if(isLeadAnalise){
-      // Lead: resultado no painel de score + habilita "Ir para vaga"
-      const sofiaInline=document.getElementById('mv-sofia-inline');
-      if(sofiaInline&&veredicto){
-        sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${veredicto}</span>`;
-        sofiaInline.style.display='';
-      }
-      // Revela o CV recém-gerado na zona Documentos (lead) e mostra os downloads sob demanda
-      const _cvTxtLead=document.getElementById('mv-ats-cv-txt');
-      if(cv&&_cvTxtLead) _cvTxtLead.value=cv;
       mvSyncDocsCV();
-      atualizarBotoesModal();
     } else {
-      // Outros estados: fluxo original — mostrar compatibilidade + docs
-      const kwEl=document.getElementById('mv-ats-keywords');
-      if(kwEl) kwEl.textContent=keywords?'Keywords: '+keywords:'';
-      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}`;
-      const cvTxt=document.getElementById('mv-ats-cv-txt');
-      if(cvTxt) cvTxt.value=cv;
-      const docsSec=document.getElementById('mv-docs-section');
-      if(docsSec) docsSec.style.display='';
       _mvCVAcab='exec'; mvDocTab('ats'); mvSyncEnvioDireto();
-      atualizarBotoesModal();
-      setTimeout(()=>{
-        const body=document.querySelector('#modal-vaga .modal-body');
-        if(docsSec&&body) body.scrollTop=docsSec.offsetTop-16;
-      },120);
-      if(resultEl) resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${scoreCol};">${veredicto||'Análise concluída'}</div>${keywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${keywords}</div>`:''}<div style="font-size:12px;color:var(--action);margin-top:6px;font-weight:600;">CV gerado — copie ou baixe em PDF Executivo abaixo</div>`;
     }
+    atualizarBotoesModal();
+    // Rolar até os Documentos é resposta a ESTA ação (o CV que acabou de nascer está lá
+    // embaixo). Não vale para a análise, cujo resultado fica no topo — ver openVagaModal.
+    if(cv) setTimeout(()=>{
+      const body=document.querySelector('#modal-vaga .modal-body');
+      if(docsSec&&body&&docsSec.style.display!=='none') body.scrollTop=docsSec.offsetTop-16;
+    },120);
   }catch(e){
-    if(resultEl&&!isLeadAnalise) resultEl.innerHTML='<div style="color:var(--red,#C0281E);font-size:13px;">Erro ao conectar. Tente novamente.</div>';
-    if(isLeadAnalise) showToast('⚠️ Erro na análise. Tente novamente.');
+    showToast('Erro ao gerar o CV. Tente novamente.');
   }
-  if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar vaga + gerar CV';}
+  if(btn){btn.disabled=false;btn.innerHTML='Gerar CV';}
   if(leadBtn){leadBtn.disabled=false;leadBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar esta vaga';}
+  mvAtualizarBtnAnalise();
 }
 
 async function gerarDocModal(tipo){

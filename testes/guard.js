@@ -11,7 +11,9 @@ const linhas = html.split('\n');
 // violar a si mesmo. Agora ele pergunta em QUE função a linha está, que é o que a regra diz.
 function funcaoDaLinha(i) {
   for (let j = i; j >= 0; j--) {
-    const m = linhas[j].match(/^(?:const\s+(\w+)\s*=\s*(?:\([^)]*\)|\w+)\s*=>|function\s+(\w+)\s*\()/);
+    // "async function nome(" também é assinatura — sem o (?:async\s+)? as funções assíncronas
+    // eram invisíveis para o guard, e é justamente onde vivem as chamadas de rede.
+    const m = linhas[j].match(/^(?:const\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>|(?:async\s+)?function\s+(\w+)\s*\()/);
     if (m) return m[1] || m[2];
     if (/^\}/.test(linhas[j]) && j < i) return '';            // saiu do corpo antes de achar a assinatura
   }
@@ -59,6 +61,16 @@ console.log('\n=== GUARD: o CV só é GERADO pelo portão montarPedidoCV ===');
 checar('nenhuma chamada a ATS_SYSTEM fora de montarPedidoCV()',
   /ATS_SYSTEM\s*\(/,
   (l, fn) => fn === 'montarPedidoCV' || fn === 'ATS_SYSTEM');
+
+console.log('\n=== GUARD: gerar um documento não é opinar sobre a vaga ===');
+// analisarInline() fazia as duas coisas num pedido só: o mesmo prompt devolvia ---ANALISE---
+// e ---CV---, e a metade "análise" era gravada em atsAnalise. Isso criava um SEGUNDO produtor
+// de veredicto concorrendo com /api/analisar-vaga — nos estados de processo valia a opinião
+// que veio de carona com o currículo, na Oportunidade valia a do Worker, e o card exibia as
+// duas. Quem escreve a análise é analisarInline (via mvReanalisarCompat). O gerador de CV, não.
+checar('gerarCVInline() não escreve atsAnalise',
+  /\.atsAnalise\s*=(?!=)/,
+  (l, fn) => fn !== 'gerarCVInline');
 
 console.log('\n=== GUARD: a identidade de quem é aconselhado mora no Worker, não no cliente ===');
 // A régua de vida (cargo-alvo, faixa salarial, o que ele aceita) é UMA. Ela viveu copiada em dois
