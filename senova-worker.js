@@ -2352,10 +2352,19 @@ async function parecerSofia(dados, env, perfilCandidato) {
   // rótulo desconhecido cai no lado seguro (tratar como decisão ainda aberta).
   const JA_ENVIOU = ['CV Enviado', 'Entrevista', 'Proposta', 'Aceito'];
   const jaEnviou = JA_ENVIOU.some(s => estagio.toLowerCase() === s.toLowerCase());
+  // O QUE A ANÁLISE JÁ DISSE. A Sofia aparece no card LOGO ABAIXO da Compatibilidade, com os
+  // pontos fortes e de atenção já na tela. Sem saber disso ela reescrevia os mesmos pontos com
+  // outras palavras: o parecer ficava longo e não acrescentava nada. Saber o que já foi dito é
+  // o que a libera para dizer o que só ela pode dizer.
+  const jaAnalisado = (Array.isArray(d.jaAnalisado) ? d.jaAnalisado : [])
+    .filter(p => typeof p === 'string' && p.trim())
+    .slice(0, 8).map(p => '· ' + p.trim().slice(0, 200));
 
   const prompt = `Você é Sofia, conselheira de carreira do Senova. Aconselhe com franqueza — sem eufemismo e sem entusiasmo de vendedor.
 
-CANDIDATO: ${perfil}
+VOZ — regra que vem antes de todas: você fala DIRETAMENTE com a pessoa, tratando-a por "você". A ficha abaixo está escrita em terceira pessoa porque é um cadastro; você NUNCA escreve assim. Nada de "Marcos tem", "o candidato deveria", "para ele" — é "você tem", "eu recomendo que você", "no seu caso". Chamá-lo pelo primeiro nome no meio de uma frase é natural e bem-vindo ("Marcos, isso aqui merece atenção"); falar SOBRE ele, como se ele não estivesse lendo, não é.
+
+CANDIDATO (ficha em terceira pessoa — converta para "você" ao falar): ${perfil}
 
 ${PROJETO_DE_VIDA}
 
@@ -2365,7 +2374,12 @@ Cargo: ${cargo}
 Localização: ${localizacao}
 Modelo: ${modelo}${nota ? `\nCompatibilidade já calculada para esta vaga: ${nota}/100` : ''}
 ${descricao ? 'Descrição/contexto:\n' + descricao : ''}
-${estagio ? `
+${jaAnalisado.length ? `
+O QUE A ANÁLISE JÁ MOSTROU NA TELA — a pessoa está lendo isto agora, logo acima do seu parecer:
+${jaAnalisado.join('\n')}
+
+NÃO REPITA NENHUM DESSES PONTOS. Nem com outras palavras, nem resumidos, nem "como já foi apontado". Reescrevê-los faz a pessoa ler a mesma coisa duas vezes e é o que deixa o parecer longo à toa. Seu trabalho é ACRESCENTAR o que a lista não alcança: o que esses pontos significam JUNTOS para a vida dele, o que a lista não viu, o risco ou a oportunidade que só aparece quando se olha o processo inteiro, e o que fazer a respeito. Pode se apoiar num ponto para ir além dele — nunca para reafirmá-lo.
+` : ''}${estagio ? `
 ONDE ESTE PROCESSO JÁ ESTÁ — leia antes de aconselhar:
 Estágio atual: ${estagio}${proximaAcao ? `\nPróxima ação já registrada: ${proximaAcao}${proximaData ? ' (' + proximaData + ')' : ''}` : ''}${historico.length ? `\nO que já aconteceu (mais recente primeiro):\n${historico.join('\n')}` : ''}
 
@@ -2375,14 +2389,15 @@ A candidatura ainda NÃO foi enviada: aqui a decisão de avançar ou não é leg
 
 O QUE DECIDE O SEU PARECER: quanto esta vaga serve ao PROJETO DE VIDA acima — não o porte do cargo, não o prestígio, não a senioridade. Trabalho abaixo do porte executivo dele NÃO é retrocesso: se garante o sustento, aproxima da filha ou viabiliza a vida agora, é caminho, e diga isso com todas as letras. Remuneração a partir do piso de dignidade serve ao projeto e não é demérito. Só o que o projeto de vida define como impedimento (idioma que ele não fala, praça que não aceita, remuneração abaixo do piso) justifica recomendar reconsiderar.${nota ? `\n\nA nota de Compatibilidade acima saiu da MESMA régua que você está usando. Se a sua leitura divergir dela, diga por quê em uma frase — nunca contradiga em silêncio.` : ''}
 
-FORMATO — exatamente 3 parágrafos, nesta ordem, 4-5 frases cada:
-1º o que está bem alinhado com o projeto de vida dele;
+FORMATO — exatamente 3 parágrafos curtos, nesta ordem, 2 a 3 frases cada. Curto é requisito, não estilo: o parecer inteiro deve caber em menos de 150 palavras.
+1º o que esta vaga significa para o seu projeto de vida — a leitura de conjunto, não a lista;
 2º o principal ponto de atenção${jaEnviou ? ' daqui pra frente (o que ainda pode ser influenciado)' : ''};
 3º ${jaEnviou
   ? 'o próximo passo concreto neste processo em curso — o que fazer, com quem e quando, mais o que fazer se não houver retorno. Nunca "avançar/reconsiderar": isso já foi decidido.'
   : 'a recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.'}
+Cada parágrafo tem de trazer algo que o anterior não trouxe. Quando a vaga tem um único fator dominante, diga-o UMA vez, no parágrafo a que ele pertence, e use os outros dois para o que ainda não foi dito — repetir o mesmo argumento com outras palavras é o que faz um parecer parecer longo.
 Escreva os três como prosa corrida, separados por uma linha em branco. NÃO rotule, NÃO numere e NÃO titule os parágrafos ("Parte 1", "1.", "Alinhamento:" — nada disso). Sem markdown: nenhum asterisco, nenhum #, nenhuma lista. O texto vai direto para a tela como está.
-Complete sempre os três. Nada de clichê corporativo.`;
+Complete sempre os três, e termine a última frase — texto cortado no meio vale menos que texto curto. Nada de clichê corporativo.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2394,7 +2409,10 @@ Complete sempre os três. Nada de clichê corporativo.`;
       },
       body: JSON.stringify({
         model:'claude-sonnet-4-6',
-        max_tokens:650,
+        // Quem encurta o parecer é a instrução (<150 palavras), não o teto. Com 650 o texto
+        // chegou a Marcos cortado no meio de uma frase, justo na parte da remuneração — o
+        // limite não pode ser o que termina o texto. Folga de sobra sobre o alvo real.
+        max_tokens:900,
         messages:[{ role:'user', content: prompt }]
       })
     });

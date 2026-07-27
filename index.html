@@ -7885,17 +7885,26 @@ async function mvCallSofia(){
   const historico=(v?.timeline||[]).slice(0,6)          // timeline entra por unshift: 0 é o mais recente
     .map(e=>{const d=e?.ts?new Date(e.ts).toLocaleDateString('pt-BR'):'';return (d?d+' — ':'')+String(e?.texto||'').slice(0,160);})
     .filter(t=>t.replace(/^\d{2}\/\d{2}\/\d{4}\s*—\s*/,'').trim());
+  // O QUE A ANÁLISE JÁ DISSE (S38): a Sofia não pode gastar o parecer reescrevendo o que já está
+  // no card logo acima dela — Marcos lê a mesma coisa duas vezes e o parecer fica longo à toa.
+  // Mandando os pontos, ela sabe o que NÃO repetir e usa o espaço para acrescentar.
+  const jaAnalisado=[...(v?.compatFortes||[]),...(v?.compatAtencao||[])]
+    .filter(p=>typeof p==='string'&&p.trim()).slice(0,8).map(p=>p.trim().slice(0,160));
+  const jaEnviou=['aplicado','entrevista','proposta','aceito'].includes(statusAtual);
   try{
     const res=await fetch(WORKER_URL+'/api/sofia-parecer',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({empresa,cargo,localizacao,modelo,descricao:jobContext,score:ats,
-        estagio:_statusLabel(statusAtual),proximaAcao,proximaData,historico})});
+        estagio:_statusLabel(statusAtual),proximaAcao,proximaData,historico,jaAnalisado})});
     const data=await res.json();
     const text=(data&&!data.erro&&data.texto)?data.texto:'';
     if(!text){ content.innerHTML='<span style="color:var(--text2);font-size:13px;">Não consegui analisar esta vaga agora. <span onclick="mvCallSofia()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>'; return; }
     content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
-    if(actions) actions.innerHTML=`
+    // O botão seguia a mesma régua da voz dela: num card em CV Enviado a Sofia dizia "seu CV já
+    // foi", e logo abaixo o app oferecia "Enviar Candidatura →". Depois do envio a decisão já foi
+    // tomada — o que resta é conduzir, e reabrir o envio só confunde. Mesmo divisor do Worker.
+    if(actions) actions.innerHTML=(jaEnviou?'':`
       <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;background:#7C3AED;border-color:#7C3AED;"
-              onclick="candidatarDoModal()">Enviar Candidatura →</button>
+              onclick="candidatarDoModal()">Enviar Candidatura →</button>`)+`
       <button class="btn btn-ghost" style="padding:7px 12px;font-size:13px;" onclick="mvFecharSofia()">Fechar</button>`;
   }catch(e){
     content.innerHTML='<span style="color:var(--red,#C0281E);font-size:13px;">Não foi possível conectar. Tente novamente.</span>';
