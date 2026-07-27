@@ -2063,7 +2063,11 @@ select option { background: var(--bg2); }
               <span style="font-size:11px;color:var(--text3);">análise por IA — confira antes de decidir</span>
             </div>
             <div id="mv-sofia-content" style="font-size:13px;color:var(--text);line-height:1.72;"></div>
-            <div id="mv-sofia-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+            <!-- Não há ações aqui (S38). O bloco da Sofia é o PORQUÊ do veredicto; enviar a
+                 candidatura é outro passo e já tem o seu lugar. O botão que morava aqui era pior
+                 que duplicata: chamava candidatarDoModal() sem passar por mvSyncEnvioDireto(),
+                 então numa vaga de portal abria o e-mail com o destinatário vazio. -->
+
           </div>
           <!-- Evidência: o que sustenta a conclusão -->
           <div id="mv-score-signals" style="display:none;padding:12px 15px 13px;border-top:1px solid var(--border);background:var(--bg);"></div>
@@ -7632,19 +7636,12 @@ function mvUpdateScoreDisplay(vOpt){
 function mvRenderSofia(v){
   const bloco=document.getElementById('mv-sofia-bloco');
   const content=document.getElementById('mv-sofia-content');
-  const actions=document.getElementById('mv-sofia-actions');
   if(!bloco||!content) return;
   const texto=String(v?.sofiaParecer||'').trim();
-  if(!texto){ bloco.style.display='none'; content.innerHTML=''; if(actions) actions.innerHTML=''; return; }
+  if(!texto){ bloco.style.display='none'; content.innerHTML=''; return; }
   bloco.style.display='';
   content.innerHTML='<p>'+texto.split(/\n\s*\n/).filter(p=>p.trim())
     .map(p=>escHtml(p.trim()).replace(/\n/g,'<br>')).join('</p><p style="margin-top:9px;">')+'</p>';
-  // Depois do envio a decisão já foi tomada — o que resta é conduzir. Reabrir "Enviar
-  // Candidatura" ali seria oferecer um passo que já ficou para trás. Mesmo divisor do Worker.
-  const st=document.getElementById('mv-status')?.value||v?.status||'lead';
-  const jaEnviou=['aplicado','entrevista','proposta','aceito'].includes(st);
-  if(actions) actions.innerHTML=jaEnviou?'':`
-    <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;" onclick="candidatarDoModal()">Enviar Candidatura →</button>`;
 }
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
@@ -7889,11 +7886,9 @@ function mvAtualizarLogo(empresa, origemUrl){
 async function mvCallSofia(){
   const bloco=document.getElementById('mv-sofia-bloco');
   const content=document.getElementById('mv-sofia-content');
-  const actions=document.getElementById('mv-sofia-actions');
   if(!bloco||!content) return;
   bloco.style.display='';
   content.innerHTML='<span style="color:var(--text3);font-size:13px;">Lendo esta vaga contra o seu plano…</span>';
-  if(actions) actions.innerHTML='';
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
