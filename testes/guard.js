@@ -72,6 +72,17 @@ checar('gerarCVInline() não escreve atsAnalise',
   /\.atsAnalise\s*=(?!=)/,
   (l, fn) => fn !== 'gerarCVInline');
 
+console.log('\n=== GUARD: o parecer da Sofia tem um produtor só ===');
+// A Sofia era um painel opcional que se refazia a cada abertura do card e não deixava rastro.
+// Ao virar estado salvo (v.sofiaParecer), ela ganha o mesmo risco do CV e do status: um caminho
+// novo que escreva o parecer à mão faz o card exibir um veredicto que ninguém pediu e que não
+// veio de /api/sofia-parecer. Quem escreve é mvCallSofia; quem desenha é mvRenderSofia. Cópia
+// de campo (saveVaga preservando o parecer que já existia) não é escrita nova e não entra aqui;
+// um ponto legítimo fora do portão leva o marcador [sofia-ok] com o motivo, como no status.
+checar('nenhuma escrita direta de sofiaParecer fora de mvCallSofia()',
+  /\.sofiaParecer\s*=(?!=)/,
+  (l, fn) => /\[sofia-ok\]/.test(l) || fn === 'mvCallSofia');
+
 console.log('\n=== GUARD: a identidade de quem é aconselhado mora no Worker, não no cliente ===');
 // A régua de vida (cargo-alvo, faixa salarial, o que ele aceita) é UMA. Ela viveu copiada em dois
 // prompts do index.html — ATS_SYSTEM e mvCallSofia — e as cópias envelheceram: continuaram dizendo

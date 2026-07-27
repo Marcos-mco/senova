@@ -2021,9 +2021,10 @@ select option { background: var(--bg2); }
       </button>
       <button id="mv-gerar-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()" disabled
               style="flex-shrink:0;opacity:0.45;cursor:not-allowed;">Gerar CV</button>
-      <button id="mv-btn-sofia" class="btn btn-ghost" onclick="mvCallSofia()"
-              style="flex-shrink:0;border-color:var(--gold);color:var(--navy);">✨ Sofia</button>
     </div>
+    <!-- A Sofia deixou de ter botão próprio (S38). Ela não é um segundo parecer que se pede
+         à parte: é a própria análise. Quem a chama é "Analisar", junto com a nota. -->
+
 
     <!-- CORPO ROLÁVEL -->
     <div class="modal-body" style="padding:0 24px 20px;">
@@ -2034,34 +2035,39 @@ select option { background: var(--bg2); }
         <button onclick="descartarRascunhoVaga()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 6px;border-radius:4px;font-family:var(--font);">Descartar</button>
       </div>
 
-      <!-- ZONA 3 — COMPATIBILIDADE / PONTUAÇÃO AO PROJETO -->
-      <div id="mv-score-section" style="margin-top:14px;padding:14px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);">
-        <!-- Rota de envio (candidatura direta) — SEMPRE visível, fora do que colapsa -->
-        <div id="mv-canal-direto-banner" style="display:none;font-size:12.5px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:8px 12px;margin-bottom:12px;border-radius:6px;line-height:1.55;"></div>
-        <!-- Cabeçalho colapsável (estado Oportunidade) -->
-        <div id="mv-compat-collapsed-row" style="display:none;cursor:pointer;align-items:center;gap:10px;" onclick="mvToggleCompat()">
-          <span id="mv-compat-chevron" style="font-size:11px;color:var(--text3);flex-shrink:0;">▶</span>
-          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">Compatibilidade</span>
-          <div class="mv-score-bar-track" style="flex:1;"><div id="mv-compat-bar-mini" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
-          <span id="mv-compat-score-mini" style="font-size:13px;font-weight:700;color:var(--navy);flex-shrink:0;">—</span>
-          <span id="mv-compat-class-label" style="font-size:12px;font-weight:600;flex-shrink:0;"></span>
+      <!-- ZONA 3 — O VEREDICTO (bloco único, S38)
+           Antes daqui saíam TRÊS opiniões sobre a mesma vaga: a Compatibilidade em %, o
+           "VEREDICTO:" em caixa alta logo abaixo e a Sofia num painel à parte, que só falava
+           se fosse chamada. Quando discordavam, o card não respondia a única pergunta que
+           importa — vale a pena? — e passava a reconciliação para o usuário.
+           Agora é UM bloco com uma hierarquia: a FRASE é o veredicto, a NOTA é o contexto
+           dela, a SOFIA é o porquê e os BULLETS são a evidência. Nada se repete. -->
+      <div id="mv-score-section" style="margin-top:14px;">
+        <!-- Rota de envio (candidatura direta) — fora do bloco: é instrução operacional, não juízo -->
+        <div id="mv-canal-direto-banner" style="display:none;font-size:12.5px;font-weight:700;color:var(--action);background:rgba(46,109,164,.08);border-left:3px solid var(--action);padding:8px 12px;margin-bottom:10px;border-radius:6px;line-height:1.55;"></div>
+
+        <div id="mv-verdicto" style="border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg2);">
+          <!-- Topo: a conclusão em palavras; a nota ao lado, subordinada -->
+          <div id="mv-verd-top" style="padding:13px 15px 12px;background:var(--bg3);">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
+              <span id="mv-verd-label" style="font-family:var(--font-display);font-size:19px;font-weight:700;line-height:1.2;color:var(--text3);">Ainda sem análise</span>
+              <span id="mv-verd-num" style="display:none;font-size:13px;font-weight:600;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap;"></span>
+            </div>
+            <div id="mv-verd-track" class="mv-score-bar-track" style="display:none;margin-top:9px;"><div id="mv-verd-bar" class="mv-score-bar-fill" style="width:0%;background:var(--border2);"></div></div>
+            <div id="mv-verd-hint" style="display:none;font-size:13px;color:var(--text2);line-height:1.6;margin-top:7px;"></div>
+          </div>
+          <!-- Sofia: o porquê, na voz dela. Fica guardado no card, como o CV -->
+          <div id="mv-sofia-bloco" style="display:none;padding:13px 15px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+              <span style="font-size:11px;font-weight:700;color:#8A6D1F;text-transform:uppercase;letter-spacing:0.1em;">Sofia</span>
+              <span style="font-size:11px;color:var(--text3);">análise por IA — confira antes de decidir</span>
+            </div>
+            <div id="mv-sofia-content" style="font-size:13px;color:var(--text);line-height:1.72;"></div>
+            <div id="mv-sofia-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+          </div>
+          <!-- Evidência: o que sustenta a conclusão -->
+          <div id="mv-score-signals" style="display:none;padding:12px 15px 13px;border-top:1px solid var(--border);background:var(--bg);"></div>
         </div>
-        <!-- Cabeçalho padrão (outros estados) -->
-        <div id="mv-score-header-default" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;">Compatibilidade</span>
-          <span id="mv-score-total-badge" style="display:none;font-size:15px;font-weight:700;font-family:var(--font-display);color:var(--navy);"></span>
-        </div>
-        <!-- Corpo expandível -->
-        <div id="mv-compat-body">
-        <span id="mv-ats-score-badge" style="display:none;"></span>
-        <div id="mv-ats-bar" style="display:none;"></div>
-        <!-- Análise: veredicto + pontos fortes/atenção -->
-        <div id="mv-score-signals" class="mv-signal" style="color:var(--text3);">
-          <span style="font-size:12px;color:var(--text3);">Calculando compatibilidade…</span>
-        </div>
-        <!-- Sofia inline (lead: aparece após análise) -->
-        <div id="mv-sofia-inline" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65;"></div>
-        </div><!-- fim mv-compat-body -->
         <!-- Acrescentar sobre mim — enriquece o perfil e reanalisa esta vaga (só estágio Oportunidade) -->
         <div id="mv-enriquecer-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
           <button id="mv-enriquecer-toggle" onclick="mvToggleEnriquecer()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">＋ Acrescentar algo sobre mim</button>
@@ -2077,29 +2083,12 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
-      <!-- ANÁLISE HOLÍSTICA — Perguntar à Sofia (só estado Oportunidade) -->
-      <div id="mv-sofia-holistica" class="mv-sec" style="display:none;">
-        <button onclick="mvCallSofia()" style="width:100%;padding:9px;font-size:13px;font-weight:600;font-family:var(--font);background:none;border:1.5px solid #7C3AED;color:#7C3AED;border-radius:var(--radius);cursor:pointer;">✨ Perguntar à Sofia</button>
-      </div>
-
-      <!-- LEAD — botão Analisar desta vaga (visível só no estado Oportunidade) -->
-      <div id="mv-lead-analyze-row" style="display:none;padding:4px 0 2px;">
-        <button id="mv-lead-analyze-btn" onclick="analisarInline()"
-                style="width:100%;padding:10px;font-size:14px;font-weight:600;font-family:var(--font);background:var(--action);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-          Analisar esta vaga
-        </button>
-      </div>
-
-      <!-- ZONA 4 — SOFIA (oculta até ser chamada) -->
-      <div id="mv-sofia-section" style="display:none;margin-top:12px;" class="mv-sofia-wrap">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:0.08em;">Sofia</span>
-          <button onclick="mvFecharSofia()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0;">✕</button>
-        </div>
-        <div id="mv-sofia-content" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
-        <div id="mv-sofia-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
-      </div>
+      <!-- ZONA 4 removida (S38): a Sofia tinha dois botões próprios ("✨ Sofia" na barra e
+           "✨ Perguntar à Sofia" aqui) e um painel separado, que abria e fechava. Isso a fazia
+           parecer um comentário opcional sobre a análise, quando ela É a análise. Migrou para
+           dentro do bloco do veredicto (#mv-sofia-bloco), onde nasce junto com a nota.
+           O botão "Analisar esta vaga" da Oportunidade também sai: a barra de ações fixa passou
+           a valer em todos os estados, e dois caminhos para a mesma ação é um caminho a mais. -->
 
       <!-- ZONA 5 — DESCRIÇÃO DA VAGA (colapsável) -->
       <div class="mv-sec" id="mv-desc-section" style="border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;transition:border-color .15s,background .15s;"
@@ -6414,7 +6403,6 @@ function openVagaModal(id){
     document.getElementById('mv-motivo').value=v.motivo||'';
     // Docs section — nova lógica
     const docsSec=document.getElementById('mv-docs-section');
-    const scoreEl=document.getElementById('mv-ats-score-badge');
     const kwEl=document.getElementById('mv-ats-keywords');
     const cvTxt=document.getElementById('mv-ats-cv-txt');
     const cartaTxt=document.getElementById('mv-ats-carta-modal-txt');
@@ -6474,8 +6462,9 @@ function openVagaModal(id){
     mvAtualizarLogo(v.empresa||'',v.origemUrl||'');
     mvUpdateScoreDisplay(v);
     mvAjustarSecoesStatus(v.status);
-    // Fechar Sofia se estava aberta de sessão anterior
-    mvFecharSofia();
+    // A Sofia não precisa mais ser "fechada" ao abrir outro card: ela deixou de ser um painel
+    // com vida própria e virou conteúdo do veredicto. Quem a mostra ou esconde é
+    // mvUpdateScoreDisplay → mvRenderSofia, pelo parecer salvo NESTE card.
   } else {
     _mvNovoCardAnalise=null; // card novo sempre começa sem análise de uma sessão anterior
     ['mv-empresa','mv-cargo','mv-proxima','mv-proxima-data','mv-localizacao','mv-notas','mv-email-dest','mv-origem-url','mv-job-desc'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
@@ -6507,7 +6496,6 @@ function openVagaModal(id){
     mvUpdateMetaInfo(null);
     mvAtualizarLogo('');
     mvUpdateScoreDisplay(null);
-    mvFecharSofia();
   }
   document.getElementById('modal-vaga').style.display='flex';
   // Abrir sempre pelo começo. O corpo do card é um div rolável, e o navegador guarda o
@@ -6794,14 +6782,9 @@ function irParaVaga(){
   if(url){ saveVagaSilent(); window.open(url,'_blank','noopener'); }
 }
 
-function mvToggleCompat(){
-  const body=document.getElementById('mv-compat-body');
-  const chev=document.getElementById('mv-compat-chevron');
-  if(!body) return;
-  const open=body.style.display!=='none';
-  body.style.display=open?'none':'';
-  if(chev) chev.textContent=open?'▶':'▼';
-}
+// mvToggleCompat removida (S38): o veredicto era um accordion que abria no lead e ficava
+// recolhido — a resposta à única pergunta do card exigia um clique para aparecer. Agora o
+// bloco é sempre o mesmo, aberto, em todos os estágios. Não há o que dobrar.
 
 let _mvDadosAberto=false;
 function mvToggleDadosVaga(){
@@ -6818,41 +6801,19 @@ function mvAjustarSecoesStatus(status){
   const statusSel=document.getElementById('mv-status');
   if(statusSel) statusSel.style.display=isLead?'none':'';
 
-  // ── Score section: accordion colapsado no lead, padrão nos demais ──
-  const compatCollapsed=document.getElementById('mv-compat-collapsed-row');
-  const scoreHeaderDefault=document.getElementById('mv-score-header-default');
-  const compatBody=document.getElementById('mv-compat-body');
-  if(compatCollapsed) compatCollapsed.style.display=isLead?'flex':'none';
-  if(scoreHeaderDefault) scoreHeaderDefault.style.display=isLead?'none':'flex';
-  if(compatBody) compatBody.style.display=isLead?'none':'';
-  if(isLead){const chev=document.getElementById('mv-compat-chevron');if(chev)chev.textContent='▶';}
-
-  // ── Análise holística (só lead) ──
-  const sofiaHolistica=document.getElementById('mv-sofia-holistica');
-  if(sofiaHolistica) sofiaHolistica.style.display=isLead?'':'none';
-
-  // ── Action bar (Zona 2): no lead, análise é automática ──
+  // ── Barra de ações: uma só, em todos os estágios ──
+  // Ela era escondida no lead porque a análise rodava sozinha ali — mas quem quisesse REanalisar
+  // ficava sem botão, e a Sofia tinha um botão só dela em outro lugar. Agora "Analisar" e
+  // "Gerar CV" são os dois verbos do card, sempre no mesmo lugar. Rodar automático continua
+  // valendo (mvAutoCompatCheck); o botão é o direito de mandar de novo.
   const actionBar=document.getElementById('mv-action-bar');
-  if(actionBar) actionBar.style.display=isLead?'none':'';
+  if(actionBar) actionBar.style.display='';
 
-  // ── Botão Analisar inline: removido — análise roda automaticamente ──
-  const leadRow=document.getElementById('mv-lead-analyze-row');
-  if(leadRow) leadRow.style.display='none';
-
-  // ── Reordenamento do body: no lead → Descrição (1) → Analisar btn (2) → Score (3) → Sofia (4) → Dados sob demanda (5) ──
-  const descSec=document.getElementById('mv-desc-section');
-  const scoreSec=document.getElementById('mv-score-section');
-  if(isLead){
-    if(descSec) descSec.style.order='1';
-    if(leadRow) leadRow.style.order='2';
-    if(scoreSec) scoreSec.style.order='3';
-    if(sofiaHolistica) sofiaHolistica.style.order='4';
-  } else {
-    if(descSec) descSec.style.order='';
-    if(leadRow) leadRow.style.order='';
-    if(scoreSec) scoreSec.style.order='';
-    if(sofiaHolistica) sofiaHolistica.style.order='';
-  }
+  // ── Ordem do corpo ──
+  // O veredicto vem primeiro em TODOS os estágios (é a ordem natural do DOM, por isso não há
+  // order a fixar). No lead o "entender" já aconteceu no portal, antes do card abrir: o que
+  // ele veio buscar aqui é a resposta, não a releitura da vaga. Descrição, dados e documentos
+  // ficam depois, para quem quiser conferir.
 
   // ── Seções visíveis/ocultas por estado ──
   // "Dados da vaga" na Oportunidade: recolhido por padrão, abre sob demanda (mv-dados-toggle).
@@ -6880,8 +6841,6 @@ function mvAjustarSecoesStatus(status){
       mvSyncDocsCV();
     }
   }
-  const sofiaInline=document.getElementById('mv-sofia-inline');
-  if(sofiaInline&&isLead&&!sofiaInline.innerHTML) sofiaInline.style.display='none';
 
   // ── "↗ Ver vaga" no header: oculto no lead (footer já tem "Ir para vaga ↗") ──
   const linkVaga=document.getElementById('mv-link-vaga');
@@ -7099,6 +7058,10 @@ function saveVaga(){
     compatClass:existing?.compatClass||_novoA.compatClass||'',
     compatFortes:existing?.compatFortes||_novoA.compatFortes||[],
     compatAtencao:existing?.compatAtencao||_novoA.compatAtencao||[],
+    // O parecer da Sofia é parte da análise, não um extra: entra na mesma trava anti-perda
+    // dos bullets. Sem isto, criar o card jogava fora o que ela já tinha dito sobre a vaga.
+    sofiaParecer:existing?.sofiaParecer||_novoA.sofiaParecer||'',
+    sofiaParecerData:existing?.sofiaParecerData||_novoA.sofiaParecerData||'',
     canalDiretoTipo:existing?.canalDiretoTipo||_novoA.canalDiretoTipo||'',
     canalDiretoDestino:existing?.canalDiretoDestino||_novoA.canalDiretoDestino||'',
     canalDiretoInstrucao:existing?.canalDiretoInstrucao||_novoA.canalDiretoInstrucao||'',
@@ -7486,9 +7449,6 @@ function mvAtualizarBtnAnalise(){
     if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML=(_v&&_v.atsCV)?'Refazer CV':'Gerar CV';
   }
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
-  // Botão lead inline: sempre ativo no estado Oportunidade (busca + analisa juntos)
-  const leadBtn=document.getElementById('mv-lead-analyze-btn');
-  if(leadBtn){const ativo=temDesc||isLead;leadBtn.disabled=!ativo;leadBtn.style.opacity=ativo?'':'0.5';leadBtn.style.cursor=ativo?'':'not-allowed';}
 }
 function mvMostrarCtxRegen(tipo){
   const row=document.getElementById('mv-ctx-'+tipo+'-row');
@@ -7588,68 +7548,101 @@ function mvUpdateScoreDisplay(vOpt){
       cdBanner.style.display='';
     } else { cdBanner.innerHTML=''; cdBanner.style.display='none'; }
   }
-  // ATS score — usa atsScore (app) ou cai para score salvo (extensão), nunca recalcula aqui
+  // Nota — usa atsScore (app) ou cai para score salvo (extensão), nunca recalcula aqui
   const ats=parseInt(v?.atsScore||0)||(typeof v?.score==='number'&&v.score>0?Math.round(v.score):0);
-  const atsBar=document.getElementById('mv-ats-bar');
-  const atsBadge=document.getElementById('mv-ats-score-badge');
-  const atsCol=corDoScore(ats);
-  if(atsBar){ atsBar.style.width=(ats||0)+'%'; atsBar.style.background=atsCol; }
-  if(atsBadge) atsBadge.style.display='none';
-  const _v=classificacaoDoScore(ats);
-  // Label classificação na linha do header colapsado
-  const classLabelEl=document.getElementById('mv-compat-class-label');
-  if(classLabelEl){classLabelEl.textContent=_v?.titulo||'';classLabelEl.style.color=_v?.cor||'var(--text3)';}
-  // Badge total
-  const badge=document.getElementById('mv-score-total-badge');
-  if(badge){
-    if(ats&&_v){ badge.textContent=ats; badge.style.color=_v.cor; badge.style.display=''; }
-    else badge.style.display='none';
+  const cls=classificacaoDoScore(ats);
+  const temAnalise=!!(ats&&cls);
+  const box=document.getElementById('mv-verdicto');
+  const top=document.getElementById('mv-verd-top');
+  const lblEl=document.getElementById('mv-verd-label');
+  const numEl=document.getElementById('mv-verd-num');
+  const trackEl=document.getElementById('mv-verd-track');
+  const barEl=document.getElementById('mv-verd-bar');
+  const hintEl=document.getElementById('mv-verd-hint');
+  // O dourado é a marca de que há um juízo do Senova ali. Sem análise o bloco fica neutro:
+  // não se anuncia uma conclusão que ainda não existe.
+  if(box) box.style.borderColor=temAnalise?'var(--gold)':'var(--border)';
+  if(top){ top.style.background=temAnalise?'#FFFDF7':'var(--bg3)'; top.style.borderBottom=temAnalise?'1px solid #EDE3C8':'none'; }
+  if(lblEl){
+    lblEl.textContent=temAnalise?cls.titulo:'Ainda sem análise';
+    lblEl.style.color=temAnalise?cls.cor:'var(--text3)';
   }
-  // Mini barra colapsada
-  const miniBar=document.getElementById('mv-compat-bar-mini');
-  const miniScore=document.getElementById('mv-compat-score-mini');
-  if(miniBar){miniBar.style.width=(ats||0)+'%';miniBar.style.background=_v?.cor||'var(--border2)';}
-  if(miniScore){miniScore.textContent=ats?ats+'%':'—';miniScore.style.color=ats?_v?.cor:'var(--text3)';}
-  // Corpo expandido
+  // A nota fica, mas subordinada à frase: ela é o contexto do veredicto, não o veredicto.
+  if(numEl){
+    numEl.innerHTML=temAnalise?(ats+'<span style="font-size:11px;">/100</span>'):'';
+    numEl.style.display=temAnalise?'':'none';
+  }
+  if(trackEl) trackEl.style.display=temAnalise?'':'none';
+  if(barEl){ barEl.style.width=(ats||0)+'%'; barEl.style.background=corDoScore(ats); }
+  if(hintEl){
+    // Sem análise o bloco não some nem finge saber: diz o que falta e qual é o próximo passo.
+    const _temDesc=((document.getElementById('mv-job-desc')?.value||'').trim().length>=CV_DESC_MINIMA);
+    hintEl.innerHTML=temAnalise?'':(_temDesc
+      ? 'A descrição da vaga já está aqui. Clique em <strong>Analisar</strong> para eu ler esta vaga contra o seu plano.'
+      : 'Cole a descrição da vaga abaixo — sem ela eu analisaria no escuro.');
+    hintEl.style.display=temAnalise?'none':'';
+  }
+  // ── EVIDÊNCIA: o que sustenta a conclusão, agrupado a favor / contra ──
   const signalsEl=document.getElementById('mv-score-signals');
   if(signalsEl){
-    if(!ats||!_v){signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>';return;}
-    // (Rota de envio / candidatura direta agora vive numa faixa fixa no topo desta função —
-    //  sempre visível, fora do corpo que colapsa. Não duplicar aqui dentro.)
-    // Prioridade 1: texto rico da aba Analisar (tem seções como Cargo real, Red flags, etc.)
-    const analise=(v?.atsAnalise||'').trim();
-    const isRichAnalise=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(analise);
-    if(analise&&isRichAnalise){
-      const lines=analise.split('\n').filter(l=>l.trim()&&!/^MATCH SCORE:/i.test(l.trim())&&!/^##\s/.test(l.trim())&&!/^\*{0,2}Candidatura direta:/i.test(l.trim()));
-      let html='';
-      lines.forEach(line=>{
-        const t=line.trim(); if(!t) return;
-        const verd=t.match(/^VEREDICTO:\s*(.+)/i);
-        if(verd){html+=`<div style="font-size:13px;font-weight:700;color:${_v.cor};margin-top:8px;">VEREDICTO: ${escHtml(verd[1])}</div>`;return;}
-        if(/Keywords?\s+\d+\/\d+/i.test(t)){html+=`<div style="font-size:11px;color:var(--text3);margin-top:6px;">${escHtml(t)}</div>`;return;}
-        const lbl=t.match(/^\*\*(.+?):\*\*\s*(.*)/)||t.match(/^([^:]{1,30}):\s*(.+)/);
-        if(lbl){html+=`<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;"><span style="font-weight:600;color:var(--navy);">${escHtml(lbl[1])}:</span> ${escHtml(lbl[2])}</div>`;return;}
-        html+=`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">${escHtml(t)}</div>`;
-      });
-      signalsEl.innerHTML=(html||'<span style="font-size:12px;color:var(--text3);">Calculando análise…</span>');
-      return;
-    }
-    // Fallback: bullets pontos_fortes / pontos_atencao
-    let html='';
-    (v?.compatFortes||[]).forEach(p=>{html+='<div style="font-size:12px;color:#1A7A4A;display:flex;gap:5px;margin-top:4px;">✓ <span>'+escHtml(p)+'</span></div>';});
-    (v?.compatAtencao||[]).forEach(p=>{html+='<div style="font-size:12px;color:#B8670A;display:flex;gap:5px;margin-top:4px;">△ <span>'+escHtml(p)+'</span></div>';});
+    if(!temAnalise){ signalsEl.innerHTML=''; signalsEl.style.display='none'; mvRenderSofia(v); return; }
+    const _grupo=(titulo,itens,cor,glifo)=>{
+      if(!itens.length) return '';
+      return `<div style="font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-top:9px;">${titulo}</div>`
+        +itens.map(p=>`<div style="display:flex;gap:7px;font-size:12.5px;line-height:1.5;margin-top:5px;color:var(--text2);"><span style="color:${cor};font-weight:700;flex-shrink:0;">${glifo}</span><span>${escHtml(p)}</span></div>`).join('');
+    };
+    const fortes=(v?.compatFortes||[]).filter(p=>typeof p==='string'&&p.trim());
+    const atencao=(v?.compatAtencao||[]).filter(p=>typeof p==='string'&&p.trim());
+    let html=_grupo('A favor',fortes,'#1A7A4A','✓')+_grupo('Contra',atencao,'#B8670A','△');
+    if(html) html=html.replace('margin-top:9px','margin-top:0');   // o primeiro grupo encosta no topo do bloco
     if(!html){
-      const verd=(v?.atsAnalise||'').match(/VEREDICTO:\s*(.+)/i)?.[1]?.trim()||'';
-      if(verd&&!/revisar manualmente/i.test(verd)) html='<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;">'+escHtml(verd)+'</div>';
+      // Cards antigos guardaram a análise em prosa (formato da aba Analisar, extinta). Sem
+      // bullets, mostramos essa prosa como evidência — menos o VEREDICTO e o MATCH SCORE,
+      // que agora são a frase e a nota do topo. Repetir ali seria o bug que este bloco resolve.
+      const linhas=(v?.atsAnalise||'').split('\n')
+        .map(l=>l.trim())
+        .filter(l=>l&&!/^MATCH SCORE:/i.test(l)&&!/^VEREDICTO:/i.test(l)&&!/^##\s/.test(l)&&!/^\*{0,2}Candidatura direta:/i.test(l));
+      html=linhas.map(t=>{
+        const lbl=t.match(/^\*\*(.+?):\*\*\s*(.*)/)||t.match(/^([^:]{1,30}):\s*(.+)/);
+        return lbl
+          ? `<div style="font-size:12.5px;color:var(--text2);margin-top:6px;line-height:1.5;"><span style="font-weight:600;color:var(--navy);">${escHtml(lbl[1])}:</span> ${escHtml(lbl[2])}</div>`
+          : `<div style="font-size:12.5px;color:var(--text2);margin-top:4px;line-height:1.5;">${escHtml(t)}</div>`;
+      }).join('');
     }
-    signalsEl.innerHTML=(html||'<span style="font-size:12px;color:var(--text3);">Clique em <strong>Analisar</strong> para ver a análise completa.</span>');
+    signalsEl.innerHTML=html;
+    signalsEl.style.display=html?'':'none';
   }
+  mvRenderSofia(v);
+}
+
+// ── SOFIA DENTRO DO VEREDICTO ────────────────────────────────────────────────
+// O parecer fica guardado no card (v.sofiaParecer), como o CV fica. Reabrir o card não
+// gasta uma chamada nova nem devolve um texto diferente do que Marcos já leu: só "Analisar"
+// refaz. É o que a torna a análise, e não um comentário que se pede de novo a cada visita.
+function mvRenderSofia(v){
+  const bloco=document.getElementById('mv-sofia-bloco');
+  const content=document.getElementById('mv-sofia-content');
+  const actions=document.getElementById('mv-sofia-actions');
+  if(!bloco||!content) return;
+  const texto=String(v?.sofiaParecer||'').trim();
+  if(!texto){ bloco.style.display='none'; content.innerHTML=''; if(actions) actions.innerHTML=''; return; }
+  bloco.style.display='';
+  content.innerHTML='<p>'+texto.split(/\n\s*\n/).filter(p=>p.trim())
+    .map(p=>escHtml(p.trim()).replace(/\n/g,'<br>')).join('</p><p style="margin-top:9px;">')+'</p>';
+  // Depois do envio a decisão já foi tomada — o que resta é conduzir. Reabrir "Enviar
+  // Candidatura" ali seria oferecer um passo que já ficou para trás. Mesmo divisor do Worker.
+  const st=document.getElementById('mv-status')?.value||v?.status||'lead';
+  const jaEnviou=['aplicado','entrevista','proposta','aceito'].includes(st);
+  if(actions) actions.innerHTML=jaEnviou?'':`
+    <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;" onclick="candidatarDoModal()">Enviar Candidatura →</button>`;
 }
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 async function mvAutoCompatCheck(){
-  const signalsEl=document.getElementById('mv-score-signals');
-  const _mvCompatMsg=t=>{if(signalsEl) signalsEl.innerHTML='<span style="font-size:12px;color:var(--text3);">'+t+' <span onclick="mvAutoCompatCheck()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>';};
+  // A falha se explica na LINHA DE ESTADO do veredicto (logo abaixo de "Ainda sem análise"),
+  // não lá embaixo na evidência: quando não há análise, o bloco de sinais está oculto — escrever
+  // ali deixava o erro invisível e o card mudo, sem dizer por que a nota não veio.
+  const _mvCompatMsg=t=>{const el=document.getElementById('mv-verd-hint');if(el){el.innerHTML='<span style="color:var(--text2);">'+t+' <span onclick="mvAutoCompatCheck()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>';el.style.display='';}};
   const jobDesc=document.getElementById('mv-job-desc')?.value.trim()||'';
   if(!editingVagaId) return;
   const isNew=editingVagaId==='new';
@@ -7695,6 +7688,10 @@ async function mvAutoCompatCheck(){
     if(!isNew) saveVagas();
     mvUpdateScoreDisplay();
     mvSyncEnvioDireto();
+    // A nota sem o porquê é um número solto. A análise automática do card já traz o parecer
+    // junto — mas só se ainda não houver um: reabrir o card não paga uma chamada nova nem
+    // troca o texto que Marcos já leu. Refazer é decisão dele, pelo botão Analisar.
+    if(!alvo.sofiaParecer) await mvCallSofia();
   }catch(_){ _mvCompatMsg('Não foi possível calcular agora.'); }
 }
 
@@ -7785,13 +7782,11 @@ async function mvReanalisarCompat(){
   if(idx<0) return null;
   const v=vagas[idx];
   const scoreAnterior=parseInt(v.atsScore)||0;
-  // Avisa no próprio placar (não só num toast passageiro) — é ali que o olho está
-  const _badge=document.getElementById('mv-score-total-badge');
-  const _label=document.getElementById('mv-compat-class-label');
-  const _miniScore=document.getElementById('mv-compat-score-mini');
-  if(_badge){_badge.textContent='…';_badge.style.color='var(--text3)';}
-  if(_label){_label.textContent='Recalculando…';_label.style.color='var(--text3)';}
-  if(_miniScore){_miniScore.textContent='…';_miniScore.style.color='var(--text3)';}
+  // Avisa no próprio veredicto (não só num toast passageiro) — é ali que o olho está
+  const _label=document.getElementById('mv-verd-label');
+  const _num=document.getElementById('mv-verd-num');
+  if(_label){_label.textContent='Analisando…';_label.style.color='var(--text3)';}
+  if(_num) _num.style.display='none';
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -7882,14 +7877,13 @@ function mvAtualizarLogo(empresa, origemUrl){
 
 // ── SOFIA NO CARD ────────────────────────────────────────────────────────────
 async function mvCallSofia(){
-  const sec=document.getElementById('mv-sofia-section');
+  const bloco=document.getElementById('mv-sofia-bloco');
   const content=document.getElementById('mv-sofia-content');
   const actions=document.getElementById('mv-sofia-actions');
-  if(!sec||!content) return;
-  sec.style.display='';
-  content.innerHTML='<span style="color:#7C3AED;font-size:13px;">Sofia está analisando esta oportunidade…</span>';
+  if(!bloco||!content) return;
+  bloco.style.display='';
+  content.innerHTML='<span style="color:var(--text3);font-size:13px;">Lendo esta vaga contra o seu plano…</span>';
   if(actions) actions.innerHTML='';
-  setTimeout(()=>{ sec.scrollIntoView({behavior:'smooth',block:'nearest'}); },80);
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
@@ -7925,7 +7919,6 @@ async function mvCallSofia(){
   // Mandando os pontos, ela sabe o que NÃO repetir e usa o espaço para acrescentar.
   const jaAnalisado=[...(v?.compatFortes||[]),...(v?.compatAtencao||[])]
     .filter(p=>typeof p==='string'&&p.trim()).slice(0,8).map(p=>p.trim().slice(0,160));
-  const jaEnviou=['aplicado','entrevista','proposta','aceito'].includes(statusAtual);
   try{
     const res=await fetch(WORKER_URL+'/api/sofia-parecer',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({empresa,cargo,localizacao,modelo,descricao:jobContext,score:ats,
@@ -7933,21 +7926,16 @@ async function mvCallSofia(){
     const data=await res.json();
     const text=(data&&!data.erro&&data.texto)?data.texto:'';
     if(!text){ content.innerHTML='<span style="color:var(--text2);font-size:13px;">Não consegui analisar esta vaga agora. <span onclick="mvCallSofia()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>'; return; }
-    content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
-    // O botão seguia a mesma régua da voz dela: num card em CV Enviado a Sofia dizia "seu CV já
-    // foi", e logo abaixo o app oferecia "Enviar Candidatura →". Depois do envio a decisão já foi
-    // tomada — o que resta é conduzir, e reabrir o envio só confunde. Mesmo divisor do Worker.
-    if(actions) actions.innerHTML=(jaEnviou?'':`
-      <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;background:#7C3AED;border-color:#7C3AED;"
-              onclick="candidatarDoModal()">Enviar Candidatura →</button>`)+`
-      <button class="btn btn-ghost" style="padding:7px 12px;font-size:13px;" onclick="mvFecharSofia()">Fechar</button>`;
+    // O PARECER FICA NO CARD (S38): antes ele era refeito a cada abertura do modal e sumia ao
+    // fechar — o mesmo pedido pago à IA, o mesmo texto relido do zero, e nada do que ela disse
+    // sobrevivia para ser comparado depois. Agora é estado do card, como o CV: escrito uma vez
+    // pela análise e reescrito só quando Marcos mandar analisar de novo.
+    const alvo=v||(editingVagaId==='new'?(_mvNovoCardAnalise=_mvNovoCardAnalise||{}):null);
+    if(alvo){ alvo.sofiaParecer=text; alvo.sofiaParecerData=Date.now(); if(v) saveVagas(); }
+    mvRenderSofia(alvo||{sofiaParecer:text,status:statusAtual});
   }catch(e){
     content.innerHTML='<span style="color:var(--red,#C0281E);font-size:13px;">Não foi possível conectar. Tente novamente.</span>';
   }
-}
-function mvFecharSofia(){
-  const s=document.getElementById('mv-sofia-section');
-  if(s) s.style.display='none';
 }
 
 function saveVagaSilent(){
@@ -8036,15 +8024,11 @@ async function analisarInline(){
   // já grava e redesenha tudo (nota, fortes, atenção, impedimentos, canal direto), e já avisa
   // sozinho quando falha. Nada a renderizar aqui embaixo: a análise é uma coisa só, num lugar só.
   const score=await mvReanalisarCompat();
-  if(typeof score==='number'){
-    const v=vagas.find(x=>String(x.id)===String(editingVagaId));
-    const veredicto=(v?.atsAnalise||'').match(/VEREDICTO:\s*([\s\S]+)/)?.[1]?.trim()||'';
-    const sofiaInline=document.getElementById('mv-sofia-inline');
-    if(sofiaInline&&veredicto){
-      sofiaInline.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;">Sofia</span><span style="color:var(--text2);">${escHtml(veredicto)}</span>`;
-      sofiaInline.style.display='';
-    }
-  }
+  // ANALISAR É UM ATO SÓ (S38): a nota e o parecer da Sofia saem do mesmo clique. Antes ela
+  // tinha botão próprio — quem não clicasse ficava com o número sem o porquê, e quem clicasse
+  // recebia um segundo veredicto, escrito com outra régua, sobre a mesma vaga. Aqui ela vem
+  // depois da nota de propósito: o Worker recebe os bullets já apurados e não os repete.
+  if(typeof score==='number') await mvCallSofia();
   if(btn){btn.disabled=false;btn.innerHTML=_lbl;}
   mvAtualizarBtnAnalise();
   atualizarBotoesModal();
@@ -8064,10 +8048,8 @@ async function gerarCVInline(){
   saveVagaSilent();
   const isLeadAnalise=document.getElementById('mv-status')?.value==='lead';
   const btn=document.getElementById('mv-gerar-cv-btn');
-  const leadBtn=document.getElementById('mv-lead-analyze-btn');
   const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Gerando…';
   if(btn){btn.disabled=true;btn.innerHTML=loadingHtml;}
-  if(leadBtn){leadBtn.disabled=true;leadBtn.textContent='Gerando…';}
   const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -8141,7 +8123,6 @@ async function gerarCVInline(){
     showToast('Erro ao gerar o CV. Tente novamente.');
   }
   if(btn){btn.disabled=false;btn.innerHTML='Gerar CV';}
-  if(leadBtn){leadBtn.disabled=false;leadBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> Analisar esta vaga';}
   mvAtualizarBtnAnalise();
 }
 
