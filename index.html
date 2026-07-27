@@ -7439,12 +7439,22 @@ function mvAtualizarBtnAnalise(){
   const isLead=document.getElementById('mv-status')?.value==='lead';
   const btn=document.getElementById('mv-analyze-btn');
   const hint=document.getElementById('mv-analyze-hint');
-  if(btn){btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';}
+  const _v=editingVagaId==='new'?_mvNovoCardAnalise:(editingVagaId?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
+  // O RÓTULO DIZ O QUE O CLIQUE FAZ. Num card já pontuado o botão continuava dizendo
+  // "Analisar" — prometia uma primeira análise que já tinha acontecido, com o veredicto
+  // logo abaixo dele. Analisado, o que resta é refazer, e é isso que ele passa a dizer.
+  const _jaAnalisou=!!((_v?.atsScore&&parseInt(_v.atsScore)>0)||(typeof _v?.score==='number'&&_v.score>0));
+  if(btn){
+    btn.disabled=!temDesc;btn.style.opacity=temDesc?'':'0.45';btn.style.cursor=temDesc?'':'not-allowed';
+    if(!btn.innerHTML.includes('loader')){
+      btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg> '
+        +(_jaAnalisou?'Analisar de novo':'Analisar');
+    }
+  }
   // Gerar CV segue a mesma condição (sem descrição não há o que adaptar) e vira "Refazer CV"
   // quando já existe um: o rótulo diz o que o clique faz, sem prometer documento novo escondido.
   const btnCV=document.getElementById('mv-gerar-cv-btn');
   if(btnCV){
-    const _v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
     btnCV.disabled=!temDesc;btnCV.style.opacity=temDesc?'':'0.45';btnCV.style.cursor=temDesc?'':'not-allowed';
     if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML=(_v&&_v.atsCV)?'Refazer CV':'Gerar CV';
   }
