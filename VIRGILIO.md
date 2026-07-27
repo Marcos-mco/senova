@@ -1,5 +1,23 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 22/jul/2026 — **Sessão 36 · Relevância das vagas: portão do Kanban, piso de viabilidade, Para Considerar legível, via alemã refeita sobre medição e reforço de Brasil/Espanha com piso salarial — CONFIRMADO por Marcos**.*
+*Atualizado: 27/jul/2026 — **Sessão 37 · Projeto de vida na RAIZ do score: piso de dignidade R$8k, cargo/liderança deixam de ser objetivo, reframe provado por dado (18→62). Worker v7.22.**.*
+
+***SESSÃO 37 (26-27/jul):** virada de chave a partir do bug dos dois veredictos no card (a mesma vaga mostrava "CANDIDATO VIÁVEL" no topo e "FORTE CANDIDATO" na linha Sofia). Marcos escolheu **resolver a raiz ("B")** e reenquadrou o produto inteiro:
+
+**(1) A análise é sobre PROJETO DE VIDA, não ATS/CV.** A Sofia é FUNDAMENTAL — ela É a análise holística, não um rodapé. O card deve ter **UM** veredicto (não três placares: Compatibilidade % + VEREDICTO em caps + linha Sofia). Todo projeto de vida é universal na estrutura (remuneração, trabalho, formação, informação de mercado, qualidade de vida, futuro, sentido). Meta arquitetural: **um só caminho de análise** (Senova, card, extensão convergem) e as **variáveis saem do código para o Perfil editável** (`perfilCandidato` por request — a costura D-09). Ver [[project_projeto_de_vida_raiz]].
+
+**(2) O objetivo real de Marcos (confirmado, corrige os docs).** NÃO é carreira: é **deixar de depender financeiramente das filhas + ponte com trabalho digno até os 65 (2032) + aposentadoria mínima ~R$5k**. **IDEAL R$15–25k, PISO DE DIGNIDADE R$8k** (abaixo = impedimento; entre 8k e 15k é viável sem demérito). Nasceu **15/07/1967 → 59 anos** (docs diziam 57). Ver [[user-marcos-salario]].
+
+**(3) "Liderar de novo é o alvo" ZERADO (erro de comunicação).** Cargo e senioridade deixaram de ser objetivo E filtro no `PROJETO_DE_VIDA`/`PERFIL_MARCOS` do Worker. Trabalho abaixo do porte nunca é retrocesso; sobrequalificação é ressalva, não demérito. **A régua "escalonada por nível" da S37 (executiva ≥R$15k) foi superada** — o que decide é passar do piso de dignidade rumo ao ideal, o nível/porte não é filtro salarial.
+
+**(4) Reframe PROVADO por dado, não adivinhado (Worker v7.22, deploy `22d3c5bf`).** Chamei `/api/analisar-vaga` direto (rota em `ROTAS_SEM_SEGREDO` — sem pedir a chave a Marcos) com a vaga da Kapazi: **18 → 62 "analisar"**, `impedimentos:[]`, sobrequalificação virou ressalva, texto cita a ponte até os 65. Commit `6a4c816`.
+
+**(5) Achado de arquitetura (confirma a frente do "um só caminho"): o card fica CONGELADO.** O botão "Analisar vaga + gerar CV" (index.html:~7978) chama o produtor do CV (ATS_SYSTEM via `/api/claude`), **não** recalcula a Compatibilidade; o número só é refeito pelo caminho de reanálise, **gated ao estágio "Oportunidade"**. Uma vaga em "CV Enviado" (a Kapazi de Marcos) não tem como re-scorar pela UI — por isso o card dele seguia mostrando 18 mesmo com o Worker novo no ar. Isso É o problema dos 3 produtores (P1 `/api/analisar-vaga` · P2 `ATS_SYSTEM` · P3 `mvCallSofia`) que a frente de convergência resolve.
+
+**(6) Rótulo do score mais afirmativo (commit `9ab10b5`).** "Pode valer a pena" → **"Vale a pena avaliar"** (escolha de Marcos), nos 3 pontos vivos: card (`classificacaoDoScore` index.html:3697), tela de config e extensão (`popup.js`:283). Suíte inteira verde (18 arquivos) nos dois commits via pre-commit hook.
+
+**(7) Diretriz de alma da Sofia:** "mais Aristotélica, mais São Tomás de Aquino — razão e fé cristã juntas". A gravar em SOFIA_ALMA.md/skill_sofia.md (registrado em memória [[project_sofia_aristotelica_tomista]], **ainda não aplicado nos docs**).
+
+**PRÓXIMO PASSO (combinado, aprovado por Marcos):** redesenhar o card com **a Sofia no centro** (um só veredicto holístico) e convergir para um só caminho de análise. Layout em HTML antes de mexer no código. **Sequência ainda EM ABERTO:** coerência do card primeiro vs. Perfil editável primeiro — Marcos não decidiu. **Também pendente:** aplicar a diretriz da Sofia nos docs; e o `perfilCandidato` editável no Perfil (tirar a identidade do hardcode).*
 
 ***SESSÃO 36 (22/jul):** frente espinhal pedida por Marcos — *"melhorar a qualidade e a quantidade das vagas"*; muita vaga que chegava por e-mail nunca virava card, e a varredura estava *"pouco relevante"*. Sessão longa, 11 commits, Worker v7.12 → **v7.21**.
 
