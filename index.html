@@ -3327,6 +3327,13 @@ const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
   // Calibração de NÍVEL (raiz do "CV C-level para vaga de analista", S37): o enquadramento —
   // subtítulo e resumo — mira o nível DESTA vaga, nunca o ápice da carreira. Vender C-level numa
   // vaga de execução desqualifica por sobrequalificação. Os FATOS não mudam; muda só o DESTAQUE.
+  // FONTE ÚNICA DE IDENTIDADE (S38): este prompt trazia duas linhas de régua — "CARGO-ALVO DE
+  // REFERÊNCIA: CMO/CSO/CEO/Diretor…" e "PRETENSÃO: R$15–25k, fecha a partir de R$15k". Foram
+  // REMOVIDAS, não corrigidas: (a) contradiziam a calibração de nível logo acima, mandando mirar
+  // o ápice da carreira duas linhas depois de proibir isso; (b) a S37 zerou cargo como objetivo e
+  // baixou o piso para R$8k, e esta cópia envelheceu em silêncio; (c) um gerador de CV não precisa
+  // de pretensão salarial — o CV não a declara, e quem julga remuneração é a Compatibilidade
+  // (Worker, PROJETO_DE_VIDA). Copiar a régua corrigida para cá só criaria a próxima cópia velha.
   const nivelRotulo = { 'c-level': 'C-Level / Diretoria executiva (CMO, CSO, CEO, COO)', 'diretoria': 'Diretoria', 'gerencial': 'Gerência / Coordenação / Especialista / Analista (execução)' }[nivelVaga] || 'inferir do título e das responsabilidades desta vaga';
   return `Você é Especialista Sênior em ATS e Recrutamento Executivo, trabalhando exclusivamente para Marcos Franco (Curitiba, PR).
 
@@ -3339,9 +3346,6 @@ NÍVEL-ALVO DESTA VAGA: ${nivelRotulo}.
 CALIBRAÇÃO DE ENQUADRAMENTO (regra decisiva de qualidade — não negociável):
 - O SUBTÍTULO (linha logo abaixo do nome) e o RESUMO espelham o CARGO e a linguagem DESTA vaga, não o ápice da carreira. Numa vaga de execução (analista, especialista, coordenação), o subtítulo é a ÁREA da vaga (ex.: para "Analista de Marketing de Produto" → "Marketing de Produto | Lançamento, Portfólio e Inteligência de Mercado"). NUNCA use "CMO · CSO · CEO" nem "Diretor" como subtítulo de uma vaga abaixo desse nível — rótulo acima do nível da vaga desqualifica por sobrequalificação.
 - Os FATOS não mudam: a trajetória executiva permanece íntegra e completa nas experiências. Muda só o DESTAQUE — o RESUMO (2–3 frases diretas, específicas desta vaga, sem clichê corporativo) e as COMPETÊNCIAS trazem à frente exatamente o que ESTA vaga pede, com as palavras-chave do título e das responsabilidades.
-CARGO-ALVO DE REFERÊNCIA (só quando a vaga for de fato executiva): CMO / CSO / CEO / Diretor Comercial / Diretor de Marketing / Diretor de Negócios (aceita Head/Gerente Sênior, PJ; BR + ES + DE + Remoto)
-PRETENSÃO: R$15–25k CLT (BR — fecha a partir de R$15k; mínimo de sobrevivência R$8k em Curitiba) · €3.500–5.500/mês (ES/PT) · €5.000–8.000/mês (DE/DACH)
-
 REGRAS ABSOLUTAS:
 - NUNCA invente métricas ou fatos não presentes no perfil acima
 - Preserve voz elegante e profissional
@@ -7864,28 +7868,18 @@ async function mvCallSofia(){
     content.innerHTML='<span style="color:var(--text2);font-size:13px;">Adicione a descrição da vaga para que eu possa analisar esta oportunidade com mais profundidade.</span>';
     return;
   }
-  const prompt=`Você é Sofia, conselheira de carreira do Senova. Analise esta oportunidade de forma direta e honesta.
-
-OPORTUNIDADE:
-Empresa: ${empresa||'não informada'}
-Cargo: ${cargo||'não informado'}
-Localização: ${localizacao||'não informada'}
-Modelo: ${modelo||'não informado'}${ats?'\nFit Técnico: '+ats+'%':''}
-${jobContext?'Descrição/contexto:\n'+jobContext.slice(0,2000):''}
-
-PERFIL: executivo sênior, 25+ anos em gestão comercial e marketing, busca C-Level/Diretor, fecha a partir de R$15k (mínimo de sobrevivência R$8k em Curitiba), prefere híbrido ou remoto, base Curitiba/PR.
-
-Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases cada:
-1. O que está bem alinhado com o perfil
-2. O principal ponto de atenção
-3. Uma recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
-
-Tom: conselheiro de confiança, direto, sem eufemismos. Complete sempre as 3 partes.`;
+  // FONTE ÚNICA DE IDENTIDADE (S38): este ponto montava o prompt inteiro, e dentro dele ia uma
+  // CÓPIA da régua de vida de Marcos — "busca C-Level/Diretor, fecha a partir de R$15k". A S37
+  // zerou exatamente isso no Worker (cargo não é objetivo, piso de dignidade R$8k), mas a cópia
+  // daqui ficou para trás: era ela que fazia a Sofia dar um veredicto e a Compatibilidade dar
+  // outro, no MESMO card. Agora só os FATOS DA VAGA saem daqui; PERFIL_MARCOS + PROJETO_DE_VIDA
+  // vivem no Worker (parecerSofia), os mesmos que a Compatibilidade usa. Não recopiar aqui.
   try{
-    const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}],model:MODELOS.rapido,max_tokens:650})});
+    const res=await fetch(WORKER_URL+'/api/sofia-parecer',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({empresa,cargo,localizacao,modelo,descricao:jobContext,score:ats})});
     const data=await res.json();
-    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const text=(data&&!data.erro&&data.texto)?data.texto:'';
+    if(!text){ content.innerHTML='<span style="color:var(--text2);font-size:13px;">Não consegui analisar esta vaga agora. <span onclick="mvCallSofia()" style="color:var(--action);font-weight:600;cursor:pointer;">Tentar novamente →</span></span>'; return; }
     content.innerHTML=text.replace(/\n\n/g,'</p><p style="margin-top:8px;">').replace(/\n/g,'<br>');
     if(actions) actions.innerHTML=`
       <button class="btn btn-primary" style="padding:7px 16px;font-size:13px;background:#7C3AED;border-color:#7C3AED;"

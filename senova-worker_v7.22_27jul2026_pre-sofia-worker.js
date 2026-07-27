@@ -2353,12 +2353,12 @@ ${descricao ? 'Descrição/contexto:\n' + descricao : ''}
 
 O QUE DECIDE O SEU PARECER: quanto esta vaga serve ao PROJETO DE VIDA acima — não o porte do cargo, não o prestígio, não a senioridade. Trabalho abaixo do porte executivo dele NÃO é retrocesso: se garante o sustento, aproxima da filha ou viabiliza a vida agora, é caminho, e diga isso com todas as letras. Remuneração a partir do piso de dignidade serve ao projeto e não é demérito. Só o que o projeto de vida define como impedimento (idioma que ele não fala, praça que não aceita, remuneração abaixo do piso) justifica recomendar reconsiderar.${nota ? `\n\nA nota de Compatibilidade acima saiu da MESMA régua que você está usando. Se a sua leitura divergir dela, diga por quê em uma frase — nunca contradiga em silêncio.` : ''}
 
-FORMATO — exatamente 3 parágrafos, nesta ordem, 4-5 frases cada:
-1º o que está bem alinhado com o projeto de vida dele;
-2º o principal ponto de atenção;
-3º a recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
-Escreva os três como prosa corrida, separados por uma linha em branco. NÃO rotule, NÃO numere e NÃO titule os parágrafos ("Parte 1", "1.", "Alinhamento:" — nada disso). Sem markdown: nenhum asterisco, nenhum #, nenhuma lista. O texto vai direto para a tela como está.
-Complete sempre os três. Nada de clichê corporativo.`;
+Responda em 3 partes, sem subtítulos, em texto corrido de 4-5 frases cada:
+1. O que está bem alinhado com o projeto de vida dele
+2. O principal ponto de atenção
+3. Uma recomendação clara: avançar, ponderar ou reconsiderar — com motivo objetivo.
+
+Complete sempre as 3 partes. Nada de clichê corporativo.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2376,17 +2376,8 @@ Complete sempre os três. Nada de clichê corporativo.`;
     });
     if (!resp.ok) return { erro:true, texto:'' };
     const data = await resp.json();
-    const bruto = (data.content || []).find(b => b.type === 'text')?.text || '';
-    // O card joga este texto na tela como está — markdown que escapa do prompt chega ao
-    // usuário como "**Parte 1**" literal. Instrução é pedido; isto é garantia.
-    const texto = bruto
-      .replace(/^\s*#{1,6}\s*/gm, '')                       // ## título
-      .replace(/\*\*(.+?)\*\*/g, '$1')                      // **negrito**
-      .replace(/^\s*(?:\*\*)?(?:parte|par[áa]grafo)\s*\d+(?:\*\*)?\s*[:.)-]?\s*$/gim, '') // rótulo "Parte 2"
-      .replace(/^\s*\d+\s*[.)]\s+/gm, '')                   // "1. " no início do parágrafo
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    return texto ? { texto } : { erro:true, texto:'' };
+    const texto = (data.content || []).find(b => b.type === 'text')?.text || '';
+    return texto.trim() ? { texto: texto.trim() } : { erro:true, texto:'' };
   } catch (err) {
     console.error('parecerSofia falhou:', err.message);
     return { erro:true, texto:'' };

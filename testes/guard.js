@@ -60,6 +60,38 @@ checar('nenhuma chamada a ATS_SYSTEM fora de montarPedidoCV()',
   /ATS_SYSTEM\s*\(/,
   (l, fn) => fn === 'montarPedidoCV' || fn === 'ATS_SYSTEM');
 
+console.log('\n=== GUARD: a identidade de quem é aconselhado mora no Worker, não no cliente ===');
+// A régua de vida (cargo-alvo, faixa salarial, o que ele aceita) é UMA. Ela viveu copiada em dois
+// prompts do index.html — ATS_SYSTEM e mvCallSofia — e as cópias envelheceram: continuaram dizendo
+// "busca C-Level/Diretor, fecha a partir de R$15k" depois que a S37 zerou cargo como objetivo e
+// baixou o piso para R$8k. O resultado chegou ao usuário como dois veredictos sobre a mesma vaga.
+// PERFIL_MARCOS + PROJETO_DE_VIDA vivem no senova-worker.js e só de lá saem.
+// Não vale para MARKUP: os campos "Cargo-alvo" e "Pretensão salarial mínima" do Perfil são o
+// usuário DIZENDO quem é — é para lá que a identidade deve migrar (passo 3), não de lá que ela
+// deve sair. A régua proibida é a afirmada por nós dentro de um prompt, que é sempre prosa.
+const REGUA_NO_PROMPT = [
+  { nome: 'cargo-alvo como objetivo', re: /(busca|cargo-alvo|objetivo)[^\n]{0,60}(c-level|c‑level|cmo|cso|diretor)/i },
+  { nome: 'faixa/piso salarial como régua', re: /(pretens[ãa]o|fecha a partir de|m[íi]nimo de sobreviv[êe]ncia|piso de dignidade)/i },
+];
+{
+  const viol = [];
+  linhas.forEach((l, i) => {
+    const t = l.trim();
+    if (t.startsWith('//') || t.startsWith('*')) return;                 // comentário explicando a regra
+    if (/<[a-z][a-z0-9]*[\s>\/]/i.test(l)) return;                       // markup: campo do Perfil, não prompt
+    REGUA_NO_PROMPT.forEach(r => {
+      if (r.re.test(l)) viol.push('    ' + (i + 1) + ': [' + r.nome + '] ' + t.slice(0, 90));
+    });
+  });
+  if (viol.length) {
+    falhou = true;
+    console.log('  FAIL  nenhuma régua de identidade hardcoded no index.html');
+    viol.forEach(v => console.log(v));
+  } else {
+    console.log('  PASS  nenhuma régua de identidade hardcoded no index.html');
+  }
+}
+
 console.log('\n──────────────────────────────');
 if (falhou) {
   console.log('✗ GUARD FALHOU — use o portão certo: montarPedidoCV(o) para PEDIR o CV, setCV(vaga,texto) para GRAVAR o CV, setStatus(vaga,novo,opts) para o status. Pontos legítimos fora do portão levam o marcador [status-ok] com o motivo.');
