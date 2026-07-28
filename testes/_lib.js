@@ -39,6 +39,8 @@ const NUCLEO = [
   'let _perfilIdioma=',
   'function _niveisIdiomaDeclarados(',
   'function idiomasDoUsuario(',
+  'function idiomasEntregaveis(',
+  'function _dividaIdioma(',
   'const _IDIOMA_MARCAS = {',
   'function _idiomaDaVaga(',
   'function _idiomaDoCV(',

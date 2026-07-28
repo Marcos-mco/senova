@@ -3437,20 +3437,27 @@ const _IDIOMA_MARCAS = {
 };
 // ── REGISTRO DE IDIOMAS (S38) ─────────────────────────────────────────────────────────────
 // O Senova não está preso a três línguas: uma língua nova entra AQUI e passa a existir no
-// Perfil, no seletor do card e no PDF. Duas travas éticas viajam junto com a lista:
-//   1. só se oferece a língua que a pessoa DECLAROU falar no Perfil — mandar um CV em alemão
-//      a quem não fala alemão é insinuar um idioma que ela não tem;
-//   2. só se oferece a língua que sabemos entregar COMPLETA (_PDF_LABELS) — sem os rótulos do
-//      PDF, o documento sairia meio traduzido: resumo em espanhol, seções em português.
-// Por isso a lista visível é o cruzamento das duas, e não uma constante de três botões.
+// Perfil, no seletor do card e no PDF.
+//
+// DOIS LIMITES DIFERENTES, QUE NÃO PODEM SER SOMADOS (correção de Marcos, 28/jul/2026):
+//   1. O LIMITE DA PESSOA — as línguas que ela declarou falar. É ético e é DELA: varia de
+//      usuário para usuário. Escrever num idioma que ela não declarou insinuaria um idioma
+//      que ela não tem. Este limite manda: fora dele o Senova não escreve, ponto.
+//   2. O LIMITE DO SENOVA — as línguas em que sabemos montar o documento INTEIRO (_PDF_LABELS
+//      traz seções, meses e rodapé; sem eles o PDF sai meio traduzido). Este é NOSSO, é dívida
+//      técnica, e não pode ser cobrado da pessoa em silêncio.
+// Somar os dois numa lista só (o que este código fazia até agora) apagava do Perfil de quem
+// fala alemão a opção de alemão, sem uma palavra — a pessoa via a própria língua desaparecer e
+// o defeito parecia dela. Agora a língua declarada APARECE sempre, e quando somos nós que ainda
+// não sabemos entregá-la, é isso que a tela diz.
 const IDIOMAS={
   PT:{nome:'português',label:'Português (BR)',flag:'🇧🇷'},
   EN:{nome:'inglês',   label:'English',       flag:'🇺🇸'},
   ES:{nome:'espanhol', label:'Español',       flag:'🇪🇸'},
   DE:{nome:'alemão',   label:'Deutsch',       flag:'🇩🇪'},
 };
-// Sabemos entregar o documento inteiro nesta língua? (_PDF_LABELS nasce mais abaixo no arquivo;
-// esta função só roda em tempo de uso, nunca na avaliação do script.)
+// LIMITE DO SENOVA (dívida nossa): sabemos montar o documento inteiro nesta língua?
+// (_PDF_LABELS nasce mais abaixo no arquivo; esta função só roda em tempo de uso.)
 function idiomaEntregavel(cod){ return !!(typeof _PDF_LABELS!=='undefined' && _PDF_LABELS[cod]); }
 
 // O Perfil vive no Worker e só é carregado quando se abre a aba Perfil — mas a decisão do
@@ -3477,12 +3484,28 @@ function _niveisIdiomaDeclarados(){
   });
   return r;
 }
-// As línguas em que o Senova pode escrever PARA ESTA PESSOA. Nunca vazia: sem nada declarado,
-// resta o português, que é a língua do app.
+// LIMITE DA PESSOA (ético, varia de usuário para usuário): as línguas que ELA declarou falar.
+// Basta ter declarado — inclusive em nível básico: quem marcou "básico" sabe o que marcou, e o
+// documento sai numa língua que ela pode ler, explicar numa entrevista e assinar embaixo. O que
+// não pode é o Senova escrever numa língua que ela NÃO declarou: isso insinuaria um idioma que
+// ela não tem. Nunca vazia: sem nada declarado, resta o português, que é a língua do app.
 function idiomasDoUsuario(){
   const n=_niveisIdiomaDeclarados();
-  const meus=Object.keys(IDIOMAS).filter(c=>idiomaEntregavel(c)&&String(n[c]||'nao')!=='nao');
+  const meus=Object.keys(IDIOMAS).filter(c=>String(n[c]||'nao')!=='nao');
   return meus.length?meus:['PT'];
+}
+// LIMITE DO SENOVA (dívida nossa) aplicado sobre o da pessoa: destas, em quais sabemos montar o
+// documento inteiro hoje. Esta lista existe para a DECISÃO — entregar um PDF meio traduzido seria
+// pior do que dizer que ainda não sabemos. Mas ela nunca some da tela em silêncio: onde a pessoa
+// escolhe, a língua declarada aparece com o nosso limite escrito ao lado (_dividaIdioma).
+function idiomasEntregaveis(){
+  const e=idiomasDoUsuario().filter(idiomaEntregavel);
+  return e.length?e:['PT'];
+}
+// A dívida dita em voz alta. Quem falha aqui é o Senova, e a frase tem que deixar isso claro —
+// cobrar do usuário um limite nosso foi exatamente o defeito que esta separação corrige.
+function _dividaIdioma(cod){
+  return 'o Senova ainda não monta o documento em '+((IDIOMAS[cod]||{}).nome||String(cod||'').toLowerCase());
 }
 
 // Idioma da vaga a partir do texto dela. Determinístico — sem chamada de IA, sem custo, testável.
@@ -3508,7 +3531,7 @@ function _idiomaDaVaga(texto){
 // Antes esta regra era uma linha fixa (DE→EN, e só PT/EN/ES existiam); agora ela lê os idiomas
 // declarados, então vale para qualquer pessoa e qualquer par de línguas.
 function _idiomaDoCV(idiomaVaga, meus){
-  meus = meus || idiomasDoUsuario();
+  meus = meus || idiomasEntregaveis();
   if (!idiomaVaga) return '';
   if (meus.includes(idiomaVaga)) return idiomaVaga;
   return meus.includes('EN') ? 'EN' : '';
@@ -3526,27 +3549,44 @@ function _idiomaDoCV(idiomaVaga, meus){
 //   2. o PADRÃO do Perfil, quando a pessoa fixou uma língua ("sempre em inglês").
 //   3. padrão "seguir o idioma da vaga": a língua da vaga, na melhor língua que ela tem.
 //   4. vaga sem sinal de idioma (descrição curta, só bullets): a primeira língua declarada.
-// Em todos os degraus, só passa língua que a pessoa declarou — idiomasDoUsuario() é o filtro.
+// Em todos os degraus, só passa língua que a pessoa declarou — idiomasDoUsuario() é o filtro
+// ético. E em todos eles, quando ela pede uma língua que declarou mas que o Senova ainda não
+// sabe montar, o motivo diz de quem é a falta: nossa. O documento sai na melhor que sabemos
+// entregar, e a pessoa fica sabendo por quê — em vez de ver a própria língua sumir da lista.
 function _idiomaDecidido(desc, vaga){
-  const meus = idiomasDoUsuario();
-  const meu = c => (c && meus.includes(c)) ? c : '';
+  const meus  = idiomasDoUsuario();       // limite dela — ético
+  const posso = idiomasEntregaveis();     // limite nosso — dívida técnica
+  const meu   = c => (c && meus.includes(c)) ? c : '';
+  const devendo = c => !!c && !posso.includes(c);
+  // Quando é o Senova que não sabe montar aquela língua, o documento cai na MELHOR alternativa que
+  // ela tem — a mesma régua de _idiomaDoCV (inglês, se houver: é a língua franca de processo
+  // executivo), e não simplesmente a primeira da lista.
+  const alternativa = c => _idiomaDoCV(c, posso) || posso[0];
+
   const escolha = meu(vaga && vaga.cvIdioma);
-  if (escolha) return { lang: escolha, motivo: 'sua escolha para esta vaga' };
+  if (escolha) return devendo(escolha) ? { lang: alternativa(escolha), motivo: _dividaIdioma(escolha) }
+                                       : { lang: escolha,             motivo: 'sua escolha para esta vaga' };
   const padrao = meu(String((_perfilIdioma && _perfilIdioma.padrao) || 'auto').toUpperCase());
-  if (padrao) return { lang: padrao, motivo: 'padrão do seu Perfil' };
+  if (padrao) return devendo(padrao) ? { lang: alternativa(padrao), motivo: _dividaIdioma(padrao) }
+                                     : { lang: padrao,             motivo: 'padrão do seu Perfil' };
   const daVaga = _idiomaDaVaga(desc);
-  const escrito = _idiomaDoCV(daVaga, meus);
+  // A vaga é numa língua que ela fala, mas que ainda não sabemos escrever inteira: a falta é nossa.
+  if (meu(daVaga) && devendo(daVaga)) return { lang: alternativa(daVaga), motivo: _dividaIdioma(daVaga) };
+  const escrito = _idiomaDoCV(daVaga, posso);
   if (escrito) return { lang: escrito, motivo: escrito === daVaga ? 'idioma da vaga'
     : 'a vaga é em ' + ((IDIOMAS[daVaga] || {}).nome || 'outro idioma') + ', que você não declarou' };
-  return { lang: meus[0], motivo: 'a vaga não diz o idioma' };
+  return { lang: posso[0], motivo: 'a vaga não diz o idioma' };
 }
 
 // Decisão final do idioma de um pedido de CV. Fica fora de montarPedidoCV porque a ponte da
 // extensão precisa da mesma decisão sem montar o prompt inteiro — e duas decisões diferentes de
 // idioma seria o mesmo erro dos dois CVs.
 function _idiomaDoPedido(desc, explicito, vaga){
-  const meus = idiomasDoUsuario();
-  return ((explicito && meus.includes(explicito)) ? explicito : '') || _idiomaDecidido(desc, vaga).lang;
+  // O explícito passa pelos DOIS limites: a pessoa tem que falar a língua, e nós temos que saber
+  // escrevê-la inteira. É o único lugar onde os dois se somam — porque aqui não há tela para
+  // explicar nada: é o prompt saindo.
+  const posso = idiomasEntregaveis();
+  return ((explicito && posso.includes(explicito)) ? explicito : '') || _idiomaDecidido(desc, vaga).lang;
 }
 
 // PORTÃO ÚNICO de GERAÇÃO do CV. Todo caminho que pede um CV à IA — aba Análise CV, card
@@ -4497,9 +4537,16 @@ function _perfilRenderIdiomaPadrao(daTela){
   const atual=sel.value||(_perfilIdioma&&_perfilIdioma.padrao)||'auto';
   const guardados=_niveisIdiomaDeclarados();
   const nivel=c=>daTela?(document.getElementById('perfil-nivel-'+c.toLowerCase())?.value||'nao'):String(guardados[c]||'nao');
-  const meus=Object.keys(IDIOMAS).filter(c=>idiomaEntregavel(c)&&nivel(c)!=='nao');
+  // A lista é a das línguas DELA (qualquer nível declarado). A que ainda não sabemos montar entra
+  // desabilitada e dizendo "em breve" — o limite é nosso e fica escrito como nosso.
+  const meus=Object.keys(IDIOMAS).filter(c=>nivel(c)!=='nao');
   sel.innerHTML=['<option value="auto">Seguir o idioma da vaga</option>']
-    .concat(meus.map(c=>`<option value="${c.toLowerCase()}">${IDIOMAS[c].flag} ${IDIOMAS[c].label}</option>`)).join('');
+    .concat(meus.map(c=>idiomaEntregavel(c)
+      ?`<option value="${c.toLowerCase()}">${IDIOMAS[c].flag} ${IDIOMAS[c].label}</option>`
+      :`<option value="${c.toLowerCase()}" disabled>${IDIOMAS[c].flag} ${IDIOMAS[c].label} — em breve</option>`)).join('');
+  // A escolha vigente é preservada mesmo se a opção estiver desativada por dívida NOSSA: a pessoa
+  // fixou aquela língua e a intenção continua dela — quando soubermos montá-la, volta a valer sem
+  // que ela tenha de reconfigurar nada. Some daqui só o que ela mesma deixou de declarar.
   sel.value=Array.from(sel.options).some(o=>o.value===atual)?atual:'auto';
   // Fecha o laço: se a língua que estava fixada deixou de ser possível, o que vale é o que a
   // tela passou a mostrar. Sem isto, o Perfil diria "seguir a vaga" e a régua continuaria fixada
@@ -7676,14 +7723,20 @@ function mvSyncIdiomaDocs(){
 }
 // As opções são as línguas DESTA pessoa (Perfil), não três botões fixos. "Voltar ao padrão" só
 // existe quando há exceção para desfazer — uma escolha por vaga não pode ser porta de uma via só.
+// A língua que ela declarou e que ainda não sabemos montar CONTINUA na lista, marcada e com o
+// motivo: sumir em silêncio faria a falta parecer dela.
 function mvRenderIdiomaOpcoes(){
   const box=document.getElementById('mv-idioma-opcoes');
   if(!box) return;
   const v=_mvVagaDoCard();
   const desc=document.getElementById('mv-job-desc')?.value||'';
   const atual=_idiomaDecidido(desc,v).lang;
-  const btns=idiomasDoUsuario().map(c=>
-    `<button class="lang-btn${c===atual?' active':''}" data-lang="${c}" onclick="mvIdiomaEscolher('${c}')" style="padding:3px 9px;font-size:12px;">${(IDIOMAS[c]||{}).label||c}</button>`);
+  const posso=idiomasEntregaveis();
+  const btns=idiomasDoUsuario().map(c=>{
+    const rot=(IDIOMAS[c]||{}).label||c;
+    if(!posso.includes(c)) return `<button class="lang-btn" data-lang="${c}" disabled title="${_dividaIdioma(c)}" style="padding:3px 9px;font-size:12px;opacity:.45;cursor:not-allowed;">${rot} · em breve</button>`;
+    return `<button class="lang-btn${c===atual?' active':''}" data-lang="${c}" onclick="mvIdiomaEscolher('${c}')" style="padding:3px 9px;font-size:12px;">${rot}</button>`;
+  });
   if(v&&v.cvIdioma) btns.push(`<button class="lang-btn" data-lang="" onclick="mvIdiomaEscolher('')" style="padding:3px 9px;font-size:12px;">Voltar ao padrão</button>`);
   box.innerHTML=btns.join('');
 }

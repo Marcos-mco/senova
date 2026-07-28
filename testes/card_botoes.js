@@ -70,11 +70,20 @@ t('o pedido de CV recebe a vaga (é dela que sai a exceção)', /const idioma = 
 t('gerarCVInline passa a vaga do card', /montarPedidoCV\(\{descricao:jobDesc[^}]*vaga:_mvVagaDoCard\(\)\}\)/.test(html));
 
 console.log('\n=== as opções são as línguas DESTA pessoa, não três botões fixos ===');
-t('nascem do Perfil (idiomasDoUsuario), desenhadas em JS', /function mvRenderIdiomaOpcoes\(\)\{[\s\S]{0,700}idiomasDoUsuario\(\)\.map/.test(html));
+t('nascem do Perfil (idiomasDoUsuario), desenhadas em JS', /function mvRenderIdiomaOpcoes\(\)\{[\s\S]{0,900}idiomasDoUsuario\(\)\.map/.test(html));
 t('não há mais PT/EN/ES escritos à mão no HTML do seletor', !/data-lang="PT" onclick="mvIdiomaEscolher/.test(html));
 t('"voltar ao padrão" só existe quando há exceção para desfazer', /if\(v&&v\.cvIdioma\) btns\.push\([\s\S]{0,200}Voltar ao padrão/.test(html));
-t('o padrão do Perfil só oferece língua declarada', /function _perfilRenderIdiomaPadrao\(daTela\)\{[\s\S]{0,900}idiomaEntregavel\(c\)&&nivel\(c\)!=='nao'/.test(html));
+t('o padrão do Perfil oferece toda língua declarada — qualquer nível', /function _perfilRenderIdiomaPadrao\(daTela\)\{[\s\S]{0,1100}filter\(c=>nivel\(c\)!=='nao'\)/.test(html));
 t('e o select do Perfil deixou de trazer opções fixas no HTML', /<select id="perfil-idioma-candidatura"[^>]*><\/select>/.test(html));
+
+console.log('\n=== o limite do SENOVA é do Senova: a língua dela não some em silêncio ===');
+// Correção de Marcos (28/jul): a trava ética (só língua declarada) é por USUÁRIO; a de montagem
+// do PDF é NOSSA. Somadas, apagavam do Perfil de quem fala alemão a opção de alemão, sem uma
+// palavra — a falta parecia dela. Agora a língua aparece, desativada, e o motivo diz de quem é.
+t('no card, a língua que não sabemos montar aparece marcada "em breve"', /function mvRenderIdiomaOpcoes\(\)\{[\s\S]{0,900}!posso\.includes\(c\)[\s\S]{0,300}em breve/.test(html));
+t('e não é clicável (o PDF sairia meio traduzido)', /!posso\.includes\(c\)[\s\S]{0,200}disabled/.test(html));
+t('no Perfil, ela também fica visível e desativada', /nivel\(c\)!=='nao'\)[\s\S]{0,600}idiomaEntregavel\(c\)[\s\S]{0,400}disabled>[\s\S]{0,120}em breve/.test(html));
+t('a dívida é dita como do Senova, não como limite da pessoa', /o Senova ainda não monta o documento em /.test(html));
 
 console.log('\n=== o CV guardado noutra língua não é baixado em silêncio ===');
 t('a linha de estado avisa quando o CV está em língua diferente da decidida', /v\.atsCvIdioma&&_lang&&v\.atsCvIdioma!==_lang/.test(html));

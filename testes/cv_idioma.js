@@ -59,14 +59,32 @@ t('ES → ES', chamar(s, '_idiomaDoCV', ['ES']) === 'ES');
 t('PT → PT', chamar(s, '_idiomaDoCV', ['PT']) === 'PT');
 t('sem idioma detectado → vazio (quem chama decide)', chamar(s, '_idiomaDoCV', ['']) === '');
 
-console.log('\n=== idiomasDoUsuario: só as línguas declaradas, e só as que sabemos entregar ===');
-// Duas travas éticas na mesma lista: não se oferece escrever numa língua que a pessoa não
-// declarou (seria insinuar um idioma que ela não tem), nem numa que o PDF não sabe rotular
-// (o documento sairia meio traduzido). Ver IDIOMAS / idiomaEntregavel no index.html.
+console.log('\n=== dois limites diferentes: o da PESSOA (ético) e o do SENOVA (dívida) ===');
+// A primeira versão desta lista somava os dois num filtro só — e o resultado apagava do Perfil de
+// quem fala alemão a opção de alemão, sem uma palavra. Marcos corrigiu (28/jul/2026): "limite
+// ético correto, mas tem que valer diferentemente para cada usuário, não para o Senova".
+//   idiomasDoUsuario()   = o que ELA declarou falar. Ético, por usuário. Ninguém escreve fora dele.
+//   idiomasEntregaveis() = destas, as que NÓS sabemos montar inteiras hoje. Dívida nossa.
 t('os três idiomas declarados aparecem', JSON.stringify(exec(s, 'idiomasDoUsuario()')) === '["PT","EN","ES"]', JSON.stringify(exec(s, 'idiomasDoUsuario()')));
 exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nativo', EN: 'avancado', ES: 'nao', DE: 'avancado' } }));
-t('quem declara alemão NÃO recebe alemão: não há rótulo de PDF em DE', !exec(s, 'idiomasDoUsuario()').includes('DE'));
-t('e quem deixou de declarar espanhol perde o espanhol', !exec(s, 'idiomasDoUsuario()').includes('ES'));
+t('quem declara alemão CONTINUA vendo o alemão (o limite do PDF não some com a língua dela)', exec(s, 'idiomasDoUsuario()').includes('DE'));
+t('mas o alemão não entra no que sabemos entregar', !exec(s, 'idiomasEntregaveis()').includes('DE'));
+t('e a falta é dita como NOSSA, com todas as letras', /^o Senova ainda não monta o documento em alemão$/.test(exec(s, '_dividaIdioma("DE")')), exec(s, '_dividaIdioma("DE")'));
+t('quem deixou de declarar espanhol perde o espanhol (esse limite é dela, e vale)', !exec(s, 'idiomasDoUsuario()').includes('ES'));
+t('vaga alemã para quem FALA alemão: o CV sai em inglês, não na primeira da lista', chamar(s, '_idiomaDoPedido', [VAGA_DE]) === 'EN', chamar(s, '_idiomaDoPedido', [VAGA_DE]));
+t('e o motivo não a culpa — diz que quem não monta ainda somos nós', /o Senova ainda não monta/.test(chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo), chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo);
+
+// "Mesmo que básico": quem marcou básico sabe o que marcou — o documento sai numa língua que ela
+// pode ler, explicar numa entrevista e assinar embaixo. O que não pode é sair numa que ela não tem.
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nativo', EN: 'basico', ES: 'nao', DE: 'nao' } }));
+t('nível básico conta como língua declarada', exec(s, 'idiomasDoUsuario()').includes('EN'));
+t('e o CV pode sair nela', chamar(s, '_idiomaDoPedido', [VAGA_EN]) === 'EN');
+
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nao', EN: 'nao', ES: 'nao', DE: 'avancado' } }));
+t('só alemão declarado: a lista dela é o alemão', JSON.stringify(exec(s, 'idiomasDoUsuario()')) === '["DE"]');
+t('mas o documento sai no que sabemos montar (nunca meio traduzido)', JSON.stringify(exec(s, 'idiomasEntregaveis()')) === '["PT"]');
+t('e a vaga alemã diz que quem ficou devendo foi o Senova', /o Senova ainda não monta/.test(chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo), chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo);
+
 exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nao', EN: 'nao', ES: 'nao', DE: 'nao' } }));
 t('sem nenhuma língua declarada, sobra o português (nunca fica vazio)', JSON.stringify(exec(s, 'idiomasDoUsuario()')) === '["PT"]');
 exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: null }));

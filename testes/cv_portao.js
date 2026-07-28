@@ -19,7 +19,7 @@ const CV_DESC_MINIMA = parseInt(mDesc[1], 10);
 
 const fontes = [
   'const IDIOMAS={', 'const _PDF_LABELS={', 'function idiomaEntregavel(', 'let _perfilIdioma=',
-  'function _niveisIdiomaDeclarados(', 'function idiomasDoUsuario(',
+  'function _niveisIdiomaDeclarados(', 'function idiomasDoUsuario(', 'function idiomasEntregaveis(', 'function _dividaIdioma(',
   'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDecidido(', 'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
   'function _pdfCtxUsar(', 'function _pdfCtxDoCard(',
