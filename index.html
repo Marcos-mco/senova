@@ -6834,7 +6834,12 @@ function _mvPintarEstadoLink(d){
   } else {
     el.textContent='● não consegui verificar'; el.style.color='var(--text3)';
     // Nunca chamar de morto o que só foi bloqueado: 403/429 é o portal recusando robô.
-    el.title='O portal não respondeu ou bloqueou a verificação. Isso NÃO quer dizer que a vaga encerrou.';
+    // Medido em 28/jul: 52 dos 65 links do LinkedIn caem aqui — ele recusa qualquer
+    // leitura de fora. Dizer POR QUE não deu é diferente de dar de ombros.
+    const _m=(d&&d.motivo)||'';
+    el.title=_m==='portal_bloqueou' ? 'Este portal não deixa verificar de fora (é o caso do LinkedIn). Não quer dizer que a vaga encerrou — só abrindo para saber.'
+           : _m==='demorou_demais'  ? 'O portal demorou demais para responder. Isso NÃO quer dizer que a vaga encerrou.'
+           : 'O portal não respondeu ou bloqueou a verificação. Isso NÃO quer dizer que a vaga encerrou.';
   }
   el.style.display='';
 }
