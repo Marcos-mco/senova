@@ -24,10 +24,27 @@ t('sem o elemento mv-action-bar', !/id="mv-action-bar"/.test(html));
 t('sem a classe .mv-action-bar no CSS (não fica regra órfã)', !/\.mv-action-bar\s*\{/.test(html));
 t('sem leitura de mv-action-bar no JS', !/getElementById\('mv-action-bar'\)/.test(html));
 
-console.log('\n=== "Analisar" mora no veredicto — é o bloco que ele produz ===');
-t('o botão está dentro da caixa do veredicto', entre('id="mv-analyze-btn"', 'id="mv-verdicto"', 'id="mv-verd-fold-btn"'));
-t('e acima da dobra (a conclusão e sua ação ficam à vista)', html.indexOf('id="mv-analyze-btn"') < html.indexOf('id="mv-verd-fold"'));
+console.log('\n=== "Analisar" mora depois do que lhe dá motivo (28/jul) ===');
+// Dentro da moldura do veredicto ele era o maior e mais escuro elemento do card, logo abaixo de
+// uma conclusão já dada: o ponto de maior peso da tela oferecendo REFAZER o que acabou de ser
+// feito. Marcos: "deveria estar depois da '＋ Acrescentar algo sobre mim'" — que é justamente o
+// que muda a resposta. O botão fica junto do que muda, não do que já foi respondido.
+t('o botão NÃO está mais dentro da caixa do veredicto', !entre('id="mv-analyze-btn"', 'id="mv-verdicto"', 'id="mv-score-signals"'));
+t('está depois do "Acrescentar algo sobre mim"', html.indexOf('id="mv-analyze-btn"') > html.indexOf('id="mv-enriquecer-toggle"'));
+t('e antes da Descrição da vaga (não desceu para o fim do card)', html.indexOf('id="mv-analyze-btn"') < html.indexOf('id="mv-desc-section"'));
+t('fica FORA do #mv-enriquecer-wrap — que só existe em card salvo, e no card novo a 1ª análise é o ato principal',
+  !entre('id="mv-analyze-btn"', 'id="mv-enriquecer-wrap"', 'id="mv-enriquecer-status"'));
 t('continua chamando analisarInline', /id="mv-analyze-btn"[\s\S]{0,200}analisarInline\(\)/.test(html));
+t('e continua trocando o rótulo para "Analisar de novo" quando já há análise', /_jaAnalisou\?'Analisar de novo':'Analisar'/.test(html));
+
+console.log('\n=== "Adicionar ao perfil" diz que o CV vai ser refeito — e refaz ===');
+// O rótulo escondia metade do efeito: o texto acrescentado derrubava o CV já gerado desta vaga, e
+// a tela devolvia a tarefa à pessoa ("clique num formato para gerar o CV atualizado").
+t('o rótulo muda quando há CV para refazer', /_mvEnriquecerRefazCV\(\)\?'Adicionar ao perfil e gerar novo CV':'Adicionar ao perfil'/.test(html));
+t('e só promete isso quando há CV nesta vaga', /function _mvEnriquecerRefazCV\(\)\{[\s\S]{0,300}return !!\(v&&v\.atsCV\)/.test(html));
+t('o CV é REFEITO ali mesmo, não deixado para um clique futuro', /if\(_tinhaCV\)\{\s*\n?\s*await gerarCVInline\(\)/.test(html));
+t('e o estado final diz o que aconteceu com o CV', /CV refeito com o que você acrescentou/.test(html));
+t('falha na geração é dita, não escondida', /O CV não pôde ser refeito agora/.test(html));
 
 console.log('\n=== não se pede o mesmo ato duas vezes: "Gerar CV" some ===');
 // Os botões de formato JÁ geram o CV sob demanda quando não há nenhum (_mvGarantirCV). Um

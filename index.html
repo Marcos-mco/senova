@@ -2016,8 +2016,9 @@ select option { background: var(--bg2); }
     <!-- A barra de ações fixa saiu daqui (S38). Ela ficava acima do veredicto, no lugar de
          maior peso da tela, oferecendo AGIR antes de a pessoa ter ENTENDIDO e JULGADO —
          e os dois botões prometiam coisas que nasciam em blocos distantes dali. Cada verbo
-         foi morar dentro do bloco que ele produz: "Analisar" no veredicto, "Gerar CV" em
-         Documentos. A Sofia, por sua vez, não tem botão próprio: ela é a própria análise. -->
+         foi morar junto do que ele produz — ou do que lhe dá motivo: "Analisar" depois do
+         "Acrescentar algo sobre mim", "Gerar CV" em Documentos. A Sofia, por sua vez, não tem
+         botão próprio: ela é a própria análise. -->
 
 
     <!-- CORPO ROLÁVEL -->
@@ -2053,13 +2054,11 @@ select option { background: var(--bg2); }
                  segundo veredicto: por isso entra sem o rótulo "VEREDICTO:" que existia antes. -->
             <div id="mv-verd-resumo" style="display:none;font-size:13px;color:var(--text);line-height:1.65;margin-top:9px;"></div>
             <div id="mv-verd-hint" style="display:none;font-size:13px;color:var(--text2);line-height:1.6;margin-top:7px;"></div>
-            <!-- ANALISAR mora aqui: é este bloco que ele produz. Sem análise, é o convite
-                 dentro da moldura vazia; com análise, é o direito de mandar rodar de novo. -->
-            <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled
-                    style="width:100%;justify-content:center;margin-top:11px;font-size:13px;padding:8px;opacity:0.45;cursor:not-allowed;">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-              Analisar
-            </button>
+            <!-- ANALISAR não mora mais aqui (28/jul, S38). Dentro da moldura do veredicto ele era o
+                 maior e mais escuro elemento do card, logo abaixo de uma conclusão já dada: o ponto
+                 de maior peso da tela oferecendo REFAZER o que acabou de ser feito. Desceu para
+                 depois do "Acrescentar algo sobre mim", que é o que de fato dá motivo para rodar de
+                 novo — o botão fica junto do que muda a resposta, não do que já foi respondido. -->
           </div>
           <!-- A DOBRA: o porquê (Sofia) e a evidência (bullets). Começa fechada e é o
                raciocínio — nunca a conclusão. A conclusão fica acima, sempre à vista. -->
@@ -2090,11 +2089,19 @@ select option { background: var(--bg2); }
             <div id="mv-enriquecer-hint" style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Vale para todas as próximas vagas.</div>
             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
               <button onclick="mvToggleEnriquecer()" class="btn btn-ghost" style="font-size:13px;padding:7px 14px;">Cancelar</button>
-              <button onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
+              <button id="mv-enriquecer-add-btn" onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
             </div>
           </div>
           <div id="mv-enriquecer-status" style="display:none;font-size:13px;color:var(--text2);line-height:1.5;margin-top:4px;"></div>
         </div>
+        <!-- ANALISAR mora AQUI (28/jul, S38): depois do que pode mudar a resposta. Fica fora do
+             #mv-enriquecer-wrap de propósito — aquele bloco só existe em card já salvo, e é no card
+             novo que a PRIMEIRA análise é o ato principal. -->
+        <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled
+                style="width:100%;justify-content:center;margin-top:12px;font-size:13px;padding:8px;opacity:0.45;cursor:not-allowed;">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+          Analisar
+        </button>
       </div>
 
       <!-- ZONA 4 removida (S38): a Sofia tinha dois botões próprios ("✨ Sofia" na barra e
@@ -7674,6 +7681,7 @@ function mvSyncDocsCV(){
   // baixam o que houver e GERAM sob demanda (_mvGarantirCV) — por isso o estado vazio diz o que
   // vai acontecer no primeiro clique, em vez de oferecer um botão para o mesmo ato.
   mvSyncCVEstado();
+  _mvAtualizarHintEnriquecer();   // o rótulo do "acrescentar" fala em refazer o CV: só enquanto houver CV
   mvIdiomaOpcoes(false);   // o card abre afirmando o idioma, nunca perguntando
   mvSyncIdiomaDocs();
   mvDocTab('ats');
@@ -8096,8 +8104,20 @@ function _mvReanaliseAplica(){
   const desc=document.getElementById('mv-job-desc')?.value.trim()||'';
   return desc.length>=CV_DESC_MINIMA;   // a mesma régua do resto do app, não um 400 solto aqui
 }
+// O CV desta vaga vai ser REFEITO com o que a pessoa acrescentar? Só há o que refazer se já
+// existe um CV aqui, e só faz sentido no estágio em que a análise ainda decide.
+function _mvEnriquecerRefazCV(){
+  if(!_mvReanaliseAplica()) return false;
+  const v=vagas.find(x=>String(x.id)===String(editingVagaId));
+  return !!(v&&v.atsCV);
+}
 function _mvAtualizarHintEnriquecer(){
   const hint=document.getElementById('mv-enriquecer-hint');
+  // O RÓTULO DIZ O QUE O CLIQUE FAZ (Marcos, 28/jul). "Adicionar ao perfil" escondia metade do
+  // efeito: além de entrar no perfil, o texto derrubava o CV já gerado desta vaga. Quando é isso
+  // que vai acontecer, o botão diz — e o CV é refeito na hora, não deixado para um clique futuro.
+  const btn=document.getElementById('mv-enriquecer-add-btn');
+  if(btn&&!btn.innerHTML.includes('loader')) btn.textContent=_mvEnriquecerRefazCV()?'Adicionar ao perfil e gerar novo CV':'Adicionar ao perfil';
   if(!hint) return;
   hint.textContent=_mvReanaliseAplica()
     ? 'Vale para todas as próximas vagas — e recalculo esta agora.'
@@ -8149,16 +8169,28 @@ async function mvEnriquecerPerfil(){
   if(_reanalisa){
     showToast('Reanalisando esta vaga…');
     const novoScore=await mvReanalisarCompat();
-    // O contexto novo muda o CV: invalida o CV atual para regenerar no próximo clique de formato.
+    // O contexto novo muda o CV. Antes o CV era só APAGADO e a tela devolvia a tarefa à pessoa
+    // ("clique num formato para gerar o CV atualizado") — o app desfazia o documento e pedia que
+    // ela o refizesse. Agora, se havia CV, ele é REFEITO aqui: é o que o botão promete.
     const _iCV=vagas.findIndex(x=>String(x.id)===String(editingVagaId));
-    if(_iCV>=0 && vagas[_iCV].atsCV){ setCV(vagas[_iCV],''); saveVagas(); }
+    const _tinhaCV=_iCV>=0&&!!vagas[_iCV].atsCV;
+    if(_tinhaCV){ setCV(vagas[_iCV],''); saveVagas(); }
     if(typeof mvSyncDocsCV==='function') mvSyncDocsCV();
     const _explQueda=_iCV>=0?(vagas[_iCV].explicacaoQueda||''):'';
     _temExplQueda=!!_explQueda;
+    const _queda=_explQueda?'<div style="margin-top:8px;background:var(--amber-bg);border:1px solid rgba(156,88,0,0.18);border-radius:var(--radius);padding:10px 12px;font-size:12.5px;color:var(--amber);line-height:1.5;">A nota baixou — motivo: '+escHtml(_explQueda)+'</div>':'';
+    const _ok=n=>'<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+n+'%.</span>';
     if(st) st.innerHTML=(typeof novoScore==='number')
-      ? '<span style="color:var(--green);font-weight:600;">✓ Compatibilidade recalculada: '+novoScore+'%.</span> Clique num formato para gerar o CV atualizado.'
-        +(_explQueda?'<div style="margin-top:8px;background:var(--amber-bg);border:1px solid rgba(156,88,0,0.18);border-radius:var(--radius);padding:10px 12px;font-size:12.5px;color:var(--amber);line-height:1.5;">A nota baixou — motivo: '+escHtml(_explQueda)+'</div>':'')
+      ? _ok(novoScore)+(_tinhaCV?' Refazendo o CV desta vaga…':'')+_queda
       : '<span style="color:var(--green);font-weight:600;">✓ Adicionado ao seu perfil.</span> Vale para todas as próximas vagas.';
+    if(_tinhaCV){
+      await gerarCVInline();   // o CV já foi zerado acima: não há o que confirmar, e nada se perde em silêncio
+      const _st2=document.getElementById('mv-enriquecer-status');
+      const _refeito=!!(vagas[_iCV]&&vagas[_iCV].atsCV);
+      if(_st2&&_st2.style.display!=='none') _st2.innerHTML=(typeof novoScore==='number'?_ok(novoScore):'')
+        +(_refeito?' <span style="color:var(--green);font-weight:600;">CV refeito com o que você acrescentou.</span>'
+                  :' O CV não pôde ser refeito agora — clique num formato para tentar de novo.')+_queda;
+    }
   } else {
     showToast('Adicionado ao seu perfil.');
   }
