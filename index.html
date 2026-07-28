@@ -2079,29 +2079,36 @@ select option { background: var(--bg2); }
           </div>
           <!-- Evidência: o que sustenta a conclusão -->
           <div id="mv-score-signals" style="display:none;padding:12px 15px 13px;border-top:1px solid var(--border);background:var(--bg);"></div>
-          </div>
-        </div>
-        <!-- Acrescentar sobre mim — enriquece o perfil e reanalisa esta vaga (só estágio Oportunidade) -->
-        <div id="mv-enriquecer-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-          <button id="mv-enriquecer-toggle" onclick="mvToggleEnriquecer()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">＋ Acrescentar algo sobre mim</button>
-          <div id="mv-enriquecer-form" style="display:none;margin-top:10px;">
-            <textarea id="mv-enriquecer-texto" rows="2" placeholder="Ex.: Fiz curso de marcenaria e restauração na Chippendale School (Escócia), uma das melhores do mundo." style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:56px;"></textarea>
-            <div id="mv-enriquecer-hint" style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Vale para todas as próximas vagas.</div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
-              <button onclick="mvToggleEnriquecer()" class="btn btn-ghost" style="font-size:13px;padding:7px 14px;">Cancelar</button>
-              <button id="mv-enriquecer-add-btn" onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
+          <!-- AS AÇÕES MORAM DENTRO DA DOBRA (Marcos, 28/jul). Fora dela, "Analisar de novo" e
+               "Acrescentar algo sobre mim" competiam com a conclusão: dois convites a MEXER
+               abertos ao lado de um veredicto que já respondeu. Aqui dentro, quem quer rever o
+               raciocínio encontra, no mesmo lugar, o que fazer com ele. Sem análise ainda não há
+               raciocínio a esconder — a dobra fica aberta e o "Analisar" é o que se vê. -->
+          <div id="mv-verd-acoes" style="display:flex;flex-direction:column;gap:12px;padding:12px 15px 13px;border-top:1px solid var(--border);">
+            <!-- Acrescentar sobre mim — enriquece o perfil e reanalisa esta vaga (só estágio Oportunidade) -->
+            <div id="mv-enriquecer-wrap" style="display:none;">
+              <button id="mv-enriquecer-toggle" onclick="mvToggleEnriquecer()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">＋ Acrescentar algo sobre mim</button>
+              <div id="mv-enriquecer-form" style="display:none;margin-top:10px;">
+                <textarea id="mv-enriquecer-texto" rows="2" placeholder="Ex.: Fiz curso de marcenaria e restauração na Chippendale School (Escócia), uma das melhores do mundo." style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;min-height:56px;"></textarea>
+                <div id="mv-enriquecer-hint" style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Vale para todas as próximas vagas.</div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+                  <button onclick="mvToggleEnriquecer()" class="btn btn-ghost" style="font-size:13px;padding:7px 14px;">Cancelar</button>
+                  <button id="mv-enriquecer-add-btn" onclick="mvEnriquecerPerfil()" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">Adicionar ao perfil</button>
+                </div>
+              </div>
+              <div id="mv-enriquecer-status" style="display:none;font-size:13px;color:var(--text2);line-height:1.5;margin-top:4px;"></div>
             </div>
+            <!-- ANALISAR vem DEPOIS do "acrescentar": é o que pode mudar a resposta que dá motivo
+                 para rodar de novo. Fica fora do #mv-enriquecer-wrap de propósito — aquele bloco só
+                 existe em card já salvo, e é no card novo que a PRIMEIRA análise é o ato principal. -->
+            <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled
+                    style="width:100%;justify-content:center;font-size:13px;padding:8px;opacity:0.45;cursor:not-allowed;">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+              Analisar
+            </button>
           </div>
-          <div id="mv-enriquecer-status" style="display:none;font-size:13px;color:var(--text2);line-height:1.5;margin-top:4px;"></div>
+          </div>
         </div>
-        <!-- ANALISAR mora AQUI (28/jul, S38): depois do que pode mudar a resposta. Fica fora do
-             #mv-enriquecer-wrap de propósito — aquele bloco só existe em card já salvo, e é no card
-             novo que a PRIMEIRA análise é o ato principal. -->
-        <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled
-                style="width:100%;justify-content:center;margin-top:12px;font-size:13px;padding:8px;opacity:0.45;cursor:not-allowed;">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-          Analisar
-        </button>
       </div>
 
       <!-- ZONA 4 removida (S38): a Sofia tinha dois botões próprios ("✨ Sofia" na barra e
@@ -8007,7 +8014,10 @@ function _mvSyncVerdFold(){
   const temSinais=document.getElementById('mv-score-signals')?.style.display!=='none';
   const tem=temSofia||temSinais;
   btn.style.display=tem?'':'none';
-  fold.style.display=(tem&&_mvVerdAberto)?'':'none';
+  // A dobra guarda também as AÇÕES (acrescentar / analisar). Quando ainda não há raciocínio a
+  // esconder, não há dobra: ela fica aberta e sem botão de abrir — senão o "Analisar" de um card
+  // ainda não analisado ficaria atrás de um controle que nem aparece na tela.
+  fold.style.display=(!tem||_mvVerdAberto)?'':'none';
   // O rótulo promete só o que está lá dentro: cards analisados antes da Sofia existir têm as
   // evidências e mais nada, e "ver o porquê" seria uma promessa que a dobra não cumpre.
   const _oQueTem=temSofia&&temSinais?'o porquê e as evidências':(temSofia?'o porquê':'as evidências');

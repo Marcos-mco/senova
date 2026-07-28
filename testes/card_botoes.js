@@ -18,6 +18,21 @@ const entre = (alvo, de, ate) => {
   const i = html.indexOf(de), f = html.indexOf(ate), a = html.indexOf(alvo);
   return i >= 0 && f > i && a > i && a < f;
 };
+// Aninhamento de verdade: ordem no fonte não prova que um elemento está DENTRO de outro. Esta
+// varre as tags <div>/</div> a partir da abertura do container e responde se o alvo aparece
+// antes de ele fechar.
+const dentroDe = (idContainer, alvo) => {
+  const ini = html.indexOf('<div id="' + idContainer + '"');
+  const iAlvo = html.indexOf(alvo);
+  if (ini < 0 || iAlvo < ini) return false;
+  const re = /<div\b|<\/div>/g; re.lastIndex = ini;
+  let d = 0, m;
+  while ((m = re.exec(html))) {
+    d += m[0] === '</div>' ? -1 : 1;
+    if (d === 0) return re.lastIndex > iAlvo;   // aqui o container fechou
+  }
+  return false;
+};
 
 console.log('=== a barra de ações fixa não existe mais ===');
 t('sem o elemento mv-action-bar', !/id="mv-action-bar"/.test(html));
@@ -36,6 +51,19 @@ t('fica FORA do #mv-enriquecer-wrap — que só existe em card salvo, e no card 
   !entre('id="mv-analyze-btn"', 'id="mv-enriquecer-wrap"', 'id="mv-enriquecer-status"'));
 t('continua chamando analisarInline', /id="mv-analyze-btn"[\s\S]{0,200}analisarInline\(\)/.test(html));
 t('e continua trocando o rótulo para "Analisar de novo" quando já há análise', /_jaAnalisou\?'Analisar de novo':'Analisar'/.test(html));
+
+console.log('\n=== e as duas ações moram DENTRO da dobra ("ver o porquê e as evidências") ===');
+// Marcos: "isto tem que estar dentro de 'ver evidências'". Do lado de fora, "Acrescentar algo
+// sobre mim" e "Analisar de novo" ficavam abertos ao lado de um veredicto que já respondeu —
+// dois convites a MEXER competindo com a conclusão. Dentro, quem foi rever o raciocínio encontra
+// no mesmo lugar o que fazer com ele.
+t('"Analisar" está dentro de #mv-verd-fold', dentroDe('mv-verd-fold', 'id="mv-analyze-btn"'));
+t('"Acrescentar algo sobre mim" também', dentroDe('mv-verd-fold', 'id="mv-enriquecer-toggle"'));
+t('as duas dividem um bloco só, depois das evidências',
+  html.indexOf('id="mv-score-signals"') < html.indexOf('id="mv-verd-acoes"')
+  && dentroDe('mv-verd-acoes', 'id="mv-analyze-btn"') && dentroDe('mv-verd-acoes', 'id="mv-enriquecer-wrap"'));
+t('sem análise não há raciocínio a esconder: a dobra fica aberta e sem botão de abrir — senão a PRIMEIRA análise ficaria atrás de um controle invisível',
+  /fold\.style\.display=\(!tem\|\|_mvVerdAberto\)\?'':'none';/.test(html));
 
 console.log('\n=== "Adicionar ao perfil" diz que o CV vai ser refeito — e refaz ===');
 // O rótulo escondia metade do efeito: o texto acrescentado derrubava o CV já gerado desta vaga, e
