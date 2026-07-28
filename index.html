@@ -146,8 +146,6 @@ select option { background: var(--bg2); }
 .mv-sec { border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 14px; }
 .mv-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .mv-sec-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:17px; font-weight:700; color:var(--navy); text-transform:none; letter-spacing:-0.1px; }
-.mv-action-bar { display:flex;gap:8px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0; }
-.mv-action-bar .btn { flex:1;justify-content:center;font-size:13px;padding:7px 8px; }
 .mv-score-bar-track { height:6px;background:var(--bg4);border-radius:3px;overflow:hidden; }
 .mv-score-bar-fill { height:100%;border-radius:3px;transition:width 0.5s ease,background 0.3s; }
 .mv-signal { font-size:12px;line-height:1.9; }
@@ -2010,23 +2008,20 @@ select option { background: var(--bg2); }
         <!-- O anúncio ainda existe? Verificado ao abrir o card, que é quando ele decide
              trabalhar nesta vaga. Três estados, nunca dois — ver mvVerificarLink. -->
         <span id="mv-link-estado" style="display:none;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;cursor:default;"></span>
+        <!-- UM só caminho para o anúncio (S38). Havia dois — este link, que abria sem salvar, e
+             um botão no rodapé, que salvava antes. Dois gestos para o mesmo ato, com resultados
+             diferentes: quem usasse o de cima perdia o que tinha acabado de escrever. Agora é
+             este, em todos os estágios, e ele salva antes de abrir (irParaVaga). -->
         <a id="mv-link-vaga" href="#" target="_blank" rel="noopener noreferrer"
            style="display:none;font-size:12px;font-weight:600;color:var(--action);text-decoration:none;white-space:nowrap;flex-shrink:0;"
-           onclick="event.preventDefault();const u=this.dataset.url;if(u)window.open(u,'_blank','noopener');">↗ Ver vaga</a>
+           onclick="event.preventDefault();irParaVaga();">Ir para a vaga ↗</a>
       </div>
     </div>
-
-    <!-- ZONA 2 — BARRA DE AÇÕES (fixa) -->
-    <div class="mv-action-bar" id="mv-action-bar">
-      <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled style="flex:1;justify-content:center;opacity:0.45;cursor:not-allowed;">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        Analisar
-      </button>
-      <button id="mv-gerar-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()" disabled
-              style="flex-shrink:0;opacity:0.45;cursor:not-allowed;">Gerar CV</button>
-    </div>
-    <!-- A Sofia deixou de ter botão próprio (S38). Ela não é um segundo parecer que se pede
-         à parte: é a própria análise. Quem a chama é "Analisar", junto com a nota. -->
+    <!-- A barra de ações fixa saiu daqui (S38). Ela ficava acima do veredicto, no lugar de
+         maior peso da tela, oferecendo AGIR antes de a pessoa ter ENTENDIDO e JULGADO —
+         e os dois botões prometiam coisas que nasciam em blocos distantes dali. Cada verbo
+         foi morar dentro do bloco que ele produz: "Analisar" no veredicto, "Gerar CV" em
+         Documentos. A Sofia, por sua vez, não tem botão próprio: ela é a própria análise. -->
 
 
     <!-- CORPO ROLÁVEL -->
@@ -2062,6 +2057,13 @@ select option { background: var(--bg2); }
                  segundo veredicto: por isso entra sem o rótulo "VEREDICTO:" que existia antes. -->
             <div id="mv-verd-resumo" style="display:none;font-size:13px;color:var(--text);line-height:1.65;margin-top:9px;"></div>
             <div id="mv-verd-hint" style="display:none;font-size:13px;color:var(--text2);line-height:1.6;margin-top:7px;"></div>
+            <!-- ANALISAR mora aqui: é este bloco que ele produz. Sem análise, é o convite
+                 dentro da moldura vazia; com análise, é o direito de mandar rodar de novo. -->
+            <button id="mv-analyze-btn" class="btn btn-primary" onclick="analisarInline()" disabled
+                    style="width:100%;justify-content:center;margin-top:11px;font-size:13px;padding:8px;opacity:0.45;cursor:not-allowed;">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+              Analisar
+            </button>
           </div>
           <!-- A DOBRA: o porquê (Sofia) e a evidência (bullets). Começa fechada e é o
                raciocínio — nunca a conclusão. A conclusão fica acima, sempre à vista. -->
@@ -2163,6 +2165,14 @@ select option { background: var(--bg2); }
         </div>
         <!-- CONTROLES (sempre em cima) -->
         <div style="display:flex;flex-direction:column;gap:8px;">
+          <!-- GERAR CV mora aqui: é este bloco que ele produz. Antes ficava numa barra fixa no
+               topo, longe dos arquivos, e nada dizia se o CV já existia para ESTA vaga — dava
+               para baixar um PDF sem saber de qual texto ele saía. O estado vem escrito. -->
+          <div id="mv-cv-estado-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <span id="mv-cv-estado" style="font-size:12.5px;color:var(--text3);line-height:1.5;min-width:0;"></span>
+            <button id="mv-gerar-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()" disabled
+                    style="flex-shrink:0;font-size:13px;padding:7px 14px;opacity:0.45;cursor:not-allowed;">Gerar CV</button>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
             <div style="min-width:0;">
               <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">CV Executivo</div>
@@ -6437,7 +6447,8 @@ function openVagaModal(id){
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
         _mvCVAcab='exec'; mvDocTab('ats');
       } else {
-        docsSec.style.display='none';
+        // Sem CV a seção NÃO se esconde mais (S38): ela é onde se pede o CV. Quem zera o
+        // buffer e escreve o estado é mvSyncDocsCV, chamado por mvAjustarSecoesStatus.
         if(resultEl) resultEl.style.display='none';
       }
     }
@@ -6488,7 +6499,6 @@ function openVagaModal(id){
     document.getElementById('mv-modelo').value='';
     document.getElementById('mv-regime').value='';
     const _jorC=document.getElementById('mv-jornada');if(_jorC)_jorC.value='';
-    const docsSec2=document.getElementById('mv-docs-section');if(docsSec2)docsSec2.style.display='none';
     const mvLinkN=document.getElementById('mv-link-vaga');
     if(mvLinkN){ mvLinkN.style.display='none'; mvLinkN.dataset.url=''; }
     document.getElementById('mv-canal').value='LinkedIn';
@@ -6507,7 +6517,6 @@ function openVagaModal(id){
     if(_draftBanner) _draftBanner.style.display='none';
     mvRenderPipeline('lead');
     mvAjustarSecoesStatus('lead');
-    const docsSec2b=document.getElementById('mv-docs-section');if(docsSec2b)docsSec2b.style.display='none';
     const resEl2=document.getElementById('mv-analise-result');if(resEl2)resEl2.style.display='none';
     mvRefreshDescPreview();
     mvUpdateMetaInfo(null);
@@ -6574,15 +6583,10 @@ function atualizarBotoesModal(statusOverride){
       // Card manual novo: precisa de Salvar (validarVagaForm desabilita até empresa+cargo)
       html+=`<button class="btn btn-primary" onclick="saveVaga()">Criar processo</button>`;
     } else {
-      // Oportunidade existente: ação principal = Ir para vaga (navy). Salvar é secundário
-      // (raro: anotar algo sem ir à vaga agora). Sem URL → Salvar vira o principal.
-      const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-      if(url){
-        html+=`<button class="btn btn-ghost" onclick="saveVaga()">Salvar</button>`;
-        html+=`<button class="btn btn-primary" id="mv-btn-ir-vaga" onclick="irParaVaga()">Ir para vaga ↗</button>`;
-      } else {
-        html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
-      }
+      // "Ir para vaga" saiu do rodapé (S38): eram dois gatilhos para o mesmo ato, e o do
+      // cabeçalho abria sem salvar. Ficou um só, no cabeçalho, que salva antes de abrir.
+      // O rodapé volta a ter uma função só: guardar o que foi escrito aqui.
+      html+=`<button class="btn btn-primary" onclick="saveVaga()">Salvar</button>`;
     }
     mvAjustarSecoesStatus('lead');
   } else if(!isClosed){
@@ -6835,9 +6839,15 @@ function _mvPintarEstadoLink(d){
   el.style.display='';
 }
 
+// Único caminho para o anúncio (S38). Salva antes de abrir — quem vai à vaga costuma voltar
+// depois, e o que ele escreveu no card não pode ficar para trás. O campo "URL da vaga" é a
+// fonte; o link do cabeçalho é o espelho, e vale como reserva se o campo estiver fora da tela.
 function irParaVaga(){
-  const url=document.getElementById('mv-origem-url')?.value.trim()||'';
-  if(url){ saveVagaSilent(); window.open(url,'_blank','noopener'); }
+  const url=(document.getElementById('mv-origem-url')?.value.trim())
+         || (document.getElementById('mv-link-vaga')?.dataset.url||'').trim();
+  if(!url){ showToast('Esta vaga não tem link salvo.'); return; }
+  saveVagaSilent();
+  window.open(url,'_blank','noopener');
 }
 
 // mvToggleCompat removida (S38): o veredicto era um accordion que abria no lead e ficava
@@ -6861,13 +6871,10 @@ function mvAjustarSecoesStatus(status){
   const statusSel=document.getElementById('mv-status');
   if(statusSel) statusSel.style.display=isLead?'none':'';
 
-  // ── Barra de ações: uma só, em todos os estágios ──
-  // Ela era escondida no lead porque a análise rodava sozinha ali — mas quem quisesse REanalisar
-  // ficava sem botão, e a Sofia tinha um botão só dela em outro lugar. Agora "Analisar" e
-  // "Gerar CV" são os dois verbos do card, sempre no mesmo lugar. Rodar automático continua
-  // valendo (mvAutoCompatCheck); o botão é o direito de mandar de novo.
-  const actionBar=document.getElementById('mv-action-bar');
-  if(actionBar) actionBar.style.display='';
+  // A barra de ações fixa não existe mais (S38): "Analisar" mora no veredicto e "Gerar CV"
+  // em Documentos, cada um dentro do bloco que produz. Os dois continuam disponíveis em
+  // todos os estágios — rodar automático segue valendo (mvAutoCompatCheck), e o botão é o
+  // direito de mandar de novo.
 
   // ── Ordem do corpo ──
   // O veredicto vem primeiro em TODOS os estágios (é a ordem natural do DOM, por isso não há
@@ -6890,21 +6897,24 @@ function mvAjustarSecoesStatus(status){
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
   if(analiseSec) analiseSec.style.display=isLead?'none':'';
-  // Documentos = zona AGIR (sob demanda). No lead fica visível e ordenada após a Compatibilidade.
+  // Documentos = zona AGIR. Fica visível em TODOS os estágios: é aqui que mora "Gerar CV"
+  // desde a S38, e a seção só aparecia quando JÁ existia um CV — quem não tivesse ficaria
+  // sem o botão que o cria. Pelo mesmo motivo, "Carta" e "Resposta por e-mail" estavam
+  // escondidas de quem chegou à entrevista sem CV gerado no Senova. Vazia, ela diz que
+  // está vazia (mvSyncDocsCV escreve o estado); é honestidade, não ruído.
   const _docsSec=document.getElementById('mv-docs-section');
   if(_docsSec){
-    if(isLead){ _docsSec.style.display=''; _docsSec.style.order='6'; mvSyncDocsCV(); }
-    else {
-      _docsSec.style.order='';
-      // Não-lead: a área Documentos (se visível) já foi montada em openVagaModal.
-      // O buffer do CV fica sempre oculto; os controles são os cartões fixos.
-      mvSyncDocsCV();
-    }
+    _docsSec.style.display='';
+    _docsSec.style.order=isLead?'6':'';   // no lead ela vem depois do veredicto
+    mvSyncDocsCV();
   }
 
-  // ── "↗ Ver vaga" no header: oculto no lead (footer já tem "Ir para vaga ↗") ──
+  // ── "Ir para a vaga ↗" no header: único caminho, em TODOS os estágios (S38) ──
+  // Era oculto no lead porque o rodapé tinha um botão equivalente. O botão saiu; se este
+  // continuasse escondido, a Oportunidade — justamente o estágio em que se vai à vaga —
+  // ficaria sem nenhum caminho para o anúncio.
   const linkVaga=document.getElementById('mv-link-vaga');
-  if(linkVaga) linkVaga.style.display=isLead?'none':(linkVaga.dataset.url?'':'none');
+  if(linkVaga) linkVaga.style.display=linkVaga.dataset.url?'':'none';
 
   // ── Botão Excluir: só existe para Oportunidade (lead). Em processo real a ação
   //    é Declinar (arquiva com rastro), nunca apagar — some o hard-delete da UI. ──
@@ -7481,6 +7491,11 @@ function mvSyncDocsCV(){
   const buf=document.getElementById('mv-ats-cv-txt');
   if(buf) buf.value = has ? (v.atsCV||'') : '';
   if(!has){ _mvCVAcab=null; _mvSetChosen(null); } else if(!_mvCVAcab) _mvCVAcab='exec';
+  // Diz em palavras se existe CV adaptado a ESTA vaga. Os botões de formato baixam o que
+  // houver (e geram sob demanda, via _mvGarantirCV) — sem esta linha, dava para baixar um
+  // PDF sem saber de qual texto ele saiu, nem se ele conhece a vaga aberta na tela.
+  const _est=document.getElementById('mv-cv-estado');
+  if(_est) _est.textContent=has?'CV adaptado a esta vaga.':'Ainda sem CV para esta vaga.';
   mvDocTab('ats');
   mvSyncEnvioDireto();
 }
@@ -7817,7 +7832,7 @@ function _mvReanaliseAplica(){
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   if(!v||v.status!=='lead') return false;
   const desc=document.getElementById('mv-job-desc')?.value.trim()||'';
-  return desc.length>=400;
+  return desc.length>=CV_DESC_MINIMA;   // a mesma régua do resto do app, não um 400 solto aqui
 }
 function _mvAtualizarHintEnriquecer(){
   const hint=document.getElementById('mv-enriquecer-hint');
