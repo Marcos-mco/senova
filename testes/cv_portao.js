@@ -18,7 +18,9 @@ if (!mDesc) { console.log('  FAIL  CV_DESC_MINIMA não existe mais no index.html
 const CV_DESC_MINIMA = parseInt(mDesc[1], 10);
 
 const fontes = [
-  'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDoPedido(',
+  'const IDIOMAS={', 'const _PDF_LABELS={', 'function idiomaEntregavel(', 'let _perfilIdioma=',
+  'function _niveisIdiomaDeclarados(', 'function idiomasDoUsuario(',
+  'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDecidido(', 'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
   'function _pdfCtxUsar(', 'function _pdfCtxDoCard(',
   'function _nivelAlvoPDF(',
@@ -35,7 +37,11 @@ const sandbox = {
   ATS_SYSTEM: (lang, textoVaga) => 'SYS[' + lang + ']' + textoVaga,
   ctxBuscarRelevantes: () => [{ texto: 'complemento relevante do Perfil' }],
   CV_DESC_MINIMA, cvLang: 'PT', cvLangManual: false,
-  PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [] },
+  // Os idiomas declarados importam: é deles que sai em que línguas o app pode escrever
+  // (idiomasDoUsuario). Sem eles, todo pedido cairia em português dentro do sandbox.
+  PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [
+    { idioma: 'Português', nivel: 'nativo' }, { idioma: 'Inglês', nivel: 'avancado' }, { idioma: 'Espanhol', nivel: 'avancado' },
+  ] },
   lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null,
   _pdfExecBase64: () => 'FAKEB64',
   btoa: s => Buffer.from(s, 'binary').toString('base64'),
@@ -58,12 +64,17 @@ t('max_tokens 4000 — 2000 truncava o CV no meio', ped.body.max_tokens === 4000
 t('descrição vai INTEIRA (não cortada em 4000 chars)', ped.body.messages[0].content.includes('MARCADOR_FINAL_DA_DESCRICAO'));
 t('metadados da vaga entram no texto', ped.vagaTexto.includes('Localização: Curitiba, PR') && ped.vagaTexto.includes('Modelo: Presencial') && ped.vagaTexto.includes('Regime: CLT'));
 t('PERFIL COMPLEMENTAR entra no pedido', ped.body.messages[0].content.includes('complemento relevante do Perfil'));
-t('idioma sai do cvLang do app, não de literal fixo', ped.body.system.startsWith('SYS[PT]'));
+t('idioma é decidido, não literal fixo', ped.body.system.startsWith('SYS[PT]'));
 
-console.log('\n=== Idioma acompanha o app (era fixo em "PT" na extensão) ===');
+console.log('\n=== Idioma acompanha a VAGA e o card (era fixo em "PT" na extensão) ===');
+// Até a S38 o idioma vinha de uma variável GLOBAL do app (cvLang): quem clicasse "espanhol"
+// numa vaga levava espanhol para todas as seguintes, inclusive pela extensão. Agora a exceção
+// mora na vaga, e é ela que a extensão passa ao portão.
 sandbox.cvLang = 'EN';
-t('cvLang=EN → pedido em EN', run('montarPedidoCV({descricao:"x".repeat(500)})').body.system.startsWith('SYS[EN]'));
+t('o toggle global NÃO manda mais no pedido', run('montarPedidoCV({descricao:"x".repeat(500)})').body.system.startsWith('SYS[PT]'));
 sandbox.cvLang = 'PT';
+t('a exceção da vaga manda', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{cvIdioma:"EN"}})').body.system.startsWith('SYS[EN]'));
+t('e uma vaga sem exceção volta ao padrão', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{}})').body.system.startsWith('SYS[PT]'));
 
 console.log('\n=== Piso de descrição: CV de snippet sai genérico ===');
 t('descrição curta é marcada como curta', run('montarPedidoCV({descricao:"vaga de vendas"})').curta === true);

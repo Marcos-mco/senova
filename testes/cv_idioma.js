@@ -59,17 +59,52 @@ t('ES → ES', chamar(s, '_idiomaDoCV', ['ES']) === 'ES');
 t('PT → PT', chamar(s, '_idiomaDoCV', ['PT']) === 'PT');
 t('sem idioma detectado → vazio (quem chama decide)', chamar(s, '_idiomaDoCV', ['']) === '');
 
-console.log('\n=== _idiomaDoPedido: manda a vaga; o toggle só depois de clicado ===');
+console.log('\n=== idiomasDoUsuario: só as línguas declaradas, e só as que sabemos entregar ===');
+// Duas travas éticas na mesma lista: não se oferece escrever numa língua que a pessoa não
+// declarou (seria insinuar um idioma que ela não tem), nem numa que o PDF não sabe rotular
+// (o documento sairia meio traduzido). Ver IDIOMAS / idiomaEntregavel no index.html.
+t('os três idiomas declarados aparecem', JSON.stringify(exec(s, 'idiomasDoUsuario()')) === '["PT","EN","ES"]', JSON.stringify(exec(s, 'idiomasDoUsuario()')));
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nativo', EN: 'avancado', ES: 'nao', DE: 'avancado' } }));
+t('quem declara alemão NÃO recebe alemão: não há rótulo de PDF em DE', !exec(s, 'idiomasDoUsuario()').includes('DE'));
+t('e quem deixou de declarar espanhol perde o espanhol', !exec(s, 'idiomasDoUsuario()').includes('ES'));
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nao', EN: 'nao', ES: 'nao', DE: 'nao' } }));
+t('sem nenhuma língua declarada, sobra o português (nunca fica vazio)', JSON.stringify(exec(s, 'idiomasDoUsuario()')) === '["PT"]');
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: null }));
+
+console.log('\n=== _idiomaDoPedido: a vaga manda; a exceção é DAQUELA vaga ===');
+// O defeito que este bloco guarda: a escolha de idioma era GLOBAL (cvLangManual). Clicar
+// "espanhol" numa vaga deixava todos os CVs seguintes em espanhol, sem nada na tela dizendo
+// isso — um Caps Lock. Agora a exceção mora no card e some com ele.
 s.cvLang = 'PT'; s.cvLangManual = false;
-t('vaga ES com toggle intocado → CV em ES', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'ES', chamar(s, '_idiomaDoPedido', [VAGA_ES]));
-t('vaga DE com toggle intocado → CV em EN', chamar(s, '_idiomaDoPedido', [VAGA_DE]) === 'EN');
-t('sem sinal → cai no toggle (PT)', chamar(s, '_idiomaDoPedido', ['']) === 'PT');
-s.cvLangManual = true;
-t('Marcos clicou o toggle: a escolha dele passa na frente da vaga', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'PT');
-s.cvLang = 'EN';
-t('toggle em EN vale mesmo em vaga espanhola', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'EN');
+t('vaga ES sem exceção → CV em ES', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'ES', chamar(s, '_idiomaDoPedido', [VAGA_ES]));
+t('vaga DE sem exceção → CV em EN (ele não fala alemão)', chamar(s, '_idiomaDoPedido', [VAGA_DE]) === 'EN');
+t('sem sinal de idioma → primeira língua declarada (PT)', chamar(s, '_idiomaDoPedido', ['']) === 'PT');
 t('pedido explícito manda sempre', chamar(s, '_idiomaDoPedido', [VAGA_ES, 'ES']) === 'ES');
+t('explícito numa língua não declarada é ignorado, não obedecido', chamar(s, '_idiomaDoPedido', [VAGA_ES, 'DE']) === 'ES');
+
+s.cvLang = 'EN'; s.cvLangManual = true;
+t('o toggle da aba Análise CV NÃO manda mais no card', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'ES');
 s.cvLang = 'PT'; s.cvLangManual = false;
+
+t('exceção da vaga passa na frente do idioma dela', chamar(s, '_idiomaDoPedido', [VAGA_ES, '', { cvIdioma: 'EN' }]) === 'EN');
+t('a vaga do lado, sem exceção, continua em ES (nada vaza)', chamar(s, '_idiomaDoPedido', [VAGA_ES, '', { cvIdioma: '' }]) === 'ES');
+t('exceção numa língua não declarada é ignorada', chamar(s, '_idiomaDoPedido', [VAGA_ES, '', { cvIdioma: 'DE' }]) === 'ES');
+
+console.log('\n=== o padrão do Perfil passou a ser LIDO (era gravado e ignorado) ===');
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'en', niveis: { PT: 'nativo', EN: 'avancado', ES: 'avancado', DE: 'nao' } }));
+t('padrão fixo em inglês vence o idioma da vaga', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'EN');
+t('mas a exceção daquela vaga vence o padrão do Perfil', chamar(s, '_idiomaDoPedido', [VAGA_ES, '', { cvIdioma: 'ES' }]) === 'ES');
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: { PT: 'nativo', EN: 'avancado', ES: 'avancado', DE: 'nao' } }));
+t('padrão "seguir a vaga" devolve o comando à vaga', chamar(s, '_idiomaDoPedido', [VAGA_ES]) === 'ES');
+
+console.log('\n=== _idiomaDecidido devolve o MOTIVO junto — a frase do card não pode mentir ===');
+t('idioma da vaga', chamar(s, '_idiomaDecidido', [VAGA_ES]).motivo === 'idioma da vaga');
+t('escolha desta vaga', chamar(s, '_idiomaDecidido', [VAGA_ES, { cvIdioma: 'EN' }]).motivo === 'sua escolha para esta vaga');
+t('vaga em língua não declarada diz isso, não finge que é "o idioma da vaga"', /não declarou/.test(chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo), chamar(s, '_idiomaDecidido', [VAGA_DE]).motivo);
+t('vaga sem sinal admite que não sabe', chamar(s, '_idiomaDecidido', ['']).motivo === 'a vaga não diz o idioma');
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'en', niveis: { PT: 'nativo', EN: 'avancado', ES: 'avancado', DE: 'nao' } }));
+t('padrão do Perfil se identifica como padrão', chamar(s, '_idiomaDecidido', [VAGA_ES]).motivo === 'padrão do seu Perfil');
+exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: null }));
 
 console.log('\n=== _extrairPerfilTraduzido: fato traduzido só entra se for confiável ===');
 const RESP = (perfil) => `MARCOS FRANCO\n---CV---\nMARCOS FRANCO\nJefe de Ventas\n\nRESUMEN EJECUTIVO\nDirectivo comercial.\n\nCOMPETENCIAS E IDIOMAS\nVentas · Canal\n---PERFIL---\n${perfil}`;

@@ -51,13 +51,34 @@ t('gerarCVInline confirma ANTES de substituir um CV existente', /async function 
 t('e a pergunta avisa que ajustes à mão se perdem', /esses ajustes se perdem/.test(html));
 
 console.log('\n=== o idioma se afirma, não se pergunta ===');
-t('a frase diz o idioma que vai sair', /id="mv-idioma-frase"/.test(html) && /Documentos em '\+\(_IDIOMA_NOME\[lang\]/.test(html));
-t('e diz em nome de quê (vaga, escolha ou padrão)', /idioma da vaga/.test(html) && /sua escolha/.test(html));
-t('usa a MESMA decisão do pedido de CV (_idiomaDoPedido)', /function mvSyncIdiomaDocs\(\)\{[\s\S]{0,400}_idiomaDoPedido\(desc\)/.test(html));
+t('a frase diz o idioma que vai sair', /id="mv-idioma-frase"/.test(html) && /Documentos em '\+\(\(IDIOMAS\[d\.lang\]/.test(html));
+t('e diz em nome de quê — motivo e decisão saem juntos', /function mvSyncIdiomaDocs\(\)\{[\s\S]{0,500}_idiomaDecidido\(desc,_mvVagaDoCard\(\)\)/.test(html)
+  && /frase\.textContent=[^;]*d\.motivo/.test(html));
 t('as opções nascem fechadas, atrás de "mudar"', /id="mv-idioma-opcoes"[^>]*display:none/.test(html));
 t('sem bandeiras/emoji no seletor do card', !/id="mv-idioma-opcoes"[\s\S]{0,600}🇧🇷/.test(html));
 t('a frase se refaz quando a descrição muda', /function mvAtualizarBtnAnalise\(\)\{[\s\S]{0,2200}mvSyncIdiomaDocs\(\);/.test(html)
   && /oninput="[^"]*mvAtualizarBtnAnalise\(\)"/.test(html));
+
+console.log('\n=== a escolha de idioma é DAQUELA vaga — não é um Caps Lock ===');
+// Era global (cvLangManual): clicar "espanhol" numa vaga deixava todos os CVs seguintes em
+// espanhol, sem nada na tela dizendo isso. Agora a exceção mora no card e viaja com ele.
+t('escolher grava no card, não numa variável global', /function mvIdiomaEscolher\(lang\)\{[\s\S]{0,300}v\.cvIdioma=lang\|\|''/.test(html));
+t('e o card não chama mais setLang (o toggle global ficou só na aba Análise CV)', !/function mvIdiomaEscolher\([\s\S]{0,300}setLang\(/.test(html));
+t('a exceção sobrevive ao salvar o card', /cvIdioma:existing\?\.cvIdioma\|\|_novoA\.cvIdioma\|\|''/.test(html));
+t('e ao salvamento silencioso que precede gerar o CV', /cvIdioma:existing\?\.cvIdioma\|\|\(isNew\?\(\(_mvNovoCardAnalise&&_mvNovoCardAnalise\.cvIdioma\)\|\|''\):''\)/.test(html));
+t('o pedido de CV recebe a vaga (é dela que sai a exceção)', /const idioma = _idiomaDoPedido\(desc, o\.idioma, o\.vaga\)/.test(html));
+t('gerarCVInline passa a vaga do card', /montarPedidoCV\(\{descricao:jobDesc[^}]*vaga:_mvVagaDoCard\(\)\}\)/.test(html));
+
+console.log('\n=== as opções são as línguas DESTA pessoa, não três botões fixos ===');
+t('nascem do Perfil (idiomasDoUsuario), desenhadas em JS', /function mvRenderIdiomaOpcoes\(\)\{[\s\S]{0,700}idiomasDoUsuario\(\)\.map/.test(html));
+t('não há mais PT/EN/ES escritos à mão no HTML do seletor', !/data-lang="PT" onclick="mvIdiomaEscolher/.test(html));
+t('"voltar ao padrão" só existe quando há exceção para desfazer', /if\(v&&v\.cvIdioma\) btns\.push\([\s\S]{0,200}Voltar ao padrão/.test(html));
+t('o padrão do Perfil só oferece língua declarada', /function _perfilRenderIdiomaPadrao\(daTela\)\{[\s\S]{0,900}idiomaEntregavel\(c\)&&nivel\(c\)!=='nao'/.test(html));
+t('e o select do Perfil deixou de trazer opções fixas no HTML', /<select id="perfil-idioma-candidatura"[^>]*><\/select>/.test(html));
+
+console.log('\n=== o CV guardado noutra língua não é baixado em silêncio ===');
+t('a linha de estado avisa quando o CV está em língua diferente da decidida', /v\.atsCvIdioma&&_lang&&v\.atsCvIdioma!==_lang/.test(html));
+t('e diz o que fazer a respeito', /refazer para sair em /.test(html));
 
 console.log('\n=== Documentos não se esconde de quem ainda não tem CV ===');
 // Era o efeito colateral de mudar o botão de lugar: a seção só aparecia quando JÁ existia

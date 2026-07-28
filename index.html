@@ -1101,7 +1101,7 @@ select option { background: var(--bg2); }
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇧🇷 Português (BR)</span>
-            <select id="perfil-nivel-pt" style="flex:1;font-size:13px;">
+            <select id="perfil-nivel-pt" style="flex:1;font-size:13px;" onchange="_perfilRenderIdiomaPadrao(true)">
               <option value="nativo">Nativo</option>
               <option value="avancado">Avançado</option>
               <option value="intermediario">Intermediário</option>
@@ -1111,7 +1111,7 @@ select option { background: var(--bg2); }
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇺🇸 English</span>
-            <select id="perfil-nivel-en" style="flex:1;font-size:13px;">
+            <select id="perfil-nivel-en" style="flex:1;font-size:13px;" onchange="_perfilRenderIdiomaPadrao(true)">
               <option value="nativo">Nativo</option>
               <option value="avancado">Avançado</option>
               <option value="intermediario">Intermediário</option>
@@ -1121,7 +1121,7 @@ select option { background: var(--bg2); }
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇪🇸 Español</span>
-            <select id="perfil-nivel-es" style="flex:1;font-size:13px;">
+            <select id="perfil-nivel-es" style="flex:1;font-size:13px;" onchange="_perfilRenderIdiomaPadrao(true)">
               <option value="nativo">Nativo</option>
               <option value="avancado">Avançado</option>
               <option value="intermediario">Intermediário</option>
@@ -1131,7 +1131,7 @@ select option { background: var(--bg2); }
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:13.5px;color:var(--text2);width:130px;flex-shrink:0;">🇩🇪 Deutsch</span>
-            <select id="perfil-nivel-de" style="flex:1;font-size:13px;">
+            <select id="perfil-nivel-de" style="flex:1;font-size:13px;" onchange="_perfilRenderIdiomaPadrao(true)">
               <option value="nativo">Nativo</option>
               <option value="avancado">Avançado</option>
               <option value="intermediario">Intermediário</option>
@@ -1156,13 +1156,9 @@ select option { background: var(--bg2); }
         <!-- Idioma padrão candidatura -->
         <div>
           <label class="field-label" style="margin-bottom:8px;display:block;">Idioma padrão dos documentos gerados</label>
-          <select id="perfil-idioma-candidatura" style="font-size:14px;">
-            <option value="pt">🇧🇷 Português (BR)</option>
-            <option value="en">🇺🇸 English</option>
-            <option value="es">🇪🇸 Español</option>
-            <option value="de">🇩🇪 Deutsch</option>
-            <option value="auto">Seguir o idioma da vaga</option>
-          </select>
+          <!-- As opções saem dos idiomas marcados acima (_perfilRenderIdiomaPadrao): não se
+               oferece escrever numa língua que a pessoa acabou de dizer que não fala. -->
+          <select id="perfil-idioma-candidatura" style="font-size:14px;"></select>
           <div style="font-size:12px;color:var(--text3);margin-top:6px;">Pode ser alterado por vaga individual no momento da candidatura</div>
         </div>
       </div>
@@ -2165,11 +2161,9 @@ select option { background: var(--bg2); }
           <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
             <span id="mv-idioma-frase" style="font-size:12px;color:var(--text3);"></span>
             <span id="mv-idioma-mudar" onclick="mvIdiomaOpcoes(true)" style="font-size:12px;font-weight:600;color:var(--action);cursor:pointer;">mudar</span>
-            <div id="mv-idioma-opcoes" class="lang-toggle" style="display:none;gap:4px;">
-              <button class="lang-btn" data-lang="PT" onclick="mvIdiomaEscolher('PT',this)" style="padding:3px 9px;font-size:12px;">Português</button>
-              <button class="lang-btn" data-lang="EN" onclick="mvIdiomaEscolher('EN',this)" style="padding:3px 9px;font-size:12px;">English</button>
-              <button class="lang-btn" data-lang="ES" onclick="mvIdiomaEscolher('ES',this)" style="padding:3px 9px;font-size:12px;">Español</button>
-            </div>
+            <!-- As opções são desenhadas por mvRenderIdiomaOpcoes a partir dos idiomas que a
+                 pessoa declarou no Perfil — não são três botões fixos no HTML. -->
+            <div id="mv-idioma-opcoes" class="lang-toggle" style="display:none;gap:4px;flex-wrap:wrap;justify-content:flex-end;"></div>
           </div>
         </div>
         <!-- CONTROLES (sempre em cima) -->
@@ -3331,15 +3325,18 @@ function showPage(page) {
 // ═══════════════════════════════════════════════
 //  ANTI-ATS MODULE
 // ═══════════════════════════════════════════════
+// ESTES DOIS SÃO SÓ DA ABA "ANÁLISE CV" (S38). Ela não tem card, então precisa de um lugar para
+// guardar a escolha da tela. O card NÃO os consulta mais: lá a escolha mora na vaga (vaga.cvIdioma),
+// porque uma escolha global era um Caps Lock — clicar "espanhol" numa vaga deixava todos os CVs
+// seguintes em espanhol, e nada na tela dizia isso.
 let cvLang = 'PT';
-// O idioma do CV segue a VAGA por padrão. Só passa a seguir o toggle depois que Marcos o clica —
-// senão o toggle (que nasce em PT) mandava um CV em português para uma vaga espanhola, que foi
-// o que aconteceu na Mur&Partners (23/jul/2026).
+// Mesmo aqui, o idioma segue a VAGA por padrão: o toggle só passa na frente depois de clicado de
+// propósito — senão o toggle (que nasce em PT) mandava um CV em português para uma vaga espanhola,
+// que foi o que aconteceu na Mur&Partners (23/jul/2026).
 let cvLangManual = false;
 function setLang(lang,btn) {
   cvLang = lang;
   cvLangManual = true;
-  // Atualiza o estado ativo no toggle CLICADO (agora há um na aba ATS e outro em Documentos do card).
   const box=btn?btn.closest('.lang-toggle'):null;
   (box||document).querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -3438,6 +3435,56 @@ const _IDIOMA_MARCAS = {
   EN: /\b(the|and|of|to|for|with|you|will|our|we|are|looking|requirements|benefits|salary|role|skills|responsibilities|about us)\b/gi,
   DE: /\b(und|der|die|das|für|mit|sie|wir|ein|eine|bei|ihre|erfahrung|unternehmen|kenntnisse|aufgaben|anforderungen|gehalt|stelle|sowie|abgeschlossenes)\b/gi,
 };
+// ── REGISTRO DE IDIOMAS (S38) ─────────────────────────────────────────────────────────────
+// O Senova não está preso a três línguas: uma língua nova entra AQUI e passa a existir no
+// Perfil, no seletor do card e no PDF. Duas travas éticas viajam junto com a lista:
+//   1. só se oferece a língua que a pessoa DECLAROU falar no Perfil — mandar um CV em alemão
+//      a quem não fala alemão é insinuar um idioma que ela não tem;
+//   2. só se oferece a língua que sabemos entregar COMPLETA (_PDF_LABELS) — sem os rótulos do
+//      PDF, o documento sairia meio traduzido: resumo em espanhol, seções em português.
+// Por isso a lista visível é o cruzamento das duas, e não uma constante de três botões.
+const IDIOMAS={
+  PT:{nome:'português',label:'Português (BR)',flag:'🇧🇷'},
+  EN:{nome:'inglês',   label:'English',       flag:'🇺🇸'},
+  ES:{nome:'espanhol', label:'Español',       flag:'🇪🇸'},
+  DE:{nome:'alemão',   label:'Deutsch',       flag:'🇩🇪'},
+};
+// Sabemos entregar o documento inteiro nesta língua? (_PDF_LABELS nasce mais abaixo no arquivo;
+// esta função só roda em tempo de uso, nunca na avaliação do script.)
+function idiomaEntregavel(cod){ return !!(typeof _PDF_LABELS!=='undefined' && _PDF_LABELS[cod]); }
+
+// O Perfil vive no Worker e só é carregado quando se abre a aba Perfil — mas a decisão do
+// idioma acontece no card, que abre sem passar por lá. Por isso o padrão e os níveis ficam
+// espelhados no navegador: a régua continua sendo do Perfil, a cópia local só a torna alcançável.
+const _PERFIL_IDIOMA_KEY='senova_perfil_idioma';
+let _perfilIdioma={padrao:'auto',niveis:null};
+try{ const _pi=JSON.parse(localStorage.getItem(_PERFIL_IDIOMA_KEY)||'null'); if(_pi&&_pi.niveis) _perfilIdioma=_pi; }catch(_){}
+function _guardarPerfilIdioma(padrao,niveis){
+  _perfilIdioma={padrao:String(padrao||'auto').toLowerCase(),niveis:niveis||null};
+  try{ localStorage.setItem(_PERFIL_IDIOMA_KEY,JSON.stringify(_perfilIdioma)); }catch(_){}
+}
+// Enquanto o Perfil não foi carregado nesta máquina, os níveis vêm dos idiomas declarados no
+// próprio CV (PERFIL_MARCOS.idiomas) — a mesma verdade, só que de outra fonte. Melhor isso do
+// que abrir o app fingindo que a pessoa só fala português.
+function _niveisIdiomaDeclarados(){
+  const n=_perfilIdioma&&_perfilIdioma.niveis;
+  if(n&&Object.keys(n).length) return n;
+  const marcas={portugu:'PT',ingl:'EN',english:'EN',espanh:'ES',espanol:'ES',alem:'DE',deutsch:'DE'};
+  const r={};
+  ((typeof PERFIL_MARCOS!=='undefined'&&PERFIL_MARCOS.idiomas)||[]).forEach(i=>{
+    const t=String(i.idioma||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    for(const k in marcas) if(t.includes(k)) r[marcas[k]]=i.nivel||'avancado';
+  });
+  return r;
+}
+// As línguas em que o Senova pode escrever PARA ESTA PESSOA. Nunca vazia: sem nada declarado,
+// resta o português, que é a língua do app.
+function idiomasDoUsuario(){
+  const n=_niveisIdiomaDeclarados();
+  const meus=Object.keys(IDIOMAS).filter(c=>idiomaEntregavel(c)&&String(n[c]||'nao')!=='nao');
+  return meus.length?meus:['PT'];
+}
+
 // Idioma da vaga a partir do texto dela. Determinístico — sem chamada de IA, sem custo, testável.
 // Devolve '' quando não há sinal suficiente (descrição curta, só bullets em siglas): nesse caso
 // quem chama decide, e o padrão continua sendo o toggle do app.
@@ -3455,21 +3502,51 @@ function _idiomaDaVaga(texto){
   return melhor;
 }
 
-// Idioma em que o CV será escrito, dado o idioma detectado na vaga.
-// Alemanha: Marcos não fala alemão (Português nativo · Inglês avançado · Espanhol avançado).
-// Mandar um CV em alemão insinuaria um idioma que ele não tem — em vaga DE, o CV vai em inglês,
-// que é o padrão aceito em processo executivo no DACH e é verdade sobre ele.
-function _idiomaDoCV(idiomaVaga){
-  if (idiomaVaga === 'DE') return 'EN';
-  return (idiomaVaga === 'ES' || idiomaVaga === 'EN' || idiomaVaga === 'PT') ? idiomaVaga : '';
+// A língua da vaga, traduzida para a melhor língua que a pessoa TEM de verdade.
+// Vaga em alemão para quem não fala alemão: o CV vai em inglês — padrão aceito em processo
+// executivo no DACH e verdade sobre ela. Mandar em alemão insinuaria um idioma que ela não tem.
+// Antes esta regra era uma linha fixa (DE→EN, e só PT/EN/ES existiam); agora ela lê os idiomas
+// declarados, então vale para qualquer pessoa e qualquer par de línguas.
+function _idiomaDoCV(idiomaVaga, meus){
+  meus = meus || idiomasDoUsuario();
+  if (!idiomaVaga) return '';
+  if (meus.includes(idiomaVaga)) return idiomaVaga;
+  return meus.includes('EN') ? 'EN' : '';
 }
 
-// Decisão final do idioma de um pedido de CV. Quem manda é a VAGA; o toggle do app só passa na
-// frente depois que Marcos o clica de propósito (cvLangManual); um pedido explícito manda sempre.
-// Fica fora de montarPedidoCV porque a ponte da extensão precisa da mesma decisão sem montar o
-// prompt inteiro — e duas decisões diferentes de idioma seria o mesmo erro dos dois CVs.
-function _idiomaDoPedido(desc, explicito){
-  return explicito || (cvLangManual ? cvLang : (_idiomaDoCV(_idiomaDaVaga(desc)) || cvLang));
+// Decisão do idioma dos documentos — e o MOTIVO dela, no mesmo lugar. Devolver os dois juntos é
+// o que garante que a frase do card ("Documentos em inglês — idioma da vaga") nunca possa dizer
+// uma coisa enquanto o prompt faz outra (CRIVO 6: o feedback reflete o efeito real).
+//
+// A ordem, e o porquê de cada degrau:
+//   1. a EXCEÇÃO daquela vaga (vaga.cvIdioma), gravada quando se usa o "mudar" no card. Mora no
+//      card, viaja com ele e não vaza para o próximo. Era exatamente aqui o defeito: a escolha
+//      era global (cvLangManual) e virava um Caps Lock — um clique numa vaga espanhola deixava
+//      todos os CVs seguintes em espanhol, sem nada na tela dizendo isso.
+//   2. o PADRÃO do Perfil, quando a pessoa fixou uma língua ("sempre em inglês").
+//   3. padrão "seguir o idioma da vaga": a língua da vaga, na melhor língua que ela tem.
+//   4. vaga sem sinal de idioma (descrição curta, só bullets): a primeira língua declarada.
+// Em todos os degraus, só passa língua que a pessoa declarou — idiomasDoUsuario() é o filtro.
+function _idiomaDecidido(desc, vaga){
+  const meus = idiomasDoUsuario();
+  const meu = c => (c && meus.includes(c)) ? c : '';
+  const escolha = meu(vaga && vaga.cvIdioma);
+  if (escolha) return { lang: escolha, motivo: 'sua escolha para esta vaga' };
+  const padrao = meu(String((_perfilIdioma && _perfilIdioma.padrao) || 'auto').toUpperCase());
+  if (padrao) return { lang: padrao, motivo: 'padrão do seu Perfil' };
+  const daVaga = _idiomaDaVaga(desc);
+  const escrito = _idiomaDoCV(daVaga, meus);
+  if (escrito) return { lang: escrito, motivo: escrito === daVaga ? 'idioma da vaga'
+    : 'a vaga é em ' + ((IDIOMAS[daVaga] || {}).nome || 'outro idioma') + ', que você não declarou' };
+  return { lang: meus[0], motivo: 'a vaga não diz o idioma' };
+}
+
+// Decisão final do idioma de um pedido de CV. Fica fora de montarPedidoCV porque a ponte da
+// extensão precisa da mesma decisão sem montar o prompt inteiro — e duas decisões diferentes de
+// idioma seria o mesmo erro dos dois CVs.
+function _idiomaDoPedido(desc, explicito, vaga){
+  const meus = idiomasDoUsuario();
+  return ((explicito && meus.includes(explicito)) ? explicito : '') || _idiomaDecidido(desc, vaga).lang;
 }
 
 // PORTÃO ÚNICO de GERAÇÃO do CV. Todo caminho que pede um CV à IA — aba Análise CV, card
@@ -3480,7 +3557,8 @@ function _idiomaDoPedido(desc, explicito){
 // O portão de ESCRITA (setCV) já existia; faltava o de LEITURA. O guard test (testes/guard.js)
 // barra o commit se alguém voltar a chamar ATS_SYSTEM fora daqui.
 // Referência de comportamento: o caminho do card, que é o aprovado por Marcos.
-//   o = {descricao, localizacao, modelo, regime, contexto, idioma, cargo}
+//   o = {descricao, localizacao, modelo, regime, contexto, idioma, cargo, vaga}
+//   `vaga` é o card: é dele que sai a exceção de idioma daquela vaga (ver _idiomaDecidido).
 function montarPedidoCV(o){
   o = o || {};
   const desc = String(o.descricao || '');
@@ -3495,7 +3573,7 @@ function montarPedidoCV(o){
   // vaga, nunca C-level para vaga de execução). Vem do cargo quando o caller o conhece (card e
   // extensão passam o cargo); senão, do título no topo da descrição; senão '' e a IA infere da JD.
   const nivelVaga = _nivelAlvoPDF(String(o.cargo || '')) || _nivelAlvoPDF((desc.split('\n').map(s => s.trim()).find(Boolean) || '').slice(0, 120)) || '';
-  const idioma = _idiomaDoPedido(desc, o.idioma);
+  const idioma = _idiomaDoPedido(desc, o.idioma, o.vaga);
   // Fora do português, a resposta traz também os FATOS traduzidos (bloco ---PERFIL---): sem isso
   // o PDF sairia meio espanhol (resumo) e meio português (cargos, bullets, formação), porque
   // esses campos vêm estruturados do PERFIL_MARCOS e não passam pela IA. Cabe nos 4000 tokens
@@ -3656,7 +3734,10 @@ async function analyzeJob() {
   btn.disabled = true;
   btn.innerHTML = `<div class="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Analisando...`;
   _hideAtsExtras();
-  const _pedidoATS = montarPedidoCV({descricao:vaga,contexto:document.getElementById('ats-contexto')?.value.trim()||''});
+  // A aba Análise CV não tem card, logo não tem exceção de vaga: quem faz o papel dela aqui é o
+  // toggle desta tela — e só depois de clicado de propósito (cvLangManual), senão o toggle, que
+  // nasce em PT, mandaria um CV em português para uma vaga espanhola (Mur&Partners, 23/jul/2026).
+  const _pedidoATS = montarPedidoCV({descricao:vaga,contexto:document.getElementById('ats-contexto')?.value.trim()||'',idioma:cvLangManual?cvLang:''});
   document.getElementById('result-area').innerHTML = `<div class="card" style="padding:40px;text-align:center;"><div class="loader" style="justify-content:center;margin-bottom:16px;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div style="font-size:14px;color:var(--text3);">Mapeando keywords · calculando match · otimizando CV...</div></div>`;
   try {
     const res = await fetch(WORKER_URL+'/api/claude',{
@@ -4403,7 +4484,33 @@ function salvarDadosSensiveis(){
   if(st){ st.textContent='Salvo neste navegador ✓'; st.style.color='var(--green)'; setTimeout(()=>{ if(st.textContent.startsWith('Salvo')) st.textContent=''; },2600); }
 }
 
+// Redesenha o "idioma padrão dos documentos" a partir dos níveis marcados AGORA na tela — antes
+// mesmo de salvar. Preserva a escolha vigente enquanto ela continuar possível; se a pessoa acabou
+// de dizer que não fala a língua que estava fixada, cai em "seguir o idioma da vaga" em vez de
+// manter na tela uma opção que o app não vai honrar.
+// `daTela`: ler os níveis dos selects (depois de a pessoa mexer neles, ou de o Perfil chegar do
+// Worker). Sem ele, lê a régua guardada — é o que vale antes do fetch, quando os selects ainda
+// mostram o valor default do HTML e diriam que ela fala tudo.
+function _perfilRenderIdiomaPadrao(daTela){
+  const sel=document.getElementById('perfil-idioma-candidatura');
+  if(!sel) return;
+  const atual=sel.value||(_perfilIdioma&&_perfilIdioma.padrao)||'auto';
+  const guardados=_niveisIdiomaDeclarados();
+  const nivel=c=>daTela?(document.getElementById('perfil-nivel-'+c.toLowerCase())?.value||'nao'):String(guardados[c]||'nao');
+  const meus=Object.keys(IDIOMAS).filter(c=>idiomaEntregavel(c)&&nivel(c)!=='nao');
+  sel.innerHTML=['<option value="auto">Seguir o idioma da vaga</option>']
+    .concat(meus.map(c=>`<option value="${c.toLowerCase()}">${IDIOMAS[c].flag} ${IDIOMAS[c].label}</option>`)).join('');
+  sel.value=Array.from(sel.options).some(o=>o.value===atual)?atual:'auto';
+  // Fecha o laço: se a língua que estava fixada deixou de ser possível, o que vale é o que a
+  // tela passou a mostrar. Sem isto, o Perfil diria "seguir a vaga" e a régua continuaria fixada
+  // numa língua que a pessoa não fala mais — exatamente a interface fingindo.
+  if(_perfilIdioma&&_perfilIdioma.padrao!==sel.value) _guardarPerfilIdioma(sel.value,_perfilIdioma.niveis);
+}
+
 async function carregarPerfil(){
+  // Desenha o seletor de idioma ANTES do fetch: se o Worker não responder, a pessoa ainda vê uma
+  // lista (a do cache local) em vez de um dropdown vazio. Depois do fetch ele é redesenhado.
+  _perfilRenderIdiomaPadrao();
   try{
     const res=await fetch(WORKER_URL+'/api/perfil');
     const p=await res.json();
@@ -4438,7 +4545,11 @@ async function carregarPerfil(){
     const _com=document.getElementById('perfil-comunidades'); if(_com) _com.value=p.comunidades||'';
     ['pt','en','es','de'].forEach(l=>{ const el=document.getElementById(`perfil-nivel-${l}`); if(el&&p[`nivel_${l}`]) el.value=p[`nivel_${l}`]; });
     ['pt','en','es','de'].forEach(l=>{ const el=document.getElementById(`perfil-cv-${l}`); if(el) el.checked=p[`cv_disponivel_${l}`]||false; });
-    const _ic=document.getElementById('perfil-idioma-candidatura'); if(_ic&&p.idioma_candidatura) _ic.value=p.idioma_candidatura;
+    // A régua de idioma do Perfil passa a ser LIDA (S38): era gravada no Worker e nunca
+    // consultada na hora de escrever um documento. Espelhada no navegador porque a decisão
+    // acontece no card, que abre sem passar por esta aba.
+    _guardarPerfilIdioma(p.idioma_candidatura||'auto',{PT:p.nivel_pt||'nativo',EN:p.nivel_en||'nao',ES:p.nivel_es||'nao',DE:p.nivel_de||'nao'});
+    _perfilRenderIdiomaPadrao(true);   // repõe a escolha salva, e só ela — a lista já vem dos níveis acima
     if(p.dias_inativo){ _diasInativo=p.dias_inativo; const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=p.dias_inativo; }
     const freq=p.freq_varredura||'diaria';
     const freqEl=document.getElementById('perfil-freq-'+freq); if(freqEl) freqEl.checked=true;
@@ -4499,6 +4610,9 @@ async function salvarPerfil(){
     dias_inativo:parseInt(document.getElementById('config-dias-inativo')?.value)||7,
     freq_varredura:document.querySelector('input[name="perfil-freq-varredura"]:checked')?.value||'diaria',
   };
+  // Espelha a régua de idioma no navegador na mesma hora: o card decide o idioma sem passar
+  // por esta aba, e salvar aqui tem de valer no próximo card que se abrir.
+  _guardarPerfilIdioma(dados.idioma_candidatura,{PT:dados.nivel_pt,EN:dados.nivel_en,ES:dados.nivel_es,DE:dados.nivel_de});
   try{
     await fetch(WORKER_URL+'/api/perfil',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(dados)});
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
@@ -7140,6 +7254,9 @@ function saveVaga(){
     atsAnalise:existing?.atsAnalise||_novoA.atsAnalise||'',
     atsAnaliseData:existing?.atsAnaliseData||'',
     atsCvIdioma:existing?.atsCvIdioma||'',
+    // Exceção de idioma DESTA vaga (o "mudar" em Documentos). Num card novo ela fica na holder
+    // até o card existir — sem esta linha, escolher o idioma antes de salvar se perdia no salvar.
+    cvIdioma:existing?.cvIdioma||_novoA.cvIdioma||'',
     compatClass:existing?.compatClass||_novoA.compatClass||'',
     compatFortes:existing?.compatFortes||_novoA.compatFortes||[],
     compatAtencao:existing?.compatAtencao||_novoA.compatAtencao||[],
@@ -7510,6 +7627,7 @@ function mvSyncDocsCV(){
   // baixam o que houver e GERAM sob demanda (_mvGarantirCV) — por isso o estado vazio diz o que
   // vai acontecer no primeiro clique, em vez de oferecer um botão para o mesmo ato.
   mvSyncCVEstado();
+  mvIdiomaOpcoes(false);   // o card abre afirmando o idioma, nunca perguntando
   mvSyncIdiomaDocs();
   mvDocTab('ats');
   mvSyncEnvioDireto();
@@ -7520,9 +7638,15 @@ function mvSyncCVEstado(){
   const el=document.getElementById('mv-cv-estado');
   if(!el) return;
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
-  el.textContent = (v&&v.atsCV)
-    ? ('CV adaptado a esta vaga'+(v.atsCVEm?' em '+_dataCurta(v.atsCVEm):'')+'.')
-    : 'Ainda sem CV para esta vaga — o primeiro download gera.';
+  if(!(v&&v.atsCV)){ el.textContent='Ainda sem CV para esta vaga — o primeiro download gera.'; return; }
+  let txt='CV adaptado a esta vaga'+(v.atsCVEm?' em '+_dataCurta(v.atsCVEm):'')+'.';
+  // O CV que está no card foi escrito numa língua; a decisão de agora pode ser outra (mudou o
+  // idioma, ou a descrição). Baixar em silêncio o CV velho seria a interface fingindo — quem
+  // acabou de escolher "inglês" receberia um PDF em português sem uma palavra a respeito.
+  const _lang=_idiomaDoPedido(document.getElementById('mv-job-desc')?.value||'','',v);
+  if(v.atsCvIdioma&&_lang&&v.atsCvIdioma!==_lang)
+    txt+=' Está em '+((IDIOMAS[v.atsCvIdioma]||{}).nome||v.atsCvIdioma)+' — refazer para sair em '+((IDIOMAS[_lang]||{}).nome||_lang)+'.';
+  el.textContent=txt;
 }
 // Data curta no estilo do app ("26/jul"). Traz o ano quando o CV é de outro ano — um CV do ano
 // passado dizendo só "12/nov" pareceria recente.
@@ -7532,32 +7656,54 @@ function _dataCurta(ts){
   const ano=d.getFullYear()===new Date().getFullYear()?'':'/'+d.getFullYear();
   return String(d.getDate()).padStart(2,'0')+'/'+M[d.getMonth()]+ano;
 }
-// Afirma em que idioma os documentos vão sair, e em nome de quê. A decisão é a MESMA que o
-// pedido usa (_idiomaDoPedido) — se aqui dissesse uma coisa e o prompt fizesse outra, seria
-// pior do que não dizer nada.
-const _IDIOMA_NOME={PT:'português',EN:'inglês',ES:'espanhol'};
+// A vaga que o card está editando. Card novo ainda não existe em vagas[] — o que faz as vezes
+// dele é a holder _mvNovoCardAnalise, absorvida no obj em saveVaga.
+function _mvVagaDoCard(criar){
+  if(editingVagaId==='new') return criar?(_mvNovoCardAnalise=_mvNovoCardAnalise||{}):_mvNovoCardAnalise;
+  return editingVagaId?vagas.find(x=>String(x.id)===String(editingVagaId))||null:null;
+}
+// Afirma em que idioma os documentos vão sair, e em nome de quê. Motivo e decisão saem juntos de
+// _idiomaDecidido — se aqui dissesse uma coisa e o prompt fizesse outra, seria pior do que não
+// dizer nada.
 function mvSyncIdiomaDocs(){
   const frase=document.getElementById('mv-idioma-frase');
   if(!frase) return;
   const desc=document.getElementById('mv-job-desc')?.value||'';
-  const lang=_idiomaDoPedido(desc);
-  const porque=cvLangManual?'sua escolha':(_idiomaDoCV(_idiomaDaVaga(desc))?'idioma da vaga':'padrão');
-  frase.textContent='Documentos em '+(_IDIOMA_NOME[lang]||'português')+' — '+porque;
-  document.querySelectorAll('#mv-idioma-opcoes .lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
+  const d=_idiomaDecidido(desc,_mvVagaDoCard());
+  frase.textContent='Documentos em '+((IDIOMAS[d.lang]||{}).nome||'português')+' — '+d.motivo;
+  const box=document.getElementById('mv-idioma-opcoes');
+  if(box&&box.style.display!=='none') mvRenderIdiomaOpcoes();
+}
+// As opções são as línguas DESTA pessoa (Perfil), não três botões fixos. "Voltar ao padrão" só
+// existe quando há exceção para desfazer — uma escolha por vaga não pode ser porta de uma via só.
+function mvRenderIdiomaOpcoes(){
+  const box=document.getElementById('mv-idioma-opcoes');
+  if(!box) return;
+  const v=_mvVagaDoCard();
+  const desc=document.getElementById('mv-job-desc')?.value||'';
+  const atual=_idiomaDecidido(desc,v).lang;
+  const btns=idiomasDoUsuario().map(c=>
+    `<button class="lang-btn${c===atual?' active':''}" data-lang="${c}" onclick="mvIdiomaEscolher('${c}')" style="padding:3px 9px;font-size:12px;">${(IDIOMAS[c]||{}).label||c}</button>`);
+  if(v&&v.cvIdioma) btns.push(`<button class="lang-btn" data-lang="" onclick="mvIdiomaEscolher('')" style="padding:3px 9px;font-size:12px;">Voltar ao padrão</button>`);
+  box.innerHTML=btns.join('');
 }
 function mvIdiomaOpcoes(abrir){
   const box=document.getElementById('mv-idioma-opcoes');
   if(!box) return;
+  if(abrir) mvRenderIdiomaOpcoes();
   box.style.display=abrir?'flex':'none';
   const frase=document.getElementById('mv-idioma-frase');
   const mudar=document.getElementById('mv-idioma-mudar');
   if(frase) frase.style.display=abrir?'none':'';
   if(mudar) mudar.style.display=abrir?'none':'';
 }
-function mvIdiomaEscolher(lang,btn){
-  setLang(lang,btn);   // marca cvLangManual: a partir daqui quem manda é a escolha, não a vaga
+// A escolha é DESTA vaga: grava no card e para por aí. Nada vaza para o próximo.
+function mvIdiomaEscolher(lang){
+  const v=_mvVagaDoCard(true);
+  if(v){ v.cvIdioma=lang||''; if(editingVagaId&&editingVagaId!=='new'){ v.updatedAt=Date.now(); saveVagas(); } }
   mvIdiomaOpcoes(false);
   mvSyncIdiomaDocs();
+  mvSyncCVEstado();   // o CV que já existe pode ter ficado noutra língua — a linha precisa dizer
 }
 // Garante que existe um CV antes de baixar. Se ainda não há, gera sob demanda
 // (mesma geração do antigo "Gerar CV") e devolve true se o CV ficou pronto.
@@ -7597,6 +7743,7 @@ function mvAtualizarBtnAnalise(){
     if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML='Refazer CV';
   }
   mvSyncIdiomaDocs();   // o idioma sai da descrição: mudou a descrição, pode ter mudado o idioma
+  mvSyncCVEstado();     // e com ele o aviso de que o CV guardado está noutra língua
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
 }
 function mvMostrarCtxRegen(tipo){
@@ -8162,6 +8309,10 @@ function saveVagaSilent(){
     atsScore:existing?.atsScore||'',atsCvScore:existing?.atsCvScore||'',atsKeywords:existing?.atsKeywords||'',
     atsAnalise:existing?.atsAnalise||'',atsCV:existing?.atsCV||'',
     atsCarta:existing?.atsCarta||'',tags:existing?.tags||[],
+    // A exceção de idioma escolhida antes de o card existir mora na holder. Este salvamento
+    // silencioso é o que roda logo antes de gerar o CV — sem esta linha, escolher "inglês" num
+    // card novo e clicar PDF devolvia um CV em português, sem nada na tela dizendo por quê.
+    cvIdioma:existing?.cvIdioma||(isNew?((_mvNovoCardAnalise&&_mvNovoCardAnalise.cvIdioma)||''):''),
     score:existing?.score,classificacao:existing?.classificacao,
     resumo:existing?.resumo,fonte:existing?.fonte,
     pontos_fortes:existing?.pontos_fortes||[],
@@ -8250,7 +8401,7 @@ async function gerarCVInline(){
   const btn=document.getElementById('mv-refazer-cv-btn');
   const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Gerando…';
   if(btn){btn.disabled=true;btn.innerHTML=loadingHtml;}
-  const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
+  const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo,vaga:_mvVagaDoCard()});
   try{
     const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(_pedido.body)});
@@ -8350,7 +8501,7 @@ async function gerarDocModal(tipo){
   if(tipo==='ats'){
     // Mesmo pedido do card e da extensão — portão único. Antes daqui saía um CV de outro
     // modelo, com outro tamanho e sem PERFIL COMPLEMENTAR: regerar mudava o CV sem motivo.
-    _pedidoDoc=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
+    _pedidoDoc=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo,vaga:_mvVagaDoCard()});
     bodyReq=_pedidoDoc.body;
   } else if(tipo==='carta'){
     system=CARTA_SYSTEM(cvLang,vagaTexto);
@@ -11311,7 +11462,7 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
   // de Posição, sem descrição cortada e sem idioma fixo. Antes daqui saía um CV degradado.
   const desc=v.jobDescription||v.descricao||'';
   if(!desc.trim()) return {ok:false,motivo:'sem_descricao'};
-  const _ped=montarPedidoCV({descricao:desc,localizacao:v.localizacao||'',modelo:v.modelo||'',regime:v.regime||'',cargo:v.cargo||''});
+  const _ped=montarPedidoCV({descricao:desc,localizacao:v.localizacao||'',modelo:v.modelo||'',regime:v.regime||'',cargo:v.cargo||'',vaga:v});
   // Mesmo piso do card: CV de snippet sai genérico — melhor avisar do que entregar documento fraco.
   if(_ped.curta) return {ok:false,motivo:'descricao_curta'};
   return {ok:false,motivo:'precisa_gerar',
@@ -11331,7 +11482,7 @@ window.__senovaCopilotoSalvarCV=function(ref,cvText){
   if(!soCV) return false;
   setCV(vagas[idx],cvText);
   // Mesma decisão de idioma do pedido — é ela que diz ao PDF em que língua rotular as seções.
-  vagas[idx].atsCvIdioma=_idiomaDoPedido(vagas[idx].jobDescription||vagas[idx].descricao||'');
+  vagas[idx].atsCvIdioma=_idiomaDoPedido(vagas[idx].jobDescription||vagas[idx].descricao||'','',vagas[idx]);
   saveVagas();
   const cvTxt=document.getElementById('mv-ats-cv-txt');
   if(cvTxt) cvTxt.value=soCV;

@@ -29,18 +29,29 @@ const NUCLEO = [
   'function _statusLabel(',
   'function _confirmarArquivarProtegido(',
   'function _marcarCandidaturaEnviada(',
-  // Idioma do CV: decidido pela vaga (ver _idiomaDoPedido). Entra no núcleo porque o portão de
-  // escrita e a ponte da extensão dependem dele.
+  // Idioma do CV: decidido pela vaga e pela régua do Perfil (ver _idiomaDecidido). Entra no
+  // núcleo porque o portão de escrita e a ponte da extensão dependem dele. _PDF_LABELS entra
+  // junto: é ele que diz em que línguas sabemos entregar o documento inteiro, e sem ele a
+  // lista de idiomas do usuário sairia vazia dentro do sandbox.
+  'const IDIOMAS={',
+  'const _PDF_LABELS={',
+  'function idiomaEntregavel(',
+  'let _perfilIdioma=',
+  'function _niveisIdiomaDeclarados(',
+  'function idiomasDoUsuario(',
   'const _IDIOMA_MARCAS = {',
   'function _idiomaDaVaga(',
   'function _idiomaDoCV(',
+  'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).
 function carregarApp(extras = [], mocks = {}) {
-  const fontes = [...NUCLEO, ...extras].map(extrai).join('\n;\n');
+  // Set: um teste pode listar nos `extras` algo que já está no núcleo (_PDF_LABELS, por
+  // exemplo) — extrair duas vezes daria `const` declarado duas vezes e SyntaxError.
+  const fontes = [...new Set([...NUCLEO, ...extras])].map(extrai).join('\n;\n');
   const sandbox = Object.assign({
     vagas: [], filtroAtivo: null,
     saveVagas() {}, renderCRM() {}, aplicarFiltros() {}, showToast() {},
@@ -54,7 +65,11 @@ function carregarApp(extras = [], mocks = {}) {
     lastCV: '', lastCVFilename: '', atsCargo: '', _pdfExecBase64: () => 'FAKEB64',
     cvLang: 'PT', cvLangManual: false, lastCVLang: 'PT', lastCVTrad: null,
     // Perfil mínimo: quem testa os fatos traduzidos carrega o PERFIL_MARCOS real nos `extras`.
-    PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [] },
+    // Os idiomas declarados vêm junto porque é deles que sai em que línguas o app pode escrever
+    // (idiomasDoUsuario) — um perfil sem idiomas faria todo CV cair em português no sandbox.
+    PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [
+      { idioma: 'Português', nivel: 'nativo' }, { idioma: 'Inglês', nivel: 'avancado' }, { idioma: 'Espanhol', nivel: 'avancado' },
+    ] },
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     unescape: global.unescape || (s => decodeURIComponent(s)),
     encodeURIComponent, console,

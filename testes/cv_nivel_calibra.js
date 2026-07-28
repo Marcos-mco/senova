@@ -31,9 +31,16 @@ function extrai(assinatura) {
 // As funções/consts REAIS que compõem a geração do CV, na ordem de dependência.
 const fontes = [
   'const PERFIL_MARCOS =',
+  'const IDIOMAS={',
+  'const _PDF_LABELS={',
+  'function idiomaEntregavel(',
+  'let _perfilIdioma=',
+  'function _niveisIdiomaDeclarados(',
+  'function idiomasDoUsuario(',
   'const _IDIOMA_MARCAS = {',
   'function _idiomaDaVaga(',
   'function _idiomaDoCV(',
+  'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
   'function filtrarExperienciasRelevantes(',
   'function formatarExperienciasPerfil(',
@@ -105,9 +112,9 @@ t('montarPedidoCV passa o nivelVaga para ATS_SYSTEM (3º arg)',
 t('montarPedidoCV deriva nivelVaga do cargo/descrição via _nivelAlvoPDF',
   /const nivelVaga = _nivelAlvoPDF\(String\(o\.cargo/.test(html));
 t('o card (Análise) passa o cargo ao portão',
-  /montarPedidoCV\(\{descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo\}\)/.test(html));
+  /montarPedidoCV\(\{descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo[,}]/.test(html));
 t('a extensão passa o cargo ao portão',
-  /montarPedidoCV\(\{descricao:desc,[^}]*cargo:v\.cargo\|\|''\}\)/.test(html));
+  /montarPedidoCV\(\{descricao:desc,[^}]*cargo:v\.cargo\|\|''[,}]/.test(html));
 t('o fallback de subtítulo do PDF NÃO é mais C-level chumbado',
   !/if\(!subtitulo\) subtitulo='Executivo de Marketing & Crescimento \| CMO · CSO · CEO/.test(html));
 t('o fallback de subtítulo do PDF posiciona pela vaga (cargoVaga)',
