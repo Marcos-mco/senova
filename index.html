@@ -2157,21 +2157,31 @@ select option { background: var(--bg2); }
       <!-- ZONA 7 — DOCUMENTOS -->
       <div class="mv-sec" id="mv-docs-section" style="display:none;">
         <div class="mv-sec-head"><span class="mv-sec-title">Documentos</span>
-          <div class="lang-toggle" style="margin-left:auto;gap:4px;" title="Idioma dos documentos gerados">
-            <button class="lang-btn active" onclick="setLang('PT',this)" style="padding:3px 8px;font-size:12px;">🇧🇷 PT</button>
-            <button class="lang-btn" onclick="setLang('EN',this)" style="padding:3px 8px;font-size:12px;">🇺🇸 EN</button>
-            <button class="lang-btn" onclick="setLang('ES',this)" style="padding:3px 8px;font-size:12px;">🇪🇸 ES</button>
+          <!-- O IDIOMA SE AFIRMA, NÃO SE PERGUNTA (S38). Aqui ficavam três botões de bandeira
+               ligados o tempo todo, como se a cada documento houvesse uma escolha a fazer. Não
+               há: o idioma sai da VAGA (_idiomaDoPedido). O card passa a dizer o que vai sair e
+               em nome de quê; "mudar" abre as opções onde a dúvida nasce — detecção errada, ou
+               a própria vaga pedindo outro idioma. -->
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <span id="mv-idioma-frase" style="font-size:12px;color:var(--text3);"></span>
+            <span id="mv-idioma-mudar" onclick="mvIdiomaOpcoes(true)" style="font-size:12px;font-weight:600;color:var(--action);cursor:pointer;">mudar</span>
+            <div id="mv-idioma-opcoes" class="lang-toggle" style="display:none;gap:4px;">
+              <button class="lang-btn" data-lang="PT" onclick="mvIdiomaEscolher('PT',this)" style="padding:3px 9px;font-size:12px;">Português</button>
+              <button class="lang-btn" data-lang="EN" onclick="mvIdiomaEscolher('EN',this)" style="padding:3px 9px;font-size:12px;">English</button>
+              <button class="lang-btn" data-lang="ES" onclick="mvIdiomaEscolher('ES',this)" style="padding:3px 9px;font-size:12px;">Español</button>
+            </div>
           </div>
         </div>
         <!-- CONTROLES (sempre em cima) -->
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <!-- GERAR CV mora aqui: é este bloco que ele produz. Antes ficava numa barra fixa no
-               topo, longe dos arquivos, e nada dizia se o CV já existia para ESTA vaga — dava
-               para baixar um PDF sem saber de qual texto ele saía. O estado vem escrito. -->
+          <!-- NÃO HÁ "GERAR CV" (S38, Marcos): os botões de formato aqui embaixo já geram o CV
+               sob demanda quando ainda não existe (_mvGarantirCV) — um botão à parte para gerar
+               era o mesmo ato pedido duas vezes. Fica o ESTADO escrito (existe CV para esta vaga?
+               de quando?) e, só quando já existe, o desvio de refazer. -->
           <div id="mv-cv-estado-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <span id="mv-cv-estado" style="font-size:12.5px;color:var(--text3);line-height:1.5;min-width:0;"></span>
-            <button id="mv-gerar-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()" disabled
-                    style="flex-shrink:0;font-size:13px;padding:7px 14px;opacity:0.45;cursor:not-allowed;">Gerar CV</button>
+            <button id="mv-refazer-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()"
+                    style="display:none;flex-shrink:0;font-size:13px;padding:7px 14px;">Refazer CV</button>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
             <div style="min-width:0;">
@@ -6902,11 +6912,11 @@ function mvAjustarSecoesStatus(status){
   if(timelineSec) timelineSec.style.display=isLead?'none':'';
   const analiseSec=document.getElementById('mv-analise-section');
   if(analiseSec) analiseSec.style.display=isLead?'none':'';
-  // Documentos = zona AGIR. Fica visível em TODOS os estágios: é aqui que mora "Gerar CV"
-  // desde a S38, e a seção só aparecia quando JÁ existia um CV — quem não tivesse ficaria
-  // sem o botão que o cria. Pelo mesmo motivo, "Carta" e "Resposta por e-mail" estavam
-  // escondidas de quem chegou à entrevista sem CV gerado no Senova. Vazia, ela diz que
-  // está vazia (mvSyncDocsCV escreve o estado); é honestidade, não ruído.
+  // Documentos = zona AGIR. Fica visível em TODOS os estágios: a seção só aparecia quando JÁ
+  // existia um CV, e é dela que o CV nasce — quem não tivesse ficaria sem como criá-lo. Pelo
+  // mesmo motivo, "Carta" e "Resposta por e-mail" estavam escondidas de quem chegou à
+  // entrevista sem CV gerado no Senova. Vazia, ela diz que está vazia (mvSyncCVEstado escreve
+  // o estado); é honestidade, não ruído.
   const _docsSec=document.getElementById('mv-docs-section');
   if(_docsSec){
     _docsSec.style.display='';
@@ -7496,13 +7506,58 @@ function mvSyncDocsCV(){
   const buf=document.getElementById('mv-ats-cv-txt');
   if(buf) buf.value = has ? (v.atsCV||'') : '';
   if(!has){ _mvCVAcab=null; _mvSetChosen(null); } else if(!_mvCVAcab) _mvCVAcab='exec';
-  // Diz em palavras se existe CV adaptado a ESTA vaga. Os botões de formato baixam o que
-  // houver (e geram sob demanda, via _mvGarantirCV) — sem esta linha, dava para baixar um
-  // PDF sem saber de qual texto ele saiu, nem se ele conhece a vaga aberta na tela.
-  const _est=document.getElementById('mv-cv-estado');
-  if(_est) _est.textContent=has?'CV adaptado a esta vaga.':'Ainda sem CV para esta vaga.';
+  // Diz em palavras se existe CV adaptado a ESTA vaga, e de quando ele é. Os botões de formato
+  // baixam o que houver e GERAM sob demanda (_mvGarantirCV) — por isso o estado vazio diz o que
+  // vai acontecer no primeiro clique, em vez de oferecer um botão para o mesmo ato.
+  mvSyncCVEstado();
+  mvSyncIdiomaDocs();
   mvDocTab('ats');
   mvSyncEnvioDireto();
+}
+// Escrita do estado do CV — uma função só, porque quem gera o CV nem sempre passa por
+// mvSyncDocsCV (o caminho de card em processo não passa) e a linha ficaria mentindo a data.
+function mvSyncCVEstado(){
+  const el=document.getElementById('mv-cv-estado');
+  if(!el) return;
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  el.textContent = (v&&v.atsCV)
+    ? ('CV adaptado a esta vaga'+(v.atsCVEm?' em '+_dataCurta(v.atsCVEm):'')+'.')
+    : 'Ainda sem CV para esta vaga — o primeiro download gera.';
+}
+// Data curta no estilo do app ("26/jul"). Traz o ano quando o CV é de outro ano — um CV do ano
+// passado dizendo só "12/nov" pareceria recente.
+function _dataCurta(ts){
+  const d=new Date(ts); if(isNaN(d.getTime())) return '';
+  const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const ano=d.getFullYear()===new Date().getFullYear()?'':'/'+d.getFullYear();
+  return String(d.getDate()).padStart(2,'0')+'/'+M[d.getMonth()]+ano;
+}
+// Afirma em que idioma os documentos vão sair, e em nome de quê. A decisão é a MESMA que o
+// pedido usa (_idiomaDoPedido) — se aqui dissesse uma coisa e o prompt fizesse outra, seria
+// pior do que não dizer nada.
+const _IDIOMA_NOME={PT:'português',EN:'inglês',ES:'espanhol'};
+function mvSyncIdiomaDocs(){
+  const frase=document.getElementById('mv-idioma-frase');
+  if(!frase) return;
+  const desc=document.getElementById('mv-job-desc')?.value||'';
+  const lang=_idiomaDoPedido(desc);
+  const porque=cvLangManual?'sua escolha':(_idiomaDoCV(_idiomaDaVaga(desc))?'idioma da vaga':'padrão');
+  frase.textContent='Documentos em '+(_IDIOMA_NOME[lang]||'português')+' — '+porque;
+  document.querySelectorAll('#mv-idioma-opcoes .lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
+}
+function mvIdiomaOpcoes(abrir){
+  const box=document.getElementById('mv-idioma-opcoes');
+  if(!box) return;
+  box.style.display=abrir?'flex':'none';
+  const frase=document.getElementById('mv-idioma-frase');
+  const mudar=document.getElementById('mv-idioma-mudar');
+  if(frase) frase.style.display=abrir?'none':'';
+  if(mudar) mudar.style.display=abrir?'none':'';
+}
+function mvIdiomaEscolher(lang,btn){
+  setLang(lang,btn);   // marca cvLangManual: a partir daqui quem manda é a escolha, não a vaga
+  mvIdiomaOpcoes(false);
+  mvSyncIdiomaDocs();
 }
 // Garante que existe um CV antes de baixar. Se ainda não há, gera sob demanda
 // (mesma geração do antigo "Gerar CV") e devolve true se o CV ficou pronto.
@@ -7533,13 +7588,15 @@ function mvAtualizarBtnAnalise(){
         +(_jaAnalisou?'Analisar de novo':'Analisar');
     }
   }
-  // Gerar CV segue a mesma condição (sem descrição não há o que adaptar) e vira "Refazer CV"
-  // quando já existe um: o rótulo diz o que o clique faz, sem prometer documento novo escondido.
-  const btnCV=document.getElementById('mv-gerar-cv-btn');
+  // REFAZER só existe quando há o que refazer. Enquanto não há CV, quem gera é o próprio botão
+  // de formato (_mvGarantirCV) — um botão "Gerar CV" ao lado dele seria o mesmo ato duas vezes.
+  const btnCV=document.getElementById('mv-refazer-cv-btn');
   if(btnCV){
+    btnCV.style.display=(_v&&_v.atsCV)?'':'none';
     btnCV.disabled=!temDesc;btnCV.style.opacity=temDesc?'':'0.45';btnCV.style.cursor=temDesc?'':'not-allowed';
-    if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML=(_v&&_v.atsCV)?'Refazer CV':'Gerar CV';
+    if(!btnCV.innerHTML.includes('loader')) btnCV.innerHTML='Refazer CV';
   }
+  mvSyncIdiomaDocs();   // o idioma sai da descrição: mudou a descrição, pode ter mudado o idioma
   if(hint) hint.style.display=(temDesc||isLead)?'none':'';
 }
 function mvMostrarCtxRegen(tipo){
@@ -8175,6 +8232,12 @@ async function analisarInline(){
 // CV = um prompt) e grava pelo portão setCV. Não pontua e não sobrescreve a análise.
 async function gerarCVInline(){
   if(!_mvTemDescricaoPara('gerar')) return;
+  // REFAZER APAGA O QUE EXISTE (Marcos, 28/jul/2026). O CV desta vaga pode ter sido ajustado à
+  // mão antes de ir a um recrutador; um clique não pode levá-lo embora sem aviso. Só pergunta
+  // quando já há CV — a geração sob demanda do primeiro download não passa por aqui com nada
+  // a perder, e uma pergunta ali seria pedir permissão para não fazer nada.
+  const _cvAtual=document.getElementById('mv-ats-cv-txt')?.value.trim();
+  if(_cvAtual&&!confirm('Já existe um CV adaptado a esta vaga.\n\nRefazer substitui o atual — se você o ajustou à mão, esses ajustes se perdem.\n\nRefazer mesmo assim?')) return;
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
   const jobDesc=document.getElementById('mv-job-desc')?.value||'';
@@ -8184,7 +8247,7 @@ async function gerarCVInline(){
   const regime=document.getElementById('mv-regime')?.value||'';
   saveVagaSilent();
   const isLeadAnalise=document.getElementById('mv-status')?.value==='lead';
-  const btn=document.getElementById('mv-gerar-cv-btn');
+  const btn=document.getElementById('mv-refazer-cv-btn');
   const loadingHtml='<div class="loader" style="justify-content:center;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Gerando…';
   if(btn){btn.disabled=true;btn.innerHTML=loadingHtml;}
   const _pedido=montarPedidoCV({descricao:jobDesc,localizacao,modelo,regime,contexto:ctx,cargo});
@@ -8247,7 +8310,7 @@ async function gerarCVInline(){
     if(isLeadAnalise){
       mvSyncDocsCV();
     } else {
-      _mvCVAcab='exec'; mvDocTab('ats'); mvSyncEnvioDireto();
+      _mvCVAcab='exec'; mvDocTab('ats'); mvSyncEnvioDireto(); mvSyncCVEstado();
     }
     atualizarBotoesModal();
     // Rolar até os Documentos é resposta a ESTA ação (o CV que acabou de nascer está lá
@@ -8259,7 +8322,7 @@ async function gerarCVInline(){
   }catch(e){
     showToast('Erro ao gerar o CV. Tente novamente.');
   }
-  if(btn){btn.disabled=false;btn.innerHTML='Gerar CV';}
+  if(btn){btn.disabled=false;btn.innerHTML='Refazer CV';}   // o rótulo definitivo quem põe é mvAtualizarBtnAnalise
   mvAtualizarBtnAnalise();
 }
 
@@ -11206,8 +11269,13 @@ function _extrairPerfilTraduzido(texto){
 // senão o PDF mistura cargos em espanhol com um CV em português.
 function setCV(vaga,texto){
   if(!vaga) return;
+  const _antes=vaga.atsCV||'';
   vaga.atsCV=_extrairSoCV(texto);
   const raw=String(texto||'');
+  // Carimbo de quando este CV nasceu — o card diz "adaptado a esta vaga em 26/jul" e Marcos
+  // decide se refaz. Só carimba resposta NOVA da IA (tem ---CV---) ou o primeiro CV: relimpar
+  // um CV poluído é conserto, não geração, e não pode fazer um CV velho parecer recém-feito.
+  if(vaga.atsCV&&vaga.atsCV!==_antes&&(raw.includes('---CV---')||!_antes)) vaga.atsCVEm=Date.now();
   if(raw.includes('---PERFIL---')) vaga.atsPerfilTrad=_extrairPerfilTraduzido(raw)||null;
   else if(raw.includes('---CV---')) vaga.atsPerfilTrad=null;
 }

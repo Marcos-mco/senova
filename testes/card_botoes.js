@@ -29,10 +29,35 @@ t('o botão está dentro da caixa do veredicto', entre('id="mv-analyze-btn"', 'i
 t('e acima da dobra (a conclusão e sua ação ficam à vista)', html.indexOf('id="mv-analyze-btn"') < html.indexOf('id="mv-verd-fold"'));
 t('continua chamando analisarInline', /id="mv-analyze-btn"[\s\S]{0,200}analisarInline\(\)/.test(html));
 
-console.log('\n=== "Gerar CV" mora em Documentos — junto dos arquivos que ele produz ===');
-t('o botão está dentro da seção Documentos', entre('id="mv-gerar-cv-btn"', 'id="mv-docs-section"', 'id="mv-ats-cv-txt"'));
-t('e vem acima dos formatos (primeiro se gera, depois se baixa)', html.indexOf('id="mv-gerar-cv-btn"') < html.indexOf('id="mv-cvbtn-exec"'));
-t('o card diz se existe CV para ESTA vaga', /id="mv-cv-estado"/.test(html) && /Ainda sem CV para esta vaga/.test(html));
+console.log('\n=== não se pede o mesmo ato duas vezes: "Gerar CV" some ===');
+// Os botões de formato JÁ geram o CV sob demanda quando não há nenhum (_mvGarantirCV). Um
+// botão "Gerar CV" ao lado deles era o mesmo ato oferecido duas vezes, e a linha de estado
+// logo acima ("Ainda sem CV…") repetia pela terceira vez o que o botão já dizia.
+t('não existe mais um botão "Gerar CV" à parte', !/id="mv-gerar-cv-btn"/.test(html));
+t('e ninguém no JS ainda procura por ele', !/getElementById\('mv-gerar-cv-btn'\)/.test(html));
+t('os formatos continuam gerando sob demanda', /async function _mvGarantirCV[\s\S]{0,500}await gerarCVInline\(\)/.test(html));
+
+console.log('\n=== o estado do CV é dito em palavras, com a data ===');
+t('o card diz se existe CV para ESTA vaga', /id="mv-cv-estado"/.test(html));
+t('vazio, diz o que o primeiro clique vai fazer', /Ainda sem CV para esta vaga — o primeiro download gera/.test(html));
+t('cheio, diz de quando é', /CV adaptado a esta vaga'\+\(v\.atsCVEm\?' em '\+_dataCurta\(v\.atsCVEm\)/.test(html));
+t('o carimbo da data mora no portão único de escrita do CV', /function setCV\(vaga,texto\)\{[\s\S]{0,600}vaga\.atsCVEm=Date\.now\(\)/.test(html));
+t('CV sem carimbo (card antigo) não inventa data', /\(v\.atsCVEm\?' em '\+_dataCurta\(v\.atsCVEm\):''\)/.test(html));
+
+console.log('\n=== refazer o CV não apaga o anterior sem perguntar ===');
+t('"Refazer CV" está dentro da seção Documentos', entre('id="mv-refazer-cv-btn"', 'id="mv-docs-section"', 'id="mv-ats-cv-txt"'));
+t('e só aparece quando há CV para refazer', /btnCV\.style\.display=\(_v&&_v\.atsCV\)\?'':'none';/.test(html));
+t('gerarCVInline confirma ANTES de substituir um CV existente', /async function gerarCVInline\(\)\{[\s\S]{0,900}_cvAtual&&!confirm\(/.test(html));
+t('e a pergunta avisa que ajustes à mão se perdem', /esses ajustes se perdem/.test(html));
+
+console.log('\n=== o idioma se afirma, não se pergunta ===');
+t('a frase diz o idioma que vai sair', /id="mv-idioma-frase"/.test(html) && /Documentos em '\+\(_IDIOMA_NOME\[lang\]/.test(html));
+t('e diz em nome de quê (vaga, escolha ou padrão)', /idioma da vaga/.test(html) && /sua escolha/.test(html));
+t('usa a MESMA decisão do pedido de CV (_idiomaDoPedido)', /function mvSyncIdiomaDocs\(\)\{[\s\S]{0,400}_idiomaDoPedido\(desc\)/.test(html));
+t('as opções nascem fechadas, atrás de "mudar"', /id="mv-idioma-opcoes"[^>]*display:none/.test(html));
+t('sem bandeiras/emoji no seletor do card', !/id="mv-idioma-opcoes"[\s\S]{0,600}🇧🇷/.test(html));
+t('a frase se refaz quando a descrição muda', /function mvAtualizarBtnAnalise\(\)\{[\s\S]{0,2200}mvSyncIdiomaDocs\(\);/.test(html)
+  && /oninput="[^"]*mvAtualizarBtnAnalise\(\)"/.test(html));
 
 console.log('\n=== Documentos não se esconde de quem ainda não tem CV ===');
 // Era o efeito colateral de mudar o botão de lugar: a seção só aparecia quando JÁ existia
