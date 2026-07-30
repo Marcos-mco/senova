@@ -1,0 +1,216 @@
+// A gravação nunca falha calada (S40).
+//
+// O bug real, relatado por Marcos: "sumiram na segunda coluna e reaparecem na
+// primeira". Não era backup antigo ressuscitando. A gravação engolia o
+// QuotaExceededError num catch vazio: a tela seguia mostrando o estado em
+// memória (a Oportunidade já em "CV Enviado") enquanto o disco guardava o
+// estado anterior. No recarregamento seguinte, o disco vencia.
+//
+// Hoje quem grava é o Store, e este teste fixa as garantias dele:
+//   1. os autobackups são sacrificados ANTES de desistir;
+//   2. se ainda assim falhar, a pessoa é avisada e recebe a saída (baixar cópia);
+//   3. se o dado guardado ficar ILEGÍVEL, os bytes são preservados e — quando nem
+//      a cópia couber — a gravação TRAVA, em vez de apagar o que sobrou;
+//   4. saveVagas NUNCA lança — são 56 pontos de chamada no app.
+
+const { extrai, assert } = require('./_lib');
+const vm = require('vm');
+const { t, fim } = assert();
+
+// ── localStorage falso, com os três regimes que importam ──────────────────────
+// 'ok'              → grava sempre
+// 'cheio'           → estoura sempre (nem podar resolve)
+// 'cheio_ate_podar' → estoura enquanto houver autobackup; passa depois da poda
+function fakeLS(regime) {
+  const ls = {
+    setItem(k, v) {
+      const temBackup = Object.keys(ls).some(x => x.startsWith('senova_autobackup_'));
+      if (regime === 'cheio' || (regime === 'cheio_ate_podar' && temBackup)) {
+        const e = new Error('exceeded the quota'); e.name = 'QuotaExceededError'; throw e;
+      }
+      ls[k] = String(v);
+    },
+    getItem(k) { return typeof ls[k] === 'string' ? ls[k] : null; },
+    removeItem(k) { delete ls[k]; },
+  };
+  return ls;
+}
+
+// ── DOM falso: só o que _avisarGravacaoFalhou toca ────────────────────────────
+function fakeDOM() {
+  const porId = {};
+  const novo = (tag) => ({
+    tagName: tag, id: '', innerHTML: '', textContent: '', style: { cssText: '', display: '' },
+    _handlers: {}, _filhos: {},
+    addEventListener(ev, fn) { this._handlers[ev] = fn; },
+    querySelector(sel) {
+      const id = sel.replace('#', '');
+      if (!this._filhos[id]) this._filhos[id] = novo('div');
+      return this._filhos[id];
+    },
+  });
+  return {
+    getElementById: (id) => porId[id] || null,
+    createElement: novo,
+    body: { appendChild(el) { if (el.id) porId[el.id] = el; } },
+  };
+}
+
+function montar(regime, comBackups = true) {
+  const fontes = [
+    'const Store = {',
+    'function _podarAutoBackups(',
+    'function _avisarGravacaoFalhou(',
+    'function _limparAvisoGravacao(',
+    'function saveVagas(',
+  ].map(extrai).join('\n;\n');
+
+  const ls = fakeLS(regime);
+  if (comBackups) { ls['senova_autobackup_2026-07-28'] = '{}'; ls['senova_autobackup_2026-07-29'] = '{}'; }
+
+  const chamadas = { exportar: 0 };
+  const sandbox = {
+    _avisoGravacaoAtivo: false,
+    vagas: [{ id: 1, empresa: 'Teste', status: 'aplicado' }],
+    contatos: [{ id: 1, nome: 'Teste' }],
+    localStorage: ls,
+    document: fakeDOM(),
+    exportarDados() { chamadas.exportar++; },
+    updateBadge() {}, atualizarStatsHome() {}, renderHomeAcoes() {},
+    atualizarSinais() {}, renderIndicacoesHome() {},
+    JSON, Object, Date, console, Error,
+  };
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(fontes, sandbox);
+  return { sandbox, ls, chamadas, run: (expr) => vm.runInContext(expr, sandbox) };
+}
+
+const banner = (s) => s.document.getElementById('aviso-gravacao');
+const avisoVisivel = (s) => { const el = banner(s); return !!el && el.style.display !== 'none'; };
+const tituloAviso = (s) => { const el = banner(s); return el ? el.querySelector('#aviso-gravacao-titulo').textContent : ''; };
+const corpoAviso = (s) => { const el = banner(s); return el ? el.querySelector('#aviso-gravacao-corpo').textContent : ''; };
+
+console.log('=== caminho normal: grava e não incomoda ninguém ===');
+{
+  const { sandbox, ls, run } = montar('ok');
+  run('saveVagas()');
+  t('gravou de fato no armazenamento', ls.getItem('senova_vagas_v2') !== null);
+  t('nenhum aviso aparece', !avisoVisivel(sandbox));
+  t('os autobackups continuam intactos', Object.keys(ls).filter(k => k.startsWith('senova_autobackup_')).length === 2);
+}
+
+console.log('\n=== cota apertou: sacrifica os autobackups ANTES de desistir ===');
+{
+  const { sandbox, ls, run } = montar('cheio_ate_podar');
+  run('saveVagas()');
+  t('gravou na segunda tentativa', ls.getItem('senova_vagas_v2') !== null);
+  t('os autobackups foram descartados para abrir espaço', Object.keys(ls).filter(k => k.startsWith('senova_autobackup_')).length === 0);
+  t('não avisa à toa — a gravação deu certo', !avisoVisivel(sandbox));
+}
+
+console.log('\n=== o bug original: cota cheia de verdade → NUNCA mais em silêncio ===');
+{
+  const { sandbox, ls, run } = montar('cheio');
+  let lancou = false;
+  try { run('saveVagas()'); } catch (_) { lancou = true; }
+  t('saveVagas não lança (56 pontos de chamada dependem disso)', !lancou);
+  t('NÃO gravou — e é justamente por isso que precisa avisar', ls.getItem('senova_vagas_v2') === null);
+  t('a pessoa é avisada', avisoVisivel(sandbox));
+  t('o aviso diz que o trabalho não foi salvo', /não consegui salvar/i.test(tituloAviso(sandbox)));
+  t('o aviso nomeia a causa: armazenamento cheio', /cheio/i.test(corpoAviso(sandbox)));
+  t('o aviso oferece a saída: baixar uma cópia', /Baixar uma cópia agora/.test(banner(sandbox).innerHTML));
+}
+
+console.log('\n=== dado ilegível: preserva os bytes, avisa, e NÃO apaga o que sobrou ===');
+{
+  const { sandbox, ls, run } = montar('ok', false);
+  ls['senova_vagas_v2'] = '{{{ lixo não parseável';
+  ls['senova_contatos_v2'] = ']]] também quebrado';
+  run('Store.socorrer()');
+  const copias = Object.keys(ls).filter(k => k.startsWith('senova_ilegivel_'));
+  t('guardou cópia dos processos ilegíveis', copias.some(k => k.includes('vagas_v2')));
+  t('guardou cópia dos contatos ilegíveis (não só das vagas)', copias.some(k => k.includes('contatos_v2')));
+  t('a pessoa é avisada', avisoVisivel(sandbox));
+  t('a mensagem é a de LEITURA, não a de cota', /não consegui ler/i.test(tituloAviso(sandbox)));
+  t('a cópia foi preservada, então gravar segue liberado', run('Store.travado') === false);
+}
+
+console.log('\n=== ilegível E sem espaço para a cópia: TRAVA em vez de destruir ===');
+{
+  const { sandbox, ls, run } = montar('cheio', false);
+  ls['senova_vagas_v2'] = '{{{ lixo não parseável';
+  run('Store.socorrer()');
+  t('travou a gravação', run('Store.travado') === true);
+  t('gravar() recusa enquanto travado', run('Store.gravar()') === false);
+  t('os bytes originais continuam no disco, intactos', ls.getItem('senova_vagas_v2') === '{{{ lixo não parseável');
+  t('a mensagem é a de leitura', /não consegui ler/i.test(tituloAviso(sandbox)));
+}
+
+console.log('\n=== usuário novo: armazenamento vazio não é acidente, não avisa nada ===');
+{
+  const { sandbox, run } = montar('ok', false);
+  run('Store.socorrer()');
+  t('sem dado guardado, nenhum alarme falso', !avisoVisivel(sandbox));
+  t('e nada trava', run('Store.travado') === false);
+}
+
+console.log('\n=== idempotência: 56 gravações falhas não viram 56 avisos ===');
+{
+  const { sandbox, run } = montar('cheio');
+  let criados = 0;
+  const orig = sandbox.document.createElement;
+  sandbox.document.createElement = (tag) => { criados++; return orig(tag); };
+  for (let i = 0; i < 56; i++) run('saveVagas()');
+  t('um único aviso foi criado, não 56', criados === 1, 'criados=' + criados);
+}
+
+console.log('\n=== o aviso não mente: some quando resolve, volta quando falha ===');
+{
+  const { sandbox, run } = montar('cheio');
+  run('saveVagas()');
+  t('avisando (cota cheia)', avisoVisivel(sandbox));
+
+  sandbox.localStorage.setItem = function (k, v) { sandbox.localStorage[k] = String(v); }; // espaço liberado
+  run('saveVagas()');
+  t('gravação voltou a funcionar → aviso some sozinho', !avisoVisivel(sandbox));
+}
+{
+  const { sandbox, run } = montar('cheio');
+  run('saveVagas()');
+  banner(sandbox).querySelector('#aviso-gravacao-fechar')._handlers.click();
+  t('fechar esconde o aviso', !avisoVisivel(sandbox));
+  run('saveVagas()');
+  t('a próxima gravação que falha traz o aviso de volta', avisoVisivel(sandbox));
+}
+
+console.log('\n=== contatos têm a mesma proteção (tinham o mesmo catch vazio) ===');
+{
+  const { sandbox, ls, run } = montar('ok');
+  t('gravarContatos grava', run('Store.gravarContatos()') === true && ls.getItem('senova_contatos_v2') !== null);
+}
+{
+  const { sandbox, run } = montar('cheio');
+  t('gravarContatos falha sem lançar', run('Store.gravarContatos()') === false);
+  t('e avisa, em vez de engolir', avisoVisivel(sandbox));
+}
+
+console.log('\n=== o botão de saída usa a exportação já aprovada ===');
+{
+  const { sandbox, chamadas, run } = montar('cheio');
+  run('saveVagas()');
+  banner(sandbox).querySelector('#aviso-gravacao-baixar')._handlers.click();
+  t('"Baixar uma cópia agora" chama exportarDados (não inventa caminho novo)', chamadas.exportar === 1);
+}
+
+console.log('\n=== o código-fonte: as regressões que trariam o bug de volta ===');
+{
+  const store = extrai('const Store = {');
+  t('o Store ainda poda os autobackups antes de desistir', /_podarAutoBackups\(0\)/.test(store));
+  t('o Store avisa em vez de engolir o erro', /_avisarGravacaoFalhou/.test(store));
+  t('a trava existe e é consultada antes de escrever', /travado/.test(store) && /if\(this\.travado\) return false/.test(store));
+  t('saveVagas delega ao Store (não grava por conta própria)',
+    /Store\.gravar\(\)/.test(extrai('function saveVagas(')));
+}
+
+fim('GRAVAÇÃO NUNCA FALHA CALADA');

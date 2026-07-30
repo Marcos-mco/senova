@@ -1230,7 +1230,7 @@ select option { background: var(--bg2); }
         <!-- Headhunters -->
         <div style="margin-bottom:20px;">
           <label class="field-label" style="margin-bottom:8px;display:block;">Headhunters em contato</label>
-          <textarea id="perfil-hunters" rows="4" placeholder="Um por linha: Nome — Firma — Prática — Status&#10;Ex: Priscilla Capellato — Korn Ferry — Consumer — Aguardando resposta&#10;Ex: Aldo Bergamasco — Spencer Stuart — Marketing — Em contato" style="font-size:14px;resize:vertical;"></textarea>
+          <textarea id="perfil-hunters" rows="4" placeholder="Um por linha: Nome — Firma — Prática — Status&#10;Ex: Nome do consultor — Firma de executive search — Consumer — Aguardando resposta&#10;Ex: Nome do consultor — Consultoria de busca — Marketing — Em contato" style="font-size:14px;resize:vertical;"></textarea>
         </div>
 
         <!-- Extensão Chrome -->
@@ -4934,72 +4934,102 @@ function copyFullLI() {
 // ═══════════════════════════════════════════════
 //  CRM MODULE
 // ═══════════════════════════════════════════════
-const DEFAULT_VAGAS=[
-  // RADAR
-  {id:1,empresa:'stays.net',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:2,empresa:'Comrade Digital',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:3,empresa:'Uber LATAM',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Identificar vaga e contato',notas:'',data:''},
-  {id:4,empresa:'Amazon Prime Video',cargo:'Sr. Growth Manager',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Analisar JD e adaptar CV',notas:'Resume EN gerado',data:''},
-  {id:5,empresa:'Apple Brazil',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Monitorar abertura de vagas',notas:'',data:''},
-  {id:6,empresa:'Omnicom',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  {id:7,empresa:'monday.com',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'lead',salario:'',proxima:'Pesquisar vagas disponíveis',notas:'',data:''},
-  // CANDIDATADO
-  {id:8,empresa:'Payoneer',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:9,empresa:'PinkMed',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:10,empresa:'SKY',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:11,empresa:'Adlook',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:12,empresa:'Omie',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:13,empresa:'Keeta',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:14,empresa:'Samsung',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:15,empresa:'Binance',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:16,empresa:'Ambev',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:17,empresa:'Publicis',cargo:'A definir',canal:'LinkedIn',prioridade:'media',status:'aplicado',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:18,empresa:'Marista',cargo:'Esp. Estratégia e Inteligência',canal:'Indicação',prioridade:'alta',status:'aplicado',salario:'R$15-20k',proxima:'Enviar via Leonardo Carvalho da Silva',notas:'Contato 1º grau — acionar asap',data:'abr/2026'},
-  {id:101,empresa:'CI&T',cargo:'Ger. Sênior Transformação Ágil',canal:'LinkedIn',prioridade:'alta',status:'aplicado',salario:'R$19-25k',proxima:'Aplicar ajustes no CV e enviar .docx',notas:'Score ATS 74/100 — 3 ajustes pendentes',data:'30/abr/2026'},
-  // EM ANDAMENTO
-  {id:19,empresa:'Wise',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
-  {id:20,empresa:'BSI',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno do processo',notas:'',data:'abr/2026'},
-  {id:21,empresa:'Gaudium',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:22,empresa:'GPAC',cargo:'A definir',canal:'Headhunter',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar contato do recrutador',notas:'',data:'abr/2026'},
-  {id:23,empresa:'FIEP',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:24,empresa:'99/DiDi',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:25,empresa:'Thomson Reuters',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  {id:26,empresa:'Figma',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'contato',salario:'R$19-25k',proxima:'Aguardar retorno',notas:'',data:'abr/2026'},
-  // LEADS 26/mai/2026
-  {id:27,empresa:'Triunfo',cargo:'Exec. Sênior',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aprovação CEO',notas:'Plano B',data:''},
-  {id:28,empresa:'InBetta',cargo:'Silver/PMO',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Confirmar papel com CFO Tulini',notas:'Plano B',data:''},
-  {id:29,empresa:'Valore/Elbrus',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Pesquisar vaga e contato',notas:'Plano A',data:''},
-  {id:30,empresa:'Renato Berkowitz',cargo:'Clevel Executive',canal:'Headhunter',prioridade:'alta',status:'lead',salario:'R$19-25k',proxima:'Follow-up 02/jun/2026',notas:'CV PT enviado 26/mai — Plano A',data:'26/05/2026'},
-  {id:31,empresa:'Korn Ferry',cargo:'Consultant',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aceite LinkedIn',notas:'Priscilla Capellato — Plano A',data:'11/05/2026'},
-  {id:32,empresa:'Spencer Stuart',cargo:'Practice Leader LatAm',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar aceite LinkedIn',notas:'Aldo Bergamasco — Plano A',data:'11/05/2026'},
-  {id:33,empresa:'FUNEF',cargo:'Neurocirurgião',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Reativar contato',notas:'Dr. Charles London — CV 08/mai — Plano A/B',data:'08/05/2026'},
-  {id:34,empresa:'GRPCOM',cargo:'CEO',canal:'Indicação',prioridade:'alta',status:'lead',salario:'',proxima:'Café ~2 semanas — agendar',notas:'Eduardo Bosquetti — Plano A',data:''},
-  {id:35,empresa:'NEO AdTech',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'WhatsApp 11 981873329',notas:'Giuliano Sarzana — Plano A',data:''},
-  {id:36,empresa:'RICTV',cargo:'A definir',canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'',proxima:'Aguardar resultado reunião 13/mai',notas:'Alan Ceppini — Plano A',data:'13/05/2026'},
-];
+// ── STORE — o único dono do armazenamento dos processos (S40) ────────────────
+//
+// Antes daqui havia 66 linhas de dados pessoais REAIS cravadas no código-fonte —
+// e este arquivo é servido publicamente em marcos-mco.github.io/senova. Não eram
+// só os dados do Marcos: eram 19 terceiros com nome completo, cargo, empresa,
+// telefone, LinkedIn e notas privadas, nenhum deles tendo consentido. Além do
+// risco, era um erro de produto: quem abrisse o Senova pela primeira vez recebia
+// o CRM de outra pessoa como se fosse o seu. Um usuário novo começa vazio.
+//
+// E havia SEIS lugares tocando 'senova_vagas_v2' direto, dois deles gravando
+// dentro de um catch vazio: o disco recusava a escrita e o app seguia mostrando o
+// estado da memória. Foi assim que a Oportunidade movida para "CV Enviado"
+// reapareceu na primeira coluna no dia seguinte — não era backup antigo
+// ressuscitando, era a gravação daquele dia falhando calada.
+//
+// Agora há um funil só: quem lê chama Store.ler(), quem grava chama
+// Store.gravar(). Ninguém mais fala com o localStorage sobre processos. Isso
+// fecha o bug de hoje e é a condição do passo seguinte: quando os dados saírem
+// do navegador para o banco, é ESTE objeto que muda — não os 56 pontos que
+// chamam saveVagas(), nem as 137 leituras de `vagas`.
+//
+// O Store não é dono do array: `vagas` continua sendo a global de sempre, e o
+// Store a lê na hora de gravar. É de propósito — as 16 reatribuições de `vagas`
+// (migrações do loadCRM, importação, restauração) seguem válidas sem cuidado
+// especial. O que o Store possui é a PERSISTÊNCIA, que é o que vai mudar de casa.
+const Store = {
+  CHAVE: 'senova_vagas_v2',
+  CHAVE_CONTATOS: 'senova_contatos_v2',
 
-const _ctNow=Date.now();
-const DEFAULT_CONTATOS=[
-  {id:1,nome:'Eduardo Bosquetti',cargo:'CEO',empresa:'RPC/Globo',temp:'hot',plano:'A',next:'Convidar para missa 7h30 + café na semana',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:2,nome:'Pedro Joanir Zonta',cargo:'Proprietário',empresa:'Grupo Condor',temp:'warm',plano:'A',next:'WhatsApp enviado — aguardar',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:3,nome:'Thiago Ayres',cargo:'Sócio',empresa:'Consigliere Consultoria',temp:'hot',plano:'B',next:'Parceria confirmada — prospect em negociação',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:4,nome:'Ronny Essert',cargo:'Superintendente',empresa:'GERAR',temp:'warm',plano:'B',next:'Enviar material de societal marketing',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:5,nome:'Augusto Michells',cargo:'Gerente Regional',empresa:'AHK-PR',temp:'cold',plano:'B',next:'Aguardar retorno mensagem',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:6,nome:'Dr. Charles London',cargo:'Neurocirurgião',empresa:'FUNEF',temp:'warm',plano:'A',next:'Reativar via consulta médica',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:7,nome:'Erlei Guimarães',cargo:'CEO',empresa:'Beeotec',temp:'warm',plano:'A',next:'Aguardar momento certo',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:8,nome:'Aldo Mallucelli',cargo:'Amigo estratégico',empresa:'',temp:'cold',plano:'A',next:'Ligar esta semana — pendente',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:9,nome:'Priscilla Capellato',cargo:'Consultant',empresa:'Korn Ferry',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:10,nome:'Aldo Bergamasco',cargo:'Practice Leader LatAm',empresa:'Spencer Stuart',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:11,nome:'Andréa Klevenhusen',cargo:'General Manager Brasil',empresa:'Ricoh Brasil',temp:'warm',plano:'A',next:'Monitorar oportunidades Ricoh',email:'',telefone:'',linkedin:'linkedin.com/in/andreaklevenhusen',notas:'Conexão LinkedIn aceita 26/mai/2026',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Conexão LinkedIn aceita 26/mai/2026'}]},
-  {id:12,nome:'Patrícia Fraga',cargo:'CEO',empresa:'RBS Mídias',temp:'hot',plano:'A',next:'Entrar em contato — RBS RS',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:13,nome:'Heloisa Garrett',cargo:'Presidente',empresa:'LIDE Paraná',temp:'hot',plano:'A',next:'Ativar conexão via DLS/João Dória',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:14,nome:'Giovanni Santoro Jr.',cargo:'Head People',empresa:'NSC',temp:'warm',plano:'A',next:'Mapear oportunidade NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:15,nome:'Mário Neves',cargo:'CEO',empresa:'NSC',temp:'warm',plano:'A',next:'Aguardar momento — abordagem NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:16,nome:'Adriano Araldi',cargo:'Diretor Geral',empresa:'NSC',temp:'hot',plano:'A',next:'Contatar — abertura NSC',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:17,nome:'Mariano Lemanski',cargo:'Presidente',empresa:'RPC/GRPCom',temp:'warm',plano:'A',next:'Aguardar momento — não contatar ainda',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:18,nome:'Andréa Tuttman',cargo:'Diretora',empresa:'Globo Nacional',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-  {id:19,nome:'Amauri Soares',cargo:'Diretor',empresa:'TV Globo e Afiliadas',temp:'cold',plano:'A',next:'Enviar CV via LinkedIn',email:'',telefone:'',linkedin:'',notas:'',lastContact:_ctNow,createdAt:_ctNow,timeline:[{ts:_ctNow,texto:'Contato registrado'}]},
-];
+  // Trava de segurança: liga quando o armazenamento tem bytes que não
+  // conseguimos ler E não conseguimos preservar. Enquanto estiver ligada,
+  // nada é gravado — sobrescrever seria destruir o que ainda sobrou.
+  travado: false,
+
+  // Únicas leituras do armazenamento do CRM em todo o app.
+  ler(){
+    try{ return localStorage.getItem(this.CHAVE); }catch(_){ return null; }
+  },
+  lerContatos(){
+    try{ return localStorage.getItem(this.CHAVE_CONTATOS); }catch(_){ return null; }
+  },
+
+  // Única escrita. Devolve se conseguiu e NUNCA lança — quem chama está no meio
+  // de um gesto do usuário. Os autobackups são sacrificáveis: se a cota apertar,
+  // descarta todos e tenta de novo antes de desistir.
+  _gravarChave(chave, raw){
+    if(this.travado) return false;
+    try{ localStorage.setItem(chave, raw); return true; }
+    catch(_){
+      try{ _podarAutoBackups(0); localStorage.setItem(chave, raw); return true; }
+      catch(__){ return false; }
+    }
+  },
+  gravarBruto(raw){ return this._gravarChave(this.CHAVE, raw); },
+
+  // Grava o estado atual e, se não conseguir, AVISA. A regra é essa: o Senova
+  // nunca mostra na tela um trabalho que não conseguiu guardar.
+  gravar(){
+    const ok = this.gravarBruto(JSON.stringify(vagas));
+    if(ok) _limparAvisoGravacao(); else _avisarGravacaoFalhou(this.travado?'ilegivel':'cota');
+    return ok;
+  },
+
+  // Contatos tinham o mesmo catch vazio em dois lugares. Avisa quando falha,
+  // mas NÃO limpa o aviso quando dá certo: se a gravação dos processos falhou e
+  // a dos contatos passou, apagar o alerta seria mentir sobre o que se perdeu.
+  gravarContatos(){
+    const ok = this._gravarChave(this.CHAVE_CONTATOS, JSON.stringify(contatos));
+    if(!ok) _avisarGravacaoFalhou(this.travado?'ilegivel':'cota');
+    return ok;
+  },
+
+  // Restauração de um ponto de backup: os bytes vêm prontos, não da memória.
+  // Devolve o sucesso para quem chamou dar a notícia do jeito dele.
+  restaurar(raw){ return this.gravarBruto(raw); },
+
+  // O armazenamento existe mas não é JSON legível. Jamais sobrescrever por cima:
+  // guarda os bytes das DUAS listas de lado para poderem ser resgatados. Se nem a
+  // cópia couber, trava a gravação — é a única forma honesta de não destruir o
+  // que resta. Sem esta trava, o app abriria com o CRM vazio e a primeira
+  // gravação apagaria do disco o histórico que ainda estava lá, só ilegível.
+  socorrer(){
+    let havia=false, preservado=true;
+    [this.CHAVE, this.CHAVE_CONTATOS].forEach(ch=>{
+      let raw=null;
+      try{ raw=localStorage.getItem(ch); }catch(_){}
+      if(!raw) return;
+      havia=true;
+      try{ localStorage.setItem(ch.replace('senova_','senova_ilegivel_')+'_'+Date.now(), raw); }
+      catch(_){ preservado=false; }
+    });
+    if(!havia) return;                  // não havia nada guardado: usuário novo, não é acidente
+    if(!preservado) this.travado=true;
+    _avisarGravacaoFalhou('ilegivel');
+  },
+};
 
 let vagas=[], contatos=[], editingVagaId=null, editingContatoId=null, dragVagaId=null;
 let _dragEmCurso=false, _renderPendenteDrag=false; // trava: nenhum re-render de fundo pode destruir o card no meio do gesto de arrastar
@@ -5104,9 +5134,9 @@ function isInativo(v){ return nivelInativo(v)>0; }
 
 function loadCRM(){
   try{
-    const sv=localStorage.getItem('senova_vagas_v2');
+    const sv=Store.ler();
     _autoBackupVagas(sv); // rede de segurança: snapshot diário ANTES de qualquer migração
-    vagas=sv?JSON.parse(sv):[...DEFAULT_VAGAS];
+    vagas=sv?JSON.parse(sv):[];  // usuário novo começa vazio — nunca com o CRM de outra pessoa
     vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'arquivado'}:v.status==='negado'?{...v,status:'arquivado'}:v.status==='descartado'?{...v,status:'arquivado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
     vagas=vagas.map(v=>{
       // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
@@ -5223,17 +5253,22 @@ function loadCRM(){
       vagas.forEach(v=>{ if(v.fonte==='email_alerta'&&v.status==='lead'){ v.status='triagem'; } }); // [status-ok] migração one-shot do loadCRM (em massa, sem transição de usuário)
       localStorage.setItem('senova_migration_email_triagem_v1','1');
     }
-    try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch{}
-    const sc=localStorage.getItem('senova_contatos_v2'); contatos=sc?JSON.parse(sc):[...DEFAULT_CONTATOS];
+    Store.gravar();  // grava o resultado das migrações — e AVISA se o disco recusar (era um catch vazio)
+    const sc=Store.lerContatos(); contatos=sc?JSON.parse(sc):[];
     // Migração suave: adiciona campos novos sem perder dados existentes
     contatos=contatos.map(c=>{
       if(c.lastContact!==undefined) return c; // já migrado
       const now=Date.now();
       return {...c, empresa:c.empresa||'', email:c.email||'', telefone:c.telefone||'', linkedin:c.linkedin||'', notas:c.notas||'', lastContact:now, createdAt:now, timeline:[{ts:now,texto:'Contato registrado'}]};
     });
-    try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{}
-  } catch{
-    vagas=[...DEFAULT_VAGAS]; contatos=[...DEFAULT_CONTATOS];
+    Store.gravarContatos();
+  } catch(_){
+    // Havia bytes no armazenamento e não conseguimos lê-los. O comportamento
+    // antigo era o pior possível: trocava tudo pela lista de exemplo e a primeira
+    // gravação seguinte apagava do disco o que estava ilegível mas ainda existia.
+    // Agora os bytes são preservados de lado e a pessoa fica sabendo.
+    Store.socorrer();
+    vagas=[]; contatos=[];
   }
   updateBadge();
   setTimeout(atualizarStatsHome, 0);
@@ -5957,8 +5992,70 @@ function showToast(msg, duration=4000){
   t._hide=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; },duration);
 }
 
-function saveVagas(){ try{localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas));}catch(e){ try{ _podarAutoBackups(0); localStorage.setItem('senova_vagas_v2',JSON.stringify(vagas)); }catch(_){} } updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome(); }
-function saveContatos(){ try{localStorage.setItem('senova_contatos_v2',JSON.stringify(contatos));}catch{} }
+// ── Trava contra perda silenciosa (S40) ───────────────────────────────────────
+// A gravação do CRM falhava calada em quatro lugares diferentes, todos com um
+// catch vazio. Quando a cota do navegador estourava, a tela seguia mostrando o
+// estado em memória (a Oportunidade já em "CV Enviado") enquanto o disco guardava
+// o estado antigo — e no recarregamento seguinte ela voltava para a primeira
+// coluna, sem que o Senova jamais tivesse avisado. Não era backup antigo
+// ressuscitando: era a gravação daquele dia falhando em silêncio.
+//
+// Hoje quem grava é só o Store, e é ele quem chama este aviso. São duas falhas
+// possíveis, e a pessoa precisa saber QUAL delas aconteceu, porque a saída é a
+// mesma mas o risco não é: com a cota cheia perde-se o que acabou de fazer; com
+// o dado ilegível o que está em jogo é o histórico inteiro.
+//
+// var (não let) de propósito: o aviso pode disparar durante a carga inicial,
+// antes desta linha ser executada, e var não tem zona morta temporal.
+var _avisoGravacaoAtivo=false;
+function _avisarGravacaoFalhou(motivo){
+  try{
+    const TXT = (motivo==='ilegivel')
+      ? { titulo:'Não consegui ler os seus processos guardados neste computador',
+          corpo:'Os dados estão gravados, mas num formato que não consigo abrir. Guardei uma cópia intacta deles em separado e não vou escrever por cima. Baixe uma cópia agora e me avise — dá para recuperar.' }
+      : { titulo:'Não consegui salvar o seu trabalho neste computador',
+          corpo:'O armazenamento do navegador está cheio. O que você acabou de fazer está na tela, mas ainda não foi gravado — se recarregar a página agora, será perdido.' };
+    let el=document.getElementById('aviso-gravacao');
+    if(!el){   // idempotente: dezenas de gravações falhas não podem virar dezenas de avisos
+      el=document.createElement('div');
+      el.id='aviso-gravacao';
+      el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:100000;background:var(--amber-bg);border-bottom:3px solid var(--amber);padding:16px 20px;font-family:var(--font);box-shadow:0 2px 12px rgba(0,0,0,0.12);';
+      el.innerHTML='<div style="max-width:860px;margin:0 auto;display:flex;gap:14px;align-items:flex-start;">'
+        +'<span style="color:var(--amber);font-size:20px;line-height:1.2;font-weight:700;">&#9651;</span>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div id="aviso-gravacao-titulo" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;"></div>'
+        +'<div id="aviso-gravacao-corpo" style="font-size:15px;color:var(--text2);line-height:1.5;"></div>'
+        +'<div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap;">'
+        +'<button type="button" id="aviso-gravacao-baixar" style="min-height:44px;padding:0 20px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);">Baixar uma cópia agora</button>'
+        +'<button type="button" id="aviso-gravacao-fechar" style="min-height:44px;padding:0 12px;background:none;color:var(--text2);border:none;font-size:15px;cursor:pointer;font-family:var(--font);text-decoration:underline;">Fechar aviso</button>'
+        +'</div></div></div>';
+      document.body.appendChild(el);
+      // Reusa a exportação já aprovada (exportarDados), não inventa caminho novo.
+      el.querySelector('#aviso-gravacao-baixar').addEventListener('click',()=>{ try{ exportarDados(); }catch(_){} });
+      // Fechar esconde, mas não mente: a próxima gravação que falhar traz de volta.
+      el.querySelector('#aviso-gravacao-fechar').addEventListener('click',()=>{ el.style.display='none'; _avisoGravacaoAtivo=false; });
+    }
+    // textContent, não innerHTML: o aviso nunca interpola nada, e não é aqui que
+    // se abre uma porta de injeção.
+    el.querySelector('#aviso-gravacao-titulo').textContent=TXT.titulo;
+    el.querySelector('#aviso-gravacao-corpo').textContent=TXT.corpo;
+    el.style.display='';
+    _avisoGravacaoAtivo=true;
+  }catch(_){}   // o aviso nunca pode derrubar a gravação
+}
+function _limparAvisoGravacao(){
+  if(!_avisoGravacaoAtivo) return;   // caminho normal custa um booleano
+  try{ const el=document.getElementById('aviso-gravacao'); if(el) el.style.display='none'; }catch(_){}
+  _avisoGravacaoAtivo=false;
+}
+// Os 56 pontos de chamada continuam chamando saveVagas() — de propósito. Quem
+// grava é o Store; aqui só sobra o que sempre foi: gravar e redesenhar a tela.
+// É esta linha única que faz a mudança para o banco caber num objeto só.
+function saveVagas(){
+  Store.gravar();
+  updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome();
+}
+function saveContatos(){ Store.gravarContatos(); }
 function updateBadge(){ const n=vagas.filter(v=>!['aceito','arquivado','triagem'].includes(v.status)).length; document.getElementById('crm-badge').textContent=n; }
 
 const COL_STATUS={lead:'Oportunidade',aplicado:'CV Enviado',entrevista:'Entrevista',proposta:'Proposta',aceito:'Aceito',arquivado:'Arquivado'};
@@ -7446,8 +7543,8 @@ function restaurarAutoBackup(key){
   if(!raw){ showToast('❌ Backup automático não encontrado'); return; }
   if(!confirm(`Restaurar o ponto de ${_fmtDiaBackup(key)} (${n} processos)?\n\nSeus processos atuais serão substituídos por essa cópia. Esta ação não pode ser desfeita.`)) return;
   // Antes de sobrescrever, guarda o estado atual como ponto de hoje (permite desfazer).
-  try{ const atual=localStorage.getItem('senova_vagas_v2'); if(atual) localStorage.setItem('senova_autobackup_'+new Date().toISOString().slice(0,10), atual); }catch(_){}
-  try{ localStorage.setItem('senova_vagas_v2', raw); }catch(_){ showToast('❌ Não foi possível restaurar (armazenamento cheio)'); return; }
+  try{ const atual=Store.ler(); if(atual) localStorage.setItem('senova_autobackup_'+new Date().toISOString().slice(0,10), atual); }catch(_){}
+  if(!Store.restaurar(raw)){ showToast('❌ Não foi possível restaurar (armazenamento cheio)'); return; }
   showToast('✅ Processos restaurados — recarregando...');
   setTimeout(()=>location.reload(),1200);
 }
