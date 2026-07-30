@@ -60,6 +60,7 @@ function montar(regime, comBackups = true) {
   const fontes = [
     'const Store = {',
     'function _podarAutoBackups(',
+    'function _medirArmazenamento(',
     'function _avisarGravacaoFalhou(',
     'function _limparAvisoGravacao(',
     'function saveVagas(',
@@ -90,6 +91,7 @@ const banner = (s) => s.document.getElementById('aviso-gravacao');
 const avisoVisivel = (s) => { const el = banner(s); return !!el && el.style.display !== 'none'; };
 const tituloAviso = (s) => { const el = banner(s); return el ? el.querySelector('#aviso-gravacao-titulo').textContent : ''; };
 const corpoAviso = (s) => { const el = banner(s); return el ? el.querySelector('#aviso-gravacao-corpo').textContent : ''; };
+const medidaAviso = (s) => { const el = banner(s); return el ? el.querySelector('#aviso-gravacao-medida').textContent : ''; };
 
 console.log('=== caminho normal: grava e não incomoda ninguém ===');
 {
@@ -120,6 +122,34 @@ console.log('\n=== o bug original: cota cheia de verdade → NUNCA mais em silê
   t('o aviso diz que o trabalho não foi salvo', /não consegui salvar/i.test(tituloAviso(sandbox)));
   t('o aviso nomeia a causa: armazenamento cheio', /cheio/i.test(corpoAviso(sandbox)));
   t('o aviso oferece a saída: baixar uma cópia', /Baixar uma cópia agora/.test(banner(sandbox).innerHTML));
+}
+
+console.log('\n=== o aviso de cota NOMEIA o que está ocupando o espaço ===');
+{
+  // Dizer "está cheio" sem dizer do quê deixa a pessoa sem o que decidir — e
+  // obrigaria a abrir ferramentas de desenvolvedor, que é justamente o que
+  // ninguém deve precisar fazer para usar o Senova.
+  const { sandbox, ls, run } = montar('cheio');
+  ls['senova_vagas_v2'] = 'x'.repeat(1600000);          // ~3,2 MB
+  ls['senova_revisao_pendente'] = 'y'.repeat(600000);   // ~1,2 MB
+  ls['senova_autobackup_2026-07-30'] = 'z'.repeat(900000);
+  run('saveVagas()');
+
+  const m = medidaAviso(sandbox);
+  t('o aviso informa quanto está ocupado', /Ocupado agora: \d+,\d MB/.test(m), m);
+  t('nomeia o maior ocupante primeiro', /pesa: seus processos/.test(m), m);
+  t('nomeia também as vagas para considerar', /vagas para considerar/.test(m), m);
+  t('usa o nome do usuário, nunca o nome da chave', !/senova_/.test(m), m);
+  t('as cópias automáticas já não contam — foram descartadas antes de desistir',
+    !/cópias automáticas/.test(m), m);
+}
+{
+  const { sandbox, ls, run } = montar('cheio');
+  ls['senova_vagas_v2'] = 'x'.repeat(1600000);
+  ls['senova_vagas_v2'] = '{{{ ilegível';
+  run('Store.socorrer()');
+  t('na falha de LEITURA a medida não aparece — espaço não é o problema ali',
+    medidaAviso(sandbox) === '', medidaAviso(sandbox));
 }
 
 console.log('\n=== dado ilegível: preserva os bytes, avisa, e NÃO apaga o que sobrou ===');

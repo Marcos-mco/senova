@@ -6008,6 +6008,44 @@ function showToast(msg, duration=4000){
 // var (não let) de propósito: o aviso pode disparar durante a carga inicial,
 // antes desta linha ser executada, e var não tem zona morta temporal.
 var _avisoGravacaoAtivo=false;
+
+// Mede o que ocupa o armazenamento do navegador, por grupo. Dizer "está cheio"
+// sem dizer do quê deixa a pessoa no escuro justamente na hora em que ela
+// precisa decidir o que fazer — e obrigaria a abrir ferramentas de
+// desenvolvedor para descobrir, o que não é trabalho de quem usa o Senova.
+function _medirArmazenamento(){
+  // Nomes do usuário, não nomes de chave: quem lê o aviso precisa reconhecer o
+  // que é seu. Fica dentro da função de propósito — só roda quando o aviso abre.
+  const ROTULOS=[
+    ['senova_vagas_v2',        'seus processos'],
+    ['senova_revisao_pendente','vagas para considerar'],
+    ['senova_autobackup_',     'cópias automáticas'],
+    ['senova_ilegivel_',       'resgate de dado ilegível'],
+    ['senova_contatos_v2',     'seus contatos'],
+    ['senova_logo_cache_v5',   'logotipos das empresas'],
+  ];
+  const grupos={}; let total=0;
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      let v=''; try{ v=localStorage.getItem(k)||''; }catch(_){}
+      const bytes=(k.length+v.length)*2;          // o navegador guarda em UTF-16
+      total+=bytes;
+      const r=ROTULOS.find(([p])=>k.indexOf(p)===0);
+      const nome=r?r[1]:'outros';
+      grupos[nome]=(grupos[nome]||0)+bytes;
+    });
+  }catch(_){}
+  const mb=b=>(b/1048576).toFixed(1).replace('.',',')+' MB';
+  const pesados=Object.keys(grupos).map(n=>[n,grupos[n]])
+    .sort((a,b)=>b[1]-a[1])
+    .filter(p=>p[1]>102400)                       // abaixo de 100 KB não explica nada
+    .slice(0,4)
+    .map(p=>p[0]+' '+mb(p[1]));
+  return { total, texto: pesados.length
+    ? 'Ocupado agora: '+mb(total)+' — o limite do navegador fica perto de 5 MB. O que mais pesa: '+pesados.join(' · ')+'.'
+    : '' };
+}
+
 function _avisarGravacaoFalhou(motivo){
   try{
     const TXT = (motivo==='ilegivel')
@@ -6025,6 +6063,7 @@ function _avisarGravacaoFalhou(motivo){
         +'<div style="flex:1;min-width:0;">'
         +'<div id="aviso-gravacao-titulo" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;"></div>'
         +'<div id="aviso-gravacao-corpo" style="font-size:15px;color:var(--text2);line-height:1.5;"></div>'
+        +'<div id="aviso-gravacao-medida" style="font-size:14px;color:var(--text3);line-height:1.5;margin-top:6px;"></div>'
         +'<div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap;">'
         +'<button type="button" id="aviso-gravacao-baixar" style="min-height:44px;padding:0 20px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);">Baixar uma cópia agora</button>'
         +'<button type="button" id="aviso-gravacao-fechar" style="min-height:44px;padding:0 12px;background:none;color:var(--text2);border:none;font-size:15px;cursor:pointer;font-family:var(--font);text-decoration:underline;">Fechar aviso</button>'
@@ -6039,6 +6078,10 @@ function _avisarGravacaoFalhou(motivo){
     // se abre uma porta de injeção.
     el.querySelector('#aviso-gravacao-titulo').textContent=TXT.titulo;
     el.querySelector('#aviso-gravacao-corpo').textContent=TXT.corpo;
+    // Só na falha de cota: aqui a medida orienta a decisão. Na falha de leitura
+    // o espaço não é o problema, e o número só atrapalharia.
+    const med=el.querySelector('#aviso-gravacao-medida');
+    med.textContent = (motivo==='ilegivel') ? '' : _medirArmazenamento().texto;
     el.style.display='';
     _avisoGravacaoAtivo=true;
   }catch(_){}   // o aviso nunca pode derrubar a gravação
