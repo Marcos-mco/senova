@@ -82,12 +82,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === 'HABILITAR_PORTAL') {
-    fetch(WORKER + '/api/whitelist', {
+    _fetchWorker(WORKER + '/api/whitelist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dominio: msg.dominio }),
     })
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 401 ? ERRO_SEM_CHAVE : 'HTTP ' + r.status)))
       .then(d => sendResponse({ ok: true, dominios: d.dominios }))
       .catch(e => sendResponse({ ok: false, erro: e.message }));
     return true;
@@ -164,7 +164,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 // ── CHAVE DE ACESSO AO WORKER ────────────────────────────────────────
-// A partir da v7.24 do Worker, /api/vagas-lead exige x-senova-key: ela servia sem credencial
+// A partir da v7.27 do Worker, /api/vagas-lead exige x-senova-key: ela servia sem credencial
 // nenhuma o parecer da IA sobre o usuário (piso salarial, cidade, lacunas do currículo).
 // A chave NÃO fica no código da extensão — ela mora no localStorage do app e é pedida à aba
 // do Senova pela mesma ponte já usada por buscarAnaliseDoApp e copilotoCartao.
@@ -227,13 +227,13 @@ async function analisarVaga({ titulo, empresa, descricao }) {
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 25000);
   try {
-    const res = await fetch(`${WORKER}/api/analisar-vaga`, {
+    const res = await _fetchWorker(`${WORKER}/api/analisar-vaga`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titulo, empresa, descricao }),
       signal: ctrl.signal,
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) throw new Error(res.status === 401 ? ERRO_SEM_CHAVE : 'HTTP ' + res.status);
     return await res.json();
   } finally {
     clearTimeout(timeout);
@@ -354,7 +354,7 @@ async function copilotoResposta(pergunta, cargo, empresa) {
   } catch { return null; }
   if (!prompt) return { erro: 'sem_funcao' };
   try {
-    const res = await fetch(WORKER + '/api/claude', {
+    const res = await _fetchWorker(WORKER + '/api/claude', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prompt),
     });
@@ -382,7 +382,7 @@ async function copilotoHabilidades(skills, cargo, empresa, max) {
   } catch { return null; }
   if (!prompt) return { erro: 'sem_funcao' };
   try {
-    const res = await fetch(WORKER + '/api/claude', {
+    const res = await _fetchWorker(WORKER + '/api/claude', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prompt),
     });
@@ -478,7 +478,7 @@ async function copilotoCV(dados, formato) {
   // Passo 2: gera o texto do CV via Worker
   let cvText = null;
   try {
-    const res = await fetch(WORKER + '/api/claude', {
+    const res = await _fetchWorker(WORKER + '/api/claude', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(r.prompt),
     });
@@ -567,7 +567,7 @@ async function copilotoCarta(dados) {
   // Passo 2: gera via Worker
   let carta = null;
   try {
-    const res = await fetch(WORKER + '/api/claude', {
+    const res = await _fetchWorker(WORKER + '/api/claude', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(r.prompt),
     });

@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.24
+//  SENOVA PROXY — Worker v7.27
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.24 (31/jul/2026) — /api/vagas-lead deixa de ser pública (S41).
+//  NOVIDADES v7.27 (31/jul/2026) — /api/vagas-lead deixa de ser pública (S41).
 //  A rota estava isenta de credencial desde a Fase B da extensão, catalogada
 //  como "radar de vagas". Medição no Worker no ar desmentiu o rótulo: 750 KB
 //  servidos a quem tivesse a URL, com o parecer da IA sobre a PESSOA em cada
@@ -537,7 +537,7 @@ const CORS = {
 // Fail-CLOSED (S2): se o segredo não estiver configurado, o gate NEGA — segredo ausente
 // nunca pode significar "aberto". As rotas isentas acima seguem livres (não passam por aqui).
 //
-// POR QUE /api/vagas-lead SAIU DA LISTA (v7.24). Ela entrou aqui como "rota da extensão",
+// POR QUE /api/vagas-lead SAIU DA LISTA (v7.27). Ela entrou aqui como "rota da extensão",
 // sob o rótulo de radar de vagas — dado público, exposição aceitável. Não era isso.
 // MEDIDO no Worker no ar, sem credencial nenhuma: HTTP 200, 750.338 bytes, 399 vagas,
 // 160 delas vindas da caixa de e-mail pessoal do usuário. E o que viaja junto de cada vaga
@@ -551,12 +551,15 @@ const CORS = {
 // contar como dado pessoal mesmo quando o objeto analisado (a vaga) é público.
 // O app não sentiu: o interceptor de index.html já injetava x-senova-key em toda chamada.
 // A extensão foi ensinada a pedir a chave à aba do Senova (background.js: _chaveApp).
+// FASE B ENCERRADA (v7.27). As rotas abaixo ficavam abertas porque a extensão não tinha como
+// carregar o header. Agora tem (_chaveApp), então some o motivo de estarem aqui:
+//   · /api/claude e /api/analisar-vaga — proxy de IA. Não vazam acervo, mas gastam a chave da
+//     Anthropic de quem chamar. Com a URL pública, é conta de terceiro paga por Marcos.
+//   · /api/whitelist — configuração de produto; POST aberto deixa qualquer um habilitar portal.
+// Fica de fora só o que genuinamente não carrega header: navegação OAuth (redirect no browser)
+// e /health (que não lê KV de usuário nem devolve conteúdo dele).
 const ROTAS_SEM_SEGREDO = new Set([
   'GET /health',
-  'POST /api/claude', 'POST /api/analisar-vaga',    // extensão — Fase B
-  'POST /api/sofia-parecer',                        // mesma exposição que /api/claude, superfície menor
-  // 'GET /api/vagas-lead', 'POST /api/vagas-lead'  — FECHADAS na v7.24. Ver abaixo.
-  'GET /api/whitelist', 'POST /api/whitelist',       // extensão HABILITAR_PORTAL — Fase B
   'GET /api/auth/outlook', 'GET /api/auth/callback', // navegação/OAuth (redirect no browser)
 ]);
 function segredoOk(request, env) {
@@ -574,15 +577,44 @@ function json(data, status=200) {
 }
 
 // Rate limit por IP — protege o proxy de IA contra abuso (a URL do Worker é pública).
-// Janela fixa simples via KV. Fail-open: se o KV falhar, não bloqueia o usuário legítimo.
-async function rateLimit(request, env, limite = 40, janelaSeg = 60) {
+//
+// POR QUE ELE SAIU DO KV (v7.27). A versão anterior gravava no KV a CADA chamada permitida,
+// nas quatro rotas mais quentes (/api/claude, /api/analisar-vaga, /api/sofia-parecer,
+// /api/link-vivo). O plano free do KV dá 1.000 escritas/dia — e o limitador consumia esse
+// orçamento em proporção ao USO LEGÍTIMO, não ao abuso. Contas medidas no código:
+//   · os dois crons juntos gastam ~63 escritas/dia (varredura 7 + e-mail 8×7). Folga enorme.
+//   · uma revalidação dos 444 links do radar = 444 escritas, só do limitador
+//     (verificarLinkVaga não grava nada por conta própria).
+//   · a esteira reanalisando 152 vagas paradas = 152 escritas.
+// Foi assim que a cota estourou em 09/jul (S38, "code: 10048"). E o estrago não é o
+// limitador parar: é que, sem cota, TODA gravação do Worker passa a falhar em silêncio —
+// `vagas_lead` do cron (vaga colhida e perdida), `emails_vistos` (e-mail reprocessado),
+// `varredura_status`. O guarda da porta gastava a água do prédio inteiro.
+// Ironia final: ele é fail-open (`catch → true`), então depois de estourar a cota ele já
+// não limitava nada. Custava tudo e não entregava mais nada.
+//
+// A troca: contador na MEMÓRIA DO ISOLATE. Custo zero de cota, latência zero. É mais fraco
+// que o KV — cada isolate conta o seu, então o teto real é por isolate, não global. Aceito
+// de propósito, por duas razões: (a) as rotas de IA passaram a exigir x-senova-key na v7.27,
+// então isto deixou de ser a única porta e virou o cinto extra contra chave vazada;
+// (b) um limitador aproximado que sempre funciona vale mais que um exato que se autodestrói
+// no dia em que é mais necessário. O Map é podado para não crescer sem fim no isolate.
+const _rlBaldes = new Map();   // `${ip}:${bucket}` → contagem, só nesta instância
+function rateLimit(request, env, limite = 40, janelaSeg = 60) {
   try {
     const ip = request.headers.get('CF-Connecting-IP') || 'desconhecido';
     const bucket = Math.floor(Date.now() / (janelaSeg * 1000));
-    const key = `rl:${ip}:${bucket}`;
-    const atual = parseInt(await env.SENOVA_KV.get(key) || '0', 10) || 0;
+    const key = `${ip}:${bucket}`;
+    // Poda: janela passou, o balde não serve mais para nada. Sem isto, um isolate longevo
+    // acumularia uma chave por IP por minuto até o fim da vida dele.
+    if (_rlBaldes.size > 500) {
+      for (const k of _rlBaldes.keys()) {
+        if (!k.endsWith(':' + bucket)) _rlBaldes.delete(k);
+      }
+    }
+    const atual = _rlBaldes.get(key) || 0;
     if (atual >= limite) return false;
-    await env.SENOVA_KV.put(key, String(atual + 1), { expirationTtl: janelaSeg * 2 });
+    _rlBaldes.set(key, atual + 1);
     return true;
   } catch { return true; }
 }
@@ -854,7 +886,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.26',
+        status: 'ok', worker: 'senova-proxy', versao: '7.27',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -1223,9 +1255,15 @@ export default {
       const hoje = new Date().toISOString().slice(0, 10);
       const statsKey = 'stats_' + hoje;
       const statsAtuais = await env.SENOVA_KV.get(statsKey, 'json') || { novos: 0, alertas: 0 };
-      statsAtuais.novos = Math.max(statsAtuais.novos, totalNovos);
-      statsAtuais.alertas = Math.max(statsAtuais.alertas, totalAlertas);
-      await env.SENOVA_KV.put(statsKey, JSON.stringify(statsAtuais), { expirationTtl: 86400 });
+      const novosMax = Math.max(statsAtuais.novos, totalNovos);
+      const alertasMax = Math.max(statsAtuais.alertas, totalAlertas);
+      // Só grava se o número MUDOU. Como os dois campos são Math.max, reabrir a caixa de
+      // entrada sem novidade recalculava o mesmo valor e o regravava — uma escrita de KV por
+      // chamada, para deixar o registro exatamente como estava. Escrita idêntica não é
+      // gravação, é desperdício de uma cota de 1.000/dia (ver rateLimit).
+      if (novosMax !== statsAtuais.novos || alertasMax !== statsAtuais.alertas) {
+        await env.SENOVA_KV.put(statsKey, JSON.stringify({ novos: novosMax, alertas: alertasMax }), { expirationTtl: 86400 });
+      }
 
       return json({
         emails: classificados, irrelevantes, alertas: todosAlertas, total_lidos: emails.length,

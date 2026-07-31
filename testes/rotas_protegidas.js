@@ -23,15 +23,20 @@ const worker = fs.readFileSync(path.join(__dirname, '..', 'senova-worker.js'), '
 // ── O que PODE ficar sem credencial, e o motivo de cada uma ────────────────────
 // Mexer nesta lista é uma decisão de segurança, não de conveniência: escreva o motivo.
 const ISENCAO_AUTORIZADA = {
-  'GET /health':              'status do Worker — não lê KV de usuário nem devolve conteúdo dele',
-  'POST /api/claude':         'proxy de IA; quem chama manda o prompt e recebe a resposta, nada é lido do KV',
-  'POST /api/analisar-vaga':  'idem: recebe os fatos da vaga, devolve a análise a quem pediu, não guarda nem serve o acervo',
-  'POST /api/sofia-parecer':  'mesma exposição que /api/claude, superfície menor',
-  'GET /api/whitelist':       'lista de domínios de portal habilitados — configuração de produto, não dado de pessoa',
-  'POST /api/whitelist':      'idem (escrita); a extensão não tem como carregar header nesta rota ainda',
-  'GET /api/auth/outlook':    'navegação OAuth — redirect no browser, não há como injetar header',
-  'GET /api/auth/callback':   'idem',
+  'GET /health':            'status do Worker — não lê KV de usuário nem devolve conteúdo dele',
+  'GET /api/auth/outlook':  'navegação OAuth — redirect no browser, não há como injetar header',
+  'GET /api/auth/callback': 'idem',
 };
+
+// Rotas que JÁ ESTIVERAM isentas e não podem voltar. Elas saíram por motivos diferentes e a
+// distinção importa: /api/vagas-lead vazava dado da pessoa; as de IA gastam a chave da
+// Anthropic de quem chamar (conta de terceiro paga por Marcos); /api/whitelist deixava
+// qualquer um habilitar portal. Todas saíram quando a extensão aprendeu a carregar a chave.
+const NUNCA_MAIS_ISENTAS = [
+  'GET /api/vagas-lead', 'POST /api/vagas-lead',
+  'POST /api/claude', 'POST /api/analisar-vaga', 'POST /api/sofia-parecer',
+  'GET /api/whitelist', 'POST /api/whitelist',
+];
 
 // Extrai o conteúdo real do Set ROTAS_SEM_SEGREDO, ignorando linhas comentadas.
 function rotasIsentas() {
@@ -55,9 +60,10 @@ const semMotivo = isentas.filter(r => !ISENCAO_AUTORIZADA[r]);
 t('toda rota isenta tem motivo declarado neste teste', semMotivo.length === 0,
   semMotivo.length ? 'sem motivo: ' + semMotivo.join(', ') : '');
 
-console.log('\n=== a rota que vazava o dossiê está fechada ===');
-t('GET /api/vagas-lead exige credencial', !isentas.includes('GET /api/vagas-lead'));
-t('POST /api/vagas-lead exige credencial', !isentas.includes('POST /api/vagas-lead'));
+console.log('\n=== o que já foi fechado não reabre ===');
+for (const r of NUNCA_MAIS_ISENTAS) {
+  t(r + ' exige credencial', !isentas.includes(r));
+}
 
 console.log('\n=== nenhuma rota que serve análise da pessoa pode ser isenta ===');
 // GET aqui é o que importa: é o verbo que ENTREGA o acervo. Um POST que só recebe e devolve
@@ -78,15 +84,16 @@ t('o gate roda antes das rotas (checa método+path, não só path)',
 
 console.log('\n=== a extensão manda a chave — e não por um caminho paralelo ===');
 const bg = fs.readFileSync(path.join(__dirname, '..', 'senova-extension', 'background.js'), 'utf8');
-// Toda chamada da extensão a /api/vagas-lead tem de passar por _fetchWorker. Um fetch() cru
-// para essa rota levaria 401 e o usuário veria "não salvou" sem saber por quê.
+// TODA chamada da extensão ao Worker tem de passar por _fetchWorker. Um fetch() cru levaria
+// 401 e o usuário veria "não deu" sem saber por quê — e é fácil um caminho novo nascer cru,
+// porque `fetch(WORKER + ...)` é o que já estava escrito em seis lugares.
 const cruas = [];
 bg.split('\n').forEach((l, i) => {
   if (l.trim().startsWith('//')) return;
-  if (!/\/api\/vagas-lead/.test(l)) return;
+  if (!/fetch\(\s*(WORKER|`\$\{WORKER\})/.test(l)) return;   // só chamadas ao NOSSO Worker
   if (!/_fetchWorker\(/.test(l)) cruas.push((i + 1) + ': ' + l.trim().slice(0, 80));
 });
-t('nenhuma chamada crua a /api/vagas-lead na extensão', cruas.length === 0, cruas.join(' | '));
+t('nenhuma chamada crua ao Worker na extensão', cruas.length === 0, cruas.join(' | '));
 t('_fetchWorker injeta o header x-senova-key', /headers\['x-senova-key'\] = k;/.test(bg));
 t('a chave NÃO está escrita no código da extensão',
   !/senova_app_key\s*[:=]\s*['"][A-Za-z0-9_\-]{8,}/.test(bg));
@@ -94,6 +101,23 @@ t('em 401 a extensão relê a chave e tenta de novo (chave trocada no Perfil)',
   /res\.status === 401 && !jaRetentou/.test(bg));
 t('a falha por falta de chave é dita em português ao usuário',
   /ERRO_SEM_CHAVE/.test(bg) && /Perfil › Integrações/.test(bg));
+
+console.log('\n=== o limitador de uso não pode comer a cota de escrita do KV ===');
+// O rate limit gravava no KV a cada chamada permitida, nas 4 rotas mais quentes. O plano free
+// dá 1.000 escritas/dia e os crons gastam ~63 — o resto ia embora em proporção ao USO
+// LEGÍTIMO (444 links revalidados = 444 escritas). Estourada a cota, TODA gravação do Worker
+// falha em silêncio, inclusive vagas_lead e emails_vistos. Nunca mais no KV.
+{
+  const i = worker.indexOf('function rateLimit(');
+  const corpo = worker.slice(i, worker.indexOf('\n}', i));
+  t('rateLimit não grava no KV', !/SENOVA_KV\.put/.test(corpo));
+  t('rateLimit não lê do KV (leitura por chamada também custa)', !/SENOVA_KV\.get/.test(corpo));
+  t('o balde em memória é podado (não cresce sem fim no isolate)', /_rlBaldes\.delete\(/.test(worker));
+}
+// Gravar valor idêntico não é gravação, é desperdício: stats_hoje era regravado a cada
+// abertura da caixa de entrada, mesmo sem e-mail novo.
+t('stats do dia só é gravado quando o número muda',
+  /if \(novosMax !== statsAtuais\.novos \|\| alertasMax !== statsAtuais\.alertas\)/.test(worker));
 
 console.log('\n=== a ponte existe do lado do app ===');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
