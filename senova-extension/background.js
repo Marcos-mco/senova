@@ -163,6 +163,64 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
+// ── CHAVE DE ACESSO AO WORKER ────────────────────────────────────────
+// A partir da v7.24 do Worker, /api/vagas-lead exige x-senova-key: ela servia sem credencial
+// nenhuma o parecer da IA sobre o usuário (piso salarial, cidade, lacunas do currículo).
+// A chave NÃO fica no código da extensão — ela mora no localStorage do app e é pedida à aba
+// do Senova pela mesma ponte já usada por buscarAnaliseDoApp e copilotoCartao.
+// Guardada em chrome.storage.local para que "Salvar vaga" continue funcionando com o app
+// FECHADO, como sempre funcionou: dívida de segurança nossa não se cobra do usuário em
+// funcionalidade perdida. Não é um lugar novo de exposição — quem alcança o disco desta
+// máquina já alcança o localStorage do app, que é onde a chave mora em texto puro.
+let _chaveMem = null;
+
+async function _chaveApp({ forcar = false } = {}) {
+  if (!forcar && _chaveMem) return _chaveMem;
+  if (!forcar) {
+    try {
+      const g = await chrome.storage.local.get('senova_app_key');
+      if (g && g.senova_app_key) { _chaveMem = g.senova_app_key; return _chaveMem; }
+    } catch (_) {}
+  }
+  // Não tem em cache (ou o Worker recusou a que tínhamos) → buscar na aba do app.
+  try {
+    const tabs = await chrome.tabs.query({});
+    const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+    if (!senovaTab) return _chaveMem || '';   // app fechado: vale a que já temos, se houver
+    const out = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: () => (typeof window.__senovaChaveApp === 'function') ? window.__senovaChaveApp() : '',
+    });
+    const k = (out && out[0] && out[0].result) || '';
+    if (k) {
+      _chaveMem = k;
+      try { await chrome.storage.local.set({ senova_app_key: k }); } catch (_) {}
+      return k;
+    }
+  } catch (_) {}
+  return _chaveMem || '';
+}
+
+// Chamada ao Worker com a chave. Em 401 tenta UMA vez com a chave relida do app — cobre o
+// caso de Marcos ter trocado a chave no Perfil e a extensão ainda carregar a antiga.
+// A falha nunca é silenciosa: devolve a resposta 401 para quem chamou avisar na tela.
+async function _fetchWorker(url, init = {}, jaRetentou = false) {
+  const k = await _chaveApp({ forcar: jaRetentou });
+  const headers = Object.assign({}, init.headers || {});
+  if (k) headers['x-senova-key'] = k;
+  const res = await fetch(url, Object.assign({}, init, { headers }));
+  if (res.status === 401 && !jaRetentou) {
+    try { await chrome.storage.local.remove('senova_app_key'); } catch (_) {}
+    _chaveMem = null;
+    return _fetchWorker(url, init, true);
+  }
+  return res;
+}
+
+// Recado legível para o usuário quando o Worker recusa: ele não sabe o que é "HTTP 401",
+// e a ação que resolve (abrir o Senova, conferir a chave no Perfil) tem de estar dita.
+const ERRO_SEM_CHAVE = 'sem acesso ao Senova — abra o app numa aba e confira a Chave de acesso em Perfil › Integrações';
+
 // ── CHAMADAS AO WORKER ───────────────────────────────────────────────
 
 async function analisarVaga({ titulo, empresa, descricao }) {
@@ -183,7 +241,7 @@ async function analisarVaga({ titulo, empresa, descricao }) {
 }
 
 async function salvarVaga(payload) {
-  const res = await fetch(`${WORKER}/api/vagas-lead`, {
+  const res = await _fetchWorker(`${WORKER}/api/vagas-lead`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -201,6 +259,7 @@ async function salvarVaga(payload) {
     }),
   });
   if (!res.ok) {
+    if (res.status === 401) throw new Error(ERRO_SEM_CHAVE);
     const txt = await res.text().catch(() => res.status + '');
     throw new Error(txt);
   }
@@ -550,12 +609,15 @@ async function copilotoDesfazer(dados) {
 }
 
 async function salvarSinal({ titulo, empresa, url, resumo }) {
-  const res = await fetch(`${WORKER}/api/vagas-lead`, {
+  const res = await _fetchWorker(`${WORKER}/api/vagas-lead`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ titulo, empresa, url, resumo, canal: 'Sinal', fonte: 'sinal' }),
   });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error(ERRO_SEM_CHAVE);
+    throw new Error('HTTP ' + res.status);
+  }
   return res.json();
 }
 

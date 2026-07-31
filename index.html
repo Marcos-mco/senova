@@ -2809,6 +2809,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('perfil-app-key');
   if (inp) inp.value = localStorage.getItem('senova_app_key') || '';
 });
+// Ponte para a extensão (mesmo padrão dos outros __senova*: ela chama por executeScript,
+// world MAIN, na aba do app). A extensão precisa da chave porque /api/vagas-lead deixou de
+// ser pública na v7.24 do Worker — ela servia, sem credencial, o parecer da IA sobre o
+// usuário. Não é exposição nova: quem executa script nesta página já lê o localStorage
+// direto. Existe para o acesso ser um contrato explícito e greppável, e não um caminho
+// paralelo que ninguém sabe que está aberto.
+window.__senovaChaveApp = function(){
+  try { return localStorage.getItem('senova_app_key') || ''; } catch(e){ return ''; }
+};
 
 // ─── Resize #home-wrap ───────────────────────────
 (function() {

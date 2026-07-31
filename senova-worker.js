@@ -1,6 +1,16 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.23
+//  SENOVA PROXY — Worker v7.24
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.24 (31/jul/2026) — /api/vagas-lead deixa de ser pública (S41).
+//  A rota estava isenta de credencial desde a Fase B da extensão, catalogada
+//  como "radar de vagas". Medição no Worker no ar desmentiu o rótulo: 750 KB
+//  servidos a quem tivesse a URL, com o parecer da IA sobre a PESSOA em cada
+//  vaga (piso salarial, cidade, lacunas do currículo, idade, filhas) e 160
+//  entradas colhidas da caixa de e-mail pessoal. GET e POST agora exigem
+//  x-senova-key. Detalhe e amostra do que vazava: comentário em ROTAS_SEM_SEGREDO.
+//  Regra nova, e é geral: análise sobre a pessoa é dado pessoal, mesmo quando o
+//  objeto analisado é público. Guard em testes/rotas_protegidas.js impede a volta.
 //
 //  NOVIDADES v7.23 (27/jul/2026) — FONTE ÚNICA DE IDENTIDADE (S38, passo 1).
 //  A S37 corrigiu a régua de vida de Marcos (piso de dignidade R$8k, cargo
@@ -526,11 +536,26 @@ const CORS = {
 // header: navegação OAuth (GET, redirect no browser) e as rotas da extensão (Fase B).
 // Fail-CLOSED (S2): se o segredo não estiver configurado, o gate NEGA — segredo ausente
 // nunca pode significar "aberto". As rotas isentas acima seguem livres (não passam por aqui).
+//
+// POR QUE /api/vagas-lead SAIU DA LISTA (v7.24). Ela entrou aqui como "rota da extensão",
+// sob o rótulo de radar de vagas — dado público, exposição aceitável. Não era isso.
+// MEDIDO no Worker no ar, sem credencial nenhuma: HTTP 200, 750.338 bytes, 399 vagas,
+// 160 delas vindas da caixa de e-mail pessoal do usuário. E o que viaja junto de cada vaga
+// não é o anúncio: é o JUÍZO DA IA SOBRE A PESSOA — `resumo` e `pontos_atencao` escritos
+// contra o projeto de vida dela. Amostra literal do que qualquer um lia com um curl:
+// "confirmar se atinge o piso de R$8k" · "pode exigir deslocamento de Curitiba" ·
+// "Perfil complementar com erros de digitação" · "Lacuna recente pode gerar questionamento
+// sobre continuidade executiva". No payload: 54 menções ao nome, 206 a "filha", 6 a
+// "aposentad", 2 a "65 anos". Isso é o dossiê da pessoa, não o radar de mercado.
+// A regra que fica: o que carrega ANÁLISE não sai daqui sem credencial — e análise passa a
+// contar como dado pessoal mesmo quando o objeto analisado (a vaga) é público.
+// O app não sentiu: o interceptor de index.html já injetava x-senova-key em toda chamada.
+// A extensão foi ensinada a pedir a chave à aba do Senova (background.js: _chaveApp).
 const ROTAS_SEM_SEGREDO = new Set([
   'GET /health',
   'POST /api/claude', 'POST /api/analisar-vaga',    // extensão — Fase B
   'POST /api/sofia-parecer',                        // mesma exposição que /api/claude, superfície menor
-  'GET /api/vagas-lead', 'POST /api/vagas-lead',     // extensão — Fase B
+  // 'GET /api/vagas-lead', 'POST /api/vagas-lead'  — FECHADAS na v7.24. Ver abaixo.
   'GET /api/whitelist', 'POST /api/whitelist',       // extensão HABILITAR_PORTAL — Fase B
   'GET /api/auth/outlook', 'GET /api/auth/callback', // navegação/OAuth (redirect no browser)
 ]);
