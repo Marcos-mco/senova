@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.75
+// Content script — Senova Extension v2.77
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -661,6 +661,15 @@
   // Solta o painel só depois que o usuário teve tempo de LER a resposta.
   function _soltar(ms) { setTimeout(() => { _ocupado = false; try { _atualizarCorpo(); } catch (_) {} }, ms || 9000); }
   let _respondido = false;
+  // O que o copiloto diz sobre o preenchimento vale para A PÁGINA onde ele preencheu. Portais em
+  // várias etapas (dados → histórico → revisão) trocam de tela sem trocar de vaga: sem carimbar a
+  // URL, o "✓ Preenchi" da etapa anterior sobrevivia na etapa seguinte e o painel se contradizia
+  // (dizia "preenchi" no corpo e "não consegui" no botão). Fora da página de origem, não vale.
+  let _respondidoUrl = '';
+  // Desfecho da última rodada de preenchimento quando NÃO houve preenchimento: { texto, url }.
+  // Mora no corpo do painel, não no rótulo do botão — texto pendurado em botão sobrevivia ao
+  // anti-pisca e nunca era desfeito. Uma rodada nova sempre limpa o desfecho da anterior.
+  let _avisoRodada = null;
   let _candidatado = false;
   let _viuForm = false;
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
@@ -745,11 +754,34 @@
     return (t || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   }
 
+  // Campo de HISTÓRICO profissional/formação (cargo, empresa, período, descrição do cargo, curso).
+  // O copiloto não preenche isto: a experiência de uma pessoa não se deduz de um cartão de dados
+  // nem se inventa com IA. Reconhecer o grupo serve para duas coisas honestas: não mandar uma
+  // "Role description" à IA como se fosse pergunta aberta (ela não tem o que responder e o campo
+  // fica em branco de qualquer jeito), e poder dizer ao usuário QUAL é a etapa em que ele está.
+  // Geral por rótulo — sem código por portal. Ver Veralto/Phenom, etapa workAndEducation.
+  function _rotuloHistorico(rot) {
+    const t = (rot || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    // Pergunta de verdade nunca é campo de histórico ("Como conheceu a empresa?").
+    if (/\?\s*$/.test(t)) return false;
+    // A vaga a que se candidata NÃO é histórico ("cargo pretendido", "job title you're applying for").
+    if (/pretendid|desejad|almejad|de interesse|applying|desired|wanted|pretens/.test(t)) return false;
+    return /\bcargo\b|job\s*title|titulo\s*do\s*cargo|\bpuesto\b/.test(t)
+        || /\bempresa\b|\bcompany\b|employer|empleador/.test(t)
+        || /role\s*description|job\s*description|descricao\s*(do\s*cargo|da\s*funcao|das?\s*atividades|da\s*experiencia)|responsabilidades|responsibilities|atividades\s*(exercidas|desenvolvidas)/.test(t)
+        || /data\s*de\s*(inicio|termino|saida|admissao)|start\s*date|end\s*date|periodo\s*(de\s*)?(trabalho|atuacao)/.test(t)
+        || /instituicao|universidade|university|\bschool\b|\bcurso\b|degree|diploma|formacao|escolaridade|field\s*of\s*study|area\s*de\s*estudo|\bmajor\b/.test(t);
+  }
+
   // Classifica um campo pelo tipo/rótulo. Retorna null se for ruído.
   function _classificarCampo(el) {
     if ((el.type || '').toLowerCase() === 'file') return { grupo: 'cv', label: 'Upload de currículo' };
-    if (el.tagName === 'TEXTAREA') return { grupo: 'pergunta', label: _rotuloCampo(el) || 'Pergunta aberta' };
-    const r = _rotuloCampo(el).toLowerCase();
+    const _rot = _rotuloCampo(el);
+    // Histórico ANTES da textarea: "Role description" é caixa grande, mas não é pergunta aberta —
+    // mandá-la à IA gastava uma chamada por emprego para receber um pedido de contexto de volta.
+    if (_rot && _rotuloHistorico(_rot)) return { grupo: 'historico', label: _rot.slice(0, 45) };
+    if (el.tagName === 'TEXTAREA') return { grupo: 'pergunta', label: _rot || 'Pergunta aberta' };
+    const r = _rot.toLowerCase();
     if (!r) return null;
     // Campos pessoais específicos ANTES do nome: um label "Nome e e-mail" casa e-mail aqui;
     // "Nome da cidade" casa cidade — evita que o genérico de nome capture esses por engano.
@@ -861,6 +893,24 @@
       const c = _classificarCampo(el);
       if (c) out.push({ el, grupo: c.grupo, label: c.label, chave: c.chave, nomeAmbiguo: c.nomeAmbiguo });
     }
+    // Resolução de contexto — CIDADE dentro de um bloco de emprego. Um "Location" ao lado de
+    // "Job Title" e "Company" é a cidade DAQUELE emprego, não a cidade onde a pessoa mora:
+    // escrever ali o endereço atual põe dado errado no formulário. Vizinhança curta (até 6 níveis
+    // e no máximo 10 campos no bloco) para reconhecer o bloco de um emprego sem abraçar o
+    // formulário inteiro — senão um único "Company" na página desligaria o autofill de tudo.
+    for (const c of out) {
+      if (c.chave !== 'cidade' || !c.el) continue;
+      let anc = c.el.parentElement;
+      for (let i = 0; i < 6 && anc; i++, anc = anc.parentElement) {
+        const irmaos = anc.querySelectorAll(_CAMPO_SEL);
+        if (irmaos.length > 10) break;
+        // DOIS sinais de histórico no bloco, não um: "Empresa atual" solto ao lado de "Cidade"
+        // (Easy Apply) não pode desligar o preenchimento da cidade. Um bloco de emprego de verdade
+        // sempre traz vários (cargo + empresa + período).
+        const sinais = Array.from(irmaos).filter(x => x !== c.el && _rotuloHistorico(_rotuloCampo(x))).length;
+        if (sinais >= 2) { c.grupo = 'historico'; c.chave = undefined; break; }
+      }
+    }
     // Resolução de contexto: se o form tem um campo "Sobrenome", então um "Nome" ambíguo
     // é o PRIMEIRO nome (ex.: Nome + Sobrenome separados). Sem sobrenome, "Nome" = nome inteiro.
     if (out.some(c => c.chave === 'sobrenome')) {
@@ -873,15 +923,15 @@
 
   // Agrupa os campos para exibição (rótulos sem repetição).
   function _escanearCampos() {
-    const grupos = { pessoal: [], pergunta: [], selecao: [], cv: [], outro: [] };
+    const grupos = { pessoal: [], pergunta: [], selecao: [], cv: [], historico: [], outro: [] };
     const vistos = new Set();
     for (const c of _coletarCampos()) {
       const k = c.grupo + '|' + c.label;
       if (vistos.has(k)) continue;
       vistos.add(k);
-      grupos[c.grupo].push(c.label);
+      (grupos[c.grupo] || grupos.outro).push(c.label);
     }
-    const total = grupos.pessoal.length + grupos.pergunta.length + grupos.selecao.length + grupos.cv.length + grupos.outro.length;
+    const total = grupos.pessoal.length + grupos.pergunta.length + grupos.selecao.length + grupos.cv.length + grupos.historico.length + grupos.outro.length;
     return { grupos, total };
   }
 
@@ -949,6 +999,15 @@
   function _seleVazia(el) {
     if (el.tagName === 'SELECT') { const o = el.options[el.selectedIndex]; return !o || !o.value || _ehPlaceholder(o.textContent); }
     return !el.value.trim();
+  }
+  // Recado único da etapa de histórico — dito antes do clique (o copiloto percebe onde você está)
+  // e depois dele (quando nada foi preenchido). Um só texto, para o painel nunca falar em dois tons.
+  const _TXT_HISTORICO = 'Esta etapa é o seu histórico profissional — cargos, períodos e descrições. Isso eu não escrevo por você. Abra o CV desta vaga acima e copie de lá.';
+  // Há campo de histórico profissional/formação esperando conteúdo nesta tela? Serve para o
+  // copiloto dizer em QUE etapa o usuário está, em vez de um "não consegui" sem explicação.
+  function _campoHistoricoVazio() {
+    try { return _coletarCampos().some(c => c.grupo === 'historico' && c.el && _seleVazia(c.el)); }
+    catch (_) { return false; }
   }
   // Marca a opção equivalente à autodeclaração. Só <select> (categoria fechada); campo de texto
   // livre fica para o usuário (não despeja token). Devolve true só se REALMENTE marcou.
@@ -1139,7 +1198,7 @@
       origem, container, inputs, visDoc, visEsc, semRotulo, amostra: amostra.join(' | '),
       fileN, fileVis,
       classificados: campos.length, pessoal: porGrupo('pessoal'), perguntas: porGrupo('pergunta'),
-      selecao: porGrupo('selecao'),
+      selecao: porGrupo('selecao'), historico: porGrupo('historico'),
       // Hora absoluta, não "há Nmin": o relativo mudava a cada minuto, o HTML do painel mudava
       // junto e o anti-pisca deixava o corpo ser re-renderizado — apagando a resposta do botão que
       // o usuário acabara de clicar. O diagnóstico é justamente o bloco que aparece quando o
@@ -1171,7 +1230,7 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.75',
+      'SENOVA DIAG v2.77',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
@@ -1182,7 +1241,7 @@
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
       'rótulos vistos: ' + (d.amostra || '—'),
-      'campos lidos: ' + d.classificados + ' (pessoal ' + d.pessoal + ' · perguntas ' + d.perguntas + ' · autodeclaração ' + d.selecao + ' · upload ' + d.upload + ')',
+      'campos lidos: ' + d.classificados + ' (pessoal ' + d.pessoal + ' · perguntas ' + d.perguntas + ' · autodeclaração ' + d.selecao + ' · histórico ' + d.historico + ' · upload ' + d.upload + ')',
       'campos de arquivo (upload): ' + d.fileN + ' (visíveis: ' + d.fileVis + ')',
       'vazios p/ preencher: ' + d.vazios,
       'iframes: ' + d.iframes + ' (sem acesso: ' + d.iframesSemAcesso + (d.iframeHosts ? ' → ' + d.iframeHosts : '') + ')',
@@ -1239,6 +1298,9 @@
     const _nPerg = _campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim()).length;
     const _nSelecao = _campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el)).length;
     const _nPreencher = _nPessoal + _nPerg + _nSelecao;
+    // Etapa de histórico profissional (cargo/empresa/período/descrição, formação) ainda por
+    // preencher. Não entra em _nPreencher: o copiloto não escreve a experiência de ninguém.
+    const _histVazio = _campos.some(c => c.grupo === 'historico' && c.el && _seleVazia(c.el));
     const _temUpload = _campos.some(c => c.grupo === 'cv');
     // O CV NÃO depende de "enxergar" o campo de upload: portais como a DHL usam um widget próprio
     // (campos de arquivo: 0), o Easy Apply do LinkedIn abre o passo do currículo num modal/iframe
@@ -1308,7 +1370,16 @@
         ? `<button id="snv-cop-candidatei" style="width:100%;margin-top:8px;background:#fff;color:#1A3A5C;border:1.5px solid #1A3A5C;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Já me candidatei</button>`
         : '';
 
-    const _habTxt = (_respondido && _habilidadesSel && _habilidadesSel.length)
+    // O que foi preenchido vale para a PÁGINA onde foi preenchido. Numa etapa seguinte (mesma vaga,
+    // outra tela) o "✓ Preenchi" de antes não é verdade — e ficava lá, contradizendo o recado novo.
+    const _sucessoAtivo = _respondido && _respondidoUrl === location.href;
+    const _avisoAtivo = (_avisoRodada && _avisoRodada.url === location.href) ? _avisoRodada : null;
+    // Falha nossa (app fechado, rede) precisa de destaque — é acionável e o usuário tem de voltar
+    // a clicar. Vermelho do brand, dentro da mesma caixa: chama sem alarmar.
+    const _aviso = _avisoAtivo
+      ? (_avisoAtivo.erro ? `<b style="color:#B52419;">${_esc(_avisoAtivo.texto)}</b>` : _esc(_avisoAtivo.texto))
+      : '';
+    const _habTxt = (_sucessoAtivo && _habilidadesSel && _habilidadesSel.length)
       ? ` <span style="color:#2C2C2A;">Destaquei: <b>${_esc(_habilidadesSel.join(', '))}</b> — ajuste se quiser.</span>` : '';
     // Mensagem HONESTA: diz O QUE preencheu e QUANTO falta com você (CPF, datas, dados sensíveis).
     // Nunca só "✓ Preenchido" — o usuário precisa saber que ainda há campos por fazer.
@@ -1320,11 +1391,12 @@
     // Autodeclaração declarada no Perfil mas sem opção equivalente neste portal → você escolhe à mão.
     const _selPend = [...new Set(_selPendentes)];
     const _nPergPend = new Set(_pergPendentes).size;
-    const rodapeHTML = _respondido
+    const rodapeHTML = _sucessoAtivo
       ? `<b style="color:#1A6840;">✓ Preenchi ${_esc(_feito || 'o que reconheci')}.</b> `
         + (_nOutro ? `Faltam <b>${_nOutro}</b> ${_nOutro === 1 ? 'campo' : 'campos'} que só você informa (CPF, datas, etc.). ` : '')
         + (_selPend.length ? `Não achei a opção equivalente para <b>${_esc(_selPend.join(', '))}</b> aqui — escolha à mão. ` : '')
         + (_nPergPend ? `<b>${_nPergPend}</b> ${_nPergPend === 1 ? 'pergunta precisa' : 'perguntas precisam'} de você — deixei em branco. ` : '')
+        + (_histVazio ? 'O histórico profissional desta etapa fica com você — está no seu CV. ' : '')
         + 'Revise e envie.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
@@ -1345,8 +1417,15 @@
 
     // Caixa de status: só quando há algo REAL a dizer ("✓ Preenchi X, faltam Y"). No estado
     // inicial não enche a tela com "Você revisa e envia" — o painel fica só nota + ações.
-    const statusHTML = _respondido
-      ? `<div style="margin-top:11px;padding:9px 11px;background:#F0F4F8;border-radius:7px;font-size:12.5px;color:#3A4A5A;line-height:1.5;">${rodapeHTML}</div>`
+    // Precedência: o que aconteceu nesta página (sucesso) > o desfecho da última rodada (aviso) >
+    // o que o copiloto percebe sem você clicar (etapa de histórico, quando nada aqui é dele).
+    // Uma caixa, um recado — nunca dois estados no ar ao mesmo tempo.
+    const _msgStatus = _sucessoAtivo ? rodapeHTML
+      : _aviso ? _aviso
+      : (!_nPreencher && _histVazio) ? _esc(_TXT_HISTORICO)
+      : '';
+    const statusHTML = _msgStatus
+      ? `<div style="margin-top:11px;padding:9px 11px;background:#F0F4F8;border-radius:7px;font-size:12.5px;color:#3A4A5A;line-height:1.5;">${_msgStatus}</div>`
       : '';
     // O "Diagnóstico Senova" é ferramenta de campo (debug) — só aparece quando o copiloto NÃO
     // achou nenhum campo (o caso que precisa de investigação). No uso normal, some.
@@ -1448,10 +1527,34 @@
   // Referência REAL da vaga, para o app casar o card (ou criá-lo). Serve os DOIS caminhos:
   // (B) veio do Senova → tem jobId; (A) achada por fora → sem jobId, casa por URL real ou
   // empresa+cargo. Antes tudo exigia jobId, e o Caminho A nunca registrava nada.
+  // O jobId escrito na PRÓPRIA URL. É a identidade mais confiável que existe numa página do
+  // LinkedIn: não depende de o SPA já ter renderizado, nem de qual porta o copiloto entrou.
+  // Cobre as duas formas — /jobs/view/ID e a busca em painel dividido (?currentJobId=ID), que
+  // é onde a pessoa passa a maior parte do tempo.
+  function _jobIdDaUrl(u) {
+    try {
+      const s = String(u || '');
+      const m = s.match(/\/jobs\/view\/(\d{6,})/);
+      if (m) return m[1];
+      const q = new URL(s, location.href).searchParams.get('currentJobId');
+      return /^\d{6,}$/.test(q || '') ? q : null;
+    } catch (_) { return null; }
+  }
+
   function _refVaga() {
     const an = _copilotoAnalise || {};
     return {
-      jobId: an.jobId || null,
+      // 31/jul/2026: `an.jobId || null` fazia a identidade da vaga depender de o pacote ter
+      // trazido o jobId — e ele vem vazio quando a entrada foi pelo ícone da extensão sem passe.
+      // Sem jobId, a chave caía em empresa|cargo, que naquele momento continham o que o extrator
+      // tinha raspado da mobília da página: "vide linkdin" e "Esses resultados foram úteis?".
+      // Com isso o copiloto casou com um card ARQUIVADO qualquer, numa vaga que nada tinha a ver.
+      // A URL sempre soube quem era a vaga; faltava perguntar a ela.
+      // A ORDEM é deliberada: a URL DA TELA manda. `_refVaga` responde "que vaga está aí agora?",
+      // e o pacote sobrevive à troca de vaga (o painel precisa sobreviver ao re-render do SPA).
+      // Se o pacote viesse primeiro, a chave da tela casaria SEMPRE com a carimbada e a trava do
+      // "já se candidatou" morreria calada — o vazamento que _analiseChave existe para impedir.
+      jobId: _jobIdDaUrl(location.href) || an.jobId || _jobIdDaUrl(an.url) || null,
       url: an.url || location.href,
       cargo: an.cargo || '',
       empresa: an.empresa || '',
@@ -1696,11 +1799,13 @@
     const selecoes = campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el));
     if (!pessoais.length && !perguntas.length && !selecoes.length) {
       // Nunca falhar calado: o botão apareceu, mas no clique não há nada vazio a preencher.
-      if (btn) { btn.style.background = '#9C5800'; btn.textContent = 'Nada vazio para preencher aqui'; setTimeout(() => _atualizarCorpo(), 2200); }
+      _avisoRodada = { texto: 'Não há nada vazio para eu preencher nesta etapa.', url: location.href };
+      _atualizarCorpo();
       return;
     }
     _preenchendo = true;
     _habilidadesSel = null;
+    _avisoRodada = null;
     _selFeitas = []; _selPendentes = []; _pergPendentes = [];
     if (_copilotoObserver) _copilotoObserver.disconnect();
     const an = _copilotoAnalise || {};
@@ -1765,13 +1870,23 @@
     }
 
     _preenchendo = false;
+    // Todo desfecho é dito no CORPO do painel — nunca pendurado no rótulo do botão. Texto em botão
+    // sobrevivia ao anti-pisca (o HTML do corpo não mudava, então o render não o desfazia): o botão
+    // ficava "Não consegui preencher" para sempre, ao lado de um "✓ Preenchi" congelado da etapa
+    // anterior. O painel dizia as duas coisas ao mesmo tempo. Uma rodada, um recado.
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
     if (erroMsg) {
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#B52419'; btn.textContent = erroMsg; }
+      _avisoRodada = { texto: erroMsg, url: location.href, erro: true };
+      _atualizarCorpo();
     } else if (!algum) {
-      // Tentou e não preencheu NADA — jamais dizer "✓ Preenchido". Avisa e mantém o botão.
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#9C5800'; btn.textContent = 'Não consegui preencher — preencha à mão'; }
+      // Tentou e não preencheu NADA — jamais dizer "✓ Preenchido". Diz o motivo REAL: numa etapa de
+      // histórico profissional não é falha nossa nem do usuário, é o que o copiloto não faz.
+      _avisoRodada = { texto: _campoHistoricoVazio() ? _TXT_HISTORICO
+        : 'Nesta etapa não há campo meu. O que está vazio aqui só você informa — preencha à mão e siga.', url: location.href };
+      _atualizarCorpo();
     } else {
       _respondido = algum;
+      _respondidoUrl = location.href;
       _atualizarCorpo();
     }
     if (_copilotoObserver) _copilotoObserver.observe(document.body, { childList: true, subtree: true });
@@ -1786,8 +1901,14 @@
     // Análise NOVA (objeto diferente) → o status vale para a vaga na tela AGORA. Reinjeção do
     // watchdog passa o MESMO objeto (an === _copilotoAnalise): não recarimbar, senão o status
     // antigo seria revalidado na vaga nova.
-    if (an !== _copilotoAnalise) { try { _analiseChave = _chaveVaga(); } catch (_) { _analiseChave = null; } }
+    // A ORDEM aqui é o bug de 31/jul/2026: a chave era carimbada ANTES de `an` virar a análise
+    // corrente, então `_chaveVaga()` lia o pacote da vaga ANTERIOR e carimbava a identidade dela
+    // na vaga nova. Era assim que a mesma vaga acabava com dois nomes — `url:.../jobs/view/444...`
+    // gravado num instante e `job:444...` lido no seguinte — e o "já se candidatou" ficava
+    // suprimido justamente na vaga certa. Trocar de vaga primeiro, carimbar depois.
+    const _analiseNova = an !== _copilotoAnalise;
     _copilotoAnalise = an;
+    if (_analiseNova) { try { _analiseChave = _chaveVaga(); } catch (_) { _analiseChave = null; } }
     if (document.getElementById('snv-copiloto')) { _atualizarCorpo(); return; }
 
     const wrap = document.createElement('div');

@@ -81,8 +81,20 @@ t('o banner "já se candidatou" passa por _statusVagaAtual (não lê an.status c
 t('o PULL carimba a identidade da vaga perguntada', /_analiseChave = chaveRef/.test(ct));
 t('o PULL captura chaveRef ANTES de perguntar (à prova de corrida de navegação)',
   /const chaveRef = _chaveVaga\(ref\)[\s\S]{0,1200}_analiseChave = chaveRef/.test(ct));
+// A regra é "carimbar só quando a análise é NOVA" — não a grafia de 24/jun. Em 31/jul o carimbo
+// precisou sair de dentro do `if` (a ordem estava errada: carimbava antes de a análise nova
+// entrar em vigor, gravando a identidade da vaga ANTERIOR). A condição continua a mesma; o que
+// mudou foi onde ela é avaliada. Asseverar a regra, não o texto.
 t('injetarCopiloto carimba SÓ em análise nova, não na reinjeção do watchdog',
-  /if \(an !== _copilotoAnalise\) \{[^}]*_analiseChave = _chaveVaga\(\)/.test(ct));
+  /(if \(an !== _copilotoAnalise\) \{[^}]*_analiseChave = _chaveVaga\(\))|(const _analiseNova = an !== _copilotoAnalise;[\s\S]{0,200}if \(_analiseNova\) \{[^}]*_analiseChave = _chaveVaga\(\))/.test(ct));
+// E o carimbo vem DEPOIS da troca — senão ele identifica a vaga que acabou de sair de cena.
+// Detalhe em testes/identidade_vaga.js, que nasceu dos dois diagnósticos de 31/jul.
+{
+  const i = ct.indexOf('function injetarCopiloto(');
+  const bloco = ct.slice(i, i + 1400);
+  t('o carimbo vem depois de _copilotoAnalise = an (a vaga nova, não a anterior)',
+    bloco.indexOf('_copilotoAnalise = an;') < bloco.indexOf('_analiseChave = _chaveVaga()'));
+}
 t('o reinject do watchdog passa o MESMO objeto (por isso an !== _copilotoAnalise o filtra)',
   /injetarCopiloto\(_copilotoAnalise\)/.test(ct));
 
