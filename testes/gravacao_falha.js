@@ -189,7 +189,11 @@ console.log('\n=== o aviso de cota NOMEIA o que está ocupando o espaço ===');
   // Saber QUE falhou não basta: sem o tamanho do bloco recusado não dá para
   // distinguir "o total estourou" de "esta gravação é grande demais", e o
   // conserto é diferente em cada caso.
-  t('registra o tamanho do bloco que o navegador recusou', /Recusou um bloco de \d+,\d MB/.test(m), m);
+  t('registra o tamanho do bloco que o navegador recusou', /de \d+,\d MB de uma vez/.test(m), m);
+  // O tamanho sozinho já mandou o diagnóstico para o lado errado uma vez: "4,2 MB"
+  // sem sujeito não diz se travou nos processos vivos ou no arquivo morto, e o
+  // conserto é outro em cada caso.
+  t('e NOMEIA o bloco, não só o tamanho', /Recusou o bloco dos seus processos/.test(m), m);
   t('e diz qual chave falhou, para o diagnóstico',
     run('_ultimaFalhaGravacao && _ultimaFalhaGravacao.chave') === 'senova_vagas_v2');
 }
@@ -254,6 +258,11 @@ console.log('\n=== o aviso não mente: some quando resolve, volta quando falha =
   sandbox.localStorage.setItem = function (k, v) { sandbox.localStorage[k] = String(v); }; // espaço liberado
   run('saveVagas()');
   t('gravação voltou a funcionar → aviso some sozinho', !avisoVisivel(sandbox));
+  // A falha registrada morre junto com o aviso. Se sobrevivesse, a PRÓXIMA tarja
+  // mostraria o tamanho de uma recusa velha — um número verdadeiro descrevendo o
+  // momento errado, que foi exatamente o que atrapalhou o diagnóstico em 30/jul.
+  t('e a falha registrada é esquecida, para não contaminar o próximo aviso',
+    run('_ultimaFalhaGravacao') === null);
 }
 {
   const { sandbox, run } = montar('cheio');

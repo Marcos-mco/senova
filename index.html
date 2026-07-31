@@ -4983,13 +4983,125 @@ const Store = {
   // sempre. Nenhuma outra parte do código sabe que são dois blocos — o Kanban
   // ordena por critério explícito, então a ordem da junção não muda nada.
   lerVagas(){
-    const quente=this.ler(), frio=this.lerArquivadas();
+    const quente=this.ler();
+    // O frio vem do que carregarFrio() já trouxe. Se ninguém o chamou, cai no
+    // armazenamento — é o caminho antigo, e continua correto.
+    const frio=this._frioCarregado?this._frio:this.lerArquivadas();
     const a=quente?JSON.parse(quente):[];   // erro de parse sobe: quem trata é o socorro do loadCRM
     const b=frio?JSON.parse(frio):[];
     this._rawFrio=frio;                     // o que já está no disco: não reescrever à toa
-    return a.concat(b);
+    // Junta com trava de duplicata: se um ponto de restauração COMPLETO cair no
+    // bloco quente antes de o arquivo morto ser descartado, o mesmo card estaria
+    // nos dois lados. O quente é o mais recente e ganha. Nunca duplicar é uma
+    // garantia mais importante do que a origem de cada card.
+    const vistos=new Set(), junto=[];
+    a.concat(b).forEach(v=>{
+      const id=v&&v.id;
+      if(id!==undefined&&id!==null){ if(vistos.has(id)) return; vistos.add(id); }
+      junto.push(v);
+    });
+    return junto;
   },
   _rawFrio: null,
+
+  // ── O arquivo morto mudou de casa ────────────────────────────────────────
+  // Medido no app real (30/jul): 8,49 MB ocupados contra um teto de ~10 MB, e
+  // 5,84 MB disso eram os 654 cards arquivados. Separá-los do bloco que se
+  // regrava a cada clique foi necessário, mas não bastou: a caixa continuava
+  // cheia. O localStorage não comporta o histórico de quem usa o Senova de
+  // verdade — e nunca vai comportar, porque o histórico só cresce.
+  //
+  // O arquivo morto passa a viver no IndexedDB, no mesmo computador, sem
+  // servidor e sem nada apagado. Lá não há teto de 5 MB. O bloco quente fica no
+  // localStorage: é pequeno, é lido no arranque e gosta de ser síncrono.
+  //
+  // A regra que não se negocia: o arquivo morto só sai do localStorage depois
+  // de ser lido DE VOLTA do banco, byte a byte igual. Verificar antes de apagar
+  // é a diferença entre uma mudança de casa e uma perda.
+  BANCO:'senova', BANCO_LOJA:'blocos', BANCO_CHAVE_FRIO:'vagas_arquivadas',
+  _frio:null,            // os bytes do arquivo morto, em memória
+  _frioCarregado:false,  // enquanto false, o arquivo morto é INTOCÁVEL
+  _frioNoBanco:false,    // true = mora no IndexedDB; false = ainda no localStorage
+
+  _abrirBanco(){
+    return new Promise((ok,erro)=>{
+      let req;
+      try{ req=indexedDB.open(this.BANCO,1); }catch(e){ erro(e); return; }
+      req.onupgradeneeded=()=>{ try{ req.result.createObjectStore(this.BANCO_LOJA); }catch(_){} };
+      req.onsuccess=()=>ok(req.result);
+      req.onerror=()=>erro(req.error||new Error('indexedDB'));
+      req.onblocked=()=>erro(new Error('bloqueado'));
+    });
+  },
+  _lerBanco(db,chave){
+    return new Promise((ok,erro)=>{
+      try{
+        const r=db.transaction(this.BANCO_LOJA,'readonly').objectStore(this.BANCO_LOJA).get(chave);
+        r.onsuccess=()=>ok(r.result===undefined?null:r.result);
+        r.onerror=()=>erro(r.error||new Error('leitura'));
+      }catch(e){ erro(e); }
+    });
+  },
+  _gravarBanco(db,chave,valor){
+    return new Promise((ok,erro)=>{
+      try{
+        const tx=db.transaction(this.BANCO_LOJA,'readwrite');
+        tx.objectStore(this.BANCO_LOJA).put(valor,chave);
+        tx.oncomplete=()=>ok(true);          // só depois do commit, nunca no onsuccess do put
+        tx.onerror=()=>erro(tx.error||new Error('gravação'));
+        tx.onabort=()=>erro(tx.error||new Error('abortada'));
+      }catch(e){ erro(e); }
+    });
+  },
+
+  // Chamado UMA vez, antes do loadCRM. Resolve sempre — nunca deixa o app preso
+  // esperando um banco que não vai responder. Se o IndexedDB não estiver
+  // disponível (aba anônima, perfil corrompido), o arquivo morto continua no
+  // localStorage e tudo segue como antes: pior, mas verdadeiro.
+  carregarFrio(){
+    if(this._frioCarregado) return Promise.resolve();
+    const desistir=new Promise(ok=>setTimeout(()=>ok('__tempo__'),4000));
+    const tentar=this._abrirBanco().then(db=>
+      this._lerBanco(db,this.BANCO_CHAVE_FRIO).then(doBanco=>{
+        if(doBanco!==null){ this._frioNoBanco=true; return doBanco; }
+        // Primeira vez: o arquivo morto ainda está no localStorage.
+        const local=this.lerArquivadas();
+        if(local===null){ this._frioNoBanco=true; return null; }
+        return this._gravarBanco(db,this.BANCO_CHAVE_FRIO,local)
+          .then(()=>this._lerBanco(db,this.BANCO_CHAVE_FRIO))
+          .then(volta=>{
+            if(volta===local){
+              // Conferido. Só agora o localStorage pode devolver o espaço.
+              try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
+              this._frioNoBanco=true;
+            }else{
+              this._frioNoBanco=false;   // não bateu: NADA é apagado
+            }
+            return local;
+          });
+      })
+    ).catch(()=>{ this._frioNoBanco=false; return this.lerArquivadas(); });
+
+    return Promise.race([tentar,desistir]).then(raw=>{
+      if(raw==='__tempo__'){ this._frioNoBanco=false; raw=this.lerArquivadas(); }
+      this._frio=raw;
+      this._frioCarregado=true;
+    });
+  },
+
+  // Grava o arquivo morto onde ele mora hoje. Assíncrono quando é no banco — e
+  // por isso avisa por conta própria se falhar: arquivar um card não pode
+  // sumir em silêncio só porque a gravação é adiada.
+  _gravarFrio(raw){
+    if(this._frioNoBanco){
+      this._abrirBanco()
+        .then(db=>this._gravarBanco(db,this.BANCO_CHAVE_FRIO,raw))
+        .then(()=>{ this._rawFrio=raw; })
+        .catch(()=>{ this._rawFrio=null; _avisarGravacaoFalhou('cota'); });
+      return true;
+    }
+    return this._gravarChave(this.CHAVE_ARQUIVADAS,raw);
+  },
   lerContatos(){
     try{ return localStorage.getItem(this.CHAVE_CONTATOS); }catch(_){ return null; }
   },
@@ -5042,7 +5154,7 @@ const Store = {
     // caber e nunca aconteceria.
     let ok = this._gravarChave(this.CHAVE, JSON.stringify(quentes));
     if(ok && rawFrio!==this._rawFrio){
-      if(this._gravarChave(this.CHAVE_ARQUIVADAS, rawFrio)){ this._rawFrio=rawFrio; }
+      if(this._gravarFrio(rawFrio)){ this._rawFrio=rawFrio; this._frio=rawFrio; }
       else {
         // O frio não coube. Volta ao bloco único, que é o estado anterior,
         // conhecido e íntegro. O bloco frio precisa SAIR antes, senão os
@@ -5083,6 +5195,14 @@ const Store = {
     try{ temArquivado=(JSON.parse(raw)||[]).some(v=>v&&v.status==='arquivado'); }catch(_){}
     if(temArquivado){
       try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
+      // O arquivo morto pode estar no banco agora. Esvaziá-lo é assíncrono e a
+      // página recarrega logo em seguida — por isso a trava de duplicata do
+      // lerVagas existe: mesmo que a limpeza não chegue a tempo, o card não
+      // aparece duas vezes, e a próxima gravação acerta o banco.
+      if(this._frioNoBanco){
+        this._abrirBanco().then(db=>this._gravarBanco(db,this.BANCO_CHAVE_FRIO,'[]')).catch(()=>{});
+      }
+      this._frio='[]';
       this._rawFrio=null;
     }
     return this.gravarBruto(raw);
@@ -6100,6 +6220,7 @@ function _medirArmazenamento(){
   // que é seu. Fica dentro da função de propósito — só roda quando o aviso abre.
   const ROTULOS=[
     ['senova_vagas_v2',        'seus processos'],
+    ['senova_vagas_arquivadas','seu arquivo'],   // sem rótulo, o histórico dele aparecia como "outros"
     ['senova_revisao_pendente','vagas para considerar'],
     ['senova_autobackup_',     'cópias automáticas'],
     ['senova_ilegivel_',       'resgate de dado ilegível'],
@@ -6168,12 +6289,17 @@ function _avisarGravacaoFalhou(motivo){
     // o espaço não é o problema, e o número só atrapalharia.
     const med=el.querySelector('#aviso-gravacao-medida');
     let txtMed = (motivo==='ilegivel') ? '' : _medirArmazenamento().texto;
-    // O tamanho do bloco que o navegador recusou. É o dado que falta para saber
-    // se o limite é o total guardado ou o tamanho de cada gravação — e são
-    // consertos diferentes.
+    // Qual bloco o navegador recusou, e de que tamanho. Sem o NOME, o número
+    // sozinho já me mandou para o lado errado uma vez: sobra "4,2 MB" sem dizer
+    // se era o dos processos vivos ou o do arquivo morto, que são consertos
+    // diferentes. Diagnóstico sem sujeito não é diagnóstico.
     if(txtMed && _ultimaFalhaGravacao){
+      const NOMES={ 'senova_vagas_v2':'dos seus processos',
+                    'senova_vagas_arquivadas_v1':'do seu arquivo',
+                    'senova_contatos_v2':'dos seus contatos' };
       const mbBloco=(_ultimaFalhaGravacao.chars*2/1048576).toFixed(1).replace('.',',');
-      txtMed+=' Recusou um bloco de '+mbBloco+' MB de uma vez.';
+      const qual=NOMES[_ultimaFalhaGravacao.chave]||'de dados';
+      txtMed+=' Recusou o bloco '+qual+', de '+mbBloco+' MB de uma vez.';
     }
     med.textContent = txtMed;
     el.style.display='';
@@ -6181,6 +6307,10 @@ function _avisarGravacaoFalhou(motivo){
   }catch(_){}   // o aviso nunca pode derrubar a gravação
 }
 function _limparAvisoGravacao(){
+  // A falha registrada morre junto com o aviso. Mantê-la faria a próxima tarja
+  // mostrar o tamanho de uma recusa velha, já resolvida — um número verdadeiro
+  // descrevendo o momento errado, que é o pior tipo de mentira num diagnóstico.
+  _ultimaFalhaGravacao=null;
   if(!_avisoGravacaoAtivo) return;   // caminho normal custa um booleano
   try{ const el=document.getElementById('aviso-gravacao'); if(el) el.style.display='none'; }catch(_){}
   _avisoGravacaoAtivo=false;
@@ -7611,6 +7741,11 @@ function cancelarRemoverVaga(){
 function exportarDados(){
   const backup={versao:'1.0',data:new Date().toISOString(),dados:{}};
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('senova'))backup.dados[k]=localStorage.getItem(k);}
+  // O arquivo morto mudou de casa e já não aparece na varredura acima. Sem esta
+  // linha a cópia sairia sem os arquivados — e sair incompleta é pior do que não
+  // sair: é a rede de segurança mentindo que está inteira. Os bytes vêm da
+  // memória, que é exatamente onde carregarFrio() os deixou.
+  if(Store._frioNoBanco && Store._frio!=null) backup.dados[Store.CHAVE_ARQUIVADAS]=Store._frio;
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
@@ -7635,6 +7770,15 @@ function importarDados(input){
         try{ localStorage.removeItem(Store.CHAVE_ARQUIVADAS); }catch(_){}
       }
       Object.entries(backup.dados).forEach(([k,v])=>localStorage.setItem(k,v));
+      // Se o arquivo morto mora no banco, é o banco que precisa receber o que
+      // veio na cópia — senão o histórico importado seria ignorado e o antigo
+      // continuaria valendo, calado. A cópia importada é a verdade, inclusive
+      // quando ela diz que não há arquivado nenhum.
+      if(Store._frioNoBanco){
+        const _doArquivo=backup.dados[Store.CHAVE_ARQUIVADAS]||'[]';
+        try{ localStorage.removeItem(Store.CHAVE_ARQUIVADAS); }catch(_){}
+        Store._abrirBanco().then(db=>Store._gravarBanco(db,Store.BANCO_CHAVE_FRIO,_doArquivo)).catch(()=>{});
+      }
       showToast('✅ Dados restaurados — recarregando...');
       setTimeout(()=>location.reload(),1500);
     }catch{showToast('❌ Arquivo inválido. Selecione um backup do Senova.');}
@@ -11416,16 +11560,21 @@ function _pdfExecBase64(){
   return ((doc.output('datauristring')||'').split('base64,').pop())||null;
 }
 document.addEventListener('click',()=>{document.querySelectorAll('.col-filter-menu').forEach(m=>m.style.display='none');var nm=document.getElementById('crm-novo-menu');if(nm)nm.style.display='none';});
-loadCRM();
-// Roteamento por URL param: ?page=crm abre Pipeline direto (usado pelo botão "Ver no Pipeline" da extensão)
-(function(){
+// O arquivo morto mora no IndexedDB, que só responde de forma assíncrona. A tela
+// espera por ele — de propósito. Montar o app antes de o histórico chegar seria
+// o pior dos mundos: o Senova acharia que os arquivados não existem e gravaria
+// por cima deles no primeiro clique. carregarFrio() sempre resolve, com o
+// arquivo ou com a verdade de que não deu para abri-lo, e nunca prende o app.
+Store.carregarFrio().then(function(){
+  loadCRM();
+  // Roteamento por URL param: ?page=crm abre Pipeline direto (usado pelo botão "Ver no Pipeline" da extensão)
   const _params=new URLSearchParams(location.search);
   const _p=_params.get('page');
   const _validPages=['home','crm','ats','emails','radar','contatos','perfil','relatorios'];
   if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
   if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
-})();
-checkOutlookStatus();
+  checkOutlookStatus();
+});
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
 window.__senovaAtualizarDesc=function(url,desc,extra){
