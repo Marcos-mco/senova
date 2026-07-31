@@ -4961,6 +4961,7 @@ function copyFullLI() {
 // especial. O que o Store possui é a PERSISTÊNCIA, que é o que vai mudar de casa.
 const Store = {
   CHAVE: 'senova_vagas_v2',
+  CHAVE_ARQUIVADAS: 'senova_vagas_arquivadas_v1',
   CHAVE_CONTATOS: 'senova_contatos_v2',
 
   // Trava de segurança: liga quando o armazenamento tem bytes que não
@@ -4969,9 +4970,26 @@ const Store = {
   travado: false,
 
   // Únicas leituras do armazenamento do CRM em todo o app.
+  // ler() devolve os bytes do bloco QUENTE (processos vivos). É o que o backup
+  // diário copia — e é de propósito: o bloco frio quase nunca muda.
   ler(){
     try{ return localStorage.getItem(this.CHAVE); }catch(_){ return null; }
   },
+  lerArquivadas(){
+    try{ return localStorage.getItem(this.CHAVE_ARQUIVADAS); }catch(_){ return null; }
+  },
+
+  // A lista completa que o app usa na memória: quente + frio, na mesma array de
+  // sempre. Nenhuma outra parte do código sabe que são dois blocos — o Kanban
+  // ordena por critério explícito, então a ordem da junção não muda nada.
+  lerVagas(){
+    const quente=this.ler(), frio=this.lerArquivadas();
+    const a=quente?JSON.parse(quente):[];   // erro de parse sobe: quem trata é o socorro do loadCRM
+    const b=frio?JSON.parse(frio):[];
+    this._rawFrio=frio;                     // o que já está no disco: não reescrever à toa
+    return a.concat(b);
+  },
+  _rawFrio: null,
   lerContatos(){
     try{ return localStorage.getItem(this.CHAVE_CONTATOS); }catch(_){ return null; }
   },
@@ -5005,8 +5023,35 @@ const Store = {
 
   // Grava o estado atual e, se não conseguir, AVISA. A regra é essa: o Senova
   // nunca mostra na tela um trabalho que não conseguiu guardar.
+  //
+  // O CRM deixou de ser um bloco só. Medido no app real (30/jul): 8,4 MB num
+  // único valor, dos quais 6,1 MB eram os 654 cards ARQUIVADOS — dado que já
+  // não muda, reescrito por inteiro a cada gesto do usuário. Nenhum navegador
+  // aceita reescrever 8 MB a cada clique, e não era razoável esperar que
+  // aceitasse. Agora são dois blocos: os processos vivos, pequenos e gravados
+  // sempre; e os arquivados, grandes e gravados só quando de fato mudam.
+  // Nada é apagado, nada muda na tela — a array em memória continua inteira.
   gravar(){
-    const ok = this.gravarBruto(JSON.stringify(vagas));
+    const quentes=[], frias=[];
+    (vagas||[]).forEach(v=>{ ((v&&v.status==='arquivado')?frias:quentes).push(v); });
+    const rawFrio=JSON.stringify(frias);
+
+    // Ordem obrigatória: o bloco quente primeiro. Ele SUBSTITUI o bloco antigo,
+    // que hoje ainda contém tudo — e é essa substituição que abre o espaço para
+    // o bloco frio caber. Na ordem inversa, a primeira separação não teria onde
+    // caber e nunca aconteceria.
+    let ok = this._gravarChave(this.CHAVE, JSON.stringify(quentes));
+    if(ok && rawFrio!==this._rawFrio){
+      if(this._gravarChave(this.CHAVE_ARQUIVADAS, rawFrio)){ this._rawFrio=rawFrio; }
+      else {
+        // O frio não coube. Volta ao bloco único, que é o estado anterior,
+        // conhecido e íntegro. O bloco frio precisa SAIR antes, senão os
+        // arquivados existiriam em dois lugares e apareceriam duplicados.
+        try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
+        this._rawFrio=null;
+        ok = this._gravarChave(this.CHAVE, JSON.stringify(vagas));
+      }
+    }
     if(ok) _limparAvisoGravacao(); else _avisarGravacaoFalhou(this.travado?'ilegivel':'cota');
     return ok;
   },
@@ -5022,7 +5067,26 @@ const Store = {
 
   // Restauração de um ponto de backup: os bytes vêm prontos, não da memória.
   // Devolve o sucesso para quem chamou dar a notícia do jeito dele.
-  restaurar(raw){ return this.gravarBruto(raw); },
+  //
+  // Um ponto de restauração pode ser de dois tipos, e confundi-los apaga ou
+  // duplica o histórico de alguém:
+  //   COMPLETO   gravado antes da separação (ou vindo de um arquivo exportado):
+  //              traz os arquivados dentro. Substitui tudo, e o bloco frio SAI —
+  //              se ficasse, cada arquivado existiria em dois lugares.
+  //   SÓ VIVOS   gravado depois da separação: são os processos vivos, e mais
+  //              nada. Substitui só o bloco quente, e o bloco frio FICA — se
+  //              saísse, os arquivados seriam apagados por uma cópia que nunca
+  //              se propôs a guardá-los.
+  // A distinção é feita pelo conteúdo, nunca por suposição de data ou versão.
+  restaurar(raw){
+    let temArquivado=false;
+    try{ temArquivado=(JSON.parse(raw)||[]).some(v=>v&&v.status==='arquivado'); }catch(_){}
+    if(temArquivado){
+      try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
+      this._rawFrio=null;
+    }
+    return this.gravarBruto(raw);
+  },
 
   // O armazenamento existe mas não é JSON legível. Jamais sobrescrever por cima:
   // guarda os bytes das DUAS listas de lado para poderem ser resgatados. Se nem a
@@ -5031,7 +5095,7 @@ const Store = {
   // gravação apagaria do disco o histórico que ainda estava lá, só ilegível.
   socorrer(){
     let havia=false, preservado=true;
-    [this.CHAVE, this.CHAVE_CONTATOS].forEach(ch=>{
+    [this.CHAVE, this.CHAVE_ARQUIVADAS, this.CHAVE_CONTATOS].forEach(ch=>{
       let raw=null;
       try{ raw=localStorage.getItem(ch); }catch(_){}
       if(!raw) return;
@@ -5150,7 +5214,7 @@ function loadCRM(){
   try{
     const sv=Store.ler();
     _autoBackupVagas(sv); // rede de segurança: snapshot diário ANTES de qualquer migração
-    vagas=sv?JSON.parse(sv):[];  // usuário novo começa vazio — nunca com o CRM de outra pessoa
+    vagas=Store.lerVagas();  // quente + arquivados; usuário novo começa vazio
     vagas=vagas.map(v=>v.status==='radar'?{...v,status:'lead'}:v.status==='candidatado'?{...v,status:'aplicado'}:v.status==='encerrado'?{...v,status:'arquivado'}:v.status==='negado'?{...v,status:'arquivado'}:v.status==='descartado'?{...v,status:'arquivado'}:v.status==='andamento'?{...v,status:'aplicado'}:v.status==='processo'?{...v,status:'aplicado'}:v.status==='contato'?{...v,status:'aplicado'}:v);
     vagas=vagas.map(v=>{
       // updatedAt: se inexistente, usa Date.now() — NUNCA parseDateBR(data)
@@ -7564,6 +7628,12 @@ function importarDados(input){
       if(!backup.dados)throw new Error('inválido');
       const dataBackup=backup.data?new Date(backup.data).toLocaleDateString('pt-BR'):'desconhecida';
       if(!confirm(`Restaurar backup de ${dataBackup}?\n\nOs dados atuais serão substituídos. Esta ação não pode ser desfeita.`))return;
+      // Um backup anterior à separação em dois blocos traz TUDO em senova_vagas_v2
+      // e não traz o bloco frio. Se o bloco frio de agora ficasse para trás, os
+      // arquivados existiriam em dois lugares e voltariam duplicados.
+      if(!backup.dados[Store.CHAVE_ARQUIVADAS]){
+        try{ localStorage.removeItem(Store.CHAVE_ARQUIVADAS); }catch(_){}
+      }
       Object.entries(backup.dados).forEach(([k,v])=>localStorage.setItem(k,v));
       showToast('✅ Dados restaurados — recarregando...');
       setTimeout(()=>location.reload(),1500);

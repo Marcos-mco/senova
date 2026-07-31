@@ -23,7 +23,7 @@ console.log('=== 1. arquitetura: só o Store fala com o armazenamento do CRM ===
   // O defeito concreto a barrar: qualquer chamada de armazenamento com a chave
   // do CRM escrita à mão, em qualquer lugar. O Store usa this.CHAVE — nunca o
   // literal —, então o número certo aqui é zero, sem exceção.
-  const atalhos = html.match(/localStorage\.\w+Item\(\s*'senova_(vagas|contatos)_v2'/g) || [];
+  const atalhos = html.match(/localStorage\.\w+Item\(\s*'senova_(vagas|contatos)_v2'|localStorage\.\w+Item\(\s*'senova_vagas_arquivadas/g) || [];
   t('nenhuma leitura/gravação passa por fora do Store', atalhos.length === 0,
     atalhos.length + ' atalho(s): ' + atalhos.join(' | '));
 
@@ -46,7 +46,9 @@ console.log('\n=== 2. um usuário novo começa VAZIO, nunca com o CRM de outra p
   t('não existe mais uma agenda de contatos de exemplo no código',
     !/DEFAULT_CONTATOS/.test(html));
   t('sem nada guardado, os processos começam em lista vazia',
-    /vagas=sv\?JSON\.parse\(sv\):\[\]/.test(html));
+    /const a=quente\?JSON\.parse\(quente\):\[\]/.test(html)
+    && /const b=frio\?JSON\.parse\(frio\):\[\]/.test(html));
+  t('o loadCRM lê pelo Store, não pelo armazenamento', /vagas=Store\.lerVagas\(\)/.test(html));
   t('sem nada guardado, os contatos começam em lista vazia',
     /contatos=sc\?JSON\.parse\(sc\):\[\]/.test(html));
 }
