@@ -79,6 +79,7 @@ function montar(regime, comBackups = true) {
   const chamadas = { exportar: 0 };
   const sandbox = {
     _avisoGravacaoAtivo: false,
+    _ultimaFalhaGravacao: null,
     vagas: [{ id: 1, empresa: 'Teste', status: 'aplicado' }],
     contatos: [{ id: 1, nome: 'Teste' }],
     localStorage: ls,
@@ -185,6 +186,12 @@ console.log('\n=== o aviso de cota NOMEIA o que está ocupando o espaço ===');
   t('usa o nome do usuário, nunca o nome da chave', !/senova_/.test(m), m);
   t('as cópias automáticas já não contam — foram descartadas antes de desistir',
     !/cópias automáticas/.test(m), m);
+  // Saber QUE falhou não basta: sem o tamanho do bloco recusado não dá para
+  // distinguir "o total estourou" de "esta gravação é grande demais", e o
+  // conserto é diferente em cada caso.
+  t('registra o tamanho do bloco que o navegador recusou', /Recusou um bloco de \d+,\d MB/.test(m), m);
+  t('e diz qual chave falhou, para o diagnóstico',
+    run('_ultimaFalhaGravacao && _ultimaFalhaGravacao.chave') === 'senova_vagas_v2');
 }
 {
   const { sandbox, ls, run } = montar('cheio');

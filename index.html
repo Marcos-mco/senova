@@ -4991,7 +4991,14 @@ const Store = {
     catch(_){
       try{ _descartarRestos(); localStorage.setItem(chave, raw); return true; }catch(__){}
       try{ _podarAutoBackups(0); localStorage.setItem(chave, raw); return true; }
-      catch(__){ return false; }
+      catch(__){
+        // Guarda O QUE falhou, não só QUE falhou. Sem isto o conserto vira
+        // palpite sobre como o navegador conta o espaço — e já erramos uma vez
+        // por isso: liberar 1,4 MB de resto não destravou a gravação, o que só
+        // faz sentido se o custo for o tamanho do valor, não o total ocupado.
+        try{ _ultimaFalhaGravacao={ chave:chave, chars:String(raw||'').length }; }catch(___){}
+        return false;
+      }
     }
   },
   gravarBruto(raw){ return this._gravarChave(this.CHAVE, raw); },
@@ -6015,6 +6022,10 @@ function showToast(msg, duration=4000){
 // var (não let) de propósito: o aviso pode disparar durante a carga inicial,
 // antes desta linha ser executada, e var não tem zona morta temporal.
 var _avisoGravacaoAtivo=false;
+// Preenchido pelo Store quando a gravação desiste: qual chave e de que tamanho.
+// var, e não let, pela mesma razão do de cima — a falha pode acontecer durante
+// a carga, antes de a linha ser executada.
+var _ultimaFalhaGravacao=null;
 
 // Mede o que ocupa o armazenamento do navegador, por grupo. Dizer "está cheio"
 // sem dizer do quê deixa a pessoa no escuro justamente na hora em que ela
@@ -6092,7 +6103,15 @@ function _avisarGravacaoFalhou(motivo){
     // Só na falha de cota: aqui a medida orienta a decisão. Na falha de leitura
     // o espaço não é o problema, e o número só atrapalharia.
     const med=el.querySelector('#aviso-gravacao-medida');
-    med.textContent = (motivo==='ilegivel') ? '' : _medirArmazenamento().texto;
+    let txtMed = (motivo==='ilegivel') ? '' : _medirArmazenamento().texto;
+    // O tamanho do bloco que o navegador recusou. É o dado que falta para saber
+    // se o limite é o total guardado ou o tamanho de cada gravação — e são
+    // consertos diferentes.
+    if(txtMed && _ultimaFalhaGravacao){
+      const mbBloco=(_ultimaFalhaGravacao.chars*2/1048576).toFixed(1).replace('.',',');
+      txtMed+=' Recusou um bloco de '+mbBloco+' MB de uma vez.';
+    }
+    med.textContent = txtMed;
     el.style.display='';
     _avisoGravacaoAtivo=true;
   }catch(_){}   // o aviso nunca pode derrubar a gravação
