@@ -21,11 +21,16 @@ const { t, fim } = assert();
 // 'ok'              → grava sempre
 // 'cheio'           → estoura sempre (nem podar resolve)
 // 'cheio_ate_podar' → estoura enquanto houver autobackup; passa depois da poda
+// 'cheio_ate_restos'→ estoura enquanto houver resto de versão antiga
 function fakeLS(regime) {
   const ls = {
     setItem(k, v) {
       const temBackup = Object.keys(ls).some(x => x.startsWith('senova_autobackup_'));
-      if (regime === 'cheio' || (regime === 'cheio_ate_podar' && temBackup)) {
+      const temResto = Object.keys(ls).some(x => x.startsWith('senova_pre_restauro_')
+        || (x.startsWith('senova_logo_cache_v') && x !== 'senova_logo_cache_v5'));
+      if (regime === 'cheio'
+        || (regime === 'cheio_ate_podar' && temBackup)
+        || (regime === 'cheio_ate_restos' && temResto)) {
         const e = new Error('exceeded the quota'); e.name = 'QuotaExceededError'; throw e;
       }
       ls[k] = String(v);
@@ -60,6 +65,8 @@ function montar(regime, comBackups = true) {
   const fontes = [
     'const Store = {',
     'function _podarAutoBackups(',
+    'function _restosDescartaveis(',
+    'function _descartarRestos(',
     'function _medirArmazenamento(',
     'function _avisarGravacaoFalhou(',
     'function _limparAvisoGravacao(',
@@ -75,6 +82,7 @@ function montar(regime, comBackups = true) {
     vagas: [{ id: 1, empresa: 'Teste', status: 'aplicado' }],
     contatos: [{ id: 1, nome: 'Teste' }],
     localStorage: ls,
+    _LOGO_CACHE_KEY: 'senova_logo_cache_v5',   // o cache atual; v1..v4 são restos
     document: fakeDOM(),
     exportarDados() { chamadas.exportar++; },
     updateBadge() {}, atualizarStatsHome() {}, renderHomeAcoes() {},
@@ -122,6 +130,41 @@ console.log('\n=== o bug original: cota cheia de verdade → NUNCA mais em silê
   t('o aviso diz que o trabalho não foi salvo', /não consegui salvar/i.test(tituloAviso(sandbox)));
   t('o aviso nomeia a causa: armazenamento cheio', /cheio/i.test(corpoAviso(sandbox)));
   t('o aviso oferece a saída: baixar uma cópia', /Baixar uma cópia agora/.test(banner(sandbox).innerHTML));
+}
+
+console.log('\n=== a escada do descartável: restos primeiro, trabalho do usuário NUNCA ===');
+{
+  // Medido no app real de Marcos em 30/jul: uma chave 'senova_pre_restauro_' de
+  // uma restauração encerrada havia meses, mais quatro caches de logotipo de
+  // versões velhas, somavam ~15% de todo o espaço — segurando trabalho que já
+  // não cabia. Nenhuma linha do código lia qualquer uma delas.
+  const { sandbox, ls, run } = montar('cheio_ate_restos');
+  ls['senova_pre_restauro_1782309412089'] = 'x'.repeat(700000);
+  ls['senova_logo_cache_v1'] = 'a'; ls['senova_logo_cache_v4'] = 'b';
+  ls['senova_logo_cache_v5'] = '{"Acme":"u"}';
+
+  run('saveVagas()');
+  t('gravou depois de descartar os restos', ls.getItem('senova_vagas_v2') !== null);
+  t('o resto da restauração antiga saiu', ls.getItem('senova_pre_restauro_1782309412089') === null);
+  t('os caches de logotipo velhos saíram', ls.getItem('senova_logo_cache_v1') === null && ls.getItem('senova_logo_cache_v4') === null);
+  t('o cache de logotipo ATUAL fica — está em uso', ls.getItem('senova_logo_cache_v5') !== null);
+  t('não precisou sacrificar os autobackups: o resto bastou',
+    Object.keys(ls).filter(k => k.startsWith('senova_autobackup_')).length === 2);
+  t('não avisa à toa — a gravação deu certo', !avisoVisivel(sandbox));
+}
+{
+  // A trava que importa: a escada é de descartáveis. Processos, contatos e o
+  // resgate de dado ilegível não são descartáveis em hipótese alguma.
+  const { ls, run } = montar('cheio', false);
+  ls['senova_vagas_v2'] = 'processos reais';
+  ls['senova_contatos_v2'] = 'contatos reais';
+  ls['senova_ilegivel_vagas_v2_123'] = 'resgate';
+  ls['senova_revisao_pendente'] = 'vagas para considerar';
+  run('_descartarRestos()');
+  t('não toca nos processos', ls.getItem('senova_vagas_v2') === 'processos reais');
+  t('não toca nos contatos', ls.getItem('senova_contatos_v2') === 'contatos reais');
+  t('não toca no resgate de dado ilegível', ls.getItem('senova_ilegivel_vagas_v2_123') === 'resgate');
+  t('não toca nas vagas para considerar', ls.getItem('senova_revisao_pendente') === 'vagas para considerar');
 }
 
 console.log('\n=== o aviso de cota NOMEIA o que está ocupando o espaço ===');

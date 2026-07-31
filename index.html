@@ -4977,12 +4977,19 @@ const Store = {
   },
 
   // Única escrita. Devolve se conseguiu e NUNCA lança — quem chama está no meio
-  // de um gesto do usuário. Os autobackups são sacrificáveis: se a cota apertar,
-  // descarta todos e tenta de novo antes de desistir.
+  // de um gesto do usuário.
+  //
+  // A ESCADA DO DESCARTÁVEL, quando a cota aperta. A ordem é o valor de cada
+  // coisa, do que não vale nada para o que vale alguma:
+  //   1. restos de versões antigas — ninguém lê, sobra de operação encerrada;
+  //   2. autobackups — cópias de segurança, recriadas no próximo dia de uso.
+  // O trabalho do usuário NUNCA entra na escada. Se nem assim couber, desiste e
+  // avisa: a saída é o banco, não apagar o que é dele.
   _gravarChave(chave, raw){
     if(this.travado) return false;
     try{ localStorage.setItem(chave, raw); return true; }
     catch(_){
+      try{ _descartarRestos(); localStorage.setItem(chave, raw); return true; }catch(__){}
       try{ _podarAutoBackups(0); localStorage.setItem(chave, raw); return true; }
       catch(__){ return false; }
     }
@@ -6021,8 +6028,9 @@ function _medirArmazenamento(){
     ['senova_revisao_pendente','vagas para considerar'],
     ['senova_autobackup_',     'cópias automáticas'],
     ['senova_ilegivel_',       'resgate de dado ilegível'],
+    ['senova_pre_restauro_',   'restos de versões antigas'],
     ['senova_contatos_v2',     'seus contatos'],
-    ['senova_logo_cache_v5',   'logotipos das empresas'],
+    ['senova_logo_cache_',     'logotipos das empresas'],
   ];
   const grupos={}; let total=0;
   try{
@@ -6041,8 +6049,11 @@ function _medirArmazenamento(){
     .filter(p=>p[1]>102400)                       // abaixo de 100 KB não explica nada
     .slice(0,4)
     .map(p=>p[0]+' '+mb(p[1]));
+  // Sem número de teto: o limite varia por navegador e chutá-lo é pior que
+  // omiti-lo — dizer "5 MB" quando o Chrome dá o dobro faz a pessoa achar que
+  // está duas vezes pior do que está.
   return { total, texto: pesados.length
-    ? 'Ocupado agora: '+mb(total)+' — o limite do navegador fica perto de 5 MB. O que mais pesa: '+pesados.join(' · ')+'.'
+    ? 'Ocupado agora: '+mb(total)+' — praticamente todo o espaço que o navegador reserva ao Senova. O que mais pesa: '+pesados.join(' · ')+'.'
     : '' };
 }
 
@@ -7546,6 +7557,30 @@ function importarDados(input){
 // ── Backup automático (rede de segurança contra perda acidental) ──────────────
 // Snapshots sacrificáveis: se a cota de armazenamento apertar, saveVagas() os
 // descarta para nunca perder o dado ao vivo. Ver saveVagas() e loadCRM().
+// Restos de versões antigas: chaves que nenhuma linha do código lê mais. Ficam
+// para trás quando uma operação termina ou uma versão é substituída — a cópia
+// "pré-restauro" de uma restauração já concluída, os caches de logotipo de
+// versões anteriores. Medidos no app real em 30/jul: 760 mil caracteres, ~15%
+// de todo o espaço que o navegador dá, segurando trabalho que não cabia.
+//
+// São descartáveis pelo mesmo motivo que os autobackups: não são trabalho do
+// usuário. E, como eles, só somem sob pressão de cota — nunca por iniciativa
+// própria, porque apagar sozinho é como se perde a confiança de quem usa.
+function _restosDescartaveis(){
+  const restos=[];
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if(k.indexOf('senova_pre_restauro_')===0) restos.push(k);
+      else if(k.indexOf('senova_logo_cache_v')===0 && k!==_LOGO_CACHE_KEY) restos.push(k);
+    });
+  }catch(_){}
+  return restos;
+}
+function _descartarRestos(){
+  const restos=_restosDescartaveis();
+  restos.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_){} });
+  return restos.length;
+}
 function _podarAutoBackups(manter){
   try{ const ch=Object.keys(localStorage).filter(k=>k.startsWith('senova_autobackup_')).sort(); while(ch.length>manter) localStorage.removeItem(ch.shift()); }catch(_){}
 }
