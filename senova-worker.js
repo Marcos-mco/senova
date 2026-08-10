@@ -1705,10 +1705,22 @@ export default {
       // numa migração. Ancorada em card_id, cada página continua exatamente onde a anterior
       // parou, aconteça o que acontecer no meio.
       const apos = url.searchParams.get('apos') || '';
-      const limite = Math.min(parseInt(url.searchParams.get('limite') || '150', 10) || 150, 500);
-      // `descricao` fica de fora de propósito: é 45% do peso e ninguém lê numa lista.
+      // `descricao` fica de fora POR PADRÃO: é 45% do peso e ninguém lê numa lista.
+      //
+      // `com_descricao=1` existe para um caso só, e é decisão de produto de Marcos (S42): ele
+      // não quer esperar nada ao abrir um processo encerrado. O app resolve isso baixando as
+      // descrições em segundo plano DEPOIS que a tela já está de pé — nunca no caminho do
+      // arranque. Por isso o teto de página cai para 25 aqui: com descrição, uma página de 150
+      // seriam megabytes numa resposta só, e uma resposta que não completa é uma página
+      // perdida no meio de uma varredura.
+      const comDesc = url.searchParams.get('com_descricao') === '1';
+      const teto = comDesc ? 25 : 500;
+      const limite = Math.min(parseInt(url.searchParams.get('limite') || (comDesc ? '25' : '150'), 10) || (comDesc ? 25 : 150), teto);
+      const colunas = comDesc
+        ? 'card_id, status, atualizado, dados, descricao'
+        : 'card_id, status, atualizado, dados';
       const { results } = await env.SENOVA_DB.prepare(
-        'SELECT card_id, status, atualizado, dados FROM cards WHERE user_id=? AND card_id>? ORDER BY card_id LIMIT ?'
+        'SELECT ' + colunas + ' FROM cards WHERE user_id=? AND card_id>? ORDER BY card_id LIMIT ?'
       ).bind(dono, apos, limite).all();
       const ultimo = results.length ? results[results.length - 1].card_id : null;
       return json({ ok: true, cards: results, ultimo, tem_mais: results.length === limite });
@@ -1737,10 +1749,26 @@ export default {
       if (!cards) return json({ erro: 'cards_ausentes', detalhe: 'Envie { cards: [...] }.' }, 400);
       if (cards.length > 200) return json({ erro: 'lote_grande', detalhe: 'No máximo 200 cards por vez.' }, 400);
       const dono = await donoAtual(request, env);
-      const stmt = env.SENOVA_DB.prepare(
+      // DUAS gravações, e a diferença entre elas é a descrição que NÃO veio no pacote.
+      //
+      // O app baixa as descrições em segundo plano (decisão de Marcos, S42: abrir um processo
+      // encerrado não pode ter espera). Existe portanto uma janela real em que ele tem o card
+      // em memória mas ainda não tem o texto da vaga. Se uma gravação cair nessa janela e a
+      // rota tratasse "não mandei descrição" como "a descrição é vazia", o upsert escreveria
+      // NULL por cima do texto que está no banco — e o dado morreria aqui, silenciosamente,
+      // por causa de um campo ausente.
+      //   campo AUSENTE  → não sei dizer nada sobre a descrição: preserva a que está lá.
+      //   campo null/''  → afirmação explícita de que não há descrição: grava vazio.
+      // Ausência não é negação. É a mesma regra do _frioCarregado no app.
+      const comDesc = env.SENOVA_DB.prepare(
         'INSERT INTO cards (user_id, card_id, status, atualizado, dados, descricao) VALUES (?,?,?,?,?,?) ' +
         'ON CONFLICT(user_id, card_id) DO UPDATE SET status=excluded.status, atualizado=excluded.atualizado, ' +
         'dados=excluded.dados, descricao=excluded.descricao'
+      );
+      const semDesc = env.SENOVA_DB.prepare(
+        'INSERT INTO cards (user_id, card_id, status, atualizado, dados, descricao) VALUES (?,?,?,?,?,NULL) ' +
+        'ON CONFLICT(user_id, card_id) DO UPDATE SET status=excluded.status, atualizado=excluded.atualizado, ' +
+        'dados=excluded.dados'
       );
       const lote = [];
       for (const c of cards) {
@@ -1756,16 +1784,45 @@ export default {
         else if (c.dados && typeof c.dados === 'object') dados = JSON.stringify(c.dados);
         else return json({ erro: 'card_sem_dados', detalhe: 'Card ' + cid + ' veio sem o conteúdo (dados).' }, 400);
         // Mesma armadilha na descrição: é texto longo, e um objeto viraria "[object Object]".
+        const declarou = Object.prototype.hasOwnProperty.call(c, 'descricao');
         let desc = null;
-        if (c.descricao != null) {
+        if (declarou && c.descricao != null) {
           if (typeof c.descricao !== 'string') return json({ erro: 'descricao_invalida', detalhe: 'A descrição do card ' + cid + ' precisa ser texto.' }, 400);
           desc = c.descricao;
         }
-        lote.push(stmt.bind(dono, cid, String(c.status || 'arquivado'),
-          Number(c.atualizado) || Date.now(), dados, desc));
+        const st = declarou ? comDesc : semDesc;
+        const args = [dono, cid, String(c.status || 'arquivado'), Number(c.atualizado) || Date.now(), dados];
+        if (declarou) args.push(desc);
+        lote.push(st.bind(...args));
       }
       await env.SENOVA_DB.batch(lote);
       return json({ ok: true, gravados: lote.length });
+    }
+
+    // Tira cards do arquivo. Existe por dois motivos concretos, e sem ela os dois viram o
+    // mesmo defeito — o card que RESSUSCITA:
+    //   · o usuário desarquiva um processo: ele volta para os vivos e não pode continuar aqui,
+    //     senão a próxima abertura do app o traz de volta e ele aparece nos dois lugares;
+    //   · o usuário apaga uma oportunidade que estava arquivada: se a nuvem não souber, ela
+    //     reaparece amanhã. Card que volta sozinho já queimou sessões inteiras neste projeto.
+    //
+    // Só apaga o que foi NOMEADO, um id de cada vez, e nunca por filtro. Não existe "apagar
+    // tudo" nesta rota de propósito: uma chamada com a lista vazia por acidente (bug de
+    // montagem no app, estado ainda não carregado) não pode ter como resultado o arquivo
+    // inteiro no chão. `removidos` devolve quantas linhas de fato saíram — quem chama compara
+    // com o que pediu em vez de supor.
+    if (path === '/api/arquivo/remover' && request.method === 'POST') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel' }, 503);
+      const body = await request.json().catch(() => null);
+      const ids = body && Array.isArray(body.ids) ? body.ids.map(x => String(x == null ? '' : x).trim()).filter(Boolean) : null;
+      if (!ids) return json({ erro: 'ids_ausentes', detalhe: 'Envie { ids: [...] }.' }, 400);
+      if (!ids.length) return json({ erro: 'lista_vazia', detalhe: 'Nomeie ao menos um card. Esta rota não apaga por filtro.' }, 400);
+      if (ids.length > 200) return json({ erro: 'lote_grande', detalhe: 'No máximo 200 por vez.' }, 400);
+      const dono = await donoAtual(request, env);
+      const stmt = env.SENOVA_DB.prepare('DELETE FROM cards WHERE user_id=? AND card_id=?');
+      const r = await env.SENOVA_DB.batch(ids.map(id => stmt.bind(dono, id)));
+      const removidos = r.reduce((s, x) => s + ((x && x.meta && x.meta.changes) || 0), 0);
+      return json({ ok: true, pedidos: ids.length, removidos });
     }
 
     // A conferência da mudança de casa. NÃO substitui a comparação byte a byte, que é feita

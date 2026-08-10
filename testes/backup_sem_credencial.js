@@ -72,7 +72,10 @@ console.log('=== a cópia exportada: todo o trabalho, nenhuma credencial ===');
 let arquivo = '';
 {
   const ls = armazenamento();
-  const s = montar(['function exportarDados('], ls, {
+  // A exportação virou duas funções: `exportarDados` é o portão (recusa sair antes de o
+  // arquivo de encerrados estar completo) e `_exportarDadosAgora` é a varredura que monta a
+  // cópia. As duas precisam vir, senão o sandbox estoura em ReferenceError.
+  const s = montar(['function exportarDados(', 'function _exportarDadosAgora('], ls, {
     Blob: function (partes) { arquivo = String(partes[0]); },
   });
   vm.runInContext('exportarDados()', s);
@@ -170,8 +173,8 @@ console.log('\n=== e não incomoda quem já tem a chave ===');
 // A varredura por prefixo é tentadora de "simplificar" de volta. A razão fica ao lado dela.
 console.log('\n=== a razão está escrita junto da varredura ===');
 {
-  const exp = extrai('function exportarDados(');
-  t('exportarDados explica por que a credencial fica de fora',
+  const exp = extrai('function _exportarDadosAgora(');
+  t('a varredura explica por que a credencial fica de fora',
     /credencial|chave de acesso/i.test(exp), exp.slice(0, 200));
 }
 

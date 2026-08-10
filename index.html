@@ -4998,7 +4998,11 @@ const Store = {
     const frio=this._frioCarregado?this._frio:this.lerArquivadas();
     const a=quente?JSON.parse(quente):[];   // erro de parse sobe: quem trata é o socorro do loadCRM
     const b=frio?JSON.parse(frio):[];
-    this._rawFrio=frio;                     // o que já está no disco: não reescrever à toa
+    // O que o outro lado já tem: não reescrever à toa. Com o arquivo na nuvem, `null` não
+    // é ausência de valor — é a afirmação deliberada de "não sei mais o que há lá", deixada
+    // por uma gravação que falhou. Sobrescrevê-la aqui faria a gravação seguinte calcular a
+    // diferença sobre uma crença errada e apagar por dedução.
+    if(!(this._frioNaNuvem && this._rawFrio===null)) this._rawFrio=frio;
     // Junta com trava de duplicata: se um ponto de restauração COMPLETO cair no
     // bloco quente antes de o arquivo morto ser descartado, o mesmo card estaria
     // nos dois lados. O quente é o mais recente e ganha. Nunca duplicar é uma
@@ -5043,6 +5047,45 @@ const Store = {
   _marcarMigalha(){ try{ localStorage.setItem(this.CHAVE_MIGALHA,'1'); }catch(_){} },
   _temMigalha(){ try{ return localStorage.getItem(this.CHAVE_MIGALHA)==='1'; }catch(_){ return false; } },
 
+  // ── A TERCEIRA CASA: a nuvem (S42) ───────────────────────────────────────
+  // O IndexedDB resolveu o teto de 5 MB e não resolveu o problema: é o MESMO
+  // computador. Em 10/ago o navegador de Marcos bateu em 10,0 MB e o app parou
+  // de gravar — onze dias depois da mudança anterior. E na máquina dele a
+  // mudança para o IndexedDB nem chegou a valer: o banco local não abre lá, e os
+  // 654 encerrados continuam dentro do bloco quente. Por isso ele pesa 9,8 MB.
+  //
+  // O arquivo morto passa a viver no Cloudflare D1, uma LINHA por processo.
+  // Nada aqui muda para o resto do app: `lerVagas()` continua devolvendo a lista
+  // inteira, e o Kanban não sabe de onde ela veio.
+  //
+  // A regra é a mesma das duas mudanças anteriores, e é a única que não se
+  // negocia: o dado só sai do lugar antigo depois de ser lido DE VOLTA da nuvem,
+  // caractere por caractere igual. Ver mudarParaNuvem().
+  NUVEM_MIGALHA:'senova_arquivo_na_nuvem',
+  _frioNaNuvem:false,
+  _marcarNuvem(){ try{ localStorage.setItem(this.NUVEM_MIGALHA,'1'); }catch(_){} },
+  _naNuvem(){ try{ return localStorage.getItem(this.NUVEM_MIGALHA)==='1'; }catch(_){ return false; } },
+
+  // As descrições das vagas encerradas: 45% de todo o peso, e o motivo de elas
+  // morarem numa coluna separada lá. Decisão de Marcos (S42): abrir um processo
+  // encerrado não pode ter espera. Então elas são baixadas em SEGUNDO PLANO,
+  // depois que a tela já está de pé — nunca no caminho do arranque. Vivem só em
+  // memória: devolvê-las ao localStorage desfaria metade da mudança.
+  //
+  // `_descIgnotas` é o conjunto dos cards cuja descrição eu NÃO conheço — e é
+  // pela ausência que ele é definido, não pela presença. A pergunta que importa
+  // não é "quantas baixei", é "eu SEI a descrição DESTE card?", e a resposta
+  // errada custa dado: gravar um card cuja descrição ainda não chegou, afirmando
+  // que ele não tem descrição, apaga o texto que está na nuvem.
+  // Por isso o padrão é SABER: um card recém-arquivado está inteiro na memória.
+  // Só entram aqui os que vieram da nuvem sem o texto, e cada um sai no instante
+  // em que o texto chega. Enquanto está aqui, o pacote vai SEM o campo, e o
+  // Worker preserva o que está lá. Ausência não é negação.
+  _descIgnotas:null,
+  _descBaixando:false,
+  _restauroNaNuvem:null,   // promessa da restauração em curso; quem recarrega espera por ela
+  _sabeDescricao(id){ return !(this._descIgnotas && this._descIgnotas.has(String(id))); },
+
   _abrirBanco(){
     return new Promise((ok,erro)=>{
       let req;
@@ -5074,6 +5117,321 @@ const Store = {
     });
   },
 
+  // ── Transporte para a nuvem ──────────────────────────────────────────────
+  // Toda chamada tem PRAZO. Uma rede pendurada não devolve erro: ela não devolve
+  // nada, e sem prazo o arranque do app ficaria preso para sempre num spinner.
+  // Erro e demora acabam no mesmo lugar de propósito — os dois significam "não
+  // consegui", e é isso que quem chama precisa saber.
+  _temChave(){ try{ return !!localStorage.getItem('senova_app_key'); }catch(_){ return false; } },
+  _nuvem(caminho,opcoes,prazo){
+    const url=WORKER_URL+caminho;
+    const corte=new Promise(ok=>setTimeout(()=>ok({__erro:'tempo'}),prazo||20000));
+    const ida=fetch(url,opcoes||{})
+      .then(r=>r.json().then(j=>r.ok?j:{__erro:(j&&j.erro)||('http_'+r.status)}).catch(()=>({__erro:'resposta_ilegivel'})))
+      .catch(()=>({__erro:'rede'}));
+    return Promise.race([ida,corte]);
+  },
+  _nuvemGet(caminho,prazo){ return this._nuvem(caminho,null,prazo); },
+  _nuvemPost(caminho,corpo,prazo){
+    return this._nuvem(caminho,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(corpo)},prazo);
+  },
+
+  // Os dois campos que carregam o texto da vaga, e que ficam na coluna própria do
+  // banco. Medido no app real (30/jul): `jobDescription` sozinho é 45% do peso de
+  // tudo. Os dois convivem por história — portais diferentes preencheram um ou
+  // outro — e o app SEMPRE lê os dois juntos (`v.jobDescription||v.descricao`).
+  // Por isso saem juntos e voltam juntos: separar um do outro faria o card voltar
+  // diferente do que saiu em metade dos casos.
+  _CAMPOS_TEXTO:['jobDescription','descricao'],
+  _partirCard(v){
+    const leve={}, texto={};
+    Object.keys(v||{}).forEach(k=>{
+      if(this._CAMPOS_TEXTO.indexOf(k)>=0) texto[k]=v[k]; else leve[k]=v[k];
+    });
+    return { leve:leve, texto:texto, temTexto:Object.keys(texto).length>0 };
+  },
+
+  // Impressão digital de um card: todos os campos, todos os valores, com as
+  // chaves em ordem fixa. É com ela que a conferência da mudança de casa compara
+  // o que voltou com o que saiu.
+  //
+  // Por que ordem fixa e não o texto cru: partir o card em duas colunas e juntá-lo
+  // de volta muda a ORDEM das chaves, não o conteúdo. Comparando o texto cru, todo
+  // card pareceria diferente e a mudança nunca terminaria — ou, pior, alguém
+  // "consertaria" afrouxando a conferência. Ordenar as chaves faz a comparação
+  // enxergar diferença de CONTEÚDO, que é a única que significa perda.
+  _impressao(v){
+    const ordenar=x=>{
+      if(x===null||typeof x!=='object') return x;
+      if(Array.isArray(x)) return x.map(ordenar);
+      const saida={};
+      Object.keys(x).sort().forEach(k=>{ saida[k]=ordenar(x[k]); });
+      return saida;
+    };
+    try{ return JSON.stringify(ordenar(v)); }catch(_){ return null; }
+  },
+
+  // Baixa o arquivo inteiro, página por página, seguindo a âncora que o Worker
+  // devolve. Devolve a lista de cards ou null — e null aqui significa "não sei",
+  // nunca "está vazio". A diferença entre as duas é o que impede de apagar 654
+  // processos por causa de uma rede ruim.
+  _lerNuvemTudo(comTexto,aoAndar){
+    const cards=[]; let apos='', voltas=0;
+    const passo=()=>{
+      const q='?limite='+(comTexto?25:150)+(comTexto?'&com_descricao=1':'')+'&apos='+encodeURIComponent(apos);
+      return this._nuvemGet('/api/arquivo'+q).then(r=>{
+        if(!r||r.__erro||!Array.isArray(r.cards)) return null;
+        r.cards.forEach(linha=>{
+          let leve=null;
+          try{ leve=JSON.parse(linha.dados); }catch(_){ leve=null; }
+          if(!leve) return;                       // linha ilegível: não inventa card
+          if(comTexto&&linha.descricao){
+            try{ Object.assign(leve,JSON.parse(linha.descricao)||{}); }catch(_){}
+          }
+          cards.push(leve);
+        });
+        if(aoAndar) try{ aoAndar(cards.length); }catch(_){}
+        if(!r.tem_mais||!r.ultimo) return cards;
+        apos=r.ultimo;
+        // Trava de volta: 654 cards em páginas de 25 são 27 voltas. 400 é folga
+        // enorme e ainda assim um teto — sem ele, uma âncora que não avança (bug
+        // nosso ou do banco) viraria um laço infinito no navegador do usuário.
+        if(++voltas>400) return null;
+        return passo();
+      });
+    };
+    return passo();
+  },
+
+  // ── Ler o arquivo da nuvem, no arranque ──────────────────────────────────
+  // Vale a mesma lei do IndexedDB, e ela é a razão de este método existir em vez
+  // de um fetch solto: NÃO SABER É UM ESTADO. Sem credencial, com a rede fora ou
+  // com o Worker mudo, este método NÃO afirma que o arquivo está vazio — deixa
+  // `_frioCarregado` falso, o portão do gravar() fechado, e o usuário avisado.
+  // A alternativa é a que já quase aconteceu duas vezes: 654 processos viram [].
+  _carregarDaNuvem(){
+    this._frioNaNuvem=true;
+    if(!this._temChave()){ this._frio=null; this._frioCarregado=false; return Promise.resolve(); }
+    return this._lerNuvemTudo(false).then(cards=>{
+      if(cards===null){ this._frio=null; this._frioCarregado=false; return; }
+      // Tudo o que veio de lá veio SEM o texto da vaga. Enquanto o texto não
+      // chegar, estes ids são exatamente aqueles sobre os quais não posso
+      // afirmar nada — ver _descIgnotas.
+      this._descIgnotas=new Set(cards.map(v=>String(v&&v.id)));
+      this._frio=JSON.stringify(cards);
+      this._rawFrio=this._frio;
+      this._frioCarregado=true;
+    }).catch(()=>{ this._frio=null; this._frioCarregado=false; });
+  },
+
+  // Uma fila, e não chamadas soltas. Duas gravações em voo ao mesmo tempo podem
+  // chegar fora de ordem, e a inversão que importa é esta: o DELETE de um card
+  // chegando antes do upsert que o recriou ressuscita o card apagado. Em fila,
+  // a ordem na rede é a ordem dos gestos do usuário.
+  _filaNuvem:Promise.resolve(),
+
+  _fatiar(lista,n){ const f=[]; for(let i=0;i<(lista||[]).length;i+=n) f.push(lista.slice(i,i+n)); return f; },
+  _empacotar(v,comTexto){
+    const p=this._partirCard(v);
+    const pacote={ card_id:String(v.id), status:'arquivado',
+                   atualizado:Number(v.atualizadoEm)||Date.now(), dados:JSON.stringify(p.leve) };
+    // O campo só vai quando quem chama CONHECE o texto. Omiti-lo faz o Worker
+    // preservar o que está lá; mandá-lo vazio apaga. Ver _descIgnotas.
+    if(comTexto) pacote.descricao=p.temTexto?JSON.stringify(p.texto):'';
+    return pacote;
+  },
+  // Grava ANTES de apagar, sempre, e em lotes que o Worker aceita inteiros. Se a
+  // rede cair no meio, o pior estado possível passa a ser um card A MAIS na
+  // nuvem — visível na tela e corrigido no próximo gesto. Na ordem inversa, o
+  // pior estado é um card A MENOS, e esse ninguém vê.
+  _sincronizar(pacotes,sumiram){
+    let corrente=Promise.resolve(true);
+    this._fatiar(pacotes,50).forEach(lote=>{
+      corrente=corrente.then(ok=>!ok?false:this._nuvemPost('/api/arquivo',{cards:lote},30000)
+        .then(r=>!!(r&&!r.__erro&&r.ok)));
+    });
+    this._fatiar(sumiram,200).forEach(lote=>{
+      corrente=corrente.then(ok=>!ok?false:this._nuvemPost('/api/arquivo/remover',{ids:lote},30000)
+        .then(r=>!!(r&&!r.__erro&&r.ok)));
+    });
+    return corrente.catch(()=>false);
+  },
+
+  // Manda para a nuvem SÓ o que mudou. O bloco frio inteiro são megabytes; um
+  // card arquivado é um punhado de kilobytes. Reescrever tudo a cada gesto foi
+  // exatamente o erro que encheu o localStorage.
+  _enviarDiffParaNuvem(raw){
+    let novos=[]; try{ novos=JSON.parse(raw)||[]; }catch(_){ novos=[]; }
+    // O que a nuvem tem hoje, do meu ponto de vista. Se eu NÃO sei (uma gravação
+    // anterior falhou e zerou a referência), não deduzo desaparecimento nenhum:
+    // mando tudo de novo e não apago nada. Reenviar é barato — o upsert é
+    // idempotente. Apagar por dedução em cima de uma referência que eu mesmo
+    // admiti não ter é o tipo de perda que não tem volta.
+    let antes=null;
+    if(this._rawFrio){ try{ antes=JSON.parse(this._rawFrio)||null; }catch(_){ antes=null; } }
+    const mapaAntes=new Map();
+    if(antes) antes.forEach(v=>{ if(v&&v.id!=null) mapaAntes.set(String(v.id),this._impressao(v)); });
+
+    const pacotes=[], vistos=new Set();
+    novos.forEach(v=>{
+      if(!v||v.id==null) return;
+      const id=String(v.id); vistos.add(id);
+      if(antes && mapaAntes.get(id)===this._impressao(v)) return;   // não mudou: não trafega
+      pacotes.push(this._empacotar(v,this._sabeDescricao(id)));
+    });
+    const sumiram = antes ? Array.from(mapaAntes.keys()).filter(id=>!vistos.has(id)) : [];
+    if(!pacotes.length && !sumiram.length) return true;
+
+    const corrente=this._filaNuvem.then(()=>this._sincronizar(pacotes,sumiram),
+                                        ()=>this._sincronizar(pacotes,sumiram));
+    this._filaNuvem=corrente.then(ok=>{
+      if(ok){ this._rawFrio=raw; this._frio=raw; }
+      // Falhou: a referência do que a nuvem tem deixa de ser confiável e vira
+      // "não sei" — é isso que faz a próxima gravação mandar tudo de novo em vez
+      // de mandar um diff calculado sobre uma crença errada.
+      else { this._rawFrio=null; _avisarGravacaoFalhou('nuvem'); }
+      return null;
+    },()=>{ this._rawFrio=null; _avisarGravacaoFalhou('nuvem'); return null; });
+    return true;
+  },
+
+  // ── A mudança de casa ────────────────────────────────────────────────────
+  // Roda sozinha, depois que a tela está de pé (decisão de Marcos, S42: sem
+  // botão, sem cerimônia). Resolve sempre, e desiste em silêncio sempre que
+  // faltar qualquer condição — uma mudança de casa que não pode ser CONFERIDA
+  // simplesmente não acontece hoje, e tenta de novo amanhã.
+  //
+  // A ordem é a lei da S40, e é a única parte deste arquivo que não se negocia:
+  //   1. manda    2. lê TUDO de volta    3. compara card a card
+  //   4. só então marca, e só então o navegador devolve o espaço.
+  mudarParaNuvem(){
+    if(this._naNuvem()) return Promise.resolve('ja_feita');
+    if(!this._temChave()) return Promise.resolve('sem_chave');
+    if(!this._frioCarregado) return Promise.resolve('nao_sei_o_que_tenho');
+
+    const arquivadas=(vagas||[]).filter(v=>v&&v.status==='arquivado');
+    const daqui=new Map();
+    for(const v of arquivadas){
+      if(v.id==null) return Promise.resolve('card_sem_id');   // sem id não há como conferir a volta
+      daqui.set(String(v.id),this._impressao(v));
+    }
+    if(daqui.size!==arquivadas.length) return Promise.resolve('ids_repetidos');
+
+    // `true`: estes cards vieram daqui, inteiros. É a única situação em que a
+    // descrição é afirmada sem ressalva.
+    const pacotes=arquivadas.map(v=>this._empacotar(v,true));
+
+    return this._sincronizar(pacotes,[]).then(ok=>{
+      if(!ok) return 'envio_falhou';
+      // Lê de volta COM o texto: conferir sem o texto conferiria metade do dado,
+      // e é justamente a metade pesada — a que a mudança existe para tirar daqui.
+      return this._lerNuvemTudo(true).then(volta=>{
+        if(volta===null) return 'leitura_falhou';
+        const la=new Map();
+        volta.forEach(v=>{ if(v&&v.id!=null) la.set(String(v.id),this._impressao(v)); });
+        for(const [id,imp] of daqui){ if(la.get(id)!==imp) return 'conferencia_falhou'; }
+
+        // O usuário pode ter arquivado (ou desarquivado) um processo enquanto isto
+        // corria. Se a lista de agora não é mais a lista que eu conferi, a
+        // conferência não vale para o estado atual — e desistir hoje não custa
+        // nada, porque nada foi apagado. Amanhã ela roda de novo, inteira.
+        const agora=(vagas||[]).filter(v=>v&&v.status==='arquivado');
+        if(agora.length!==arquivadas.length) return 'mexeram_no_meio';
+        for(const v of agora){ if(daqui.get(String(v&&v.id))!==this._impressao(v)) return 'mexeram_no_meio'; }
+
+        // Conferido. Agora, e só agora, o navegador devolve o espaço.
+        this._frioNaNuvem=true;
+        this._descIgnotas=new Set();          // vieram daqui: conheço o texto de todos
+        this._frio=JSON.stringify(agora);
+        this._rawFrio=this._frio;             // igual ao que está lá: o gravar() não reenvia nada
+        this._marcarNuvem();
+        // O bloco quente é reescrito SEM os arquivados — é esta linha que devolve
+        // os megabytes. Só depois dela as cópias antigas saem: enquanto o novo
+        // lugar não estiver de pé, o velho fica.
+        const gravou=this.gravar();
+        if(gravou){
+          try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
+          if(this._frioNoBanco){
+            this._abrirBanco().then(db=>this._gravarBanco(db,this.BANCO_CHAVE_FRIO,'[]')).catch(()=>{});
+            this._frioNoBanco=false;
+          }
+        }
+        this._nuvemPost('/api/arquivo/migracao',
+          { bloco:'vagas_arquivadas', conferido:1, quantos:daqui.size },10000).catch(()=>{});
+        return 'feita';
+      });
+    }).catch(()=>'erro');
+  },
+
+  // Restauração de uma cópia, do lado da nuvem. A cópia importada é a verdade —
+  // inclusive quando ela diz que não há arquivado nenhum. Por isso não basta
+  // mandar o que veio nela: é preciso TIRAR de lá o que ela não tem, senão um
+  // processo que a cópia não continha reapareceria no arranque seguinte e a
+  // restauração teria restaurado mais do que o arquivo guardava.
+  //
+  // Devolve uma promessa de propósito: quem importa recarrega a página logo em
+  // seguida, e recarregar antes de a nuvem confirmar mataria a gravação no meio.
+  substituirArquivoNaNuvem(lista){
+    if(!this._frioNaNuvem) return Promise.resolve('nao_e_o_caso');
+    if(!this._temChave()) return Promise.resolve('sem_chave');
+    const querem=new Map();
+    (lista||[]).forEach(v=>{ if(v&&v.id!=null) querem.set(String(v.id),v); });
+    return this._lerNuvemTudo(false).then(la=>{
+      // Não consegui ler o que está lá: não sei o que sobra, então não apago
+      // nada. Mando o que a cópia trouxe e digo que a substituição não fechou.
+      const podeApagar = la!==null;
+      const sumiram = podeApagar
+        ? la.filter(v=>v&&v.id!=null&&!querem.has(String(v.id))).map(v=>String(v.id))
+        : [];
+      const pacotes=Array.from(querem.values()).map(v=>this._empacotar(v,true));
+      return this._sincronizar(pacotes,sumiram).then(ok=>{
+        if(!ok) return 'falhou';
+        this._descIgnotas=new Set();
+        this._frio=JSON.stringify(Array.from(querem.values()));
+        this._rawFrio=this._frio;
+        return podeApagar?'feita':'parcial';
+      });
+    }).catch(()=>'erro');
+  },
+
+  // As descrições, em segundo plano. Decisão de Marcos (S42): abrir um processo
+  // encerrado não pode ter espera — então elas vêm todas, mas depois que a tela
+  // já está de pé, e vivem SÓ em memória. Devolvê-las ao localStorage desfaria
+  // metade da mudança de casa.
+  baixarDescricoes(){
+    if(!this._frioNaNuvem||this._descBaixando) return Promise.resolve(0);
+    if(!this._descIgnotas||!this._descIgnotas.size) return Promise.resolve(0);
+    this._descBaixando=true;
+    return this._lerNuvemTudo(true).then(cards=>{
+      if(cards===null) return 0;
+      const porId=new Map();
+      (vagas||[]).forEach(v=>{ if(v&&v.id!=null) porId.set(String(v.id),v); });
+      let chegaram=0;
+      cards.forEach(c=>{
+        if(!c||c.id==null) return;
+        const id=String(c.id), alvo=porId.get(id);
+        if(!alvo) return;
+        // Só PREENCHE o que está faltando. Se o card já tem texto em memória, ele
+        // é o mais recente — a nuvem não passa por cima do que o usuário fez agora.
+        this._CAMPOS_TEXTO.forEach(k=>{ if(c[k]!==undefined&&alvo[k]===undefined) alvo[k]=c[k]; });
+        this._descIgnotas.delete(id);
+        chegaram++;
+      });
+      // Agora os cards em memória têm o texto — e a nuvem também, porque foi de
+      // lá que ele veio. Sem atualizar a referência, o próximo gravar() veria
+      // uma diferença que não existe e reenviaria o arquivo inteiro.
+      // A referência só é atualizada quando ela é confiável: `null` significa que
+      // uma gravação falhou e ainda há coisa por mandar. Sobrescrevê-la aqui
+      // engoliria essa perda.
+      if(this._rawFrio!==null){
+        this._frio=JSON.stringify((vagas||[]).filter(v=>v&&v.status==='arquivado'));
+        this._rawFrio=this._frio;
+      }
+      return chegaram;
+    }).catch(()=>0).then(n=>{ this._descBaixando=false; return n; });
+  },
+
   // Chamado UMA vez, antes do loadCRM. Resolve sempre — nunca deixa o app preso
   // esperando um banco que não vai responder. Se o IndexedDB não estiver
   // disponível (aba anônima, perfil corrompido), o arquivo morto continua no
@@ -5085,6 +5443,10 @@ const Store = {
   // tempo continua certo (nada prende o app); o que não pode é desistir AFIRMANDO.
   carregarFrio(){
     if(this._frioCarregado) return Promise.resolve();
+    // Já mudou de casa: o arquivo mora na nuvem e não se procura mais aqui. A
+    // migalha é o que responde isto sem precisar perguntar à rede — e é por ela
+    // que uma rede fora não é confundida com um arquivo vazio.
+    if(this._naNuvem()) return this._carregarDaNuvem();
     const desistir=new Promise(ok=>setTimeout(()=>ok('__tempo__'),4000));
     const tentar=this._abrirBanco().then(db=>
       this._lerBanco(db,this.BANCO_CHAVE_FRIO).then(doBanco=>{
@@ -5126,6 +5488,7 @@ const Store = {
   // por isso avisa por conta própria se falhar: arquivar um card não pode
   // sumir em silêncio só porque a gravação é adiada.
   _gravarFrio(raw){
+    if(this._frioNaNuvem) return this._enviarDiffParaNuvem(raw);
     if(this._frioNoBanco){
       this._abrirBanco()
         .then(db=>this._gravarBanco(db,this.BANCO_CHAVE_FRIO,raw))
@@ -5244,6 +5607,15 @@ const Store = {
       // aparece duas vezes, e a próxima gravação acerta o banco.
       if(this._frioNoBanco){
         this._abrirBanco().then(db=>this._gravarBanco(db,this.BANCO_CHAVE_FRIO,'[]')).catch(()=>{});
+      }
+      // Na nuvem a trava de duplicata não basta: o que fica lá não some no
+      // recarregamento, volta. Os arquivados desta cópia PASSAM A SER o arquivo, e
+      // os que ela não tem saem. Quem chama espera por `_restauroNaNuvem` antes de
+      // recarregar — recarregar no meio corta a gravação.
+      if(this._frioNaNuvem){
+        let daCopia=[];
+        try{ daCopia=(JSON.parse(raw)||[]).filter(v=>v&&v.status==='arquivado'); }catch(_){}
+        this._restauroNaNuvem=this.substituirArquivoNaNuvem(daCopia);
       }
       this._frio='[]';
       this._rawFrio=null;
@@ -6311,6 +6683,12 @@ function _avisarGravacaoFalhou(motivo){
       : (motivo==='carregando')
       ? { titulo:'Ainda não abri o seu arquivo de processos encerrados',
           corpo:'Não vou gravar enquanto ele não chegar: gravar agora apagaria o seu histórico. O que você acabou de fazer está na tela, mas ainda não foi guardado. Recarregue a página — quase sempre resolve.' }
+      // O arquivo de processos encerrados mora na nuvem. Aqui não faltou espaço e
+      // nada está corrompido: a gravação não chegou lá. Dizer "armazenamento
+      // cheio" mandaria a pessoa apagar coisas para resolver um problema de rede.
+      : (motivo==='nuvem')
+      ? { titulo:'Não consegui guardar a alteração no seu arquivo',
+          corpo:'Os seus processos encerrados ficam guardados fora deste computador, e a gravação não chegou lá. O que você acabou de fazer está na tela, mas ainda não foi guardado. Verifique a conexão e refaça o gesto — na próxima gravação eu mando tudo de novo.' }
       : { titulo:'Não consegui salvar o seu trabalho neste computador',
           corpo:'O armazenamento do navegador está cheio. O que você acabou de fazer está na tela, mas ainda não foi gravado — se recarregar a página agora, será perdido.' };
     let el=document.getElementById('aviso-gravacao');
@@ -6349,7 +6727,7 @@ function _avisarGravacaoFalhou(motivo){
     const med=el.querySelector('#aviso-gravacao-medida');
     // Só na falha de cota o espaço é a explicação. Na leitura ilegível e no arquivo que
     // não abriu, o número seria verdadeiro descrevendo o problema errado.
-    let txtMed = (motivo==='ilegivel'||motivo==='carregando') ? '' : _medirArmazenamento().texto;
+    let txtMed = (motivo==='ilegivel'||motivo==='carregando'||motivo==='nuvem') ? '' : _medirArmazenamento().texto;
     // Qual bloco o navegador recusou, e de que tamanho. Sem o NOME, o número
     // sozinho já me mandou para o lado errado uma vez: sobra "4,2 MB" sem dizer
     // se era o dos processos vivos ou o do arquivo morto, que são consertos
@@ -7816,6 +8194,24 @@ function exportarDados(){
     alert('Ainda não consegui abrir o seu arquivo de processos encerrados.\n\nSe eu gerasse a cópia agora, ela sairia sem eles — e você só descobriria no dia de precisar. Recarregue a página e tente de novo.');
     return;
   }
+  // Mesma régua, um degrau adiante. Com o arquivo na nuvem, os cards encerrados
+  // chegam primeiro SEM o texto da vaga — que é 45% do conteúdo deles. Uma cópia
+  // tirada nessa janela sairia com 654 processos vazios por dentro, e com cara de
+  // completa. Então espera o texto chegar; se não chegar, recusa e diz por quê.
+  if(Store._frioNaNuvem && Store._descIgnotas && Store._descIgnotas.size){
+    showToast('Buscando o texto das vagas encerradas…');
+    Store.baixarDescricoes().then(function(){
+      if(Store._descIgnotas && Store._descIgnotas.size){
+        alert('Ainda não consegui trazer o texto das vagas encerradas.\n\nA cópia sairia com os processos, mas sem a descrição de cada vaga — e você só descobriria no dia de precisar. Verifique a conexão e tente de novo.');
+        return;
+      }
+      _exportarDadosAgora();
+    });
+    return;
+  }
+  _exportarDadosAgora();
+}
+function _exportarDadosAgora(){
   const backup={versao:'1.1',data:new Date().toISOString(),
     nota:'Esta cópia NÃO contém a chave de acesso ao Worker. Ao restaurar num aparelho novo, cole-a em Perfil › Integrações.',
     dados:{}};
@@ -7825,6 +8221,14 @@ function exportarDados(){
   // sair: é a rede de segurança mentindo que está inteira. Os bytes vêm da
   // memória, que é exatamente onde carregarFrio() os deixou.
   if(Store._frioNoBanco && Store._frio!=null) backup.dados[Store.CHAVE_ARQUIVADAS]=Store._frio;
+  // Com o arquivo na nuvem os bytes vêm da MEMÓRIA, não de `Store._frio`. A
+  // diferença importa: `_frio` é a referência do que a nuvem tem, e ela fica
+  // desatualizada de propósito quando uma gravação falha. A cópia tem de levar o
+  // que o usuário vê na tela, que é `vagas` — inclusive o que ainda não subiu.
+  if(Store._frioNaNuvem){
+    backup.dados[Store.CHAVE_ARQUIVADAS]=
+      JSON.stringify((vagas||[]).filter(v=>v&&v.status==='arquivado'));
+  }
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
@@ -7863,9 +8267,34 @@ function importarDados(input){
       }
       // Aparelho novo: sem a chave de acesso, toda chamada ao Worker volta 401 e o app fica
       // mudo — a análise não vem, a busca automática não roda, e nada na tela explica por quê.
-      // Falta de credencial tem de ser dita na hora, não descoberta como pane.
+      // Falta de credencial tem de ser dita na hora, não descoberta como pane. Vem ANTES da
+      // nuvem de propósito: sem chave, o arquivo também não sobe, e a causa é esta.
       if(!localStorage.getItem('senova_app_key')){
         alert('Dados restaurados.\n\nEsta cópia não traz a chave de acesso — por segurança, ela nunca sai no backup.\n\nCole a sua em Perfil › Integrações para o Senova voltar a analisar vagas e buscar oportunidades.');
+      }
+      // O mesmo, com o arquivo na nuvem — e com duas diferenças que custam dado.
+      // A primeira: os arquivados de uma cópia ANTERIOR à separação em dois blocos
+      // não estão no bloco frio, estão dentro do bloco de processos. Procurar só
+      // no lugar novo faria uma cópia antiga restaurar zero encerrados.
+      // A segunda: a página recarrega logo abaixo, e recarregar antes de a nuvem
+      // confirmar corta a gravação no meio. Por isso o reload ESPERA.
+      if(Store._frioNaNuvem){
+        let _lista=[];
+        try{
+          _lista = backup.dados[Store.CHAVE_ARQUIVADAS]
+            ? (JSON.parse(backup.dados[Store.CHAVE_ARQUIVADAS])||[])
+            : (JSON.parse(backup.dados[Store.CHAVE]||'[]')||[]).filter(v=>v&&v.status==='arquivado');
+        }catch(_){ _lista=[]; }
+        try{ localStorage.removeItem(Store.CHAVE_ARQUIVADAS); }catch(_){}
+        showToast('Restaurando o arquivo de processos encerrados…');
+        Store.substituirArquivoNaNuvem(_lista).then(function(r){
+          if(r!=='feita'&&r!=='nao_e_o_caso'){
+            alert('Restaurei os dados neste computador, mas não consegui atualizar o seu arquivo de processos encerrados, que fica fora daqui.\n\nO arquivo pode ter ficado com processos a mais, do estado anterior. Verifique a conexão e restaure a cópia de novo.');
+          }
+          showToast('✅ Dados restaurados — recarregando...');
+          setTimeout(()=>location.reload(),1200);
+        });
+        return;
       }
       showToast('✅ Dados restaurados — recarregando...');
       setTimeout(()=>location.reload(),1500);
@@ -7945,7 +8374,11 @@ function restaurarAutoBackup(key){
   try{ const atual=Store.ler(); if(atual) localStorage.setItem('senova_autobackup_'+new Date().toISOString().slice(0,10), atual); }catch(_){}
   if(!Store.restaurar(raw)){ showToast('❌ Não foi possível restaurar (armazenamento cheio)'); return; }
   showToast('✅ Processos restaurados — recarregando...');
-  setTimeout(()=>location.reload(),1200);
+  // Espera a nuvem antes de recarregar. Sem isto, uma cópia antiga que traga os
+  // arquivados dentro restauraria só o que é local, e o arquivo lá fora voltaria
+  // inteiro no arranque seguinte — desfazendo metade da restauração em silêncio.
+  Promise.resolve(Store._restauroNaNuvem).catch(()=>null)
+    .then(()=>setTimeout(()=>location.reload(),1200));
 }
 
 function limparDuplicatas(){
@@ -11665,6 +12098,18 @@ Store.carregarFrio().then(function(){
   // A ponte da extensão entra aqui, e não solta lá embaixo: ela grava, e gravar antes do
   // arquivo morto chegar apagaria os arquivados. Ver testes/nao_gravar_sem_arquivo.js.
   window.__senovaImportar();
+
+  // A mudança do arquivo para a nuvem, e depois o texto das vagas encerradas.
+  // Decisão de Marcos (S42): sozinho, ao abrir o app — sem botão e sem pergunta.
+  // DEPOIS da tela, nunca antes: a tela é o que a pessoa veio buscar, e nenhuma
+  // das duas coisas muda o que ela vê. As duas desistem sozinhas e em silêncio
+  // quando falta condição, e tentam de novo na próxima abertura — desistir hoje
+  // não custa nada, porque nada é apagado antes de a volta ser conferida.
+  setTimeout(function(){
+    Store.mudarParaNuvem()
+      .then(function(){ return Store.baixarDescricoes(); })
+      .catch(function(){});
+  },1500);
 });
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)

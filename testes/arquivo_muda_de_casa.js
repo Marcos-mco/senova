@@ -302,7 +302,10 @@ const carregar = ({ run }) => run('Store.carregarFrio()');
     // A rede de segurança de Marcos é o botão "Baixar uma cópia agora". Com o
     // arquivo fora do localStorage, a varredura de chaves deixaria 654 cards de
     // fora — e uma cópia incompleta é pior do que nenhuma: mente que está inteira.
-    const exp = extrai('function exportarDados(');
+    // A montagem da cópia mora em `_exportarDadosAgora` desde que a exportação ganhou um
+    // portão à frente dela (o arquivo na nuvem chega sem o texto das vagas, e sair nessa
+    // janela daria uma cópia com cara de completa e 654 processos vazios por dentro).
+    const exp = extrai('function _exportarDadosAgora(');
     t('a exportação junta o arquivo morto que está fora do localStorage',
       /backup\.dados\[Store\.CHAVE_ARQUIVADAS\]\s*=\s*Store\._frio/.test(exp), exp.slice(0, 400));
     t('e só quando ele de fato mora no banco', /Store\._frioNoBanco/.test(exp));

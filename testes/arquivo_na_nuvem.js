@@ -49,6 +49,7 @@ const ROTAS = [
   "if (path === '/api/arquivo' && request.method === 'GET')",
   "if (path === '/api/arquivo/descricao' && request.method === 'GET')",
   "if (path === '/api/arquivo' && request.method === 'POST')",
+  "if (path === '/api/arquivo/remover' && request.method === 'POST')",
   "if (path === '/api/arquivo/conferencia' && request.method === 'GET')",
   "if (path === '/api/arquivo/migracao' && request.method === 'POST')",
 ];
@@ -61,7 +62,7 @@ function d1(sqlite) {
     bind(...a) { return prep(sql, a); },
     async first() { const r = sqlite.prepare(sql).get(...this.args); return r === undefined ? null : r; },
     async all() { return { results: sqlite.prepare(sql).all(...this.args) }; },
-    async run() { sqlite.prepare(sql).run(...this.args); return { success: true }; },
+    async run() { const r = sqlite.prepare(sql).run(...this.args); return { success: true, meta: { changes: r.changes } }; },
   });
   return {
     prepare: sql => prep(sql, []),
@@ -69,9 +70,12 @@ function d1(sqlite) {
     // que ninguém sabe consertar depois.
     async batch(lote) {
       sqlite.exec('BEGIN');
-      try { for (const s of lote) sqlite.prepare(s.sql).run(...s.args); sqlite.exec('COMMIT'); }
-      catch (e) { sqlite.exec('ROLLBACK'); throw e; }
-      return lote.map(() => ({ success: true }));
+      const saida = [];
+      try {
+        for (const s of lote) { const r = sqlite.prepare(s.sql).run(...s.args); saida.push({ success: true, meta: { changes: r.changes } }); }
+        sqlite.exec('COMMIT');
+      } catch (e) { sqlite.exec('ROLLBACK'); throw e; }
+      return saida;
     },
   };
 }
@@ -261,6 +265,105 @@ async function main() {
     t('e card inexistente responde 404, não texto vazio', nada.status === 404 && nada.corpo.erro === 'nao_encontrado');
   }
 
+  // ── 6b. A descrição em lote, para o segundo plano ───────────────────────────
+  // Decisão de Marcos (S42): abrir um processo encerrado não pode ter espera. O app resolve
+  // baixando as descrições DEPOIS que a tela já está de pé — e para isso precisa pedi-las em
+  // lote, não uma a uma (654 chamadas seriam mais lentas que a espera que se queria evitar).
+  // O teto de página cai quando a descrição vem junto: uma resposta que não completa é uma
+  // página perdida no meio da varredura.
+  console.log('\n=== a descrição também vem em lote, com página menor ===');
+  {
+    const { chamar } = montar();
+    await chamar('POST', '/api/arquivo', { corpo: lote(1, 8) });
+    const pag = await chamar('GET', '/api/arquivo', { params: '?com_descricao=1&limite=3' });
+    t('vem a descrição junto quando pedida', !!pag.corpo.cards[0].descricao &&
+      pag.corpo.cards[0].descricao.includes('DESCRIÇÃO LONGA DA VAGA 1'), JSON.stringify(pag.corpo.cards[0]).slice(0, 120));
+    t('e o card continua vindo inteiro ao lado dela',
+      JSON.stringify(abrir(pag.corpo.cards[0].dados)) === JSON.stringify(cardReal(1)));
+    const gordo = await chamar('GET', '/api/arquivo', { params: '?com_descricao=1&limite=500' });
+    t('o pedido de página gigante COM descrição é limitado a 25', gordo.corpo.cards.length <= 25,
+      String(gordo.corpo.cards.length));
+    const magro = await chamar('GET', '/api/arquivo', { params: '?limite=500' });
+    t('sem descrição, a página grande continua permitida', magro.corpo.cards.length === 8);
+    t('e sem descrição a resposta segue enxuta', !JSON.stringify(magro.corpo).includes('DESCRIÇÃO LONGA'));
+  }
+
+  // ── 6d. Ausência não é negação ──────────────────────────────────────────────
+  // A janela real: o app tem o card em memória e ainda NÃO tem o texto da vaga (ele chega em
+  // segundo plano). Se uma gravação cair nessa janela, o card viaja sem o campo `descricao`.
+  // Tratar isso como "a descrição é vazia" apagaria o texto no banco por causa de um campo
+  // ausente — perda de dado por omissão, que é a mais difícil de notar.
+  console.log('\n=== gravar um card sem mandar a descrição não apaga a que está lá ===');
+  {
+    const { chamar } = montar();
+    await chamar('POST', '/api/arquivo', { corpo: lote(1, 2) });
+    const antes = await chamar('GET', '/api/arquivo/descricao', { params: '?id=vaga_001' });
+    t('a descrição está no banco (controle)', antes.corpo.descricao.includes('DESCRIÇÃO LONGA DA VAGA 1'));
+
+    // Regrava o card SEM o campo descricao — exatamente o que o app manda nessa janela.
+    const mudado = Object.assign(cardReal(1), { cargo: 'Cargo editado depois de arquivar' });
+    await chamar('POST', '/api/arquivo', {
+      corpo: { cards: [{ card_id: 'vaga_001', status: 'arquivada', atualizado: 2, dados: mudado }] },
+    });
+    const depois = await chamar('GET', '/api/arquivo/descricao', { params: '?id=vaga_001' });
+    t('a descrição sobreviveu à gravação que não falava dela',
+      depois.corpo.descricao.includes('DESCRIÇÃO LONGA DA VAGA 1'), JSON.stringify(depois.corpo).slice(0, 100));
+    const lista = await chamar('GET', '/api/arquivo');
+    t('e o card foi mesmo atualizado (controle da outra ponta)',
+      abrir(lista.corpo.cards[0].dados).cargo === 'Cargo editado depois de arquivar');
+
+    // A outra metade da regra: dizer "não há descrição" é uma AFIRMAÇÃO, e tem que valer.
+    await chamar('POST', '/api/arquivo', {
+      corpo: { cards: [{ card_id: 'vaga_001', status: 'arquivada', atualizado: 3, dados: mudado, descricao: '' }] },
+    });
+    const limpa = await chamar('GET', '/api/arquivo/descricao', { params: '?id=vaga_001' });
+    t('mandar descrição vazia de propósito LIMPA a descrição', limpa.corpo.descricao === '',
+      JSON.stringify(limpa.corpo).slice(0, 100));
+    const outro = await chamar('GET', '/api/arquivo/descricao', { params: '?id=vaga_002' });
+    t('e não encostou na do card vizinho', outro.corpo.descricao.includes('VAGA 2'));
+  }
+
+  // ── 6c. O card que ressuscita ───────────────────────────────────────────────
+  // Sem uma forma de TIRAR do arquivo, desarquivar um processo o deixaria nos dois lugares, e
+  // apagar uma oportunidade arquivada a traria de volta na abertura seguinte. Card que volta
+  // sozinho já custou sessões inteiras aqui (TV Integração, três vezes).
+  console.log('\n=== o que sai do arquivo não volta na próxima abertura ===');
+  {
+    const { chamar, sqlite } = montar();
+    await chamar('POST', '/api/arquivo', { corpo: lote(1, 6) });
+    const r = await chamar('POST', '/api/arquivo/remover', { corpo: { ids: ['vaga_002', 'vaga_005'] } });
+    t('a remoção diz quantos pediu e quantos saíram', r.corpo.pedidos === 2 && r.corpo.removidos === 2,
+      JSON.stringify(r.corpo));
+    const lista = await chamar('GET', '/api/arquivo', { params: '?limite=500' });
+    t('os dois sumiram da lista', !lista.corpo.cards.some(c => ['vaga_002', 'vaga_005'].includes(c.card_id)));
+    t('e os outros quatro continuam lá', lista.corpo.cards.length === 4);
+    t('a descrição do removido saiu junto — nada de texto órfão no banco',
+      (await chamar('GET', '/api/arquivo/descricao', { params: '?id=vaga_002' })).status === 404);
+
+    // Pedir de novo é inócuo: a migração e o app podem repetir a mesma remoção.
+    const denovo = await chamar('POST', '/api/arquivo/remover', { corpo: { ids: ['vaga_002'] } });
+    t('remover o que já saiu não é erro, e diz que nada saiu',
+      denovo.status === 200 && denovo.corpo.removidos === 0, JSON.stringify(denovo.corpo));
+
+    // A trava que importa: lista vazia por acidente não pode virar "apaga tudo".
+    const vazia = await chamar('POST', '/api/arquivo/remover', { corpo: { ids: [] } });
+    t('lista vazia é recusada, não interpretada como "tudo"',
+      vazia.status === 400 && vazia.corpo.erro === 'lista_vazia');
+    const semNada = await chamar('POST', '/api/arquivo/remover', { corpo: {} });
+    t('e chamada sem ids também', semNada.status === 400 && semNada.corpo.erro === 'ids_ausentes');
+    t('depois das duas recusas, o arquivo continua com os quatro',
+      sqlite.prepare('SELECT COUNT(*) AS n FROM cards').get().n === 4);
+
+    // Remover é destrutivo: tem que respeitar o dono como todo o resto.
+    sqlite.prepare('INSERT INTO usuarios (user_id,nome,chave_hash,criado_em,ativo) VALUES (?,?,?,?,1)')
+      .run('outra-pessoa', 'Outra', 'hash-de-outra', 1);
+    sqlite.prepare('INSERT INTO cards (user_id,card_id,status,atualizado,dados) VALUES (?,?,?,?,?)')
+      .run('outra-pessoa', 'vaga_003', 'arquivada', 9, '{"cargo":"DA OUTRA"}');
+    await chamar('POST', '/api/arquivo/remover', { corpo: { ids: ['vaga_003'] } });
+    t('apagar um card não apaga o card de mesmo id de outra pessoa',
+      sqlite.prepare('SELECT COUNT(*) AS n FROM cards WHERE user_id=?').get('outra-pessoa').n === 1);
+  }
+
   // ── 7. O arquivo tem dono ───────────────────────────────────────────────────
   // Com três usuários chegando, esta é a linha que não pode ser cruzada. O teste usa o MESMO
   // card_id nos dois donos de propósito: se alguma consulta esquecer o `user_id=?`, é aqui
@@ -315,8 +418,9 @@ async function main() {
   {
     const { chamar } = montar(false);
     for (const [m, c] of [['GET', '/api/arquivo'], ['GET', '/api/arquivo/descricao'], ['POST', '/api/arquivo'],
-                          ['GET', '/api/arquivo/conferencia'], ['POST', '/api/arquivo/migracao']]) {
-      const r = await chamar(m, c, { params: c.includes('descricao') ? '?id=x' : '', corpo: { cards: [], bloco: 'b' } });
+                          ['GET', '/api/arquivo/conferencia'], ['POST', '/api/arquivo/migracao'],
+                          ['POST', '/api/arquivo/remover']]) {
+      const r = await chamar(m, c, { params: c.includes('descricao') ? '?id=x' : '', corpo: { cards: [], bloco: 'b', ids: ['x'] } });
       t(m + ' ' + c + ' devolve 503, não 200 vazio', r.status === 503 && r.corpo.erro === 'banco_indisponivel',
         r.status + ' ' + JSON.stringify(r.corpo));
     }
