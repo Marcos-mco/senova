@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.77
+// Content script — Senova Extension v2.79
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -661,16 +661,25 @@
   // Solta o painel só depois que o usuário teve tempo de LER a resposta.
   function _soltar(ms) { setTimeout(() => { _ocupado = false; try { _atualizarCorpo(); } catch (_) {} }, ms || 9000); }
   let _respondido = false;
-  // O que o copiloto diz sobre o preenchimento vale para A PÁGINA onde ele preencheu. Portais em
-  // várias etapas (dados → histórico → revisão) trocam de tela sem trocar de vaga: sem carimbar a
-  // URL, o "✓ Preenchi" da etapa anterior sobrevivia na etapa seguinte e o painel se contradizia
-  // (dizia "preenchi" no corpo e "não consegui" no botão). Fora da página de origem, não vale.
-  let _respondidoUrl = '';
-  // Desfecho da última rodada de preenchimento quando NÃO houve preenchimento: { texto, url }.
+  // O que o copiloto diz sobre o preenchimento vale para A ETAPA onde ele preencheu. Portais em
+  // várias etapas (dados → histórico → revisão) trocam de tela sem trocar de vaga: sem carimbar,
+  // o "✓ Preenchi" da etapa anterior sobrevivia na etapa seguinte e o painel se contradizia
+  // (dizia "preenchi" no corpo e "não consegui" no botão). { url, etapa } — ver _mesmaEtapa: a URL
+  // sozinha não basta em wizard de página única, onde as 10 etapas têm o mesmo endereço.
+  let _respondidoOnde = null;
+  // Desfecho da última rodada de preenchimento quando NÃO houve preenchimento: { texto, url, etapa }.
   // Mora no corpo do painel, não no rótulo do botão — texto pendurado em botão sobrevivia ao
   // anti-pisca e nunca era desfeito. Uma rodada nova sempre limpa o desfecho da anterior.
   let _avisoRodada = null;
   let _candidatado = false;
+  // 07/ago/2026: `_candidatado` era ligado ANTES de o app responder ("trava otimista") e o painel
+  // pintava "✓ Registrei como CV Enviado" no mesmo tick (_checarEnvioAuto e _atualizarCorpo correm
+  // juntos no observer). Se o registro falhava, a caixa verde ficava lá — numa página de "obrigado"
+  // não há mais mutação nenhuma para desfazê-la. O copiloto afirmava uma fase que o card nunca teve.
+  // Agora a trava do repique é OUTRA variável, e a afirmação vem SÓ da resposta do app.
+  let _registrando = false;   // pedido em voo — impede o repique, não afirma nada
+  let _regFalha = null;       // { texto, url, ts } — o registro NÃO aconteceu, e por quê
+  let _ultimoRegistro = null; // instrumentação: última tentativa e o que o app respondeu
   let _viuForm = false;
   let _habilidadesSel = null; // habilidades que o copiloto destacou (para mostrar no painel)
   let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
@@ -893,13 +902,21 @@
       const c = _classificarCampo(el);
       if (c) out.push({ el, grupo: c.grupo, label: c.label, chave: c.chave, nomeAmbiguo: c.nomeAmbiguo });
     }
-    // Resolução de contexto — CIDADE dentro de um bloco de emprego. Um "Location" ao lado de
-    // "Job Title" e "Company" é a cidade DAQUELE emprego, não a cidade onde a pessoa mora:
-    // escrever ali o endereço atual põe dado errado no formulário. Vizinhança curta (até 6 níveis
-    // e no máximo 10 campos no bloco) para reconhecer o bloco de um emprego sem abraçar o
-    // formulário inteiro — senão um único "Company" na página desligaria o autofill de tudo.
+    // Resolução de contexto — O BLOCO DE UM EMPREGO manda no que está dentro dele. Um "Location"
+    // ao lado de "Job Title" e "Company" é a cidade DAQUELE emprego, não a cidade onde a pessoa
+    // mora: escrever ali o endereço atual põe dado errado no formulário. Pela mesma razão, uma
+    // caixa "descrição" ao lado de "nome da instituição" e "cargo" é a descrição DAQUELE emprego —
+    // não uma pergunta aberta (08/ago/2026, trampos.co etapa "5. Experiência": o rótulo é só
+    // "descrição", não casa com "descrição do cargo", e a caixa ia para a IA como pergunta. A IA
+    // seria convidada a ESCREVER a experiência profissional de Marcos — exatamente o que o
+    // copiloto não faz, e o que ele nunca deve fazer: histórico é fato, não redação).
+    // Vizinhança curta (até 6 níveis e no máximo 10 campos no bloco) para reconhecer o bloco de um
+    // emprego sem abraçar o formulário inteiro — senão um único "Company" na página desligaria o
+    // autofill de tudo. Dado pessoal (nome, e-mail, CPF) NUNCA é rebaixado aqui: só a cidade (que
+    // troca de dono dentro do bloco), a pergunta aberta e o campo solto sem classificação.
     for (const c of out) {
-      if (c.chave !== 'cidade' || !c.el) continue;
+      if (!c.el) continue;
+      if (!(c.chave === 'cidade' || c.grupo === 'pergunta' || c.grupo === 'outro')) continue;
       let anc = c.el.parentElement;
       for (let i = 0; i < 6 && anc; i++, anc = anc.parentElement) {
         const irmaos = anc.querySelectorAll(_CAMPO_SEL);
@@ -1008,6 +1025,26 @@
   function _campoHistoricoVazio() {
     try { return _coletarCampos().some(c => c.grupo === 'historico' && c.el && _seleVazia(c.el)); }
     catch (_) { return false; }
+  }
+  // Carimbo da ETAPA, não só da URL. Portais em wizard (trampos.co/candidato#/perfil: 10 passos,
+  // "Perfil profissional" → "Resumo" → … → "Experiência") trocam de etapa sem trocar de URL — o
+  // `location.href` é o MESMO texto do passo 1 ao 10. O recado da etapa anterior ("nesta etapa não
+  // há campo meu") sobrevivia inteiro no passo seguinte, e o painel falava de uma tela que já não
+  // estava ali. A etapa se reconhece pelo que ela PEDE: o conjunto de rótulos dos campos na tela.
+  // Geral, sem código por portal — em portal de várias páginas a URL já resolve, aqui não resolvia.
+  function _assinaturaEtapa() {
+    try { return [...new Set(_coletarCampos().map(c => c.label))].sort(); }
+    catch (_) { return []; }
+  }
+  // Mesma etapa = mesma URL E a maioria dos rótulos coincide. Maioria, não igualdade exata: um
+  // campo condicional que aparece no meio do preenchimento (desmarcar "este é o meu emprego atual"
+  // revela "conclusão") não pode apagar o recado do que acabou de acontecer nesta mesma tela.
+  function _mesmaEtapa(x) {
+    if (!x || x.url !== location.href) return false;
+    const antes = x.etapa || [], agora = _assinaturaEtapa();
+    const maior = Math.max(antes.length, agora.length);
+    if (!maior) return true; // nenhuma das duas tem campo: só a URL manda
+    return agora.filter(l => antes.includes(l)).length / maior >= 0.5;
   }
   // Marca a opção equivalente à autodeclaração. Só <select> (categoria fechada); campo de texto
   // livre fica para o usuário (não despeja token). Devolve true só se REALMENTE marcou.
@@ -1221,6 +1258,12 @@
         } catch (_) { return '?'; }
       })(),
       jaEnviada: (() => { try { return _pareceJaEnviada() ? 'sim (portal mostra candidatura enviada)' : 'não'; } catch (_) { return '?'; } })(),
+      // v2.78: sem esta linha, "o copiloto não detectou o envio" e "detectou, pediu ao app e o app
+      // recusou" chegavam a mim como a mesma queixa — e são consertos diferentes. Diz QUEM tentou,
+      // QUANDO, para QUAL vaga e o que o app respondeu.
+      registro: _registrando ? 'em curso…'
+        : !_ultimoRegistro ? 'nenhuma tentativa nesta página'
+        : `${_ultimoRegistro.via} · ${new Date(_ultimoRegistro.ts).toTimeString().slice(0, 5)} · ${_ultimoRegistro.resposta} · vaga ${_ultimoRegistro.chave}`,
       upload: porGrupo('cv'), vazios, iframes: ifr.length, iframesSemAcesso: semAcesso,
       iframeHosts: [...new Set(hosts)].slice(0, 4).join(', '), forma,
       iframesMesmaOrigem: mesmaOrigem,
@@ -1230,13 +1273,14 @@
 
   function _formatarDiag(d) {
     return [
-      'SENOVA DIAG v2.77',
+      'SENOVA DIAG v2.79',
       'site: ' + host,
       'origem do painel: ' + d.origem,
       'passe (card): ' + d.passe,
       'card no app: ' + d.card,
       'identidade do status: ' + d.identidade,
       'já enviada (pós-envio): ' + d.jaEnviada,
+      'registro da candidatura: ' + d.registro,
       'container do formulário: ' + d.container,
       'inputs na página: ' + d.inputs + ' (visíveis: ' + d.visDoc + ')',
       'no container (visíveis): ' + d.visEsc + ' · sem rótulo: ' + d.semRotulo,
@@ -1352,7 +1396,18 @@
     // entre uma ferramenta que espera e um copiloto que percebe.
     const _jaEnviada = (() => { try { return _pareceJaEnviada(); } catch (_) { return false; } })();
     const _proporRegistro = _jaEnviada && _temRefVaga() && an && an.status && an.status !== 'aplicado';
-    const btnCandHTML = _candidatado
+    // A falha do registro é da PÁGINA onde aconteceu (mesma regra do "✓ Preenchi": recado carimbado
+    // com a URL não sobrevive à etapa seguinte, onde já não é verdade).
+    const _falhaAtiva = (_regFalha && _regFalha.url === location.href) ? _regFalha : null;
+    const btnCandHTML = _registrando
+      ? `<div style="margin-top:9px;background:#F0F4F8;border:1px solid #C9D6E2;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#3A4A5A;font-weight:600;">Registrando no Senova…</div>`
+      : _falhaAtiva
+      ? `<div style="margin-top:9px;background:#FDF0EF;border:1px solid rgba(181,36,25,0.35);border-radius:8px;padding:11px 13px;">
+           <div style="font-size:13px;font-weight:700;color:#B52419;line-height:1.35;">A candidatura não entrou no Senova.</div>
+           <div style="font-size:12.5px;color:#2C2C2A;line-height:1.45;margin-top:5px;">${_esc(_falhaAtiva.texto)}</div>
+           <button id="snv-cop-candidatei" style="width:100%;margin-top:9px;background:#1A3A5C;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Já me candidatei</button>
+         </div>`
+      : _candidatado
       ? `<div style="margin-top:9px;background:#EAF7EF;border:1px solid rgba(26,104,64,0.25);border-radius:8px;padding:10px 12px;">
            <div style="display:flex;align-items:center;gap:8px;">
              <span style="font-size:13px;font-weight:700;color:#1A6840;flex:1;line-height:1.3;">✓ Registrei como CV Enviado</span>
@@ -1372,8 +1427,8 @@
 
     // O que foi preenchido vale para a PÁGINA onde foi preenchido. Numa etapa seguinte (mesma vaga,
     // outra tela) o "✓ Preenchi" de antes não é verdade — e ficava lá, contradizendo o recado novo.
-    const _sucessoAtivo = _respondido && _respondidoUrl === location.href;
-    const _avisoAtivo = (_avisoRodada && _avisoRodada.url === location.href) ? _avisoRodada : null;
+    const _sucessoAtivo = _respondido && _mesmaEtapa(_respondidoOnde);
+    const _avisoAtivo = _mesmaEtapa(_avisoRodada) ? _avisoRodada : null;
     // Falha nossa (app fechado, rede) precisa de destaque — é acionável e o usuário tem de voltar
     // a clicar. Vermelho do brand, dentro da mesma caixa: chama sem alarmar.
     const _aviso = _avisoAtivo
@@ -1407,10 +1462,13 @@
       try { console.log('%c[SENOVA DIAG]', 'color:#C9A84C;font-weight:700', '\n' + _diagTxt); } catch (_) {}
     }
     // Bloco visível: aberto automaticamente quando NÃO há campos para preencher (o caso que falha).
+    // Um registro recusado também abre o diagnóstico — é exatamente o caso que preciso ver, e
+    // pedir DevTools a quem está no meio de uma candidatura não é opção.
     const _leuNada = _campos.length === 0;
+    const _abrirDiag = _leuNada || !!_falhaAtiva;
     const diagHTML = `
-      <details ${_leuNada ? 'open' : ''} style="margin-top:11px;border-top:1px solid #E5ECF2;padding-top:9px;">
-        <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:0.03em;color:#98989D;">Diagnóstico Senova${_leuNada ? ' — não achei campos' : ''}</summary>
+      <details ${_abrirDiag ? 'open' : ''} style="margin-top:11px;border-top:1px solid #E5ECF2;padding-top:9px;">
+        <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:0.03em;color:#98989D;">Diagnóstico Senova${_leuNada ? ' — não achei campos' : _falhaAtiva ? ' — o registro não passou' : ''}</summary>
         <pre id="snv-cop-diagtxt" style="margin:8px 0 0;padding:9px 11px;background:#0F2236;color:#CFE0F0;border-radius:7px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;">${_esc(_diagTxt)}</pre>
         <button id="snv-cop-copiardiag" style="width:100%;margin-top:7px;background:#2E6DA4;color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Copiar para enviar ao Bruno</button>
       </details>`;
@@ -1432,7 +1490,7 @@
     // Numa página pós-envio, registrar é a ação principal — vai ANTES de preencher/CV (que ali
     // já não fazem sentido). No fluxo normal (ainda preenchendo), registrar fica no fim: você
     // registra depois de mandar. Mesma peça, posição conforme o momento.
-    const _regNoTopo = _proporRegistro || _candidatado;
+    const _regNoTopo = _proporRegistro || _candidatado || _registrando || !!_falhaAtiva;
     const _html = `
       ${scoreHTML}
       ${_regNoTopo ? btnCandHTML : ''}
@@ -1440,7 +1498,7 @@
       ${btnCvHTML}
       ${_regNoTopo ? '' : btnCandHTML}
       ${statusHTML}
-      ${_leuNada ? diagHTML : ''}`;
+      ${_abrirDiag ? diagHTML : ''}`;
 
     // Anti-pisca: formulários que mudam o DOM o tempo todo fazem o observer chamar isto a cada
     // 0,4s. Se o conteúdo é idêntico, NÃO re-renderiza — senão o painel "pula" e o <details> do
@@ -1630,24 +1688,49 @@
     return an.status || '';
   }
 
+  // O QUE O PAINEL DIZ SOBRE O REGISTRO VEM DA RESPOSTA DO APP — nunca da intenção de quem clicou
+  // nem da detecção que disparou. Ponto único dos dois caminhos (botão e automático): duas cópias
+  // divergindo é o que fez o automático falhar mudo enquanto o manual sabia dizer o motivo.
+  // O texto diz de quem é a falta e o que fazer — falha nossa não vira "não consegui" sem saída.
+  const _MOTIVO_REG = {
+    app_fechado: 'Não registrei: o Senova não está aberto. Abra o Senova e clique em "Já me candidatei".',
+    sem_funcao: 'Não registrei: recarregue o Senova (Ctrl+Shift+R) e clique em "Já me candidatei".',
+    sem_dados: 'Não registrei: não reconheci qual vaga é esta. Registre a candidatura no Senova.',
+    sem_referencia: 'Não registrei: não reconheci qual vaga é esta. Registre a candidatura no Senova.',
+    nao_registrou: 'Não registrei: o Senova não encontrou o processo desta vaga. Registre por lá.',
+  };
+  // `chave` vem de quem ENVIOU, não é lida aqui: entre o pedido e a resposta o SPA pode ter trocado
+  // a vaga da tela, e um diagnóstico que nomeia a vaga errada é pior que nenhum (lição da S41 —
+  // identidade não pode depender de QUANDO se olha).
+  function _desfechoRegistro(res, via, chave) {
+    _registrando = false;
+    const okApp = !!(res && res.ok);
+    const motivo = okApp ? '' : ((res && res.erro) || 'sem_resposta');
+    if (!chave) { try { chave = _chaveVaga(); } catch (_) { chave = '?'; } }
+    _ultimoRegistro = {
+      via, ts: Date.now(), chave,
+      resposta: okApp ? ('ok' + (res.criou ? ' (card criado)' : '') + (res.jaRegistrado ? ' (já estava registrado)' : ''))
+                      : (res ? 'recusado: ' + motivo : 'sem resposta do app'),
+    };
+    if (okApp) { _candidatado = true; _regFalha = null; }
+    else {
+      _candidatado = false;
+      _regFalha = { texto: _MOTIVO_REG[motivo] || 'Não consegui registrar no Senova agora.', url: location.href, ts: Date.now() };
+    }
+    try { _atualizarCorpo(); } catch (_) {}
+    return okApp;
+  }
+
   // Avisa o Senova que a candidatura foi enviada → card em CV Enviado + follow-up 7d
   // (e o app CRIA o card se a vaga veio por fora e ainda não existe).
   async function _marcarCandidatei() {
-    if (!_temRefVaga()) return;
-    const btn = document.getElementById('snv-cop-candidatei');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Registrando…'; }
+    if (!_temRefVaga() || _registrando) return;
+    _registrando = true; _regFalha = null;
+    try { _atualizarCorpo(); } catch (_) {}
+    let chave = '?'; try { chave = _chaveVaga(); } catch (_) {}
     let res = null;
     try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', dados: _refVaga() }); } catch (_) {}
-    if (res && res.ok) {
-      _candidatado = true;
-      _atualizarCorpo();
-    } else if (btn) {
-      btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#B52419'; btn.style.color = '#fff'; btn.style.borderColor = '#B52419';
-      btn.textContent = (res && res.erro === 'app_fechado') ? 'Abra o Senova e tente de novo'
-                      : (res && res.erro === 'sem_funcao') ? 'Recarregue o Senova (Ctrl+Shift+R)'
-                      : (res && res.erro === 'sem_dados') ? 'Sem dados da vaga — registre no Senova'
-                      : 'Não consegui — tente de novo';
-    }
+    if (_desfechoRegistro(res, 'botão', chave)) { try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {} }
   }
 
   // ── DETECÇÃO AUTOMÁTICA DE ENVIO ("nada manual") ────────────────────
@@ -1667,7 +1750,7 @@
   }
 
   function _checarEnvioAuto() {
-    if (_candidatado || _preenchendo) return;
+    if (_candidatado || _registrando || _preenchendo) return;
     if (!_temRefVaga()) return;
     // "Form aberto" pelo container <form>/dialog (estrito): numa /thanks sem <form> a checagem
     // segue para a confirmação. Não usar a coleta com fallback aqui — um input residual de
@@ -1693,13 +1776,17 @@
   }
 
   async function _autoMarcarCandidatura() {
-    if (_candidatado) return;
+    if (_candidatado || _registrando) return;
     if (!_temRefVaga()) return;
-    _candidatado = true; // trava otimista — não repete
+    // Falhou nesta mesma página há pouco: o observer chama isto a cada mutação e o app fechado não
+    // se abre sozinho. Espera 60s antes de tentar de novo — se você abrir o Senova, a próxima
+    // mutação registra sem você pedir; e o botão "Já me candidatei" fica à mão o tempo todo.
+    if (_regFalha && _regFalha.url === location.href && Date.now() - _regFalha.ts < 60000) return;
+    _registrando = true; // trava o repique — NÃO é afirmação de que registrou
+    let chave = '?'; try { chave = _chaveVaga(); } catch (_) {}
     let res = null;
     try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CANDIDATEI', dados: _refVaga() }); } catch (_) {}
-    if (res && res.ok) { try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {} _atualizarCorpo(); }
-    else { _candidatado = false; } // falhou — mantém o caminho manual disponível
+    if (_desfechoRegistro(res, 'automático', chave)) { try { chrome.storage.local.remove('senova_form_visto'); } catch (_) {} }
   }
 
   async function _desfazerCandidatura() {
@@ -1708,6 +1795,8 @@
     if (bn) { bn.textContent = '…'; bn.disabled = true; }
     try { await chrome.runtime.sendMessage({ type: 'COPILOTO_DESFAZER', dados: _refVaga() }); } catch (_) {}
     _candidatado = false;
+    _regFalha = null; // desfazer é decisão sua — o painel não volta a falar da falha anterior
+    _ultimoRegistro = { via: 'desfeito por você', ts: Date.now(), chave: (() => { try { return _chaveVaga(); } catch (_) { return '?'; } })(), resposta: 'candidatura desfeita' };
     _viuForm = false; // evita re-disparo imediato da detecção
     // Limpa o marcador persistente: sem isto, um re-scan na página de "obrigado" re-marcaria
     // a candidatura e desfaria o "Não enviei" do usuário.
@@ -1793,13 +1882,19 @@
 
   async function _preencher() {
     const btn = document.getElementById('snv-cop-preencher');
+    // O rótulo original, para devolvê-lo no fim. O progresso ("Respondendo… 1/3", "Selecionando
+    // habilidades…") é escrito DIRETO no botão, fora do render — e o anti-pisca pula o render
+    // quando o HTML do corpo não muda. Sem devolver o rótulo aqui, o botão ficava "Selecionando
+    // habilidades…" para sempre (08/ago/2026, trampos.co), parecendo travado no meio do trabalho
+    // quando a rodada já tinha terminado. Estado fora do render tem de ser desfeito à mão.
+    const _rotuloBtn = btn ? btn.textContent : '';
     const campos = _coletarCampos();
     const pessoais = campos.filter(c => c.grupo === 'pessoal' && c.chave && c.el && !c.el.value.trim());
     const perguntas = campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim());
     const selecoes = campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el));
     if (!pessoais.length && !perguntas.length && !selecoes.length) {
       // Nunca falhar calado: o botão apareceu, mas no clique não há nada vazio a preencher.
-      _avisoRodada = { texto: 'Não há nada vazio para eu preencher nesta etapa.', url: location.href };
+      _avisoRodada = { texto: 'Não há nada vazio para eu preencher nesta etapa.', url: location.href, etapa: _assinaturaEtapa() };
       _atualizarCorpo();
       return;
     }
@@ -1874,19 +1969,20 @@
     // sobrevivia ao anti-pisca (o HTML do corpo não mudava, então o render não o desfazia): o botão
     // ficava "Não consegui preencher" para sempre, ao lado de um "✓ Preenchi" congelado da etapa
     // anterior. O painel dizia as duas coisas ao mesmo tempo. Uma rodada, um recado.
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = _rotuloBtn; }
+    const _onde = { url: location.href, etapa: _assinaturaEtapa() };
     if (erroMsg) {
-      _avisoRodada = { texto: erroMsg, url: location.href, erro: true };
+      _avisoRodada = { texto: erroMsg, erro: true, ..._onde };
       _atualizarCorpo();
     } else if (!algum) {
       // Tentou e não preencheu NADA — jamais dizer "✓ Preenchido". Diz o motivo REAL: numa etapa de
       // histórico profissional não é falha nossa nem do usuário, é o que o copiloto não faz.
       _avisoRodada = { texto: _campoHistoricoVazio() ? _TXT_HISTORICO
-        : 'Nesta etapa não há campo meu. O que está vazio aqui só você informa — preencha à mão e siga.', url: location.href };
+        : 'Nesta etapa não há campo meu. O que está vazio aqui só você informa — preencha à mão e siga.', ..._onde };
       _atualizarCorpo();
     } else {
       _respondido = algum;
-      _respondidoUrl = location.href;
+      _respondidoOnde = _onde;
       _atualizarCorpo();
     }
     if (_copilotoObserver) _copilotoObserver.observe(document.body, { childList: true, subtree: true });

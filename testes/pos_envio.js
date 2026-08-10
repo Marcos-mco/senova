@@ -79,7 +79,11 @@ t('o botão é afirmativo "Registrar como CV Enviado"', /id="snv-cop-candidatei"
 t('reusa o registro já testado (mesmo id → _marcarCandidatei)', /const bc = document\.getElementById\('snv-cop-candidatei'\);\s*\n\s*if \(bc\) bc\.addEventListener\('click', _marcarCandidatei\)/.test(src));
 
 console.log('\n=== na página pós-envio, registrar é a ação PRINCIPAL (vai ao topo) ===');
-t('define _regNoTopo por pós-envio ou já registrado', /const _regNoTopo = _proporRegistro \|\| _candidatado;/.test(src));
+// 07/ago/2026: entraram dois estados novos que também são a ação principal da tela — o registro
+// EM CURSO e o registro RECUSADO (ver testes/registro_desfecho.js). O que esta asserção guarda é
+// o intento (pós-envio e já-registrado sobem ao topo), não a literalidade da linha.
+t('define _regNoTopo por pós-envio ou já registrado', /const _regNoTopo = _proporRegistro \|\| _candidatado\b/.test(src));
+t('o registro em curso e o recusado também são ação principal', /const _regNoTopo = .*_registrando.*_falhaAtiva/.test(src));
 t('quando no topo, btnCand vem ANTES do preencher/CV', /\$\{_regNoTopo \? btnCandHTML : ''\}\s*\n\s*\$\{btnHTML\}/.test(src));
 t('e não se repete embaixo', /\$\{_regNoTopo \? '' : btnCandHTML\}/.test(src));
 
