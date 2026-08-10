@@ -619,6 +619,42 @@ function rateLimit(request, env, limite = 40, janelaSeg = 60) {
   } catch { return true; }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  QUEM É O DONO DA LINHA
+// ═══════════════════════════════════════════════════════════════════
+// O esquema exige user_id em toda leitura desde a primeira linha (migrations/001_inicial.sql).
+// Hoje existe um segredo compartilhado só, então na prática há um dono só — mas o CAMINHO
+// já é o definitivo, e é isso que evita a migração dolorosa do dia em que forem três.
+//
+// Por que o dono NÃO é o hash da chave, e sim uma linha em `usuarios` achada por ele:
+// chave vaza, chave se troca, chave muda de aparelho. Se o dono fosse o hash, trocar a
+// credencial desligaria a pessoa dos próprios dados — 654 processos órfãos, sem ninguém
+// para reclamá-los. Assim, rotacionar é atualizar `chave_hash` na mesma linha.
+async function _sha256hex(txt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function donoAtual(request, env) {
+  const hash = await _sha256hex(request.headers.get('x-senova-key') || '');
+  const achado = await env.SENOVA_DB.prepare(
+    'SELECT user_id FROM usuarios WHERE chave_hash=? AND ativo=1'
+  ).bind(hash).first();
+  if (achado) return achado.user_id;
+  // Primeira vez desta chave. Só se chega aqui depois do gate, que já provou que ela é
+  // válida — criar a linha é registro, não autorização.
+  const novo = crypto.randomUUID();
+  await env.SENOVA_DB.prepare(
+    'INSERT OR IGNORE INTO usuarios (user_id, nome, chave_hash, criado_em, ativo) VALUES (?,?,?,?,1)'
+  ).bind(novo, null, hash, Date.now()).run();
+  // Relê em vez de confiar no que acabou de inserir: duas abas abrindo ao mesmo tempo
+  // fazem duas inserções, e o INSERT OR IGNORE deixa a primeira vencer. Quem não relesse
+  // sairia daqui com um user_id que não existe na tabela — e gravaria os cards debaixo dele.
+  const confirmado = await env.SENOVA_DB.prepare(
+    'SELECT user_id FROM usuarios WHERE chave_hash=?'
+  ).bind(hash).first();
+  return confirmado ? confirmado.user_id : novo;
+}
+
 function htmlResp(content, status=200) {
   return new Response(content, {
     status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' }
@@ -886,7 +922,8 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.27',
+        status: 'ok', worker: 'senova-proxy', versao: '7.28',
+        arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
         whitelist_dominios: wl.length,
@@ -1648,6 +1685,118 @@ export default {
         return KEYWORDS_EXEC.some(k => cargo.includes(k));
       });
       return json({ contatos: filtrados, total: filtrados.length });
+    }
+
+    // ── ARQUIVO MORTO NO D1 ─────────────────────────────────────────
+    // Fatia 1 da saída do CRM do navegador. Só o arquivo morto (654 cards, ~6 MB de
+    // processos encerrados) — os processos vivos continuam no localStorage por ora.
+    // Ver migrations/001_inicial.sql para as três decisões de esquema.
+    //
+    // O PADRÃO QUE ESTAS ROTAS NÃO REPETEM: /api/vagas-lead guarda o acervo inteiro num
+    // único valor do KV, lê tudo, muta e regrava tudo. Duas chamadas em paralelo se
+    // atropelaram e, de 280 vagas, só 26 ficaram com nota (ver o comentário na linha ~996).
+    // Aqui é uma LINHA POR CARD: gravar um card não toca nos outros 653, e duas gravações
+    // simultâneas de cards diferentes não têm como se atropelar.
+    if (path === '/api/arquivo' && request.method === 'GET') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel', detalhe: 'O arquivo na nuvem não está configurado neste Worker.' }, 503);
+      const dono = await donoAtual(request, env);
+      // Paginação por chave, não por OFFSET: com OFFSET, um card gravado no meio da
+      // varredura desloca a janela e faz a página seguinte PULAR um card — perda silenciosa
+      // numa migração. Ancorada em card_id, cada página continua exatamente onde a anterior
+      // parou, aconteça o que acontecer no meio.
+      const apos = url.searchParams.get('apos') || '';
+      const limite = Math.min(parseInt(url.searchParams.get('limite') || '150', 10) || 150, 500);
+      // `descricao` fica de fora de propósito: é 45% do peso e ninguém lê numa lista.
+      const { results } = await env.SENOVA_DB.prepare(
+        'SELECT card_id, status, atualizado, dados FROM cards WHERE user_id=? AND card_id>? ORDER BY card_id LIMIT ?'
+      ).bind(dono, apos, limite).all();
+      const ultimo = results.length ? results[results.length - 1].card_id : null;
+      return json({ ok: true, cards: results, ultimo, tem_mais: results.length === limite });
+    }
+
+    if (path === '/api/arquivo/descricao' && request.method === 'GET') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel' }, 503);
+      const id = url.searchParams.get('id') || '';
+      if (!id) return json({ erro: 'id_ausente', detalhe: 'Informe o card.' }, 400);
+      const dono = await donoAtual(request, env);
+      const row = await env.SENOVA_DB.prepare(
+        'SELECT descricao FROM cards WHERE user_id=? AND card_id=?'
+      ).bind(dono, id).first();
+      if (!row) return json({ erro: 'nao_encontrado' }, 404);
+      return json({ ok: true, card_id: id, descricao: row.descricao || '' });
+    }
+
+    // Grava um lote de cards. Idempotente: reenviar o mesmo lote não duplica nada, o que é
+    // o que permite a uma migração interrompida (aba fechada, rede caída) simplesmente
+    // recomeçar. `batch` roda tudo numa transação: ou o lote inteiro entra, ou nenhum entra —
+    // meio lote gravado é o estado que ninguém sabe consertar depois.
+    if (path === '/api/arquivo' && request.method === 'POST') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel' }, 503);
+      const body = await request.json().catch(() => null);
+      const cards = body && Array.isArray(body.cards) ? body.cards : null;
+      if (!cards) return json({ erro: 'cards_ausentes', detalhe: 'Envie { cards: [...] }.' }, 400);
+      if (cards.length > 200) return json({ erro: 'lote_grande', detalhe: 'No máximo 200 cards por vez.' }, 400);
+      const dono = await donoAtual(request, env);
+      const stmt = env.SENOVA_DB.prepare(
+        'INSERT INTO cards (user_id, card_id, status, atualizado, dados, descricao) VALUES (?,?,?,?,?,?) ' +
+        'ON CONFLICT(user_id, card_id) DO UPDATE SET status=excluded.status, atualizado=excluded.atualizado, ' +
+        'dados=excluded.dados, descricao=excluded.descricao'
+      );
+      const lote = [];
+      for (const c of cards) {
+        const cid = String(c && c.card_id != null ? c.card_id : '').trim();
+        if (!cid) return json({ erro: 'card_sem_id', detalhe: 'Todo card precisa de card_id.' }, 400);
+        // `dados` é a coluna TEXT com o card inteiro. Se vier objeto, tem que ser serializado:
+        // um String() aqui grava a palavra "[object Object]" e o card SOME sem erro nenhum —
+        // 200 OK, "gravados: 7", e o arquivo do usuário virando lixo lote a lote. Foi assim
+        // que o /api/vagas-lead perdeu a nota de 254 vagas. O banco aceita as duas formas
+        // porque quem chama pode mudar; o que ele não faz é aceitar em silêncio a errada.
+        let dados;
+        if (typeof c.dados === 'string') dados = c.dados;
+        else if (c.dados && typeof c.dados === 'object') dados = JSON.stringify(c.dados);
+        else return json({ erro: 'card_sem_dados', detalhe: 'Card ' + cid + ' veio sem o conteúdo (dados).' }, 400);
+        // Mesma armadilha na descrição: é texto longo, e um objeto viraria "[object Object]".
+        let desc = null;
+        if (c.descricao != null) {
+          if (typeof c.descricao !== 'string') return json({ erro: 'descricao_invalida', detalhe: 'A descrição do card ' + cid + ' precisa ser texto.' }, 400);
+          desc = c.descricao;
+        }
+        lote.push(stmt.bind(dono, cid, String(c.status || 'arquivado'),
+          Number(c.atualizado) || Date.now(), dados, desc));
+      }
+      await env.SENOVA_DB.batch(lote);
+      return json({ ok: true, gravados: lote.length });
+    }
+
+    // A conferência da mudança de casa. NÃO substitui a comparação byte a byte, que é feita
+    // no app lendo os cards de volta — este é o número que diz se vale a pena começar a ler.
+    // A regra da S40 não se negocia: nada é apagado do navegador antes da volta conferida.
+    if (path === '/api/arquivo/conferencia' && request.method === 'GET') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel' }, 503);
+      const dono = await donoAtual(request, env);
+      const row = await env.SENOVA_DB.prepare(
+        'SELECT COUNT(*) AS quantos, COALESCE(SUM(LENGTH(dados)),0) AS chars_dados, ' +
+        'COALESCE(SUM(LENGTH(COALESCE(descricao,\'\'))),0) AS chars_descricao FROM cards WHERE user_id=?'
+      ).bind(dono).first();
+      const marca = await env.SENOVA_DB.prepare(
+        'SELECT bloco, conferido, quantos, em FROM migracoes_dado WHERE user_id=?'
+      ).bind(dono).all();
+      return json({ ok: true, ...row, migracoes: marca.results });
+    }
+
+    // Marca d'água: "este bloco já foi conferido, com esta quantidade, nesta data". É o que
+    // permite recomeçar de onde parou em vez de refazer — ou de duplicar.
+    if (path === '/api/arquivo/migracao' && request.method === 'POST') {
+      if (!env.SENOVA_DB) return json({ erro: 'banco_indisponivel' }, 503);
+      const body = await request.json().catch(() => null);
+      const bloco = body && String(body.bloco || '').trim();
+      if (!bloco) return json({ erro: 'bloco_ausente' }, 400);
+      const dono = await donoAtual(request, env);
+      await env.SENOVA_DB.prepare(
+        'INSERT INTO migracoes_dado (user_id, bloco, conferido, quantos, em) VALUES (?,?,?,?,?) ' +
+        'ON CONFLICT(user_id, bloco) DO UPDATE SET conferido=excluded.conferido, quantos=excluded.quantos, em=excluded.em'
+      ).bind(dono, bloco, body.conferido ? 1 : 0, Number(body.quantos) || 0, Date.now()).run();
+      return json({ ok: true });
     }
 
     return json({ erro: 'Rota não encontrada' }, 404);

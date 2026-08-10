@@ -17,3 +17,7 @@ Thumbs.db
 
 # Config local do Claude Code (mantém agents/ e hooks; ignora config da máquina)
 .claude/settings.local.json
+
+# Segredos do Worker em desenvolvimento (wrangler dev os lê daqui). Os de produção vivem
+# em Cloudflare › Settings › Variables e NUNCA no repositório.
+.dev.vars
