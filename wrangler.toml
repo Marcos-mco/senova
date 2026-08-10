@@ -7,5 +7,17 @@ account_id = "3daecc725f466b9852878635fecabef1"
 binding = "SENOVA_KV"
 id = "e0f1fc09836b48d1be86fcdf217ef7dd"
 
+# O CRM sai do navegador. O KV continua sendo o que ele é bom em ser — um balde de
+# configuração e de cache do radar. O histórico de processos vai para o D1, que é banco:
+# uma LINHA por card, em vez do blob inteiro reescrito a cada gesto (a cicatriz de
+# /api/vagas-lead, senova-worker.js:996 — chamadas em paralelo se atropelaram e de 280
+# vagas só 26 ficaram com nota).
+# Região ENAM de propósito: o banco mora num lugar só, e da América do Sul a costa leste
+# dos EUA é ~120 ms contra ~200 ms da Europa.
+[[d1_databases]]
+binding = "SENOVA_DB"
+database_name = "senova"
+database_id = "362f0754-baa9-4630-a78f-2572519a9e04"
+
 [triggers]
 crons = ["0 10 * * *", "0 */3 * * *"]

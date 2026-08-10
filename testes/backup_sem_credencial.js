@@ -49,7 +49,10 @@ function armazenamento(extra) {
 function montar(fontes, ls, mocks) {
   const sandbox = Object.assign({
     localStorage: ls,
-    Store: { CHAVE_ARQUIVADAS: 'senova_vagas_arquivadas', _frioNoBanco: false, _frio: null },
+    // _frioCarregado: a exportação recusa sair enquanto o arquivo de processos encerrados
+    // não chegou — cópia incompleta é rede de segurança que mente
+    // (ver testes/nao_gravar_sem_arquivo.js). Aqui ele já chegou.
+    Store: { CHAVE_ARQUIVADAS: 'senova_vagas_arquivadas', _frioCarregado: true, _frioNoBanco: false, _frio: null },
     showToast() {}, confirm: () => true, alert() {},
     setTimeout: () => 0, location: { reload() {} },
     document: { getElementById: () => null, createElement: () => ({ style: {}, click() {}, setAttribute() {} }) },

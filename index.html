@@ -5032,6 +5032,17 @@ const Store = {
   _frioCarregado:false,  // enquanto false, o arquivo morto é INTOCÁVEL
   _frioNoBanco:false,    // true = mora no IndexedDB; false = ainda no localStorage
 
+  // Migalha de pão, deixada no localStorage no dia em que o arquivo morto muda de casa.
+  // Serve para responder UMA pergunta que, sem ela, não tem resposta: quando o banco não
+  // abre, o arquivo está lá dentro inalcançável, ou nunca houve arquivo nenhum?
+  //   sem migalha  → nunca mudou de casa; o localStorage é a verdade, mesmo vazio;
+  //   com migalha  → existe arquivo no banco e não conseguimos alcançá-lo: não sabemos.
+  // Sem esta distinção, quem abre o Senova numa aba anônima cairia no modo somente-leitura
+  // por nunca ter arquivado nada — e quem TEM arquivo gravaria por cima dele.
+  CHAVE_MIGALHA:'senova_arquivo_no_banco',
+  _marcarMigalha(){ try{ localStorage.setItem(this.CHAVE_MIGALHA,'1'); }catch(_){} },
+  _temMigalha(){ try{ return localStorage.getItem(this.CHAVE_MIGALHA)==='1'; }catch(_){ return false; } },
+
   _abrirBanco(){
     return new Promise((ok,erro)=>{
       let req;
@@ -5067,12 +5078,17 @@ const Store = {
   // esperando um banco que não vai responder. Se o IndexedDB não estiver
   // disponível (aba anônima, perfil corrompido), o arquivo morto continua no
   // localStorage e tudo segue como antes: pior, mas verdadeiro.
+  // NÃO SABER É UM ESTADO, e é diferente de saber que está vazio.
+  // A versão anterior terminava sempre com _frioCarregado=true — inclusive quando o banco
+  // não respondeu. O app passava a sessão inteira acreditando num arquivo vazio, e a
+  // primeira gravação tornava a crença verdadeira: 654 cards viravam `[]`. Desistir por
+  // tempo continua certo (nada prende o app); o que não pode é desistir AFIRMANDO.
   carregarFrio(){
     if(this._frioCarregado) return Promise.resolve();
     const desistir=new Promise(ok=>setTimeout(()=>ok('__tempo__'),4000));
     const tentar=this._abrirBanco().then(db=>
       this._lerBanco(db,this.BANCO_CHAVE_FRIO).then(doBanco=>{
-        if(doBanco!==null){ this._frioNoBanco=true; return doBanco; }
+        if(doBanco!==null){ this._frioNoBanco=true; this._marcarMigalha(); return doBanco; }
         // Primeira vez: o arquivo morto ainda está no localStorage.
         const local=this.lerArquivadas();
         if(local===null){ this._frioNoBanco=true; return null; }
@@ -5083,16 +5099,24 @@ const Store = {
               // Conferido. Só agora o localStorage pode devolver o espaço.
               try{ localStorage.removeItem(this.CHAVE_ARQUIVADAS); }catch(_){}
               this._frioNoBanco=true;
+              this._marcarMigalha();
             }else{
               this._frioNoBanco=false;   // não bateu: NADA é apagado
             }
             return local;
           });
       })
-    ).catch(()=>{ this._frioNoBanco=false; return this.lerArquivadas(); });
+    ).catch(()=>'__falhou__');
 
     return Promise.race([tentar,desistir]).then(raw=>{
-      if(raw==='__tempo__'){ this._frioNoBanco=false; raw=this.lerArquivadas(); }
+      if(raw==='__tempo__'||raw==='__falhou__'){
+        this._frioNoBanco=false;
+        // O banco não respondeu. Se nunca houve mudança de casa, o localStorage É o
+        // arquivo e a resposta é boa — mesmo que seja "não há nada". Se houve, o arquivo
+        // está no banco fora de alcance, e a única resposta honesta é: não sei.
+        if(this._temMigalha()){ this._frio=null; this._frioCarregado=false; return; }
+        raw=this.lerArquivadas();
+      }
       this._frio=raw;
       this._frioCarregado=true;
     });
@@ -5153,6 +5177,16 @@ const Store = {
   // sempre; e os arquivados, grandes e gravados só quando de fato mudam.
   // Nada é apagado, nada muda na tela — a array em memória continua inteira.
   gravar(){
+    // O PORTÃO. gravar() não guarda o que recebeu — ele PARTICIONA `vagas` em vivos e
+    // arquivados e reescreve os dois blocos. Ou seja: grava o que ACREDITA ser o estado
+    // completo. E `vagas` nasce vazia. Enquanto o arquivo morto não chegou, "o estado
+    // completo" inclui a crença falsa de que não há arquivados — e uma única gravação
+    // nessa janela escreve `[]` por cima dos 654 cards.
+    // Não é defeito de gravação: é pergunta feita antes de haver resposta. Enquanto o
+    // Senova ainda não sabe, ele não grava — e DIZ que não gravou, porque recusa calada é
+    // indistinguível de sucesso e a tela mostraria como salvo o que se perdeu.
+    // Ver testes/nao_gravar_sem_arquivo.js.
+    if(!this._frioCarregado){ _avisarGravacaoFalhou('carregando'); return false; }
     const quentes=[], frias=[];
     (vagas||[]).forEach(v=>{ ((v&&v.status==='arquivado')?frias:quentes).push(v); });
     const rawFrio=JSON.stringify(frias);
@@ -6215,6 +6249,7 @@ function showToast(msg, duration=4000){
 // var (não let) de propósito: o aviso pode disparar durante a carga inicial,
 // antes desta linha ser executada, e var não tem zona morta temporal.
 var _avisoGravacaoAtivo=false;
+var _motivoGravacao='cota';   // por que a última gravação não foi: 'cota' | 'ilegivel' | 'carregando'
 // Preenchido pelo Store quando a gravação desiste: qual chave e de que tamanho.
 // var, e não let, pela mesma razão do de cima — a falha pode acontecer durante
 // a carga, antes de a linha ser executada.
@@ -6263,10 +6298,19 @@ function _medirArmazenamento(){
 }
 
 function _avisarGravacaoFalhou(motivo){
+  // O botão do aviso é criado uma vez e reusado; o motivo muda a cada chamada. Guardado
+  // aqui, e não no elemento, para o clique sempre agir sobre o motivo ATUAL.
+  _motivoGravacao=motivo||'cota';
   try{
     const TXT = (motivo==='ilegivel')
       ? { titulo:'Não consegui ler os seus processos guardados neste computador',
           corpo:'Os dados estão gravados, mas num formato que não consigo abrir. Guardei uma cópia intacta deles em separado e não vou escrever por cima. Baixe uma cópia agora e me avise — dá para recuperar.' }
+      // Nem cota, nem corrupção: o arquivo de processos encerrados não abriu, e gravar
+      // agora escreveria por cima dele. A recusa é a proteção, não o defeito — e o texto
+      // precisa dizer isso, senão parece que o Senova quebrou.
+      : (motivo==='carregando')
+      ? { titulo:'Ainda não abri o seu arquivo de processos encerrados',
+          corpo:'Não vou gravar enquanto ele não chegar: gravar agora apagaria o seu histórico. O que você acabou de fazer está na tela, mas ainda não foi guardado. Recarregue a página — quase sempre resolve.' }
       : { titulo:'Não consegui salvar o seu trabalho neste computador',
           corpo:'O armazenamento do navegador está cheio. O que você acabou de fazer está na tela, mas ainda não foi gravado — se recarregar a página agora, será perdido.' };
     let el=document.getElementById('aviso-gravacao');
@@ -6285,8 +6329,12 @@ function _avisarGravacaoFalhou(motivo){
         +'<button type="button" id="aviso-gravacao-fechar" style="min-height:44px;padding:0 12px;background:none;color:var(--text2);border:none;font-size:15px;cursor:pointer;font-family:var(--font);text-decoration:underline;">Fechar aviso</button>'
         +'</div></div></div>';
       document.body.appendChild(el);
-      // Reusa a exportação já aprovada (exportarDados), não inventa caminho novo.
-      el.querySelector('#aviso-gravacao-baixar').addEventListener('click',()=>{ try{ exportarDados(); }catch(_){} });
+      // Reusa a exportação já aprovada (exportarDados), não inventa caminho novo. A exceção
+      // é o arquivo que não abriu: ali a cópia sairia incompleta, e oferecê-la seria
+      // empurrar a pessoa para a única coisa que não a ajuda. O que ajuda é recarregar.
+      el.querySelector('#aviso-gravacao-baixar').addEventListener('click',()=>{
+        try{ if(_motivoGravacao==='carregando') location.reload(); else exportarDados(); }catch(_){}
+      });
       // Fechar esconde, mas não mente: a próxima gravação que falhar traz de volta.
       el.querySelector('#aviso-gravacao-fechar').addEventListener('click',()=>{ el.style.display='none'; _avisoGravacaoAtivo=false; });
     }
@@ -6294,10 +6342,14 @@ function _avisarGravacaoFalhou(motivo){
     // se abre uma porta de injeção.
     el.querySelector('#aviso-gravacao-titulo').textContent=TXT.titulo;
     el.querySelector('#aviso-gravacao-corpo').textContent=TXT.corpo;
+    el.querySelector('#aviso-gravacao-baixar').textContent =
+      (motivo==='carregando') ? 'Recarregar a página' : 'Baixar uma cópia agora';
     // Só na falha de cota: aqui a medida orienta a decisão. Na falha de leitura
     // o espaço não é o problema, e o número só atrapalharia.
     const med=el.querySelector('#aviso-gravacao-medida');
-    let txtMed = (motivo==='ilegivel') ? '' : _medirArmazenamento().texto;
+    // Só na falha de cota o espaço é a explicação. Na leitura ilegível e no arquivo que
+    // não abriu, o número seria verdadeiro descrevendo o problema errado.
+    let txtMed = (motivo==='ilegivel'||motivo==='carregando') ? '' : _medirArmazenamento().texto;
     // Qual bloco o navegador recusou, e de que tamanho. Sem o NOME, o número
     // sozinho já me mandou para o lado errado uma vez: sobra "4,2 MB" sem dizer
     // se era o dos processos vivos ou o do arquivo morto, que são consertos
@@ -7756,6 +7808,14 @@ function cancelarRemoverVaga(){
 // Ver testes/backup_sem_credencial.js.
 function _naoExportar(k){ return k==='senova_app_key'; }
 function exportarDados(){
+  // Mesma régua do portão de gravação, do outro lado: uma cópia feita antes de o arquivo
+  // morto chegar sairia com os processos vivos e SEM os 654 arquivados — e sem nada na
+  // cara dela dizendo que falta. Rede de segurança que mente é pior que rede nenhuma,
+  // porque só se descobre no dia de usar. Ver testes/nao_gravar_sem_arquivo.js.
+  if(!Store._frioCarregado){
+    alert('Ainda não consegui abrir o seu arquivo de processos encerrados.\n\nSe eu gerasse a cópia agora, ela sairia sem eles — e você só descobriria no dia de precisar. Recarregue a página e tente de novo.');
+    return;
+  }
   const backup={versao:'1.1',data:new Date().toISOString(),
     nota:'Esta cópia NÃO contém a chave de acesso ao Worker. Ao restaurar num aparelho novo, cole-a em Perfil › Integrações.',
     dados:{}};
@@ -11602,6 +11662,9 @@ Store.carregarFrio().then(function(){
   if(_p&&_validPages.includes(_p)){showPage(_p);}else{showPage('home');}
   if(_p==='crm'){crmCurrentTab='vagas';renderCRM();}
   checkOutlookStatus();
+  // A ponte da extensão entra aqui, e não solta lá embaixo: ela grava, e gravar antes do
+  // arquivo morto chegar apagaria os arquivados. Ver testes/nao_gravar_sem_arquivo.js.
+  window.__senovaImportar();
 });
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
@@ -12169,7 +12232,12 @@ window.__senovaImportar=async function(){
     showToast('✅ '+novas.length+' vaga'+(novas.length>1?'s':'')+' da extensão importada'+(novas.length>1?'s':'')+' — veja em Oportunidades');
   }catch(_){}
 };
-window.__senovaImportar();
+// A invocação desta ponte MUDOU DE LUGAR: ela era chamada aqui, solta, enquanto o arquivo
+// morto ainda estava a caminho — e ela grava (saveVagas, logo acima). Com `vagas` vazia, a
+// gravação escreveria `[]` por cima dos arquivados. A corrida era ganha quase sempre porque
+// a rede é mais lenta que o banco local; "quase sempre" é o bug que só aparece no pior dia.
+// Agora ela roda junto com o resto do arranque, depois de Store.carregarFrio().
+// Ver testes/nao_gravar_sem_arquivo.js.
 // Extensão Chrome: ?ext=1 aguarda dados injetados via executeScript do background
 (function(){
   if(new URLSearchParams(location.search).get('ext')!=='1') return;

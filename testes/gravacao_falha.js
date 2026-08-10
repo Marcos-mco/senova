@@ -93,6 +93,10 @@ function montar(regime, comBackups = true) {
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(fontes, sandbox);
+  // Este arquivo é sobre a FALHA DE COTA. O outro motivo de recusa — o arquivo de
+  // processos encerrados que ainda não chegou — tem casa própria em
+  // testes/nao_gravar_sem_arquivo.js. Aqui o app está carregado, como na vida real.
+  vm.runInContext('Store._frioCarregado=true', sandbox);
   return { sandbox, ls, chamadas, run: (expr) => vm.runInContext(expr, sandbox) };
 }
 

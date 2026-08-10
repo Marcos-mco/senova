@@ -54,6 +54,10 @@ function montar(limiteChars) {
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(fontes, sandbox);
+  // O app só grava depois que carregarFrio() respondeu — é o portão de
+  // testes/nao_gravar_sem_arquivo.js. Todos os cenários daqui são do app JÁ carregado
+  // (é assim que Store.gravar() é chamado na vida real), então o estado inicial diz isso.
+  vm.runInContext('Store._frioCarregado=true', sandbox);
   return { sandbox, ls, run: (e) => vm.runInContext(e, sandbox) };
 }
 
