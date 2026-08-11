@@ -1,17 +1,28 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.29
+//  SENOVA PROXY — Worker v7.30
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.30 (11/ago/2026) — corrige a corrida do contador de custo (S45).
+//  A v7.29 guardava o custo de IA num JSON único em KV, lido-modificado-regravado
+//  a cada análise. O agente `senova-viabilidade`, rodando em paralelo por rotina
+//  (não por bug reportado), leu esse código e achou o mesmo defeito já visto em
+//  index.html:6109-6113: as 5 chamadas paralelas de um lote (`analisarLoteBackground`)
+//  disputavam a mesma chave e se atropelavam — a última a gravar apagava o que as
+//  outras quatro tinham somado. Também arriscava a cota de 1.000 escritas/dia do KV
+//  gratuito, cuja estouro derruba TODA escrita de KV do Worker (inclusive o cron).
+//  `_registrarCustoIA` e GET /api/radar-custo agora usam D1 (tabela nova
+//  `radar_custo_ia`, migrations/002_radar_custo_ia.sql) com
+//  `UPDATE ... SET x = x + 1` atômico — sem janela de corrida possível.
+//  Zero mudança de contrato para quem já lia a rota; só troca o armazenamento.
 //
 //  NOVIDADES v7.29 (11/ago/2026) — custo real de IA do Radar, medido (S45).
 //  A reunião de viabilidade/margem mediu a margem do Radar por ESTIMATIVA
 //  (IER 0,3-0,6) porque não existia contador nenhum de quanto /api/analisar-vaga
-//  gasta por dia. `analisarVaga` agora guarda o `usage` que a Anthropic já
-//  devolve de graça em cada resposta (tokens de entrada/saída/cache) num
-//  KV único (`radar_custo_ia`, por dia, teto de 30 dias), em `ctx.waitUntil` —
-//  nunca atrasa nem derruba a análise real se a gravação falhar. Lido por
-//  GET /api/radar-custo (exige x-senova-key, como toda rota nova por padrão).
-//  Zero mudança de comportamento para o usuário — é só a primeira peça da
-//  sequência que a equipe recomendou antes de decidir onde a peneira mora.
+//  gasta por dia. `analisarVaga` passou a guardar o `usage` que a Anthropic já
+//  devolve de graça em cada resposta (tokens de entrada/saída/cache), em
+//  `ctx.waitUntil` — nunca atrasa nem derruba a análise real se a gravação falhar.
+//  Lido por GET /api/radar-custo (exige x-senova-key, como toda rota nova por
+//  padrão). Zero mudança de comportamento para o usuário.
 //
 //  NOVIDADES v7.27 (31/jul/2026) — /api/vagas-lead deixa de ser pública (S41).
 //  A rota estava isenta de credencial desde a Fase B da extensão, catalogada
@@ -933,7 +944,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.29',
+        status: 'ok', worker: 'senova-proxy', versao: '7.30',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1096,8 +1107,21 @@ export default {
 
     // ── Custo real de IA no Radar (S45 — linha de base para viabilidade/margem) ──
     if (path === '/api/radar-custo' && request.method === 'GET') {
-      const raw = await env.SENOVA_KV.get('radar_custo_ia');
-      return json(raw ? JSON.parse(raw) : { por_dia: {} });
+      if (!env.SENOVA_DB) return json({ por_dia: {} });
+      const { results } = await env.SENOVA_DB.prepare(
+        'SELECT dia, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM radar_custo_ia ORDER BY dia DESC LIMIT 30'
+      ).all();
+      const por_dia = {};
+      for (const r of results) {
+        por_dia[r.dia] = {
+          chamadas: r.chamadas,
+          tokens_entrada: r.tokens_entrada,
+          tokens_saida: r.tokens_saida,
+          cache_escrita: r.cache_escrita,
+          cache_leitura: r.cache_leitura
+        };
+      }
+      return json({ por_dia });
     }
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
@@ -2690,23 +2714,28 @@ function vagaRecente(d, janelaDias = 3) {
 // dado. `usage` já chega de graça em toda resposta da Anthropic; só faltava
 // guardar. Nunca pode derrubar nem atrasar a análise real: roda em waitUntil,
 // nunca lança, e se não vier `usage` (resposta sem sucesso) não inventa número.
+//
+// D1, não KV: a 1ª versão (v7.29) lia-modificava-regravava um JSON único em KV, e as
+// 5 chamadas paralelas de um mesmo lote (`analisarLoteBackground`) se atropelavam
+// nessa mesma chave — o defeito já documentado em index.html:6109-6113 ("de 280
+// vagas, só 26 ficaram com nota"). `UPDATE ... SET x = x + 1` no D1 é uma única
+// instrução SQL, sem essa janela de corrida — ver migrations/002_radar_custo_ia.sql.
 async function _registrarCustoIA(env, usage) {
-  if (!usage) return;
+  if (!usage || !env.SENOVA_DB) return;
   try {
     const hoje = new Date().toISOString().slice(0, 10);
-    const raw = await env.SENOVA_KV.get('radar_custo_ia');
-    const registro = raw ? JSON.parse(raw) : { por_dia: {} };
-    const dia = registro.por_dia[hoje] || { chamadas: 0, tokens_entrada: 0, tokens_saida: 0, cache_escrita: 0, cache_leitura: 0 };
-    dia.chamadas += 1;
-    dia.tokens_entrada += usage.input_tokens || 0;
-    dia.tokens_saida += usage.output_tokens || 0;
-    dia.cache_escrita += usage.cache_creation_input_tokens || 0;
-    dia.cache_leitura += usage.cache_read_input_tokens || 0;
-    registro.por_dia[hoje] = dia;
-    // Teto de 30 dias — a chave não pode crescer sem limite.
-    const dias = Object.keys(registro.por_dia).sort();
-    while (dias.length > 30) delete registro.por_dia[dias.shift()];
-    await env.SENOVA_KV.put('radar_custo_ia', JSON.stringify(registro));
+    await env.SENOVA_DB.prepare(
+      'INSERT INTO radar_custo_ia (dia, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, 1, ?, ?, ?, ?) ' +
+      'ON CONFLICT(dia) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
+      'tokens_saida = tokens_saida + excluded.tokens_saida, cache_escrita = cache_escrita + excluded.cache_escrita, ' +
+      'cache_leitura = cache_leitura + excluded.cache_leitura'
+    ).bind(
+      hoje,
+      usage.input_tokens || 0,
+      usage.output_tokens || 0,
+      usage.cache_creation_input_tokens || 0,
+      usage.cache_read_input_tokens || 0
+    ).run();
   } catch (err) {
     console.error('_registrarCustoIA falhou:', err.message);
   }

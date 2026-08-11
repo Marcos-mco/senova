@@ -8,6 +8,12 @@
 // mudar o comportamento do usuário, NUNCA pode atrasar ou derrubar a análise real se a
 // gravação falhar, e NUNCA pode inventar um número quando não há `usage` de verdade
 // (resposta sem sucesso) — ver [[feedback_instrumentacao_precisa_de_sujeito]].
+//
+// v7.30: a 1ª versão (v7.29) gravava em KV, lido-modificado-regravado — as 5 chamadas
+// paralelas de um mesmo lote se atropelavam na mesma chave (o defeito de
+// index.html:6109-6113, achado pelo agente senova-viabilidade antes de virar incidente
+// de novo). Agora usa D1 com UPDATE...SET x=x+1 atômico — este teste passa a exigir o
+// padrão D1, não mais o padrão KV read-modify-write.
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('./_lib');
@@ -16,8 +22,8 @@ const { t, fim } = assert();
 const worker = fs.readFileSync(path.join(__dirname, '..', 'senova-worker.js'), 'utf8');
 
 console.log('=== a instrumentação nunca inventa número ===');
-t('_registrarCustoIA sai cedo quando não há usage (resposta sem sucesso)',
-  /async function _registrarCustoIA\(env, usage\) \{\s*\n\s*if \(!usage\) return;/.test(worker));
+t('_registrarCustoIA sai cedo quando não há usage ou não há D1 (resposta sem sucesso)',
+  /async function _registrarCustoIA\(env, usage\) \{\s*\n\s*if \(!usage \|\| !env\.SENOVA_DB\) return;/.test(worker));
 
 console.log('\n=== a instrumentação nunca derruba nem atrasa a análise real ===');
 t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
@@ -28,13 +34,19 @@ t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa'
   /async function analisarVaga\([^)]*\bctx\)/.test(worker) &&
   /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx\)/.test(worker));
 
-console.log('\n=== o contador tem teto (não cresce sem limite) ===');
-t('por_dia é limitado a 30 entradas',
-  /while \(dias\.length > 30\) delete registro\.por_dia\[dias\.shift\(\)\];/.test(worker));
+console.log('\n=== o contador é atômico — sem corrida entre chamadas paralelas do mesmo lote ===');
+t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',
+  /async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_DB\.prepare/.test(worker) &&
+  !/async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_KV/.test(worker));
+t('o upsert soma com o registro existente (ON CONFLICT ... DO UPDATE SET x = x + excluded.x)',
+  /ON CONFLICT\(dia\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
+  /tokens_entrada = tokens_entrada \+ excluded\.tokens_entrada/.test(worker));
 
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');
-t('GET /api/radar-custo existe e lê radar_custo_ia',
-  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,150}radar_custo_ia/.test(worker));
+t('GET /api/radar-custo existe e lê radar_custo_ia do D1',
+  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,300}SENOVA_DB\.prepare\([\s\S]{0,150}radar_custo_ia/.test(worker));
+t('a rota respeita o teto de 30 dias (LIMIT 30 na consulta)',
+  /FROM radar_custo_ia ORDER BY dia DESC LIMIT 30/.test(worker));
 
 console.log('\n=== a rota nova segue o padrão fail-closed (exige x-senova-key) ===');
 const i = worker.indexOf('const ROTAS_SEM_SEGREDO');
