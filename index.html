@@ -6528,9 +6528,9 @@ function renderWidgetRevisao(){
 
   // Apagar em massa, onde dá para ler o que ela faz. Antes esta ação morava na
   // linha do título — dentro de `.sh-item-label`, que corta com ellipsis: chegava
-  // à tela como "…" e ninguém nunca a viu. O número aqui é o VERDADEIRO, não o
-  // da lista: a maior parte do peso está justamente nas que a lista esconde.
-  const apagaveis = triagem.filter(v=>!_temTrabalhoReal(v)).length + revisao.length;
+  // à tela como "…" e ninguém nunca a viu. O número (`apagaveis`, calculado lá em
+  // cima) é o VERDADEIRO, não o da lista: a maior parte do peso está justamente
+  // nas que a lista esconde.
   const ocultas = _pcVerInviaveis ? 0 : inviaveis.length;
   // Destrutivo à esquerda (skill_qa) — e de propósito longe da coluna onde fica
   // o "Enviar para Processos" da linha de cima: dois botões empilhados no mesmo
