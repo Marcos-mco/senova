@@ -1,6 +1,17 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.27
+//  SENOVA PROXY — Worker v7.29
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.29 (11/ago/2026) — custo real de IA do Radar, medido (S45).
+//  A reunião de viabilidade/margem mediu a margem do Radar por ESTIMATIVA
+//  (IER 0,3-0,6) porque não existia contador nenhum de quanto /api/analisar-vaga
+//  gasta por dia. `analisarVaga` agora guarda o `usage` que a Anthropic já
+//  devolve de graça em cada resposta (tokens de entrada/saída/cache) num
+//  KV único (`radar_custo_ia`, por dia, teto de 30 dias), em `ctx.waitUntil` —
+//  nunca atrasa nem derruba a análise real se a gravação falhar. Lido por
+//  GET /api/radar-custo (exige x-senova-key, como toda rota nova por padrão).
+//  Zero mudança de comportamento para o usuário — é só a primeira peça da
+//  sequência que a equipe recomendou antes de decidir onde a peneira mora.
 //
 //  NOVIDADES v7.27 (31/jul/2026) — /api/vagas-lead deixa de ser pública (S41).
 //  A rota estava isenta de credencial desde a Fase B da extensão, catalogada
@@ -922,7 +933,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.28',
+        status: 'ok', worker: 'senova-proxy', versao: '7.29',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -949,7 +960,7 @@ export default {
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior));
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -1081,6 +1092,12 @@ export default {
     if (path === '/api/varredura-status') {
       const raw = await env.SENOVA_KV.get('varredura_status');
       return json(raw ? JSON.parse(raw) : { nunca_executada: true });
+    }
+
+    // ── Custo real de IA no Radar (S45 — linha de base para viabilidade/margem) ──
+    if (path === '/api/radar-custo' && request.method === 'GET') {
+      const raw = await env.SENOVA_KV.get('radar_custo_ia');
+      return json(raw ? JSON.parse(raw) : { por_dia: {} });
     }
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
@@ -2667,7 +2684,35 @@ function vagaRecente(d, janelaDias = 3) {
 // ═══════════════════════════════════════════════════════════════════
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior) {
+// Instrumentação de custo real (S45 — ver reunião de viabilidade/margem). Antes
+// desta função não existia NENHUM contador de quanto o Radar gasta em IA por dia
+// — a margem negativa medida na reunião (IER 0,3-0,6) veio de estimativa, não de
+// dado. `usage` já chega de graça em toda resposta da Anthropic; só faltava
+// guardar. Nunca pode derrubar nem atrasar a análise real: roda em waitUntil,
+// nunca lança, e se não vier `usage` (resposta sem sucesso) não inventa número.
+async function _registrarCustoIA(env, usage) {
+  if (!usage) return;
+  try {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const raw = await env.SENOVA_KV.get('radar_custo_ia');
+    const registro = raw ? JSON.parse(raw) : { por_dia: {} };
+    const dia = registro.por_dia[hoje] || { chamadas: 0, tokens_entrada: 0, tokens_saida: 0, cache_escrita: 0, cache_leitura: 0 };
+    dia.chamadas += 1;
+    dia.tokens_entrada += usage.input_tokens || 0;
+    dia.tokens_saida += usage.output_tokens || 0;
+    dia.cache_escrita += usage.cache_creation_input_tokens || 0;
+    dia.cache_leitura += usage.cache_read_input_tokens || 0;
+    registro.por_dia[hoje] = dia;
+    // Teto de 30 dias — a chave não pode crescer sem limite.
+    const dias = Object.keys(registro.por_dia).sort();
+    while (dias.length > 30) delete registro.por_dia[dias.shift()];
+    await env.SENOVA_KV.put('radar_custo_ia', JSON.stringify(registro));
+  } catch (err) {
+    console.error('_registrarCustoIA falhou:', err.message);
+  }
+}
+
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx) {
   // Costura de identidade (A1): pontua o perfil que RECEBE. Sem perfilCandidato,
   // cai no PERFIL_MARCOS (retrocompatível — o app hoje não manda). O Worker fica
   // stateless quanto à identidade: multi-user depois só troca qual perfil chega.
@@ -2725,6 +2770,7 @@ JSON: {"score":(0-100),"classificacao":("candidatar"|"analisar"|"recusar"),"resu
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
     const data = await resp.json();
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
 
     // Trava de honestidade: impedimento não pode virar nota alta. O app decide o
