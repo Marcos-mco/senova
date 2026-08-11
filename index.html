@@ -5542,6 +5542,36 @@ const Store = {
   },
   gravarBruto(raw){ return this._gravarChave(this.CHAVE, raw); },
 
+  // ── BLOCKLIST DE REIMPORTAÇÃO ──
+  // O id de uma Oportunidade apagada mora aqui para o radar não devolvê-la no
+  // dia seguinte. Três lugares gravavam nela com regra própria — um com
+  // `push`+`slice(-500)`, dois com Set sem teto nenhum — e o teto de 500 já
+  // estava em 492. Apagar em massa expulsaria pela porta dos fundos os ids mais
+  // antigos e o radar devolveria centenas de vagas no primeiro F5: a limpeza
+  // pareceria feita e se desfaria sozinha, sem ninguém ver.
+  // Ponto único, sem duplicata, teto folgado — e gravação que DIZ se falhou,
+  // porque quem apaga em massa precisa saber ANTES de apagar.
+  CHAVE_DELETADAS: 'senova_deleted_ids',
+  TETO_DELETADAS: 3000,
+  deletados(){
+    try{ return new Set((JSON.parse(localStorage.getItem(this.CHAVE_DELETADAS)||'[]')||[]).map(String)); }
+    catch(_){ return new Set(); }
+  },
+  registrarDeletado(ids){
+    const lista=(Array.isArray(ids)?ids:[ids])
+      .map(x=>String(x&&typeof x==='object'?x.id:x))
+      .filter(id=>id&&id!=='undefined'&&id!=='null');
+    if(!lista.length) return true;
+    const set=this.deletados();
+    lista.forEach(id=>set.add(id));
+    // Se um dia encostar no teto, quem sai é o mais antigo: vaga apagada há
+    // 3000 registros já saiu do radar por idade, não pela blocklist.
+    return this._gravarChave(this.CHAVE_DELETADAS, JSON.stringify([...set].slice(-this.TETO_DELETADAS)));
+  },
+  limparDeletados(){
+    try{ localStorage.removeItem(this.CHAVE_DELETADAS); return true; }catch(_){ return false; }
+  },
+
   // Grava o estado atual e, se não conseguir, AVISA. A regra é essa: o Senova
   // nunca mostra na tela um trabalho que não conseguiu guardar.
   //
@@ -6016,7 +6046,7 @@ async function importarVagasLead(){
     ]);
     const data   = await resLead.json();
     const config = await resConfig.json();
-    const _deletedIds=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const _deletedIds=Store.deletados();
     // Quem já está em "Para Considerar" não é novidade. Sem isto, toda
     // importação reanalisava — a 10s cada — tudo que o critério já tinha
     // reprovado.
@@ -6031,7 +6061,7 @@ async function importarVagasLead(){
       // A saída fica aqui, na hora exata em que ele percebe que nada veio.
       const bloqueadas=(data.vagas||[]).filter(v=>_deletedIds.has(String(v.id))).length;
       if(bloqueadas>0 && confirm(`Nenhuma vaga nova.\n\nMas ${bloqueadas} do radar estão bloqueadas porque você as apagou antes da coluna Oportunidade.\n\nTrazer essas ${bloqueadas} de volta e analisar de novo?\n\nSeus processos em andamento não são tocados.`)){
-        try{ localStorage.removeItem('senova_deleted_ids'); }catch{}
+        Store.limparDeletados();
         if(btn){btn.textContent='⬇ Importar vagas';btn.disabled=false;}
         return importarVagasLead();
       }
@@ -8425,13 +8455,12 @@ function deleteVaga(){
     return;
   }
   // Oportunidade (lead): persiste o ID na blocklist para evitar reimportação do KV
-  try{
-    const bl=JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]');
-    bl.push(String(editingVagaId));
-    // Mantém só os últimos 500 para não inflar o localStorage
-    localStorage.setItem('senova_deleted_ids',JSON.stringify(bl.slice(-500)));
-  }catch{}
+  const _anotou=Store.registrarDeletado(editingVagaId);
   vagas=vagas.filter(v=>String(v.id)!==String(editingVagaId));
+  // Anotar que ela não deve voltar é a metade invisível de apagar. Se essa
+  // metade não coube, o card some agora e reaparece na próxima busca — e o
+  // usuário merece saber disso na hora, não descobrir sozinho depois.
+  if(!_anotou) showToast('Removida — mas não coube anotar que ela não deve voltar; pode reaparecer na próxima busca');
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
@@ -10199,7 +10228,7 @@ async function verificarVagasVarredura(){
     _varreduraStatus=resSt.ok?await resSt.json():null;
     try{ if(resCfg.ok) _configVarredura=await resCfg.json(); }catch{}
     _reavaliarTriagem(); // promove triagem já pontuada que passa o Critério (inclui os recolhidos)
-    const deletados=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const deletados=Store.deletados();
     const pendentes=(dataLead.vagas||[])
       .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v)&&!_vagaJaExiste(v));
     _vagasLeadPendentes=[];
@@ -10402,21 +10431,19 @@ function _adicionarVagaLead(idx){
 function _ignorarVagaLead(idx){
   const v=_vagasLeadPendentes[idx];
   if(!v) return;
-  const del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
-  del.add(String(v.id));
-  try{localStorage.setItem('senova_deleted_ids',JSON.stringify([...del]));}catch{}
+  Store.registrarDeletado(v.id);
   _vagasLeadPendentes.splice(idx,1);
   atualizarSinalOportunidades();
 }
 function _ignorarTodasVagasLead(){
   const n=_vagasLeadPendentes.length;
   if(!n) return;
-  const del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
-  _vagasLeadPendentes.forEach(v=>del.add(String(v.id)));
-  try{localStorage.setItem('senova_deleted_ids',JSON.stringify([...del]));}catch{}
+  const _anotou=Store.registrarDeletado(_vagasLeadPendentes.map(v=>v.id));
   _vagasLeadPendentes.length=0;
   atualizarSinalOportunidades();
-  showToast(`${n} vaga${n===1?'':'s'} ignorada${n===1?'':'s'}`);
+  showToast(_anotou
+    ? `${n} vaga${n===1?'':'s'} ignorada${n===1?'':'s'}`
+    : `${n} vaga${n===1?'':'s'} ignorada${n===1?'':'s'} — mas não coube anotar; pode${n===1?'':'m'} reaparecer na próxima busca`);
 }
 
 function atualizarSinais(){
@@ -12640,7 +12667,7 @@ window.__senovaImportar=async function(){
     const res=await fetch('https://senova-proxy.marcos-mco.workers.dev/api/vagas-lead');
     if(!res.ok) return;
     const data=await res.json();
-    const _del=new Set(JSON.parse(localStorage.getItem('senova_deleted_ids')||'[]'));
+    const _del=Store.deletados();
     const _imp=new Set(JSON.parse(localStorage.getItem('senova_ext_imported')||'[]'));
     const novas=(data.vagas||[]).filter(v=>
       v.fonte==='extensao_chrome'&&
