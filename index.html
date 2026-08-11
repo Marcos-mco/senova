@@ -10412,23 +10412,48 @@ function _elegivelParaAnalise(v){
     && typeof v.score!=='number' && !v.atsScore
     && !_analiseFalhou.has(String(v.id));
 }
+// Aquecimento de cache por janela de tempo (S45 — agente de viabilidade). O bloco de
+// sistema (PERFIL_MARCOS+PROJETO_DE_VIDA+instruções, ~3.000 tokens) é idêntico em toda
+// chamada do lote, e a Anthropic cacheia por 5min a partir do último hit. Aquecer 1x a
+// cada ~4min (dentro da margem do TTL) deixa a esteira inteira quente sem dobrar a
+// latência — a alternativa óbvia (1 chamada + espera + as demais, EM TODO LOTE) dobraria
+// o tempo da esteira inteira (30 lotes × 20s = 10min, contra os 5min de hoje), o que
+// violaria a restrição medida no comentário abaixo. Nunca descarta uma vaga real para
+// aquecer: a "primeira" chamada é sempre uma vaga de verdade da fila.
+let _cacheQuenteAte=0;
 async function analisarLoteBackground(){
   const semScore=vagas.filter(_elegivelParaAnalise).slice(0,5);
   if(!semScore.length) return;
   semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
   renderCRM();
-  // As 5 em paralelo, não uma atrás da outra. Medido no Worker: 6 análises
-  // simultâneas voltam em ~10s no total, as mesmas 6 em fila levam ~60s. Com
-  // 150 vagas na esteira isso é a diferença entre 5 minutos e meia hora.
-  const respostas=await Promise.all(semScore.map(async v=>{
+  const _analisarUma=async v=>{
     try{
       const desc=v.descricao||v.jobDescription||'';
       const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos()})});
       _loteEmAnalise.delete(String(v.id));
+      // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
+      // esteira inteira fica quente com um único aquecimento por janela.
+      if(res.ok) _cacheQuenteAte=Date.now()+4*60*1000;
       if(!res.ok) return {v,data:null};
       return {v, data: await res.json()};
     }catch{ _loteEmAnalise.delete(String(v.id)); return {v,data:null}; }
-  }));
+  };
+  let respostas;
+  if(Date.now()<_cacheQuenteAte || semScore.length<3){
+    // As N em paralelo, não uma atrás da outra. Medido no Worker: 6 análises
+    // simultâneas voltam em ~10s no total, as mesmas 6 em fila levam ~60s. Com
+    // 150 vagas na esteira isso é a diferença entre 5 minutos e meia hora.
+    respostas=await Promise.all(semScore.map(_analisarUma));
+  } else {
+    // Cache frio: aquece com a 1ª vaga real da fila, espera a resposta completa
+    // (só ela confirma que a escrita do cache terminou), e só então dispara as
+    // demais em paralelo — chegam com leitura de cache, ~10x mais barata que a
+    // escrita. Se a 1ª falhar, NÃO aborta as outras — segue em paralelo normal,
+    // que é o pior caso aceitável (o de hoje), nunca a fila travada.
+    const primeira=await _analisarUma(semScore[0]);
+    const resto=await Promise.all(semScore.slice(1).map(_analisarUma));
+    respostas=[primeira,...resto];
+  }
   const paraRadar=[];
   for(const {v,data} of respostas){
     if(!data || typeof data.score!=='number'){ _analiseFalhou.add(String(v.id)); continue; }
