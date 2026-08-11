@@ -14,7 +14,7 @@
 // E protege a ORDEM DAS GRAVAÇÕES, que com a cota estourada é o que separa
 // funcionar de não sair do lugar.
 
-const { extrai, assert } = require('./_lib');
+const { extrai, html, assert } = require('./_lib');
 const vm = require('vm');
 const { t, fim } = assert();
 
@@ -197,6 +197,43 @@ console.log('\n=== 6. sem refugo, a limpeza não mente que fez algo ===');
   rodar('descartarTodasRejeitadas()');
   t('nada foi apagado', rodar('vagas.length') === 2);
   t('e o Senova diz que não havia o que descartar', /Nada a descartar/.test(toasts.join(' ')));
+}
+
+console.log('\n=== 7. a ação precisa ser VISÍVEL — foi assim que 25 cards foram apagados a dedo ===');
+{
+  // O botão existia e nunca chegou à tela. Ele era injetado em #sinal-vagas-txt,
+  // que é `.sh-item-label` — e essa classe tem `text-overflow:ellipsis`. Marcos
+  // via "141 para considerar · …" e apagava um a um, com o armazenamento cheio,
+  // recusando cada gravação. Nenhum dos 25 gestos ficou gravado.
+  const css = html.match(/\.sh-item-label\s*\{[^}]*\}/)[0];
+  const cortaComReticencias = /text-overflow:\s*ellipsis/.test(css);
+
+  const render = extrai('function renderWidgetRevisao(');
+  const iLabel = render.indexOf('sinalTxt.innerHTML');
+  const trechoLabel = render.slice(iLabel, render.indexOf('\n', render.indexOf('sinalTxt.innerHTML', iLabel + 10)) + 1);
+
+  t('a linha do título continua cortando com reticências (é a natureza dela)', cortaComReticencias);
+  t('e por isso nenhum <button> é injetado nela', !/<button/.test(trechoLabel),
+    'voltou a ter botão: ' + trechoLabel.slice(0, 120));
+
+  // Onde a ação tem de estar: na barra da lista aberta, com largura para dizer
+  // o que faz e quantos são.
+  t('a ação de apagar em massa está na barra da lista', /linhaApagar/.test(render));
+  t('e chama a limpeza de verdade', /onclick="descartarTodasRejeitadas\(\)"/.test(render));
+  t('o botão diz quantos vai apagar', /Apagar as \$\{apagaveis\}/.test(render));
+  t('usa o estilo de ação destrutiva', /class="btn-danger"/.test(render));
+
+  // O número do botão é o REAL, não o da lista visível.
+  t('o contador de apagáveis não depende do que está à mostra',
+    /const apagaveis = triagem\.filter\(v=>!_temTrabalhoReal\(v\)\)\.length \+ revisao\.length/.test(render));
+  t('a barra avisa quantas nem aparecem na lista', /nem aparece/.test(render));
+
+  // E a linha da Home não pode sumir enquanto houver peso guardado, mesmo que
+  // nada seja "considerável".
+  t('a linha da Home fica visível enquanto houver o que apagar',
+    /display=\(qtd>0\|\|apagaveis>0\)\?'flex':'none'/.test(render));
+  t('a lista não é esvaziada quando só restam as escondidas',
+    /if\(!expandido \|\| \(qtd === 0 && apagaveis === 0\)\)/.test(render));
 }
 
 fim('LIMPEZA DO REFUGO · CRITÉRIO POSITIVO, E NADA PELA METADE');

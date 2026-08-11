@@ -6453,15 +6453,30 @@ function renderWidgetRevisao(){
   const inviaveis = itens.filter(it=>_vagaInviavel(it.v));
   const listaveis = _pcVerInviaveis ? itens : itens.filter(it=>!_vagaInviavel(it.v));
   const qtd = listaveis.length;
+  // Quanto há para apagar — número REAL, não o da lista. A lista esconde as de
+  // nota baixa (_vagaInviavel), e é justamente nelas que está a maior parte do
+  // peso: 744 dos 910 medidos em 11/ago não apareciam em lugar nenhum. Se a
+  // linha da Home sumisse quando as visíveis acabam, esses ficariam ocupando o
+  // armazenamento sem nenhum caminho até eles. Peso invisível não deixa de pesar.
+  const apagaveis = triagem.filter(v=>!_temTrabalhoReal(v)).length + revisao.length;
   const expandido = listaEl.dataset.expandido === '1';
   const ch=document.getElementById('sinal-vagas-chevron');
   if(ch) ch.style.transform=expandido?'rotate(90deg)':'';
   const vagasRow=document.getElementById('sinal-vagas');
-  if(vagasRow) vagasRow.style.display=qtd>0?'flex':'none';
+  if(vagasRow) vagasRow.style.display=(qtd>0||apagaveis>0)?'flex':'none';
   if(qtd > 0){
-    sinalTxt.innerHTML = `<strong>${qtd}</strong> para considerar &nbsp;·&nbsp; <button onclick="event.stopPropagation();descartarTodasRejeitadas()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;">Descartar todas</button>`;
+    // Só o número aqui. A ação de apagar em massa VIVIA nesta linha e nunca foi
+    // clicável: `.sh-item-label` tem `text-overflow:ellipsis`, então o botão
+    // chegava à tela como "…". Marcos apagou 25 cards um a um por causa disso.
+    // Ação destrutiva mora na barra da lista aberta, onde há largura para dizer
+    // o que ela faz — ver `barra`, mais abaixo.
+    sinalTxt.innerHTML = `<strong>${qtd}</strong> para considerar`;
+  } else if(apagaveis > 0){
+    // Nenhuma vale a pena olhar, mas há peso guardado. Dizer isso é melhor do
+    // que sumir com a linha e deixar o armazenamento cheio sem explicação.
+    sinalTxt.innerHTML = `<strong>${apagaveis}</strong> reprovada${apagaveis===1?'':'s'} ocupando espaço`;
   }
-  if(!expandido || qtd === 0){ listaEl.innerHTML=''; return; }
+  if(!expandido || (qtd === 0 && apagaveis === 0)){ listaEl.innerHTML=''; return; }
 
   // Melhor primeiro. Com dezenas de vagas aqui, ordem de chegada é ruído: o que
   // Marcos precisa ver no topo é o que tem mais chance, não o que caiu antes.
@@ -6506,10 +6521,26 @@ function renderWidgetRevisao(){
   // Comandos no começo da coluna (pedido de Marcos, 22/jul): no rodapé, depois de
   // uma centena de linhas, eram inalcançáveis.
   const rotuloTodas = restam>0 ? `Selecionar as ${mostrados.length} à mostra` : 'Selecionar todas';
-  const barra = mostrados.length>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 10px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+  const barraSelecao = mostrados.length>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 10px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);"><input type="checkbox" id="pc-all" onchange="_pcToggleTodas(this.checked)" style="accent-color:var(--navy);width:16px;height:16px;"> ${rotuloTodas}</label>
       <button onclick="_pcEnviarSelecionadas()" style="font-size:12.5px;font-weight:700;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:10px 15px;cursor:pointer;font-family:var(--font);min-height:40px;">Enviar para Processos</button>
     </div>` : '';
+
+  // Apagar em massa, onde dá para ler o que ela faz. Antes esta ação morava na
+  // linha do título — dentro de `.sh-item-label`, que corta com ellipsis: chegava
+  // à tela como "…" e ninguém nunca a viu. O número aqui é o VERDADEIRO, não o
+  // da lista: a maior parte do peso está justamente nas que a lista esconde.
+  const apagaveis = triagem.filter(v=>!_temTrabalhoReal(v)).length + revisao.length;
+  const ocultas = _pcVerInviaveis ? 0 : inviaveis.length;
+  // Destrutivo à esquerda (skill_qa) — e de propósito longe da coluna onde fica
+  // o "Enviar para Processos" da linha de cima: dois botões empilhados no mesmo
+  // ponto, um inofensivo e um irreversível, é acidente esperando a mão errada.
+  const linhaApagar = apagaveis>0 ? `<div style="display:flex;align-items:center;gap:12px;padding:11px 10px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <button onclick="descartarTodasRejeitadas()" class="btn-danger" style="font-weight:700;border-radius:7px;padding:10px 15px;cursor:pointer;font-family:var(--font);min-height:44px;white-space:nowrap;">Apagar as ${apagaveis}</button>
+      <span style="font-size:14px;color:var(--text3);line-height:1.45;flex:1;min-width:180px;">reprovada${apagaveis===1?'':'s'} pelo Critério, sem nada seu dentro${ocultas>0?` — ${ocultas} nem aparece${ocultas===1?'':'m'} nesta lista`:''}</span>
+    </div>` : '';
+
+  const barra = barraSelecao + linhaApagar;
 
   const maisBtn = restam>0 ? `<button onclick="_pcMaisQuinze()" style="display:block;width:100%;text-align:center;padding:13px;font-size:13px;font-weight:600;color:var(--action);background:none;border:none;cursor:pointer;font-family:var(--font);">Mostrar mais ${Math.min(15,restam)} &nbsp;·&nbsp; restam ${restam}</button>` : '';
 
