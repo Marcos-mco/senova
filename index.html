@@ -6624,14 +6624,92 @@ function descartarVagaRejeitada(idx){
   renderWidgetRevisao();
 }
 
+// Frases que o próprio Senova escreve na timeline. Tudo que NÃO casa com elas foi
+// gesto de gente — e gesto de gente é o que salva um card da limpeza.
+const _TIMELINE_MAQUINA=/^(Importado via varredura|Card criado|Promovida para Oportunidade|Abaixo do Critério da região|Sem descrição para analisar|Descartada em Para Considerar)/i;
+function _timelineHumana(v){
+  return ((v&&v.timeline)||[]).filter(e=>!_TIMELINE_MAQUINA.test((e&&e.texto)||''));
+}
+
+// O CRITÉRIO É POSITIVO, e isso é o ponto inteiro desta função.
+//
+// A pergunta que ela responde não é "isto aqui é lixo?" — é "há trabalho humano
+// dentro?". A diferença não é de estilo. Um critério negativo ("apague tudo que
+// está em triagem") apaga um processo real no dia em que alguém mudar o
+// significado de um status, e ninguém descobre até fazer falta. Um critério
+// positivo erra para o lado de guardar demais, que é o lado certo de errar.
+//
+// A auditoria da S44 abriu os 910 cards de "Para Considerar" um por um: 0 CVs,
+// 0 candidaturas, 0 documentos, 0 contatos, 0 favoritos, 0 anotações. É refugo
+// mesmo. Mas "eu olhei e não tinha nada" não é critério que sobrevive ao mês que
+// vem — isto é.
+function _temTrabalhoReal(v){
+  if(!v) return false;
+  const tem=s=>!!(s&&String(s).trim());
+  return tem(v.atsCV) || tem(v.atsCarta) || tem(v.atsAnalise)      // documento gerado
+      || tem(v.sofiaParecer)                                       // parecer pedido à Sofia
+      || tem(v.notas) || tem(v.motivo)                             // escreveu de próprio punho
+      || tem(v.emailDest) || tem(v.indicacao)                      // caminho humano até a vaga
+      || tem(v.proxima) || tem(v.proximaData) || tem(v.entrevistaData) // combinou um próximo passo
+      || !!v.teveRetorno || tem(v.tipoRetorno)                     // alguém do outro lado respondeu
+      || (Array.isArray(v.tags) && v.tags.length>0)
+      || _timelineHumana(v).length>0;                              // qualquer gesto registrado
+}
+
+// A limpeza do refugo do radar (S45). "Para Considerar" era o depósito do que a
+// peneira reprovava — 910 cards, ~6 MB, dentro do mesmo bloco que o navegador
+// recusa a gravar. Não é volume: é peneira sem lixeira.
+//
+// Marcos decidiu em 11/ago: apagar, não arquivar. Arquivar mandaria o refugo
+// para o histórico dele no D1, junto dos processos que de fato aconteceram — e o
+// histórico de uma pessoa não é depósito de sobra de robô.
+//
+// A ORDEM DAS DUAS GRAVAÇÕES É DE PROPÓSITO. Com a cota estourada nenhuma das
+// duas cabe. Gravar os processos primeiro é o que devolve os ~6 MB; só depois
+// disso existe espaço para anotar os ids na blocklist. Na ordem inversa, as duas
+// falhavam e a limpeza não saía do lugar.
 function descartarTodasRejeitadas(){
-  const nT=vagas.filter(v=>v.status==='triagem').length;
-  if(nT>0 && !confirm(`Descartar as ${nT} vaga(s) em Para Considerar? Vão para Arquivados — recuperáveis, nada é perdido.`)) return;
-  try{ localStorage.removeItem(_REVISAO_KEY); }catch{}
-  const agora=Date.now();
-  vagas.forEach(v=>{ if(v.status==='triagem'){ setStatus(v,'arquivado',{skipConfirm:true,texto:'Descartada em Para Considerar'}); } });
-  if(nT>0) saveVagas();
-  renderWidgetRevisao();
+  const triagem=vagas.filter(v=>v.status==='triagem');
+  const protegidos=triagem.filter(_temTrabalhoReal);
+  const aApagar=triagem.filter(v=>!_temTrabalhoReal(v));
+  let revisao=[]; try{ revisao=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
+
+  if(!aApagar.length && !revisao.length){
+    showToast(protegidos.length
+      ? `Nada a descartar — as ${protegidos.length} de Para Considerar têm trabalho seu dentro`
+      : 'Nada a descartar em Para Considerar');
+    return;
+  }
+
+  const mb=(JSON.stringify(aApagar).length*2/1048576).toFixed(1).replace('.',',');
+  const n=aApagar.length+revisao.length;
+  let msg=`Apagar ${n} vaga${n===1?'':'s'} de "Para Considerar"?\n\n`
+    +`São as que a busca automática trouxe e o Critério reprovou. O Senova conferiu uma por uma: nenhuma tem CV, candidatura, anotação ou contato — nada seu dentro.\n\n`
+    +`Ocupam ${mb} MB, que é o que está impedindo o Senova de salvar.\n\n`;
+  if(protegidos.length){
+    msg+=`${protegidos.length} fica${protegidos.length===1?'':'m'} de fora: tem trabalho seu dentro.\n\n`;
+  }
+  msg+=`Isto apaga de vez — não vão para Arquivados. E não voltam na próxima busca.`;
+  if(!confirm(msg)) return;
+
+  const ids=[...aApagar.map(v=>v.id), ...revisao.map(v=>v&&v.id)];
+  const antes=vagas;
+  vagas=vagas.filter(v=>!(v.status==='triagem'&&!_temTrabalhoReal(v)));
+
+  // Primeiro os processos: é esta gravação que devolve o espaço. Se ela não
+  // passar, nada aconteceu — a lista volta inteira e o aviso de sempre explica.
+  if(!Store.gravar()){ vagas=antes; renderWidgetRevisao(); return; }
+
+  // Agora sim há espaço. Sem esta anotação, as mesmas vagas voltam na próxima
+  // busca e a limpeza se desfaz sozinha (ver testes/blocklist_reimportacao.js).
+  const anotou=Store.registrarDeletado(ids);
+  if(anotou){ try{ localStorage.removeItem(_REVISAO_KEY); }catch{} }
+
+  updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome();
+  aplicarFiltros(); renderWidgetRevisao();
+  showToast(anotou
+    ? `${n} vaga${n===1?'':'s'} apagada${n===1?'':'s'} — ${mb} MB liberados`
+    : `${n} apagada${n===1?'':'s'}, mas não coube anotar: podem voltar na próxima busca`);
 }
 
 function showToast(msg, duration=4000){
