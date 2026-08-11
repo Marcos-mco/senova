@@ -5044,15 +5044,24 @@ const Store = {
   // Sem esta distinção, quem abre o Senova numa aba anônima cairia no modo somente-leitura
   // por nunca ter arquivado nada — e quem TEM arquivo gravaria por cima dele.
   CHAVE_MIGALHA:'senova_arquivo_no_banco',
-  _marcarMigalha(){ try{ localStorage.setItem(this.CHAVE_MIGALHA,'1'); }catch(_){} },
+  // Pela escada do descartável, nunca por `setItem` cru: é justamente com a cota
+  // estourada que a migalha precisa entrar, e um `catch` mudo aqui apaga a única
+  // pista de onde o arquivo foi parar. Devolve se conseguiu — quem chama decide.
+  _marcarMigalha(){ return this._gravarChave(this.CHAVE_MIGALHA,'1'); },
   _temMigalha(){ try{ return localStorage.getItem(this.CHAVE_MIGALHA)==='1'; }catch(_){ return false; } },
 
   // ── A TERCEIRA CASA: a nuvem (S42) ───────────────────────────────────────
   // O IndexedDB resolveu o teto de 5 MB e não resolveu o problema: é o MESMO
   // computador. Em 10/ago o navegador de Marcos bateu em 10,0 MB e o app parou
-  // de gravar — onze dias depois da mudança anterior. E na máquina dele a
-  // mudança para o IndexedDB nem chegou a valer: o banco local não abre lá, e os
-  // 654 encerrados continuam dentro do bloco quente. Por isso ele pesa 9,8 MB.
+  // de gravar — onze dias depois da mudança anterior.
+  //
+  // CORREÇÃO MEDIDA (11/ago, na cópia real dele): a mudança da S40 PEGOU — o
+  // arquivo morto saiu do localStorage em julho, e a migração para o D1 também
+  // funcionou (671 linhas, conferidas). Quem estoura a cota é o BLOCO QUENTE
+  // sozinho: 9,79 MB em 1340 processos VIVOS, dos quais 910 em `triagem` (5,97
+  // MB) — o depósito do que o radar já havia reprovado. Tirar o arquivo morto
+  // daqui aliviou zero byte, porque ele já não estava aqui. Fica a régua: medir
+  // o bloco que recusou, nunca deduzir qual é pela última mudança feita.
   //
   // O arquivo morto passa a viver no Cloudflare D1, uma LINHA por processo.
   // Nada aqui muda para o resto do app: `lerVagas()` continua devolvendo a lista
@@ -5063,7 +5072,7 @@ const Store = {
   // caractere por caractere igual. Ver mudarParaNuvem().
   NUVEM_MIGALHA:'senova_arquivo_na_nuvem',
   _frioNaNuvem:false,
-  _marcarNuvem(){ try{ localStorage.setItem(this.NUVEM_MIGALHA,'1'); }catch(_){} },
+  _marcarNuvem(){ return this._gravarChave(this.NUVEM_MIGALHA,'1'); },
   _naNuvem(){ try{ return localStorage.getItem(this.NUVEM_MIGALHA)==='1'; }catch(_){ return false; } },
 
   // As descrições das vagas encerradas: 45% de todo o peso, e o motivo de elas
@@ -5345,7 +5354,11 @@ const Store = {
         this._descIgnotas=new Set();          // vieram daqui: conheço o texto de todos
         this._frio=JSON.stringify(agora);
         this._rawFrio=this._frio;             // igual ao que está lá: o gravar() não reenvia nada
-        this._marcarNuvem();
+        // A migalha é o que faz o PRÓXIMO arranque procurar na nuvem. Sem ela
+        // gravada no disco, encolher o bloco quente aqui deixaria o app abrindo
+        // amanhã convencido de que o arquivo está vazio. Se ela não entrou,
+        // nada é apagado: desiste hoje e tenta de novo amanhã, inteira.
+        if(!this._marcarNuvem()){ this._frioNaNuvem=false; return 'migalha_falhou'; }
         // O bloco quente é reescrito SEM os arquivados — é esta linha que devolve
         // os megabytes. Só depois dela as cópias antigas saem: enquanto o novo
         // lugar não estiver de pé, o velho fica.
