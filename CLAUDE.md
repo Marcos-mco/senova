@@ -128,6 +128,18 @@ Marcos é o PM e QA final (testa antes de aprovar cada deploy).
 
 ## Protocolo obrigatório antes de qualquer edição
 
+**Passo 0 — Classificar a mudança (Bruno decide sozinho, sem perguntar a Marcos)**
+
+Antes da FASE 1, classificar a mudança nas categorias abaixo. Cada categoria exige o recurso listado — não é opcional, não é "se der tempo". Se a mudança cruza mais de uma linha, todos os recursos daquela linha se aplicam.
+
+| Categoria | Exemplos | Recurso obrigatório |
+|---|---|---|
+| Espinha dorsal / fluxo core | status de card, scoring, dedup, sincronização D1/KV/localStorage, autenticação, extensão↔app | Agente `senova-auditor` (diagnóstico read-only da causa raiz) ANTES de propor qualquer fix |
+| IA nova / rota nova / módulo novo / volume de dado novo | nova chamada Anthropic, novo endpoint no Worker, novo módulo do plano de vida | Agente `senova-viabilidade` — antes de construir E de novo antes de fechar o commit |
+| Segurança | auth, tokens, dados sensíveis, rotas do Worker | Skill `security-review` + `senova-auditor` |
+| UI/UX/copy | qualquer tela, texto, cor, componente | `skill_design_senova.md` + `skill_ux_writing.md` |
+| Bug relatado por Marcos, qualquer categoria | qualquer "não está funcionando" | Nunca propor fix por leitura de código só — medir a causa raiz no dado real (backup exportado, D1, ou `senova-auditor`) antes de codar |
+
 **FASE 1 — Arquiteto (antes de codar)**
 1. Ler `skill_qa.md` — protocolo completo de qualidade
 2. Ler `skill_fluxo.md` — fluxo do produto e vocabulário
