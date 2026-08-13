@@ -7395,7 +7395,10 @@ function renderCRM(){
     return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]};position:relative;">
         ${COL_STATUS[col]}<span class="col-count">${cards.length}${hasFilter?'/'+totalCol:''}</span>
-        <button class="col-filter-btn${hasFilter?' has-filter':''}" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>
+        <div style="margin-left:auto;display:flex;gap:2px;">
+          ${col==='lead'?`<button class="col-filter-btn" onclick="_excluirLoteOportunidadeAbaixoDe70();event.stopPropagation();" title="Excluir vagas desta coluna com nota abaixo de 70">Excluir &lt;70</button>`:''}
+          <button class="col-filter-btn${hasFilter?' has-filter':''}" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>
+        </div>
         ${filterMenu}
       </div>
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
@@ -8568,6 +8571,20 @@ function deleteVaga(){
   // usuário merece saber disso na hora, não descobrir sozinho depois.
   if(!_anotou) showToast('Removida — mas não coube anotar que ela não deve voltar; pode reaparecer na próxima busca');
   saveVagas(); aplicarFiltros(); closeVagaModal();
+}
+// Exclusão em lote — só Oportunidade (lead), pedido explícito de Marcos (13/ago):
+// corte fixo em 70 para todas as regiões, inclusive vagas já tocadas (nota/CV/envio).
+function _excluirLoteOportunidadeAbaixoDe70(){
+  const alvo=vagas.filter(v=>v.status==='lead' && typeof _notaDoCard(v)==='number' && _notaDoCard(v)<70);
+  if(!alvo.length){ showToast('Nenhuma vaga em Oportunidade com nota abaixo de 70'); return; }
+  const n=alvo.length;
+  const ok=confirm(`Excluir ${n} vaga${n===1?'':'s'} em Oportunidade com nota abaixo de 70?\n\nInclui vagas em que você já mexeu (nota, CV, envio). Não tem volta — elas não reaparecem na próxima busca.`);
+  if(!ok) return;
+  const idsStr=new Set(alvo.map(v=>String(v.id)));
+  const _anotou=Store.registrarDeletado(alvo.map(v=>v.id));
+  vagas=vagas.filter(v=>!idsStr.has(String(v.id)));
+  saveVagas(); aplicarFiltros();
+  showToast(_anotou?`✅ ${n} vaga${n===1?'':'s'} excluída${n===1?'':'s'}`:`${n} excluída${n===1?'':'s'} — mas não coube anotar que não devem voltar; podem reaparecer na próxima busca`);
 }
 
 // Rascunho de formulário (B6)
