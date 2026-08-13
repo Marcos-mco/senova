@@ -116,6 +116,7 @@ select option { background: var(--bg2); }
 .kcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; border-left: 4px solid transparent; box-shadow: var(--shadow); }
 .kcard:hover { border-color: var(--border2); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .kcard.dragging { opacity: 0.4; }
+.kcard.kcard-selected { background: #EEF4FF; box-shadow: 0 0 0 2px var(--action); }
 .kanban-col-drop { border-radius: var(--radius); transition: background 0.15s; }
 .kanban-col-drop.drag-over { background: rgba(46,109,164,0.07); outline: 2px dashed var(--action); outline-offset: -4px; }
 .kcard-name { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
@@ -5692,6 +5693,11 @@ let _dragEmCurso=false, _renderPendenteDrag=false; // trava: nenhum re-render de
 let crmCurrentTab='vagas', contatoFilter='todos', contatoTipoFilter='todos', contatoOrdemFilter='temp';
 let _limpezaSelecionados=new Set();
 let colFilters={};
+// Seleção múltipla nas colunas do Kanban — padrão do sistema operacional: clique
+// simples abre o card; Ctrl/Cmd+clique alterna um card na seleção; Shift+clique
+// seleciona o intervalo. Uma vez com seleção ativa, clique simples também alterna
+// (sai do modo seleção ao confirmar ou cancelar). Um Set por coluna (col -> ids).
+let _kanbanSel={}, _kanbanSelAnchor={}, _kanbanSelConfirm={}, _kanbanColOrder={};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
 function resetColFilter(col){ colFilters[col]={pri:'all',canal:'all',sort:'default'}; renderCRM(); }
@@ -7394,21 +7400,33 @@ function renderCRM(){
     </div>`;
     return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]};position:relative;">
-        ${COL_STATUS[col]}<span class="col-count">${cards.length}${hasFilter?'/'+totalCol:''}</span>
-        <div style="margin-left:auto;display:flex;gap:2px;">
-          ${col==='lead'?`<button class="col-filter-btn" onclick="_excluirLoteOportunidadeAbaixoDe70();event.stopPropagation();" title="Excluir vagas desta coluna com nota abaixo de 70">Excluir &lt;70</button>`:''}
-          <button class="col-filter-btn${hasFilter?' has-filter':''}" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>
-        </div>
+        ${_kanbanSel[col]&&_kanbanSel[col].size>0?(()=>{
+          const n=_kanbanSel[col].size, confirmando=!!_kanbanSelConfirm[col];
+          return `<span style="font-size:11px;font-weight:700;color:var(--navy);">${n} selecionad${n===1?'o':'os'}</span>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+            ${confirmando?`
+              <span style="font-size:10.5px;color:var(--red);font-weight:600;">Remover ${n}?</span>
+              <button onclick="_kanbanSelRemover('${col}');event.stopPropagation();" style="border:1px solid var(--red);color:var(--red);background:#fff;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:600;cursor:pointer;">Confirmar</button>
+              <button onclick="_kanbanSelConfirm['${col}']=false;renderCRM();event.stopPropagation();" style="border:1px solid var(--border2);color:var(--text2);background:#fff;border-radius:6px;padding:2px 8px;font-size:10.5px;cursor:pointer;">Cancelar</button>
+            `:`
+              <button onclick="_kanbanSelPedirConfirmacao('${col}');event.stopPropagation();" style="border:1px solid var(--red);color:var(--red);background:#fff;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:600;cursor:pointer;">Remover</button>
+              <button onclick="_kanbanSelClear('${col}');event.stopPropagation();" style="border:1px solid var(--border2);color:var(--text2);background:#fff;border-radius:6px;padding:2px 8px;font-size:10.5px;cursor:pointer;">Cancelar</button>
+            `}
+          </div>`;
+        })():`${COL_STATUS[col]}<span class="col-count">${cards.length}${hasFilter?'/'+totalCol:''}</span>
+        <button class="col-filter-btn${hasFilter?' has-filter':''}" style="margin-left:auto;" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>`}
         ${filterMenu}
       </div>
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
+      ${(()=>{_kanbanColOrder[col]=cards.map(c=>String(c.id));return '';})()}
       ${cards.map(c=>{
         const origemTxt = c.origemUrl ? (c.origemUrl.includes('@') ? '📧 Email' : '↗ Vaga') : '';
         const nv=nivelInativo(c);
         const nvColor=['','#FF6600','#CC0000','#CC0000'][nv];
         const _logo=_companyLogo(c.empresa||'',c.origemUrl||'');
         const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription);
-        return `<div class="kcard" draggable="true" ondragstart="dragVagaId='${c.id}';_dragEmCurso=true;this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');_dragEmCurso=false;if(_renderPendenteDrag){_renderPendenteDrag=false;if(filtroAtivo)aplicarFiltros();else renderCRM();}" onclick="openVagaModal('${c.id}')" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
+        const _sel=col==='lead'&&_kanbanSel[col]&&_kanbanSel[col].has(String(c.id));
+        return `<div class="kcard${_sel?' kcard-selected':''}" draggable="true" ondragstart="dragVagaId='${c.id}';_dragEmCurso=true;this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');_dragEmCurso=false;if(_renderPendenteDrag){_renderPendenteDrag=false;if(filtroAtivo)aplicarFiltros();else renderCRM();}" onclick="${col==='lead'?`_kcardClick(event,'${col}','${c.id}')`:`openVagaModal('${c.id}')`}" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
             <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" draggable="false" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
             <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
@@ -8572,19 +8590,60 @@ function deleteVaga(){
   if(!_anotou) showToast('Removida — mas não coube anotar que ela não deve voltar; pode reaparecer na próxima busca');
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
-// Exclusão em lote — só Oportunidade (lead), pedido explícito de Marcos (13/ago):
-// corte fixo em 70 para todas as regiões, inclusive vagas já tocadas (nota/CV/envio).
-function _excluirLoteOportunidadeAbaixoDe70(){
-  const alvo=vagas.filter(v=>v.status==='lead' && typeof _notaDoCard(v)==='number' && _notaDoCard(v)<70);
-  if(!alvo.length){ showToast('Nenhuma vaga em Oportunidade com nota abaixo de 70'); return; }
-  const n=alvo.length;
-  const ok=confirm(`Excluir ${n} vaga${n===1?'':'s'} em Oportunidade com nota abaixo de 70?\n\nInclui vagas em que você já mexeu (nota, CV, envio). Não tem volta — elas não reaparecem na próxima busca.`);
-  if(!ok) return;
-  const idsStr=new Set(alvo.map(v=>String(v.id)));
-  const _anotou=Store.registrarDeletado(alvo.map(v=>v.id));
-  vagas=vagas.filter(v=>!idsStr.has(String(v.id)));
-  saveVagas(); aplicarFiltros();
-  showToast(_anotou?`✅ ${n} vaga${n===1?'':'s'} excluída${n===1?'':'s'}`:`${n} excluída${n===1?'':'s'} — mas não coube anotar que não devem voltar; podem reaparecer na próxima busca`);
+
+// Clique num card do Kanban: abre normalmente; Ctrl/Cmd alterna seleção; Shift
+// seleciona o intervalo; com seleção ativa na coluna, clique simples também alterna.
+function _kcardClick(event,col,id){
+  id=String(id);
+  const jaSelecionado=_kanbanSel[col]&&_kanbanSel[col].size>0;
+  if(event.shiftKey){
+    event.preventDefault();
+    _kanbanSelRange(col,id);
+  } else if(event.ctrlKey||event.metaKey||jaSelecionado){
+    event.preventDefault();
+    if(!_kanbanSel[col]) _kanbanSel[col]=new Set();
+    const s=_kanbanSel[col];
+    if(s.has(id)) s.delete(id); else s.add(id);
+    _kanbanSelAnchor[col]=id;
+  } else {
+    openVagaModal(id);
+    return;
+  }
+  renderCRM();
+}
+function _kanbanSelRange(col,id){
+  const order=_kanbanColOrder[col]||[];
+  const anchor=_kanbanSelAnchor[col]||id;
+  if(!_kanbanSel[col]) _kanbanSel[col]=new Set();
+  const i1=order.indexOf(anchor), i2=order.indexOf(id);
+  if(i1===-1||i2===-1){ _kanbanSel[col].add(id); _kanbanSelAnchor[col]=id; return; }
+  const [lo,hi]=i1<i2?[i1,i2]:[i2,i1];
+  for(let i=lo;i<=hi;i++) _kanbanSel[col].add(order[i]);
+  _kanbanSelAnchor[col]=id;
+}
+function _kanbanSelClear(col){ delete _kanbanSel[col]; delete _kanbanSelConfirm[col]; renderCRM(); }
+function _kanbanSelPedirConfirmacao(col){ _kanbanSelConfirm[col]=true; renderCRM(); }
+// Remove a seleção: Oportunidade (lead) sai sem rastro (barato, re-importável);
+// qualquer outra coluna arquiva com rastro — mesma trava de dado do deleteVaga().
+function _kanbanSelRemover(col){
+  const sel=_kanbanSel[col];
+  if(!sel||!sel.size) return;
+  const ids=[...sel];
+  const alvo=vagas.filter(v=>ids.includes(String(v.id)));
+  const podeExcluir=alvo.filter(v=>v.status==='lead');
+  const precisaArquivar=alvo.filter(v=>v.status!=='lead'&&v.status!=='arquivado'&&v.status!=='aceito');
+  if(podeExcluir.length){
+    Store.registrarDeletado(podeExcluir.map(v=>v.id));
+    vagas=vagas.filter(v=>!(v.status==='lead'&&ids.includes(String(v.id))));
+  }
+  precisaArquivar.forEach(v=>setStatus(v,'arquivado',{skipConfirm:true,texto:'Arquivado via seleção em lote'}));
+  saveVagas();
+  delete _kanbanSel[col]; delete _kanbanSelConfirm[col];
+  aplicarFiltros();
+  const partes=[];
+  if(podeExcluir.length) partes.push(`${podeExcluir.length} removida${podeExcluir.length===1?'':'s'}`);
+  if(precisaArquivar.length) partes.push(`${precisaArquivar.length} arquivada${precisaArquivar.length===1?'':'s'}`);
+  showToast(`✅ ${partes.join(' · ')}`);
 }
 
 // Rascunho de formulário (B6)
