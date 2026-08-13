@@ -6254,6 +6254,11 @@ let _configVarredura=null;
 // serviços gerais perto da filha contam); o que ele não pode mais dizer é
 // "aqui aceito o inviável".
 const CRITERIO_MINIMO_VIAVEL=46;
+// Versão da rubrica de pontuação (S45: score virou soma de 5 dimensões, era número livre).
+// Cartão com rubricaV diferente da atual é tratado como SEM nota anterior — nunca manda
+// SCORE ANTERIOR pro Worker nesse caso, senão a IA explicaria uma "queda" que só existe
+// porque a régua mudou de escala, não porque a vaga piorou. Ver mvReanalisarCompat().
+const RUBRICA_V=2;
 // Critério (número) da região de uma vaga/card — aceita shape de card (origemUrl/localizacao) ou de lead (url/local).
 function _criterioParaVaga(cardOuVaga){
   const cfg=_configVarredura||{score_minimo_por_regiao:{}};
@@ -9151,8 +9156,17 @@ function mvUpdateScoreDisplay(vOpt){
     };
     const fortes=(v?.compatFortes||[]).filter(p=>typeof p==='string'&&p.trim());
     const atencao=(v?.compatAtencao||[]).filter(p=>typeof p==='string'&&p.trim());
-    let html=_grupo('A favor',fortes,'#1A7A4A','✓')+_grupo('Contra',atencao,'#B8670A','△');
-    if(html) html=html.replace('margin-top:9px','margin-top:0');   // o primeiro grupo encosta no topo do bloco
+    // Nota exata por dimensão (S45): a soma nunca fica escondida atrás de um número só —
+    // Marcos desconfiou de notas "redondas" sem saber de onde vinham. Só existe em cards
+    // analisados sob a rubrica atual (RUBRICA_V) — cards antigos não têm o dado.
+    let dimsHtml='';
+    if(v?.rubricaV===RUBRICA_V&&v?.compatDimensoes&&typeof v.compatDimensoes==='object'){
+      const _dimLabels=[['area','Área',30],['nivel','Nível',20],['idioma','Idioma',20],['remuneracao','Remuneração',15],['projeto_vida','Projeto de vida',15]];
+      const _partes=_dimLabels.filter(([k])=>typeof v.compatDimensoes[k]==='number').map(([k,lbl,teto])=>`${lbl} <strong style="font-variant-numeric:tabular-nums;">${v.compatDimensoes[k]}/${teto}</strong>`);
+      if(_partes.length) dimsHtml=`<div style="font-size:12px;color:var(--text2);line-height:1.6;">${_partes.join(' · ')}</div>`;
+    }
+    let html=dimsHtml+_grupo('A favor',fortes,'#1A7A4A','✓')+_grupo('Contra',atencao,'#B8670A','△');
+    if(html&&!dimsHtml) html=html.replace('margin-top:9px','margin-top:0');   // o primeiro grupo encosta no topo do bloco (só quando não há breakdown acima)
     if(!html){
       // Cards antigos guardaram a análise em prosa (formato da aba Analisar, extinta). Sem
       // bullets, mostramos essa prosa como evidência — menos o VEREDICTO e o MATCH SCORE,
@@ -9260,6 +9274,8 @@ async function mvAutoCompatCheck(){
     const score=Math.max(0,Math.min(100,parseInt(data.score)||0));
     if(!score){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     alvo.atsScore=String(score);
+    alvo.rubricaV=RUBRICA_V;
+    alvo.compatDimensoes=data.dimensoes||null;
     alvo.compatClass=data.classificacao||'';
     alvo.compatFortes=data.pontos_fortes||[];
     alvo.compatAtencao=data.pontos_atencao||[];
@@ -9397,7 +9413,7 @@ async function mvReanalisarCompat(){
   const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
   if(idx<0) return null;
   const v=vagas[idx];
-  const scoreAnterior=parseInt(v.atsScore)||0;
+  const scoreAnterior=(v.rubricaV===RUBRICA_V)?(parseInt(v.atsScore)||0):0;
   // Avisa no próprio veredicto (não só num toast passageiro) — é ali que o olho está
   const _label=document.getElementById('mv-verd-label');
   const _num=document.getElementById('mv-verd-num');
@@ -9414,6 +9430,8 @@ async function mvReanalisarCompat(){
     if(!score){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     vagas[idx].explicacaoQueda=(scoreAnterior&&score<scoreAnterior&&data.explicacao_queda)?String(data.explicacao_queda):'';
     vagas[idx].atsScore=String(score);
+    vagas[idx].rubricaV=RUBRICA_V;
+    vagas[idx].compatDimensoes=data.dimensoes||null;
     if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
@@ -10563,6 +10581,8 @@ async function analisarLoteBackground(){
     if(idx<0) continue;
     vagas[idx].score=data.score;
     vagas[idx].atsScore=String(Math.round(data.score));
+    vagas[idx].rubricaV=RUBRICA_V;
+    vagas[idx].compatDimensoes=data.dimensoes||null;
     if(data.classificacao) vagas[idx].classificacao=data.classificacao;
     if(data.resumo) vagas[idx].resumo=data.resumo;
     if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }

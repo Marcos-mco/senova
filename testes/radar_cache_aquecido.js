@@ -16,8 +16,12 @@
 //   · lote pequeno (<3) → dispara junto mesmo com cache frio (a espera não vale a pena)
 //   · a 1ª falhando NUNCA trava as outras 4, e NUNCA finge que aqueceu o que não aqueceu
 const vm = require('vm');
-const { extrai, assert } = require('./_lib');
+const { extrai, assert, html } = require('./_lib');
 const { t, fim } = assert();
+
+// RUBRICA_V é uma const simples (sem chaves) — extrai() balanceia { }, então não serve aqui;
+// lê o valor real do arquivo por regex para o sandbox nunca divergir da régua vigente.
+const RUBRICA_V = Number((html.match(/const RUBRICA_V=(\d+);/) || [, '1'])[1]);
 
 function fabricarVagas(n) {
   return Array.from({ length: n }, (_, i) => ({
@@ -47,6 +51,7 @@ function montarFetch({ falharTodas = false } = {}) {
 function montarSandbox(vagas, fetchMock, cacheQuenteAte) {
   const sandbox = {
     vagas, WORKER_URL: 'https://w',
+    RUBRICA_V,
     fetch: fetchMock,
     _loteEmAnalise: new Set(), _analiseFalhou: new Set(),
     _cacheQuenteAte: cacheQuenteAte,
