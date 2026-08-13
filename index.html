@@ -8600,24 +8600,28 @@ function deleteVaga(){
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
-// Clique num card do Kanban: igual Windows Explorer — clique simples SELECIONA
-// (nunca abre); Ctrl/Cmd alterna; Shift seleciona o intervalo; duplo-clique abre.
+// Clique num card do Kanban: igual Gmail/Explorer — clique simples ABRE (é o
+// que a pessoa quer fazer na grande maioria das vezes, igual toda outra coluna
+// do Kanban); só Ctrl/Cmd (alterna) e Shift (intervalo) entram em modo seleção.
+// Antes o clique simples selecionava (nunca abria) — Marcos usou e achou o
+// "Remover" aparecendo num clique normal assustador; corrigido em 13/ago/2026.
 function _kcardClick(event,col,id){
   id=String(id);
   if(event.shiftKey){
     event.preventDefault();
     _kanbanSelRange(col,id);
+    renderCRM();
   } else if(event.ctrlKey||event.metaKey){
     event.preventDefault();
     if(!_kanbanSel[col]) _kanbanSel[col]=new Set();
     const s=_kanbanSel[col];
     if(s.has(id)) s.delete(id); else s.add(id);
     _kanbanSelAnchor[col]=id;
+    renderCRM();
   } else {
-    _kanbanSel[col]=new Set([id]);
-    _kanbanSelAnchor[col]=id;
+    if(_kanbanSel[col]&&_kanbanSel[col].size>0){ _kanbanSelClear(col); return; } // clique normal sai do modo seleção sem abrir por engano
+    openVagaModal(id);
   }
-  renderCRM();
 }
 function _kcardDblClick(event,col,id){
   event.preventDefault();
