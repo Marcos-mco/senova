@@ -6965,13 +6965,30 @@ function dropVaga(newStatus, event) {
   event.currentTarget.classList.remove('drag-over');
   _dragEmCurso=false; // drop sempre dispara antes de dragend: libera a trava aqui pro render abaixo valer
   if(dragVagaId==null) return;
-  const idx=vagas.findIndex(v=>String(v.id)===String(dragVagaId));
+  const idArrastado=String(dragVagaId);
+  const idx=vagas.findIndex(v=>String(v.id)===idArrastado);
+  if(idx<0){ dragVagaId=null; return; }
+  const colOrigem=vagas[idx].status;
+  const _selOrigem=_kanbanSel[colOrigem];
+  // Arrastar um card que faz parte de uma seleção de 2+ move o LOTE inteiro — padrão
+  // Windows/Gmail. Arrastar um card fora da seleção (mesmo com outros selecionados na
+  // coluna) move só ele, e a seleção dos outros fica intacta.
+  if(_selOrigem && _selOrigem.size>1 && _selOrigem.has(idArrastado)){
+    _dropVagaLote([..._selOrigem],colOrigem,newStatus);
+    dragVagaId=null;
+    return;
+  }
   if(idx>=0 && vagas[idx].status!==newStatus){
     // Trava da S24 ANTES de escrever: arquivar processo real (Entrevista/Proposta/Aceito) pede
     // confirmação, e TODA transição deixa rastro. Se a trava barrar, o card volta pra coluna de
     // origem (renderCRM redesenha do estado real) — fim do sumiço silencioso via drag, que era o
     // sucessor direto do bug do TV Integração.
     if(!setStatus(vagas[idx],newStatus)){ dragVagaId=null; renderCRM(); return; }
+    // O card saiu da coluna — não pode ficar preso numa seleção que não existe mais ali.
+    if(_selOrigem && _selOrigem.has(idArrastado)){
+      _selOrigem.delete(idArrastado);
+      if(!_selOrigem.size){ delete _kanbanSel[colOrigem]; delete _kanbanSelConfirm[colOrigem]; }
+    }
     saveVagas();
     renderCRM();
     // Status de arquivo → captura de aprendizado
@@ -6999,6 +7016,21 @@ function dropVaga(newStatus, event) {
     setTimeout(()=>document.getElementById('modal-proxima-acao').select(),60);
   }
   dragVagaId=null;
+}
+// Drag de um card dentro de uma seleção 2+ move o LOTE inteiro — mesmo molde do
+// _kanbanSelRemover (1 loop de setStatus com rastro, 1 save, 1 render, 1 toast). Nunca abre
+// os modais de "Próxima ação"/arquivar: são feitos por índice, para 1 card só.
+function _dropVagaLote(ids,colOrigem,newStatus){
+  const rotulo=`Movido em lote — ${_statusLabel(colOrigem)} → ${_statusLabel(newStatus)}`;
+  let movidos=0;
+  vagas.filter(v=>ids.includes(String(v.id))&&v.status!==newStatus).forEach(v=>{
+    if(setStatus(v,newStatus,{skipConfirm:true,texto:rotulo})) movidos++;
+  });
+  delete _kanbanSel[colOrigem]; delete _kanbanSelConfirm[colOrigem];
+  if(!movidos){ renderCRM(); return; }
+  saveVagas();
+  if(filtroAtivo) aplicarFiltros(); else renderCRM();
+  showToast(`✅ ${movidos} movida${movidos===1?'':'s'} para ${_statusLabel(newStatus)}`);
 }
 
 function proximaSalvar(){
