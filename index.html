@@ -6029,13 +6029,6 @@ function _notaDoCard(v){
   const n=parseInt(v?.atsScore);
   return (!isNaN(n) && n>0) ? n : null;
 }
-// Card que a busca automática colocou em Oportunidade e que Marcos ainda não
-// tocou. Só esses podem ser movidos de volta sem consultá-lo: o que ele mexeu
-// tem uma decisão dele dentro, e decisão de humano não se desfaz sozinha.
-function _cardIntocadoDaBusca(v){
-  return v.status==='lead' && v.canal==='Busca automática' && (v.timeline||[]).length<=1;
-}
-
 async function importarVagasLead(){
   const btn = document.getElementById('btn-importar-vagas');
   if(btn){btn.textContent='⏳ Buscando…';btn.disabled=true;}
@@ -6121,7 +6114,11 @@ async function importarVagasLead(){
     resultados.forEach(v=>{
       const similar = _vagaSimilarExistente(v);
       if(similar){ dupsPendentes.push({nova:v, existente:similar, agora}); return; }
-      const scoreMin=_scoreMinParaVaga(v,config);
+      // Mesmo piso do Critério (CRITERIO_MINIMO_VIAVEL) que _criterioParaVaga aplica
+      // no resto do app — sem isto, uma região configurada abaixo de 46 (ex.: quando
+      // Marcos reduz o Critério para destravar) deixava vaga com impedimento
+      // eliminatório entrar direto em Oportunidade pela importação manual.
+      const scoreMin=Math.max(_scoreMinParaVaga(v,config), CRITERIO_MINIMO_VIAVEL);
       // Vaga SEM nota confiável não vira processo. O portão antigo só barrava
       // quando havia número, então toda análise que falhava entrava direto no
       // Kanban como card mudo — e só revelava a nota real quando Marcos abria o
@@ -6272,7 +6269,7 @@ function _reavaliarTriagem(){
       // este card (analisarLoteBackground exige texto), então ele ficaria em
       // Oportunidade para sempre sem ninguém ter dito que é uma. Vai para
       // Para Considerar, onde Marcos decide olhando o link. Nada é apagado.
-      if(_cardIntocadoDaBusca(v)&&(v.jobDescription||v.descricao||'').trim().length<=120){
+      if(!_temTrabalhoReal(v)&&(v.jobDescription||v.descricao||'').trim().length<=120){
         setStatus(v,'triagem',{skipConfirm:true,texto:'Sem descrição para analisar — foi para Para Considerar'});
         mudou=true;
       }
@@ -6285,7 +6282,7 @@ function _reavaliarTriagem(){
     // Mesma régua na direção contrária, para os cards que já estavam pontuados
     // quando a simetria não existia: reprovado pelo Critério não fica ocupando
     // o Kanban. Só os que a busca automática pôs lá e Marcos nunca tocou.
-    else if(_cardIntocadoDaBusca(v)&&nota<_criterioParaVaga(v)){
+    else if(!_temTrabalhoReal(v)&&nota<_criterioParaVaga(v)){
       setStatus(v,'triagem',{skipConfirm:true,texto:`Abaixo do Critério da região (${nota}/100) — foi para Para Considerar`});
       mudou=true;
     }
@@ -10473,7 +10470,7 @@ async function analisarLoteBackground(){
     // Espelho da promoção. Sem ele a porta só abria: card da busca automática
     // que a análise reprovava ficava em Oportunidade para sempre, porque nada
     // no app o tirava de lá. Era o caso da vaga de 12% que Marcos encontrou.
-    else if(_cardIntocadoDaBusca(vagas[idx]) && data.score<criterio){
+    else if(!_temTrabalhoReal(vagas[idx]) && data.score<criterio){
       setStatus(vagas[idx],'triagem',{skipConfirm:true,texto:`Abaixo do Critério da região (${data.score}/100) — foi para Para Considerar`});
     }
     paraRadar.push({id:v.id,score:data.score,classificacao:data.classificacao,resumo:data.resumo,pontos_fortes:data.pontos_fortes,pontos_atencao:data.pontos_atencao,salario_compativel:data.salario_compativel});
