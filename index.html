@@ -8653,6 +8653,23 @@ function _kanbanSelRemover(col){
   if(precisaArquivar.length) partes.push(`${precisaArquivar.length} arquivada${precisaArquivar.length===1?'':'s'}`);
   showToast(`✅ ${partes.join(' · ')}`);
 }
+// Tecla Delete = igual Windows: com seleção ativa, remove (primeiro aperto pede
+// confirmação inline, igual clicar "Remover"; segundo aperto confirma). Esc limpa.
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Delete'&&e.key!=='Escape') return;
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  let col=null;
+  for(const k in _kanbanSel){ if(_kanbanSel[k]&&_kanbanSel[k].size>0){ col=k; break; } }
+  if(!col) return;
+  e.preventDefault();
+  if(e.key==='Delete'){
+    if(_kanbanSelConfirm[col]) _kanbanSelRemover(col);
+    else _kanbanSelPedirConfirmacao(col);
+  } else {
+    _kanbanSelClear(col);
+  }
+});
 
 // Rascunho de formulário (B6)
 const _mvFetchAttempted=new Set();
