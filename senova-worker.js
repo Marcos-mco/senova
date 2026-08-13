@@ -2102,10 +2102,12 @@ async function colherVagasDeEmail(env) {
 // rodapé de página viva.
 const SINAIS_DE_ENCERRAMENTO = [
   /n[ãa]o est[áa] mais dispon[íi]vel/i,
+  /n[ãa]o (est[áa] mais )?aceita(ndo)? mais (candidaturas|inscri[çc][õo]es)/i,
   /vaga (encerrada|expirada|preenchida)/i,
   /esta (vaga|oportunidade)[^.]{0,40}(encerrad|expirad|preenchid)/i,
   /processo seletivo (encerrado|finalizado)/i,
   /no longer (available|accepting applications)/i,
+  /not accepting applications/i,
   /this (job|position|vacancy)[^.]{0,30}(expired|is closed|has been filled)/i,
   /ya no est[áa] disponible/i,
   /(oferta|vacante) (caducada|cerrada|expirada)/i,
