@@ -7398,7 +7398,7 @@ function renderCRM(){
       ${[['default','Padrão'],['newer','Mais recente'],['older','Mais antigo'],['az','A-Z'],['score','Maior score']].map(([v,l])=>`<label class="col-filter-opt"><input type="radio" name="srt-${col}" value="${v}" ${cf.sort===v?'checked':''} onchange="setColFilter('${col}','sort','${v}',event)"> ${l}</label>`).join('')}
       ${hasFilter?`<button class="col-filter-reset" onclick="resetColFilter('${col}')">Limpar filtros</button>`:''}
     </div>`;
-    return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');">
+    return `<div class="kanban-col-drop" ondragover="event.preventDefault();" ondrop="dropVaga('${col}',event);" ondragenter="this.classList.add('drag-over');" ondragleave="if(!this.contains(event.relatedTarget))this.classList.remove('drag-over');" onclick="${col==='lead'?`_kanbanColBackgroundClick(event,'${col}')`:''}">
       <div class="kanban-col-header" style="border-bottom-color:${COL_COLOR[col]};position:relative;">
         ${_kanbanSel[col]&&_kanbanSel[col].size>0?(()=>{
           const n=_kanbanSel[col].size, confirmando=!!_kanbanSelConfirm[col];
@@ -7426,7 +7426,7 @@ function renderCRM(){
         const _logo=_companyLogo(c.empresa||'',c.origemUrl||'');
         const _hasBody=(c.fonte==='Adzuna'||c.fonte==='Jobicy')||!!c.indicacao||!!c.proxima||typeof c.score==='number'||!!c.atsScore||!!(c.descricao||c.jobDescription);
         const _sel=col==='lead'&&_kanbanSel[col]&&_kanbanSel[col].has(String(c.id));
-        return `<div class="kcard${_sel?' kcard-selected':''}" draggable="true" ondragstart="dragVagaId='${c.id}';_dragEmCurso=true;this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');_dragEmCurso=false;if(_renderPendenteDrag){_renderPendenteDrag=false;if(filtroAtivo)aplicarFiltros();else renderCRM();}" onclick="${col==='lead'?`_kcardClick(event,'${col}','${c.id}')`:`openVagaModal('${c.id}')`}" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
+        return `<div class="kcard${_sel?' kcard-selected':''}" draggable="true" ondragstart="dragVagaId='${c.id}';_dragEmCurso=true;this.classList.add('dragging');event.dataTransfer.effectAllowed='move';" ondragend="this.classList.remove('dragging');_dragEmCurso=false;if(_renderPendenteDrag){_renderPendenteDrag=false;if(filtroAtivo)aplicarFiltros();else renderCRM();}" onclick="${col==='lead'?`event.stopPropagation();_kcardClick(event,'${col}','${c.id}')`:`openVagaModal('${c.id}')`}" ondblclick="${col==='lead'?`event.stopPropagation();_kcardDblClick(event,'${col}','${c.id}')`:''}" style="border-left-color:${nv>0?nvColor:corPri[c.prioridade]||'#ccc'}${nv>0?`;box-shadow:0 0 0 1px ${nvColor}33`:''}">
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
             <img src="${_logo?_logo.src:''}" width="${_logo?_logo.size:16}" height="${_logo?_logo.size:16}" data-empresa="${(c.empresa||'').replace(/"/g,'&quot;')}" draggable="false" style="border-radius:${(_logo?.size||0)===20?'4':'3'}px;flex-shrink:0;${_logo?'':'display:none;'}" onerror="this.style.display='none'" loading="lazy">
             <div class="kcard-name" style="margin-bottom:0;">${c.empresa}</div>
@@ -8591,25 +8591,33 @@ function deleteVaga(){
   saveVagas(); aplicarFiltros(); closeVagaModal();
 }
 
-// Clique num card do Kanban: abre normalmente; Ctrl/Cmd alterna seleção; Shift
-// seleciona o intervalo; com seleção ativa na coluna, clique simples também alterna.
+// Clique num card do Kanban: igual Windows Explorer — clique simples SELECIONA
+// (nunca abre); Ctrl/Cmd alterna; Shift seleciona o intervalo; duplo-clique abre.
 function _kcardClick(event,col,id){
   id=String(id);
-  const jaSelecionado=_kanbanSel[col]&&_kanbanSel[col].size>0;
   if(event.shiftKey){
     event.preventDefault();
     _kanbanSelRange(col,id);
-  } else if(event.ctrlKey||event.metaKey||jaSelecionado){
+  } else if(event.ctrlKey||event.metaKey){
     event.preventDefault();
     if(!_kanbanSel[col]) _kanbanSel[col]=new Set();
     const s=_kanbanSel[col];
     if(s.has(id)) s.delete(id); else s.add(id);
     _kanbanSelAnchor[col]=id;
   } else {
-    openVagaModal(id);
-    return;
+    _kanbanSel[col]=new Set([id]);
+    _kanbanSelAnchor[col]=id;
   }
   renderCRM();
+}
+function _kcardDblClick(event,col,id){
+  event.preventDefault();
+  _kanbanSelClear(col);
+  openVagaModal(String(id));
+}
+function _kanbanColBackgroundClick(event,col){
+  if(event.target.closest('.kcard')) return;
+  if(_kanbanSel[col]&&_kanbanSel[col].size>0) _kanbanSelClear(col);
 }
 function _kanbanSelRange(col,id){
   const order=_kanbanColOrder[col]||[];
