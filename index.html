@@ -1279,7 +1279,7 @@ select option { background: var(--bg2); }
         <div class="form-row" style="margin:0;">
           <label class="field-label">Chave (a mesma configurada no Worker)</label>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <input type="password" id="perfil-app-key" placeholder="cole a chave aqui" style="flex:1;min-width:220px;">
+            <input type="text" autocomplete="off" id="perfil-app-key" placeholder="cole a chave aqui" style="flex:1;min-width:220px;-webkit-text-security:disc;">
             <button class="btn btn-primary" onclick="salvarChaveAcesso()" style="font-size:13px;padding:8px 18px;">Salvar chave</button>
           </div>
         </div>
