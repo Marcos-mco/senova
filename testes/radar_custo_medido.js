@@ -31,8 +31,8 @@ t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
 t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
   /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage\)\)/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
-  /async function analisarVaga\([^)]*\bctx\)/.test(worker) &&
-  /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx\)/.test(worker));
+  /async function analisarVaga\([^)]*\bctx\b[^)]*\)/.test(worker) &&
+  /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx(, perfilVAnterior)?\)/.test(worker));
 
 console.log('\n=== o contador é atômico — sem corrida entre chamadas paralelas do mesmo lote ===');
 t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',

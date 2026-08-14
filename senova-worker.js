@@ -394,6 +394,72 @@ PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
 - 59 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
 `.trim();
 
+// Identidade dinâmica (S46 — Perfil deixa de ser write-only). Lê `perfil_usuario`
+// (KV) direto no Worker — o client nunca precisa repassar nada, então os 5 pontos
+// de chamada de analisarVaga/parecerSofia continuam iguais. `override` existe só
+// para o dry-run comparativo e testes; produção sempre chama sem ele.
+// Formação/experiência ficam ESTÁTICAS (vêm de PERFIL_MARCOS) nesta fase — é a base
+// da dimensão "área"; o Perfil ainda não tem onde declarar histórico de carreira.
+// Fallback para o hardcoded só é honesto ENQUANTO houver um único usuário conhecido
+// (Marcos): o hardcoded É a identidade dele. No dia em que existir um 2º usuário
+// real, este ramo tem de virar erro ("complete seu Perfil antes de analisar") —
+// nunca herdar a identidade de Marcos em silêncio.
+async function montarIdentidadeCandidato(env, override) {
+  if (typeof override === 'string' && override.trim()) {
+    return { texto: override.trim(), perfilV: null, origem: 'override' };
+  }
+  let p = null;
+  try {
+    const raw = await env.SENOVA_KV.get('perfil_usuario');
+    p = raw ? JSON.parse(raw) : null;
+  } catch { p = null; } // JSON malformado no KV = tratar como vazio, nunca quebrar a análise
+
+  const temAlgo = p && (p.cargo_alvo || p.cargos_busca || p.salario_minimo || p.localizacoes || p.projeto_vida_texto);
+  if (!temAlgo) {
+    return { texto: `${PERFIL_MARCOS}\n\n${PROJETO_DE_VIDA}`, perfilV: 'hardcoded', origem: 'hardcoded' };
+  }
+
+  // salvarPerfil (index.html) grava modelo_trabalho/paises como CSV ("presencial,hibrido"),
+  // não como flags soltas — ler flags que não existem faz estas preferências desaparecerem
+  // em silêncio (achado do senova-viabilidade, segunda passada, 14/ago).
+  const _csv = s => String(s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const _modelosSet = new Set(_csv(p.modelo_trabalho));
+  const modelos = [_modelosSet.has('presencial') && 'presencial', (_modelosSet.has('hibrido') || _modelosSet.has('híbrido')) && 'híbrido', _modelosSet.has('remoto') && 'remoto'].filter(Boolean);
+  const NOMES_PAIS = { br:'Brasil', es:'Espanha', pt:'Portugal', de:'Alemanha', remoto:'remoto global', eua:'EUA' };
+  const paises = _csv(p.paises).map(k => NOMES_PAIS[k]).filter(Boolean);
+
+  const partes = [
+    PERFIL_MARCOS,
+    'PREFERÊNCIAS ATUAIS DO CANDIDATO (declaradas por ele agora — prevalecem sobre o texto acima em caso de conflito):',
+  ];
+  if (p.cargo_alvo) partes.push(`Cargo-alvo: ${p.cargo_alvo}`);
+  if (p.cargos_busca) partes.push(`Cargos buscados: ${p.cargos_busca}`);
+  // O campo do formulário chama "pretensão salarial mínima" mas guarda hoje o valor IDEAL de
+  // Marcos (R$15-25k), não o piso real de dignidade (R$8k, documentado no projeto de vida) —
+  // rotular isto de "abaixo é impedimento" inventaria uma régua que ele não declarou aqui.
+  // Quem decide impedimento por remuneração é a rubrica, cruzando com o projeto de vida abaixo.
+  if (p.salario_minimo) partes.push(`Pretensão salarial informada pelo candidato: R$${p.salario_minimo}`);
+  if (p.localizacoes) partes.push(`Localização/região: ${p.localizacoes}`);
+  if (modelos.length) partes.push(`Modelo de trabalho aceito: ${modelos.join(', ')}`);
+  if (paises.length) partes.push(`Países/mercados abertos: ${paises.join(', ')}`);
+
+  // Sem texto próprio ainda, o projeto de vida NÃO pode desaparecer do prompt — ele carrega o
+  // piso real de dignidade, a régua de impedimento e o "cargo não é filtro" que a rubrica
+  // depende. Cai no hardcoded (achado (a) do senova-viabilidade) e a origem registra a mistura,
+  // nunca finge que é 100% o que Marcos escreveu.
+  let origem = 'kv';
+  if (p.projeto_vida_texto) {
+    partes.push(`PROJETO DE VIDA, na voz do próprio candidato (pesa tanto quanto o currículo):\n${p.projeto_vida_texto.slice(0, 4000)}`);
+  } else {
+    partes.push(PROJETO_DE_VIDA);
+    origem = 'kv+padrao';
+  }
+
+  const texto = partes.join('\n\n');
+  const perfilV = (await _sha256hex(texto)).slice(0, 12);
+  return { texto, perfilV, origem };
+}
+
 // Pool de termos por idioma. A cada execução o Worker usa QUERIES_POR_RODADA
 // termos, avançando o ponto de partida (KV `rotacao_query_idx`) — assim o pool
 // inteiro é coberto ao longo dos dias sem estourar o teto de subrequests do
@@ -980,8 +1046,8 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx));
+      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -1087,12 +1153,23 @@ export default {
     // ── Perfil do usuário ────────────────────────────────────────────
     if (path === '/api/perfil' && request.method === 'GET') {
       const raw = await env.SENOVA_KV.get('perfil_usuario');
-      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7 };
-      return json(raw ? JSON.parse(raw) : padrao);
+      // projeto_vida_texto semeado com o hardcoded atual (S46): Marcos parte de algo
+      // pronto pra reescrever na própria voz, em vez de campo vazio — ver montarIdentidadeCandidato.
+      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7 };
+      // Merge, não substituição: um Perfil já salvo (caso real de Marcos hoje) não tem a
+      // chave nova projeto_vida_texto — sem o merge ela vinha undefined e a semeadura acima
+      // nunca aparecia pra quem já usa o Perfil, só pra um KV vazio que não existe mais.
+      return json(raw ? { ...padrao, ...JSON.parse(raw) } : padrao);
     }
 
     if (path === '/api/perfil' && request.method === 'POST') {
       const dados = await request.json();
+      // A tela trava em 4.000 (maxlength) mas .value setado por script ignora o atributo —
+      // sem este teto o KV pode guardar mais do que a tela mostra, e montarIdentidadeCandidato
+      // cortaria em silêncio na hora de montar o prompt (achado do senova-viabilidade, 14/ago).
+      if (typeof dados.projeto_vida_texto === 'string' && dados.projeto_vida_texto.length > 4000) {
+        dados.projeto_vida_texto = dados.projeto_vida_texto.slice(0, 4000);
+      }
       await env.SENOVA_KV.put('perfil_usuario', JSON.stringify(dados));
       return json({ ok: true });
     }
@@ -2770,24 +2847,23 @@ async function _registrarCustoIA(env, usage) {
   }
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx) {
-  // Costura de identidade (A1): pontua o perfil que RECEBE. Sem perfilCandidato,
-  // cai no PERFIL_MARCOS (retrocompatível — o app hoje não manda). O Worker fica
-  // stateless quanto à identidade: multi-user depois só troca qual perfil chega.
-  const perfil = (typeof perfilCandidato === 'string' && perfilCandidato.trim())
-    ? perfilCandidato.trim() : PERFIL_MARCOS;
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior) {
+  // Identidade dinâmica (S46): lê perfil_usuario do KV direto no Worker — ver
+  // montarIdentidadeCandidato. perfilCandidato continua existindo como override
+  // explícito (dry-run/testes); em produção nenhum call site manda, então isto
+  // sempre resolve via KV (ou hardcoded, se o Perfil ainda estiver vazio).
+  const { texto: perfil, perfilV, origem: perfilOrigem } = await montarIdentidadeCandidato(env, perfilCandidato);
   const _scoreAnt = (typeof scoreAnterior === 'number' && scoreAnterior > 0) ? scoreAnterior : 0;
+  // Rubrica primeiro, identidade por último: identidade agora pode mudar (Marcos edita
+  // o Perfil) — se ficasse na frente, cada edição invalidava o cache do bloco inteiro.
+  // Com a rubrica (estável, nunca muda) como prefixo, só o bloco de identidade recacheia.
   const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
-
-CANDIDATO: ${perfil}
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
-IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do CANDIDATO acima. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
+IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do candidato informado abaixo. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
 
-${PROJETO_DE_VIDA}
-
-IMPEDIMENTOS — avalie ANTES de pontuar. Impedimento é o que torna esta vaga inviável ou contrária ao projeto de vida acima, não um requisito que faltou. Só é impedimento o que a descrição REALMENTE sustenta:
+IMPEDIMENTOS — avalie ANTES de pontuar. Impedimento é o que torna esta vaga inviável ou contrária ao projeto de vida do candidato (informado abaixo), não um requisito que faltou. Só é impedimento o que a descrição REALMENTE sustenta:
 · idioma local ou exigido que o candidato não fala;
 · presença física obrigatória em praça que ele não aceita (ver projeto de vida) — estar no exterior, por si só, não é impedimento;
 · remuneração declarada abaixo do piso do candidato (ver projeto de vida — o piso é baixo de propósito);
@@ -2802,7 +2878,7 @@ PONTUAÇÃO — 5 dimensões, cada uma com teto próprio. Não calcule nem devol
 · nível (0-20): o quanto o ESCOPO/senioridade da vaga corresponde ao porte dele. Senioridade abaixo do pico, sozinha, não pode zerar esta dimensão quando a vaga é claramente a praia dele (área forte) — tire alguns pontos e registre o gap em pontos_atencao, mas não afunde.
 · idioma (0-20): os idiomas DECLARADOS no perfil do candidato batem com o exigido, e a presença física/local da vaga é compatível com o que ele aceita.
 · remuneração (0-15): a remuneração declarada (quando houver) está dentro ou acima do piso do candidato.
-· projeto de vida (0-15): quanto esta vaga aproxima ou afasta o candidato do PROJETO DE VIDA acima — não só o currículo. Vaga tecnicamente ótima que o afasta do projeto de vida vale pouco aqui, e o motivo tem de aparecer em pontos_atencao. Vaga que serve à vida dele pontua alto aqui mesmo com alguma lacuna técnica em outra dimensão.
+· projeto de vida (0-15): quanto esta vaga aproxima ou afasta o candidato do PROJETO DE VIDA dele (informado abaixo) — não só o currículo. Vaga tecnicamente ótima que o afasta do projeto de vida vale pouco aqui, e o motivo tem de aparecer em pontos_atencao. Vaga que serve à vida dele pontua alto aqui mesmo com alguma lacuna técnica em outra dimensão.
 Nada que seja impedimento pode ser listado como ponto forte, em nenhuma dimensão.
 
 INFORMAÇÃO INSUFICIENTE: se a descrição for curta ou vazia demais para julgar de verdade, não invente nem impedimento nem ponto forte. Diga em pontos_atencao que a avaliação foi feita com pouca informação e mantenha as 5 notas contidas — é honesto ficar em dúvida.
@@ -2828,7 +2904,10 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
         model:'claude-sonnet-4-6',
         temperature:0,
         max_tokens:1100,
-        system:[{ type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } }],
+        system:[
+          { type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } },
+          { type:'text', text:`CANDIDATO (perfil e projeto de vida — a rubrica acima se refere a este bloco): ${perfil}`, cache_control:{ type:'ephemeral' } },
+        ],
         messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,4000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
       }),
     });
@@ -2836,6 +2915,12 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     const data = await resp.json();
     if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+    r.perfil_v = perfilV;
+    r.perfil_origem = perfilOrigem;
+    // Carimbo de honestidade (veto do senova-viabilidade): se a identidade usada mudou
+    // desde a última análise deste card, a queda de nota pode ser da RÉGUA, não da vaga —
+    // a IA não tem como saber disso, então o código decide, nunca ela.
+    if (perfilVAnterior && perfilV && perfilVAnterior !== perfilV) r.explicacao_queda = '';
 
     // Score deixou de ser pedido solto à IA (S45 — auditoria de Marcos): a soma das 5
     // dimensões é feita AQUI, em código, para o total virar aritmética verificável, não
@@ -2892,8 +2977,8 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
 // isso. A Sofia então contradizia, no mesmo card, a nota que este arquivo dava.
 // Quem chama manda os FATOS DA VAGA; PERFIL_MARCOS + PROJETO_DE_VIDA saem daqui.
 async function parecerSofia(dados, env, perfilCandidato) {
-  const perfil = (typeof perfilCandidato === 'string' && perfilCandidato.trim())
-    ? perfilCandidato.trim() : PERFIL_MARCOS;
+  // Identidade dinâmica (S46) — mesma fonte de analisarVaga, ver montarIdentidadeCandidato.
+  const { texto: perfil } = await montarIdentidadeCandidato(env, perfilCandidato);
   const d = dados || {};
   const campo = (v, vazio) => (typeof v === 'string' && v.trim()) ? v.trim() : vazio;
   const empresa = campo(d.empresa, 'não informada');
@@ -2932,9 +3017,7 @@ async function parecerSofia(dados, env, perfilCandidato) {
 
 VOZ — regra que vem antes de todas: você fala DIRETAMENTE com a pessoa, tratando-a por "você". A ficha abaixo está escrita em terceira pessoa porque é um cadastro; você NUNCA escreve assim. Nada de "Marcos tem", "o candidato deveria", "para ele" — é "você tem", "eu recomendo que você", "no seu caso". Chamá-lo pelo primeiro nome no meio de uma frase é natural e bem-vindo ("Marcos, isso aqui merece atenção"); falar SOBRE ele, como se ele não estivesse lendo, não é.
 
-CANDIDATO (ficha em terceira pessoa — converta para "você" ao falar): ${perfil}
-
-${PROJETO_DE_VIDA}
+CANDIDATO (ficha em terceira pessoa, inclui o projeto de vida dele — converta para "você" ao falar): ${perfil}
 
 OPORTUNIDADE:
 Empresa: ${empresa}

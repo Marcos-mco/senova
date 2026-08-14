@@ -1062,6 +1062,14 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Meu projeto de vida -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Meu projeto de vida</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;">O que a Compatibilidade e a Sofia usam para julgar se uma vaga serve à sua vida, não só ao seu currículo. Escreva na sua voz — pesa tanto quanto a experiência profissional.</div>
+        <textarea id="perfil-projeto-vida" rows="8" maxlength="4000" oninput="_onPerfilProjetoVidaInput()" placeholder="Seu objetivo de vida, o que uma vaga precisa respeitar pra servir a ele, o que é impedimento de verdade..." style="font-size:14px;line-height:1.5;resize:vertical;"></textarea>
+        <div id="perfil-projeto-vida-count" style="font-size:12px;color:var(--text3);text-align:right;margin-top:6px;">0/4000 caracteres</div>
+      </div>
+
       <!-- Empresas que acompanho -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Empresas que acompanho</div>
@@ -2054,6 +2062,7 @@ select option { background: var(--bg2); }
                  Sempre visível, junto da frase e da nota. É o enunciado do veredicto, não um
                  segundo veredicto: por isso entra sem o rótulo "VEREDICTO:" que existia antes. -->
             <div id="mv-verd-resumo" style="display:none;font-size:13px;color:var(--text);line-height:1.65;margin-top:9px;"></div>
+            <div id="mv-verd-perfil" style="display:none;font-size:11.5px;color:var(--text3);margin-top:6px;"></div>
             <div id="mv-verd-hint" style="display:none;font-size:13px;color:var(--text2);line-height:1.6;margin-top:7px;"></div>
             <!-- ANALISAR não mora mais aqui (28/jul, S38). Dentro da moldura do veredicto ele era o
                  maior e mais escuro elemento do card, logo abaixo de uma conclusão já dada: o ponto
@@ -4578,6 +4587,14 @@ function _perfilRenderIdiomaPadrao(daTela){
   if(_perfilIdioma&&_perfilIdioma.padrao!==sel.value) _guardarPerfilIdioma(sel.value,_perfilIdioma.niveis);
 }
 
+function _onPerfilProjetoVidaInput(){
+  const el=document.getElementById('perfil-projeto-vida');
+  const cc=document.getElementById('perfil-projeto-vida-count');
+  if(!el||!cc) return;
+  const n=el.value.length;
+  cc.textContent=n+'/4000 caracteres';
+  cc.style.color=n>=4000?'#CC0000':'var(--text3)';
+}
 async function carregarPerfil(){
   // Desenha o seletor de idioma ANTES do fetch: se o Worker não responder, a pessoa ainda vê uma
   // lista (a do cache local) em vez de um dropdown vazio. Depois do fetch ele é redesenhado.
@@ -4608,6 +4625,7 @@ async function carregarPerfil(){
     const SCORES={br:70,espt:55,de:50,remoto:60,us:65};
     const _smrPerfil={}; Object.keys(SCORES).forEach(k=>{ _smrPerfil[k]=p[`score_minimo_${k}`]??SCORES[k]; });
     _setCriterioUI(_smrPerfil);
+    const pv=document.getElementById('perfil-projeto-vida'); if(pv){ pv.value=p.projeto_vida_texto||''; _onPerfilProjetoVidaInput(); }
     document.getElementById('perfil-empresas-alvo').value=p.empresas_alvo||'';
     const _PLATS=['linkedin','gupy','indeed','catho','vagas','infojobs','xing','wellfound','stepstone'];
     const _plats=p.plataformas||{};
@@ -4661,6 +4679,7 @@ async function salvarPerfil(){
     cargos_busca:document.getElementById('perfil-cargos-busca').value.trim(),
     salario_minimo:document.getElementById('perfil-salario-minimo').value,
     localizacoes:document.getElementById('perfil-localizacoes').value.trim(),
+    projeto_vida_texto:document.getElementById('perfil-projeto-vida')?.value.trim()||'',
     modelo_trabalho:modelos,
     paises,
     score_minimo_br:smr.br,score_minimo_espt:smr.espt,score_minimo_de:smr.de,score_minimo_remoto:smr.remoto,score_minimo_us:smr.us,
@@ -6258,7 +6277,10 @@ const CRITERIO_MINIMO_VIAVEL=46;
 // Cartão com rubricaV diferente da atual é tratado como SEM nota anterior — nunca manda
 // SCORE ANTERIOR pro Worker nesse caso, senão a IA explicaria uma "queda" que só existe
 // porque a régua mudou de escala, não porque a vaga piorou. Ver mvReanalisarCompat().
-const RUBRICA_V=2;
+// S46: rubrica passa a ter a identidade DEPOIS (não antes) no system prompt, pra caching
+// sobreviver a edições do Perfil — reordenar+reescrever referências pode mudar a distribuição
+// de resposta da IA mesmo sem mudar as dimensões, então conta como mudança de régua.
+const RUBRICA_V=3;
 // Critério (número) da região de uma vaga/card — aceita shape de card (origemUrl/localizacao) ou de lead (url/local).
 function _criterioParaVaga(cardOuVaga){
   const cfg=_configVarredura||{score_minimo_por_regiao:{}};
@@ -9171,6 +9193,16 @@ function mvUpdateScoreDisplay(vOpt){
       : 'Cole a descrição da vaga abaixo — sem ela eu analisaria no escuro.');
     hintEl.style.display=temAnalise?'none':'';
   }
+  // Perfil usado nesta análise (S46 — identidade dinâmica). Só aparece quando NÃO é o
+  // hardcoded: esse sempre foi assim, avisar sobre ele seria ruído. 'kv' = Perfil que
+  // Marcos preencheu; 'override' = identidade manual (dry-run/teste).
+  const perfilEl=document.getElementById('mv-verd-perfil');
+  if(perfilEl){
+    const _origem=temAnalise?(v?.perfilOrigem||''):'';
+    const _rotulo=_origem==='kv'?'dinâmico (seu Perfil)':_origem==='kv+padrao'?'dinâmico (seu Perfil — projeto de vida ainda padrão)':_origem==='override'?'manual':'';
+    perfilEl.textContent=_rotulo?('Perfil usado nesta análise: '+_rotulo):'';
+    perfilEl.style.display=_rotulo?'':'none';
+  }
   // ── O RESUMO ────────────────────────────────────────────────────────────────
   // Ele era pedido ao Worker, pago e gravado — e não chegava à tela. O único caminho que o
   // exibia era o fallback de prosa, que só roda quando NÃO há bullets; e esse mesmo caminho
@@ -9313,6 +9345,8 @@ async function mvAutoCompatCheck(){
     if(!score){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     alvo.atsScore=String(score);
     alvo.rubricaV=RUBRICA_V;
+    alvo.perfilV=data.perfil_v||null;
+    alvo.perfilOrigem=data.perfil_origem||'';
     alvo.compatDimensoes=data.dimensoes||null;
     alvo.compatClass=data.classificacao||'';
     alvo.compatFortes=data.pontos_fortes||[];
@@ -9452,6 +9486,7 @@ async function mvReanalisarCompat(){
   if(idx<0) return null;
   const v=vagas[idx];
   const scoreAnterior=(v.rubricaV===RUBRICA_V)?(parseInt(v.atsScore)||0):0;
+  const perfilVAnterior=v.perfilV||undefined; // manda pro Worker decidir se a queda é da vaga ou da régua de perfil
   // Avisa no próprio veredicto (não só num toast passageiro) — é ali que o olho está
   const _label=document.getElementById('mv-verd-label');
   const _num=document.getElementById('mv-verd-num');
@@ -9460,7 +9495,7 @@ async function mvReanalisarCompat(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined})
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior})
     });
     if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     const data=await res.json();
@@ -9469,6 +9504,8 @@ async function mvReanalisarCompat(){
     vagas[idx].explicacaoQueda=(scoreAnterior&&score<scoreAnterior&&data.explicacao_queda)?String(data.explicacao_queda):'';
     vagas[idx].atsScore=String(score);
     vagas[idx].rubricaV=RUBRICA_V;
+    vagas[idx].perfilV=data.perfil_v||null;
+    vagas[idx].perfilOrigem=data.perfil_origem||'';
     vagas[idx].compatDimensoes=data.dimensoes||null;
     if(typeof vagas[idx].score==='number') vagas[idx].score=score; // mantém Kanban coerente (prioriza score numérico)
     vagas[idx].compatClass=data.classificacao||'';
@@ -10620,6 +10657,8 @@ async function analisarLoteBackground(){
     vagas[idx].score=data.score;
     vagas[idx].atsScore=String(Math.round(data.score));
     vagas[idx].rubricaV=RUBRICA_V;
+    vagas[idx].perfilV=data.perfil_v||null;
+    vagas[idx].perfilOrigem=data.perfil_origem||'';
     vagas[idx].compatDimensoes=data.dimensoes||null;
     if(data.classificacao) vagas[idx].classificacao=data.classificacao;
     if(data.resumo) vagas[idx].resumo=data.resumo;
