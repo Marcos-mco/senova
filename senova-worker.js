@@ -1068,7 +1068,9 @@ export default {
     if (path === '/api/link-vivo' && request.method === 'POST') {
       if (!(await rateLimit(request, env, 60, 60))) return json({ estado: 'inconclusivo', motivo: 'limite_de_uso' });
       const { url: alvo } = await request.json();
-      return json(await verificarLinkVaga(alvo));
+      const _res = await verificarLinkVaga(alvo);
+      console.log('[link-vivo/diag]', alvo, JSON.stringify(_res)); // TEMPORÁRIO — medir causa raiz do caso Cogny (14/ago), remover depois
+      return json(_res);
     }
 
     // ── Varredura manual (próximo país da rotação) ───────────────────
@@ -2227,12 +2229,14 @@ async function _verificarLinkedInGuest(id) {
       },
     });
     if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
-    if (!r.ok) return null;
+    if (!r.ok) { console.log('[link-vivo/diag] guest não-ok', id, r.status); return null; }
     const html = await r.text();
     if (/closed-job/i.test(html)) return { estado: 'morto', motivo: 'linkedin_closed_job', http: r.status };
     if (/top-card-layout__title|topcard__title/i.test(html)) return { estado: 'vivo', http: r.status };
+    console.log('[link-vivo/diag] guest ambíguo', id, r.status, html.length, html.slice(0, 300)); // TEMPORÁRIO
     return null; // resposta que não bate com nenhum padrão conhecido — não afirma nada
-  } catch {
+  } catch (e) {
+    console.log('[link-vivo/diag] guest erro', id, String(e)); // TEMPORÁRIO
     return null;
   } finally { clearTimeout(relogio); }
 }
