@@ -27,7 +27,7 @@ t('_registrarCustoIA sai cedo quando não há usage ou não há D1 (resposta sem
 
 console.log('\n=== a instrumentação nunca derruba nem atrasa a análise real ===');
 t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
-  /async function _registrarCustoIA[\s\S]{0,80}try \{[\s\S]{0,900}\} catch \(err\) \{[\s\S]{0,120}\}\n\}/.test(worker));
+  /async function _registrarCustoIA[\s\S]{0,80}try \{[\s\S]{0,900}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
 t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
   /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage\)\)/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
