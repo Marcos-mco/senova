@@ -30,18 +30,23 @@ const t = (nome, cond, extra) => {
 };
 
 // Sandbox com um fetch de mentira: cada teste diz o que o portal responde.
-let _resposta = null, _urlPedida = '', _headersPedidos = null;
+// _respostaPorUrl permite respostas DIFERENTES por URL (necessário pro LinkedIn: jobs-guest e
+// a página original são dois fetches distintos) — o padrão devolve sempre _resposta, como antes.
+let _resposta = null, _urlPedida = '', _headersPedidos = null, _urlsPedidas = [];
+let _respostaPorUrl = (u) => _resposta;
 const sandbox = {
   console, URL,   // o vm isola os globais; sem isto todo endereço vira "url_invalida"
   setTimeout: () => 0, clearTimeout() {},
   AbortController: function () { this.signal = {}; this.abort = () => {}; },
   fetch: async (u, init) => {
-    _urlPedida = u; _headersPedidos = init && init.headers;
-    if (_resposta instanceof Error) throw _resposta;
+    _urlPedida = u; _headersPedidos = init && init.headers; _urlsPedidas.push(u);
+    const resp = _respostaPorUrl(u);
+    if (resp instanceof Error) throw resp;
     return {
-      status: _resposta.status,
-      ok: _resposta.status >= 200 && _resposta.status < 300,
-      text: async () => _resposta.html || '',
+      status: resp.status,
+      ok: resp.status >= 200 && resp.status < 300,
+      text: async () => resp.html || '',
+      url: resp.url || u,
     };
   },
 };
@@ -49,6 +54,7 @@ vm.createContext(sandbox);
 vm.runInContext([
   extrai('const SINAIS_DE_ENCERRAMENTO ='),
   extrai('function _hostProibido('),
+  extrai('async function _verificarLinkedInGuest('),
   extrai('async function verificarLinkVaga('),
 ].join('\n;\n'), sandbox);
 
@@ -105,6 +111,47 @@ const URL_ADZUNA = 'https://www.adzuna.com.br/details/5199?utm_medium=api&utm_so
   t('EN: "no longer available" = morto', (await checar('https://jobicy.com/jobs/1')).estado === 'morto');
   _resposta = { status: 200, html: '<html><body>Diese Stelle ist nicht mehr verfügbar</body></html>' };
   t('DE: "nicht mehr verfügbar" = morto', (await checar('https://www.adzuna.de/details/1')).estado === 'morto');
+
+  console.log('\n=== LinkedIn: o jobs-guest decide primeiro, sem passar pelo authwall (Furo 5) ===');
+  // 14/ago: o Fix 1 (identidade da resposta) só consegue rebaixar o /comm/jobs/view/ de "vivo"
+  // falso pra "inconclusivo" — o authwall redireciona igual pra vaga viva ou morta. O jobs-guest
+  // é o único caminho que devolve um veredito de verdade pra esse formato (maioria dos leads
+  // de Marcos, que vêm de digest de e-mail). Ver senova-extension/background.js:_buscarDescricaoGuest.
+  const VAGA_LINKEDIN_FECHADA = '<html><body><div class="closed-job closed-job__flavor">No longer accepting applications</div></body></html>';
+  const VAGA_LINKEDIN_ABERTA = '<html><body><h1 class="top-card-layout__title">Head of Sales</h1></body></html>';
+
+  _urlsPedidas = [];
+  _respostaPorUrl = (u) => u.includes('jobs-guest') ? { status: 200, html: VAGA_LINKEDIN_ABERTA } : { status: 200, html: '<html>fallback nunca deveria ser lido</html>' };
+  r = await checar('https://www.linkedin.com/jobs/view/4320681531');
+  t('jobs-guest com título = VIVO', r.estado === 'vivo', JSON.stringify(r));
+  t('bateu no jobs-guest com o ID certo', _urlsPedidas.some(u => u.includes('jobs-guest/jobs/api/jobPosting/4320681531')), _urlsPedidas.join(','));
+  t('nem chegou a chamar a página original (o guest já respondeu)', !_urlsPedidas.includes('https://www.linkedin.com/jobs/view/4320681531'));
+
+  _urlsPedidas = [];
+  _respostaPorUrl = (u) => u.includes('jobs-guest') ? { status: 200, html: VAGA_LINKEDIN_FECHADA } : { status: 200, html: VAGA_VIVA };
+  r = await checar('https://www.linkedin.com/jobs/view/4310000111');
+  t('jobs-guest com "closed-job" = MORTO, mesmo o fallback dizendo o contrário (o guest manda)', r.estado === 'morto' && r.motivo === 'linkedin_closed_job', JSON.stringify(r));
+
+  console.log('\n=== LinkedIn: /comm/jobs/view/ (formato de e-mail) usa o mesmo ID ===');
+  _urlsPedidas = [];
+  _respostaPorUrl = (u) => u.includes('jobs-guest') ? { status: 200, html: VAGA_LINKEDIN_FECHADA } : { status: 200, html: VAGA_VIVA };
+  r = await checar('https://www.linkedin.com/comm/jobs/view/4310000111?trk=email_jymbii');
+  t('/comm/jobs/view/{id} também extrai o ID e vira MORTO via jobs-guest', r.estado === 'morto', JSON.stringify(r));
+  t('o ID extraído do /comm/ é o número certo', _urlsPedidas.some(u => u.endsWith('/jobPosting/4310000111')), _urlsPedidas.join(','));
+
+  console.log('\n=== LinkedIn: guest bloqueado ou ambíguo NUNCA inventa "vivo" — cai pro caminho genérico ===');
+  _urlsPedidas = [];
+  _respostaPorUrl = (u) => ({ status: 403, html: '' }); // bloqueado nos dois fetches
+  r = await checar('https://www.linkedin.com/jobs/view/4320681531');
+  t('jobs-guest bloqueado (403) cai pro fetch genérico, que também bloqueado = INCONCLUSIVO (nunca vivo)', r.estado === 'inconclusivo', JSON.stringify(r));
+
+  _urlsPedidas = [];
+  _respostaPorUrl = (u) => u.includes('jobs-guest') ? { status: 200, html: '<html>marcação que o guest não reconhece</html>' } : { status: 200, html: VAGA_VIVA };
+  r = await checar('https://www.linkedin.com/jobs/view/4320681531');
+  t('jobs-guest com resposta não reconhecida cai pro fetch genérico (não trava em null)', r.estado === 'vivo', JSON.stringify(r));
+  t('o fetch genérico foi mesmo chamado nesse caso de ambiguidade', _urlsPedidas.includes('https://www.linkedin.com/jobs/view/4320681531'), _urlsPedidas.join(','));
+
+  _respostaPorUrl = (u) => _resposta; // volta ao padrão de um valor só, pro resto dos testes
 
   console.log('\n=== o alvo é barrado antes do fetch (buscar URL arbitrária é poder de proxy) ===');
   for (const [nome, u] of [

@@ -2207,12 +2207,49 @@ function _hostProibido(h) {
   }
   return false;
 }
+// LinkedIn é SPA e o link mais comum nas Oportunidades de Marcos (nascido de e-mail) vem no
+// formato /comm/jobs/view/ID, que redireciona pro authwall TANTO se a vaga está viva quanto
+// morta (medido 14/ago) — o fetch genérico em verificarLinkVaga não tem como distinguir esse
+// caso e volta "inconclusivo", honesto mas inútil. A API pública jobs-guest (mesma fonte que a
+// extensão já usa para enriquecer descrição, senova-extension/background.js:757-760) devolve o
+// HTML real da vaga sem authwall e carimba `closed-job` na encerrada. Medido contra o gabarito
+// do senova-auditor: 8/8 mortas com o marcador, 4/4 vivas sem ele e com o título presente.
+// Se o jobs-guest não responder (bloqueio de IP da Cloudflare, por ex.) devolve null e quem
+// chamou cai no fetch genérico abaixo — nunca inventa "vivo" por falta de uma fonte.
+async function _verificarLinkedInGuest(id) {
+  const ctrl = new AbortController();
+  const relogio = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const r = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, {
+      method: 'GET', signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+    if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
+    if (!r.ok) return null;
+    const html = await r.text();
+    if (/closed-job/i.test(html)) return { estado: 'morto', motivo: 'linkedin_closed_job', http: r.status };
+    if (/top-card-layout__title|topcard__title/i.test(html)) return { estado: 'vivo', http: r.status };
+    return null; // resposta que não bate com nenhum padrão conhecido — não afirma nada
+  } catch {
+    return null;
+  } finally { clearTimeout(relogio); }
+}
 async function verificarLinkVaga(alvo) {
   let u;
   try { u = new URL(String(alvo || '')); } catch { return { estado: 'inconclusivo', motivo: 'url_invalida' }; }
   if (!/^https?:$/.test(u.protocol))    return { estado: 'inconclusivo', motivo: 'protocolo_nao_suportado' };
   if (u.username || u.password)         return { estado: 'inconclusivo', motivo: 'url_com_credencial' };
   if (_hostProibido(u.hostname))        return { estado: 'inconclusivo', motivo: 'host_nao_permitido' };
+  if (/(^|\.)linkedin\.com$/i.test(u.hostname)) {
+    const id = (u.pathname.match(/\/jobs\/view\/(\d+)/) || [])[1];
+    if (id) {
+      const guest = await _verificarLinkedInGuest(id);
+      if (guest) return guest;
+    }
+  }
   const ctrl = new AbortController();
   const relogio = setTimeout(() => ctrl.abort(), 9000);
   try {
