@@ -2150,6 +2150,23 @@ async function verificarLinkVaga(alvo) {
         'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8,es;q=0.7',
       },
     });
+    // Prova de identidade da resposta (medido 14/ago): `redirect:'follow'` segue o 301 e some
+    // com a pergunta original. Vaga expirada do LinkedIn redireciona para uma LISTAGEM de vagas
+    // (path muda, ela mesma carimba `trk=expired_jd_redirect` na URL final); vaga que exige login
+    // redireciona para /uas/login. Nos dois casos o Worker lia a página errada e respondia sobre
+    // ela — nunca sobre a vaga pedida. Path final igual ao pedido = ainda estamos na página certa,
+    // segue a checagem normal abaixo; path diferente = a resposta não é mais sobre esta vaga.
+    let pathMudou = false;
+    try {
+      const uFinal = new URL(r.url);
+      pathMudou = uFinal.pathname.replace(/\/+$/, '') !== u.pathname.replace(/\/+$/, '');
+    } catch { /* r.url inválida — trata como não mudou, segue o fluxo normal */ }
+    if (pathMudou) {
+      if (/expired_jd_redirect/i.test(r.url)) return { estado: 'morto', motivo: 'anuncio_expirado_redirect', http: r.status };
+      // Login/authwall/listagem/busca: não prova que a vaga morreu, mas também não é mais
+      // a página da vaga — não pode virar "vivo" sobre um conteúdo que não é o dela.
+      return { estado: 'inconclusivo', motivo: 'redirecionado_para_outra_pagina', http: r.status };
+    }
     if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
     if (r.status === 403 || r.status === 429 || r.status >= 500) return { estado: 'inconclusivo', motivo: 'portal_bloqueou', http: r.status };
     if (!r.ok) return { estado: 'inconclusivo', motivo: 'resposta_inesperada', http: r.status };

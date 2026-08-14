@@ -8029,6 +8029,7 @@ function _mvPintarEstadoLink(d){
     el.textContent='△ anúncio encerrado'; el.style.color='#B8670A';
     // A afirmação vem com a prova: ou a página sumiu, ou ela mesma diz que acabou.
     el.title=d&&d.trecho?('A própria página diz: "'+String(d.trecho).slice(0,220)+'"')
+                        :d&&d.motivo==='anuncio_expirado_redirect'?'O próprio LinkedIn redirecionou este link como vaga expirada.'
                         :'A página deste anúncio não existe mais (404/410).';
   } else {
     el.textContent='● não consegui verificar'; el.style.color='var(--text3)';
@@ -8038,6 +8039,7 @@ function _mvPintarEstadoLink(d){
     const _m=(d&&d.motivo)||'';
     el.title=_m==='portal_bloqueou' ? 'Este portal não deixa verificar de fora (é o caso do LinkedIn). Não quer dizer que a vaga encerrou — só abrindo para saber.'
            : _m==='demorou_demais'  ? 'O portal demorou demais para responder. Isso NÃO quer dizer que a vaga encerrou.'
+           : _m==='redirecionado_para_outra_pagina' ? 'O link redirecionou para outra página (login ou listagem) — não é mais a vaga específica, então não dá pra confirmar se ainda está aberta.'
            : 'O portal não respondeu ou bloqueou a verificação. Isso NÃO quer dizer que a vaga encerrou.';
   }
   el.style.display='';
