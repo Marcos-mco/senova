@@ -896,6 +896,16 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Minhas experiências (fundamento estruturado — Sofia usa depois para montar o CV) -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Minhas experiências</div>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:16px;">
+          Histórico estruturado por cargo. Ainda não entra em nenhuma análise — é a base que a Sofia vai usar para montar o CV por vaga.
+        </div>
+        <div id="exp-lista"></div>
+        <button class="btn btn-ghost" onclick="expAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar experiência</button>
+      </div>
+
       <!-- Dados para candidatura (sensíveis) — APENAS neste navegador -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -4515,6 +4525,97 @@ function _cvMasterLock(){
   document.getElementById('cv-master-acoes').style.display='none';
 }
 function _cvMasterUnlockSilent(){ _cvMasterUnlock(); }
+
+// ═══════════════════════════════════════════════
+//  MINHAS EXPERIÊNCIAS (Perfil estruturado)
+// ═══════════════════════════════════════════════
+let _expDados = [];
+function _expNovoId(){ return 'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function _expEsc(s){ return String(s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function _expCampo(id, campo, valor){
+  const e = _expDados.find(x=>x.id===id);
+  if(!e) return;
+  e[campo] = valor;
+}
+function expRenderizar(){
+  const lista = document.getElementById('exp-lista');
+  if(!lista) return;
+  if(!_expDados.length){
+    lista.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:4px 0 14px;">Nenhuma experiência cadastrada ainda.</p>';
+    return;
+  }
+  lista.innerHTML = _expDados.map(e => `
+    <div class="exp-item" id="exp-${e.id}" style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--bg3);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div><label class="field-label">Cargo</label><input type="text" value="${_expEsc(e.cargo)}" maxlength="120" oninput="_expCampo('${e.id}','cargo',this.value)"></div>
+        <div><label class="field-label">Empresa</label><input type="text" value="${_expEsc(e.empresa)}" maxlength="120" oninput="_expCampo('${e.id}','empresa',this.value)"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div><label class="field-label">Local</label><input type="text" value="${_expEsc(e.local)}" maxlength="80" oninput="_expCampo('${e.id}','local',this.value)"></div>
+        <div><label class="field-label">Início</label><input type="text" placeholder="mm/aaaa" value="${_expEsc(e.inicio)}" oninput="_expCampo('${e.id}','inicio',this.value)"></div>
+        <div>
+          <label class="field-label">Fim</label>
+          <input type="text" placeholder="mm/aaaa" value="${_expEsc(e.fim)}" oninput="_expCampo('${e.id}','fim',this.value)">
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:var(--text2);cursor:pointer;">
+            <input type="checkbox" ${e.atual?'checked':''} onchange="_expCampo('${e.id}','atual',this.checked)" style="accent-color:var(--navy);width:14px;height:14px;">
+            Cargo atual
+          </label>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div><label class="field-label">Nível</label><input type="text" placeholder="ex: diretoria, gerencial, c-level" maxlength="80" value="${_expEsc(e.nivel)}" oninput="_expCampo('${e.id}','nivel',this.value)"></div>
+        <div><label class="field-label">Área (separe por vírgula)</label><input type="text" placeholder="ex: marketing, vendas, gestão" maxlength="200" value="${_expEsc(e.tags_area)}" oninput="_expCampo('${e.id}','tags_area',this.value)"></div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label class="field-label">Principais entregas — uma por linha</label>
+        <textarea rows="3" oninput="_expCampo('${e.id}','bullets_texto',this.value)">${_expEsc(e.bullets_texto)}</textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;">
+          <input type="checkbox" ${e.incluir_por_padrao?'checked':''} onchange="_expCampo('${e.id}','incluir_por_padrao',this.checked)" style="accent-color:var(--navy);width:14px;height:14px;">
+          Incluir por padrão no CV
+        </label>
+        <button onclick="expRemover('${e.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;">Remover</button>
+      </div>
+    </div>`).join('');
+}
+function expAdicionar(){
+  const novo = {id:_expNovoId(), cargo:'', empresa:'', local:'', inicio:'', fim:'', atual:false, nivel:'', tags_area:'', incluir_por_padrao:true, bullets_texto:''};
+  _expDados.push(novo);
+  expRenderizar();
+  setTimeout(()=>{ const el=document.querySelector(`#exp-${novo.id} input`); if(el) el.focus(); }, 0);
+}
+function expRemover(id){
+  _expDados = _expDados.filter(e=>e.id!==id);
+  expRenderizar();
+}
+function _expCarregar(lista){
+  _expDados = (Array.isArray(lista)?lista:[]).map(e=>({
+    id: e.id || _expNovoId(),
+    cargo: e.cargo||'', empresa: e.empresa||'', local: e.local||'',
+    inicio: e.inicio||'', fim: e.fim||'', atual: !!e.atual,
+    nivel: e.nivel||'', tags_area: e.tags_area||'',
+    incluir_por_padrao: e.incluir_por_padrao!==false,
+    bullets_texto: Array.isArray(e.bullets) ? e.bullets.join('\n') : ''
+  }));
+  expRenderizar();
+}
+function _expParaPayload(){
+  return _expDados.map(e => ({
+    id: e.id,
+    cargo: (e.cargo||'').trim(),
+    empresa: (e.empresa||'').trim(),
+    local: (e.local||'').trim(),
+    inicio: (e.inicio||'').trim(),
+    fim: e.atual ? '' : (e.fim||'').trim(),
+    atual: !!e.atual,
+    nivel: (e.nivel||'').trim(),
+    tags_area: (e.tags_area||'').trim(),
+    incluir_por_padrao: !!e.incluir_por_padrao,
+    bullets: (e.bullets_texto||'').split('\n').map(b=>b.trim()).filter(Boolean)
+  })).filter(e => e.cargo || e.empresa);
+}
+
 function abrirImportLinkedIn(){
   const a=document.getElementById('import-li-area');
   if(a) a.style.display=a.style.display==='none'?'block':'none';
@@ -4611,6 +4712,7 @@ async function carregarPerfil(){
     const _cvStr=v=>typeof v==='string'?v:(v&&v.value?String(v.value):'');
     _cvMasterDados={pt:_cvStr(p.cv_master_pt)||_cvStr(p.cv_master)||'',en:_cvStr(p.cv_master_en)||'',es:_cvStr(p.cv_master_es)||''};
     _cvMasterSetLang('pt');
+    _expCarregar(p.experiencias);
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
     document.getElementById('perfil-localizacoes').value=p.localizacoes||'';
@@ -4699,12 +4801,21 @@ async function salvarPerfil(){
     idioma_candidatura:document.getElementById('perfil-idioma-candidatura')?.value||'auto',
     dias_inativo:parseInt(document.getElementById('config-dias-inativo')?.value)||7,
     freq_varredura:document.querySelector('input[name="perfil-freq-varredura"]:checked')?.value||'diaria',
+    experiencias:_expParaPayload(),
   };
   // Espelha a régua de idioma no navegador na mesma hora: o card decide o idioma sem passar
   // por esta aba, e salvar aqui tem de valer no próximo card que se abrir.
   _guardarPerfilIdioma(dados.idioma_candidatura,{PT:dados.nivel_pt,EN:dados.nivel_en,ES:dados.nivel_es,DE:dados.nivel_de});
   try{
-    await fetch(WORKER_URL+'/api/perfil',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(dados)});
+    const rPerfil=await fetch(WORKER_URL+'/api/perfil',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(dados)});
+    if(!rPerfil.ok){
+      // Worker rejeita (não trunca) quando as experiências passam do teto — mostrar o motivo
+      // real, nunca "Perfil salvo" quando não salvou (recibo falso, já flagrado na S45).
+      const err=await rPerfil.json().catch(()=>({}));
+      showToast(err.erro||'Não foi possível salvar. Revise os campos.');
+      if(btn){btn.disabled=false;btn.textContent='Salvar perfil';}
+      return;
+    }
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
     config.score_minimo_por_regiao=smr;

@@ -1,6 +1,12 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.31
+//  SENOVA PROXY — Worker v7.32
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.32 (16/ago/2026) — /api/perfil ganha `experiencias[]` estruturado
+//  (S47). POST valida e REJEITA (400 com motivo) quando passa do teto medido pelo
+//  senova-viabilidade (15 experiências, 6 entregas cada, 300 chars/entrega, 12.000
+//  chars no total) — nunca corta em silêncio: um slice() apagaria carreira inteira
+//  sem avisar. Ainda não entra em nenhum prompt de IA; é só captura.
 //
 //  NOVIDADES v7.31 (13/ago/2026) — o systemPrompt de analisarVaga para de variar
 //  por chamada (S45, agente senova-viabilidade). O bloco SCORE ANTERIOR vivia
@@ -1019,7 +1025,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.31',
+        status: 'ok', worker: 'senova-proxy', versao: '7.32',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1156,7 +1162,7 @@ export default {
       const raw = await env.SENOVA_KV.get('perfil_usuario');
       // projeto_vida_texto semeado com o hardcoded atual (S46): Marcos parte de algo
       // pronto pra reescrever na própria voz, em vez de campo vazio — ver montarIdentidadeCandidato.
-      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7 };
+      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7, experiencias:[] };
       // Merge, não substituição: um Perfil já salvo (caso real de Marcos hoje) não tem a
       // chave nova projeto_vida_texto — sem o merge ela vinha undefined e a semeadura acima
       // nunca aparecia pra quem já usa o Perfil, só pra um KV vazio que não existe mais.
@@ -1170,6 +1176,30 @@ export default {
       // cortaria em silêncio na hora de montar o prompt (achado do senova-viabilidade, 14/ago).
       if (typeof dados.projeto_vida_texto === 'string' && dados.projeto_vida_texto.length > 4000) {
         dados.projeto_vida_texto = dados.projeto_vida_texto.slice(0, 4000);
+      }
+      // Experiências: rejeita (não corta em silêncio). Um slice() aqui apagaria registros
+      // inteiros de carreira sem avisar — o mesmo "recibo falso" da S45, só que pior porque
+      // o dado perdido não é reconstituível a partir do texto restante. Teto medido pelo
+      // senova-viabilidade (16/ago) contra o Perfil real de Marcos (13 experiências / 6.534 chars).
+      if (Array.isArray(dados.experiencias)) {
+        if (dados.experiencias.length > 15) {
+          return json({ erro: `Máximo de 15 experiências — você tem ${dados.experiencias.length}. Remova uma antes de salvar.` }, 400);
+        }
+        for (const exp of dados.experiencias) {
+          if ((exp.cargo||'').length > 120 || (exp.empresa||'').length > 120 || (exp.local||'').length > 80 || (exp.nivel||'').length > 80 || (exp.tags_area||'').length > 200) {
+            return json({ erro: `"${(exp.cargo||exp.empresa||'uma experiência')}" tem um campo maior que o permitido. Resuma e tente de novo.` }, 400);
+          }
+          const bullets = Array.isArray(exp.bullets) ? exp.bullets : [];
+          if (bullets.length > 6) {
+            return json({ erro: `"${(exp.cargo||exp.empresa||'uma experiência')}" tem mais de 6 entregas. Resuma em menos linhas.` }, 400);
+          }
+          if (bullets.some(b => (b||'').length > 300)) {
+            return json({ erro: `"${(exp.cargo||exp.empresa||'uma experiência')}" tem uma entrega maior que 300 caracteres. Resuma e tente de novo.` }, 400);
+          }
+        }
+        if (JSON.stringify(dados.experiencias).length > 12000) {
+          return json({ erro: 'O conjunto de experiências passou do limite total. Resuma alguma entrega e tente de novo.' }, 400);
+        }
       }
       await env.SENOVA_KV.put('perfil_usuario', JSON.stringify(dados));
       return json({ ok: true });

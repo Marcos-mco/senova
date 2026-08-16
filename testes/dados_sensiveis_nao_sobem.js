@@ -59,7 +59,7 @@ function telaCheia() {
 console.log('=== salvar o Perfil não pode levar o cofre junto ===');
 {
   const enviados = [];
-  const app = carregarApp(['async function salvarPerfil('], {
+  const app = carregarApp(['async function salvarPerfil(', 'function _expParaPayload('], {
     document: telaCheia(),
     WORKER_URL: 'https://worker.teste',
     fetch: (url, init) => {
@@ -67,6 +67,7 @@ console.log('=== salvar o Perfil não pode levar o cofre junto ===');
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     },
     // Dependências que não são o objeto do teste — moldadas para o payload sair completo.
+    _expDados: [],
     _PONTOS_TERMOS: { otima: 10, valer: 5 },
     _setPontosTermos() {}, _lerCriterioUI: () => ({ br: 60, espt: 60, de: 60, remoto: 60, us: 60 }),
     _cvMasterDados: { pt: 'CV em português', en: '', es: '' },
