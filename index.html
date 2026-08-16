@@ -5717,6 +5717,7 @@ let colFilters={};
 // seleciona o intervalo. Uma vez com seleção ativa, clique simples também alterna
 // (sai do modo seleção ao confirmar ou cancelar). Um Set por coluna (col -> ids).
 let _kanbanSel={}, _kanbanSelAnchor={}, _kanbanSelConfirm={}, _kanbanColOrder={};
+let _verificandoOportunidades=false, _verificandoProgresso={feito:0,total:0};
 function getColFilter(col){ return colFilters[col]||{pri:'all',canal:'all',sort:'default'}; }
 function setColFilter(col,key,val,e){ if(e)e.stopPropagation(); if(!colFilters[col])colFilters[col]={pri:'all',canal:'all',sort:'default'}; colFilters[col][key]=val; renderCRM(); }
 function resetColFilter(col){ colFilters[col]={pri:'all',canal:'all',sort:'default'}; renderCRM(); }
@@ -7477,7 +7478,8 @@ function renderCRM(){
             `:`<button class="btn btn-danger btn-sm" style="align-self:flex-start;" onclick="_kanbanSelPedirConfirmacao('${col}');event.stopPropagation();">Remover</button>`}
           </div>`;
         })():`${COL_STATUS[col]}<span class="col-count">${cards.length}${hasFilter?'/'+totalCol:''}</span>
-        <button class="col-filter-btn${hasFilter?' has-filter':''}" style="margin-left:auto;" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>`}
+        ${col==='lead'&&(cards.length>0||_verificandoOportunidades)?(_verificandoOportunidades?`<span style="margin-left:auto;font-size:10.5px;color:var(--text3);">Verificando ${_verificandoProgresso.feito}/${_verificandoProgresso.total}…</span>`:`<button class="col-filter-btn" style="margin-left:auto;" onclick="_verificarOportunidadesEncerradas(event)" title="Verifica se o anúncio de cada Oportunidade ainda está aberto e seleciona as encerradas">△ Verificar encerradas</button>`):''}
+        <button class="col-filter-btn${hasFilter?' has-filter':''}" style="${col==='lead'?'':'margin-left:auto;'}" onclick="toggleColFilter('${col}',event)" title="Filtrar coluna">⚙</button>`}
         ${filterMenu}
       </div>
       ${cards.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;text-align:center;">'+(hasFilter?'Nenhum resultado para este filtro':'—')+'</div>':''}
@@ -8721,6 +8723,44 @@ function _kanbanSelRemover(col){
   if(podeExcluir.length) partes.push(`${podeExcluir.length} removida${podeExcluir.length===1?'':'s'}`);
   if(precisaArquivar.length) partes.push(`${precisaArquivar.length} arquivada${precisaArquivar.length===1?'':'s'}`);
   showToast(`✅ ${partes.join(' · ')}`);
+}
+// Verifica se o anúncio de cada Oportunidade ainda está aberto (mesma checagem de
+// /api/link-vivo usada ao abrir um card, aqui em lote) e seleciona as encerradas —
+// a remoção em si passa pela mesma trava de confirmação do _kanbanSelRemover, nunca
+// some sozinha. "Não consegui verificar" (403/429/bloqueio) nunca vira "encerrada".
+async function _verificarOportunidadesEncerradas(event){
+  if(event) event.stopPropagation();
+  if(_verificandoOportunidades) return;
+  const alvo=vagas.filter(v=>v.status==='lead'&&/^https?:\/\//i.test(v.origemUrl||''));
+  if(!alvo.length){ showToast('Nenhuma Oportunidade com link de vaga para verificar'); return; }
+  _verificandoOportunidades=true;
+  _verificandoProgresso={feito:0,total:alvo.length};
+  renderCRM();
+  const mortos=[];
+  for(const v of alvo){
+    let d=null;
+    try{
+      const r=await fetch(WORKER_URL+'/api/link-vivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:v.origemUrl})});
+      d=await r.json();
+    }catch(_){}
+    if(d&&d.motivo==='limite_de_uso'){
+      // estourou o limite do Worker (60/60s) — espera a janela virar e refaz este item
+      await new Promise(res=>setTimeout(res,65000));
+      try{
+        const r2=await fetch(WORKER_URL+'/api/link-vivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:v.origemUrl})});
+        d=await r2.json();
+      }catch(_){}
+    }
+    if(d&&d.estado==='morto') mortos.push(String(v.id));
+    _verificandoProgresso.feito++;
+    renderCRM();
+  }
+  _verificandoOportunidades=false;
+  if(!mortos.length){ showToast(`✅ Verificadas ${alvo.length} Oportunidades — nenhuma encerrou`); renderCRM(); return; }
+  _kanbanSel['lead']=new Set(mortos);
+  _kanbanSelConfirm['lead']=true;
+  renderCRM();
+  showToast(`${mortos.length} de ${alvo.length} anúncios já encerraram — confirme a remoção`);
 }
 // Tecla Delete = igual Windows: com seleção ativa, remove (primeiro aperto pede
 // confirmação inline, igual clicar "Remover"; segundo aperto confirma). Esc limpa.
