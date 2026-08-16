@@ -8725,9 +8725,10 @@ function _kanbanSelRemover(col){
   showToast(`✅ ${partes.join(' · ')}`);
 }
 // Verifica se o anúncio de cada Oportunidade ainda está aberto (mesma checagem de
-// /api/link-vivo usada ao abrir um card, aqui em lote) e seleciona as encerradas —
-// a remoção em si passa pela mesma trava de confirmação do _kanbanSelRemover, nunca
-// some sozinha. "Não consegui verificar" (403/429/bloqueio) nunca vira "encerrada".
+// /api/link-vivo usada ao abrir um card, aqui em lote) e remove direto as encerradas —
+// sem etapa extra de confirmação, porque Oportunidade já é a mesma classe de dado que
+// deleteVaga() apaga num clique só (barata, re-importável do KV). "Não consegui
+// verificar" (403/429/bloqueio) nunca vira "encerrada".
 async function _verificarOportunidadesEncerradas(event){
   if(event) event.stopPropagation();
   if(_verificandoOportunidades) return;
@@ -8757,10 +8758,10 @@ async function _verificarOportunidadesEncerradas(event){
   }
   _verificandoOportunidades=false;
   if(!mortos.length){ showToast(`✅ Verificadas ${alvo.length} Oportunidades — nenhuma encerrou`); renderCRM(); return; }
-  _kanbanSel['lead']=new Set(mortos);
-  _kanbanSelConfirm['lead']=true;
-  renderCRM();
-  showToast(`${mortos.length} de ${alvo.length} anúncios já encerraram — confirme a remoção`);
+  Store.registrarDeletado(mortos);
+  vagas=vagas.filter(v=>!mortos.includes(String(v.id)));
+  saveVagas(); aplicarFiltros();
+  showToast(`${mortos.length} de ${alvo.length} removidas — anúncio encerrado`);
 }
 // Tecla Delete = igual Windows: com seleção ativa, remove (primeiro aperto pede
 // confirmação inline, igual clicar "Remover"; segundo aperto confirma). Esc limpa.
