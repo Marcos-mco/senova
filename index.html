@@ -10825,7 +10825,7 @@ async function analisarLoteBackground(){
   renderCRM();
   const _analisarUma=async v=>{
     try{
-      const desc=v.descricao||v.jobDescription||'';
+      const desc=v.jobDescription||v.descricao||'';
       const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime)})});
       _loteEmAnalise.delete(String(v.id));
       // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
