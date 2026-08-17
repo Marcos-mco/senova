@@ -1,6 +1,19 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.34
+//  SENOVA PROXY — Worker v7.35
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.35 (17/ago/2026) — card "Head de Desenvolvimento" (ALS): Marcos
+//  viu o card negar saber a localização/regime da vaga enquanto as próprias pills
+//  do topo mostravam "Presencial"/"Tempo integral" — o LinkedIn dizia "Belo
+//  Horizonte" no cabeçalho da página, mas o prompt de análise nunca recebia
+//  localização/modelo/regime, só a descrição. /api/analisar-vaga agora aceita
+//  metaConhecida (o que o card já capturou da página) e manda como fato na
+//  mensagem de usuário — nunca no bloco de sistema cacheado, para não invalidar
+//  o cache caro a cada vaga (aprovado por senova-viabilidade: +R$0,85/mês/
+//  usuário). O ponto único de gravação (_aplicarSinaisWorker, v7.34) passa a
+//  copiar localizacao/modelo/regime de volta — mas só quando o card ainda não
+//  tinha o campo: dado capturado da página nunca é sobrescrito pela leitura da
+//  IA. index.html: mvAutoCompatCheck, mvReanalisarCompat, analisarLoteBackground.
 //
 //  NOVIDADES v7.34 (17/ago/2026) — a IA passa a detectar exigência de IDIOMA DO
 //  DOCUMENTO (ex.: "envie o CV em inglês"), campo documento_idioma_exigido — antes
@@ -1043,7 +1056,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.34',
+        status: 'ok', worker: 'senova-proxy', versao: '7.35',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1069,8 +1082,8 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior));
+      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -2935,19 +2948,33 @@ async function _registrarCustoIA(env, usage) {
   }
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida) {
   // Identidade dinâmica (S46): lê perfil_usuario do KV direto no Worker — ver
   // montarIdentidadeCandidato. perfilCandidato continua existindo como override
   // explícito (dry-run/testes); em produção nenhum call site manda, então isto
   // sempre resolve via KV (ou hardcoded, se o Perfil ainda estiver vazio).
   const { texto: perfil, perfilV, origem: perfilOrigem } = await montarIdentidadeCandidato(env, perfilCandidato);
   const _scoreAnt = (typeof scoreAnterior === 'number' && scoreAnterior > 0) ? scoreAnterior : 0;
+  // Fatos que o app já capturou da página (localização/modelo/regime) — nunca no bloco de
+  // sistema cacheado (varia por vaga, invalidaria o cache caro), sempre na mensagem de usuário,
+  // como o SCORE ANTERIOR. Sanitiza (sem quebra de linha, teto de 80 chars — vem de página de
+  // terceiro) e só existe se pelo menos 1 campo vier preenchido (aprovado por senova-viabilidade
+  // em 17/ago/2026 — bloco vazio custaria token sem ganhar nada).
+  const _sanitizaMeta = s => String(s || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 80);
+  const _mc = metaConhecida || {};
+  const _metaPartes = [];
+  if (_mc.localizacao) _metaPartes.push(`localização: ${_sanitizaMeta(_mc.localizacao)}`);
+  if (_mc.modelo) _metaPartes.push(`modelo: ${_sanitizaMeta(_mc.modelo)}`);
+  if (_mc.regime) _metaPartes.push(`regime: ${_sanitizaMeta(_mc.regime)}`);
+  const _blocoMetaConhecida = _metaPartes.length ? `DADOS JÁ CONHECIDOS DA VAGA: ${_metaPartes.join(' | ')}\n\n` : '';
   // Rubrica primeiro, identidade por último: identidade agora pode mudar (Marcos edita
   // o Perfil) — se ficasse na frente, cada edição invalidava o cache do bloco inteiro.
   // Com a rubrica (estável, nunca muda) como prefixo, só o bloco de identidade recacheia.
   const systemPrompt = `Analise compatibilidade vaga×candidato. Responda APENAS JSON sem markdown.
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
+
+DADOS JÁ CONHECIDOS DA VAGA: se a mensagem do usuário trouxer um bloco "DADOS JÁ CONHECIDOS DA VAGA", os campos ali (localização/modelo/regime) são FATO, capturados direto da página de origem — não da descrição, não da sua leitura. Nunca escreva em pontos_atencao que um desses campos "não foi declarado", "não consta" ou está ausente, e devolva-o no JSON de saída (localizacao/modelo/regime) com o MESMO valor recebido, sem contradizer. Campo que NÃO vier nesse bloco continua sendo extraído normalmente da descrição, como sempre.
 
 IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do candidato informado abaixo. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
 
@@ -2998,7 +3025,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
           { type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } },
           { type:'text', text:`CANDIDATO (perfil e projeto de vida — a rubrica acima se refere a este bloco): ${perfil}`, cache_control:{ type:'ephemeral' } },
         ],
-        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
+        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}${_blocoMetaConhecida}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
       }),
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);

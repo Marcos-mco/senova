@@ -52,6 +52,10 @@ const NUCLEO = [
   // porque um teste que extrai só a esteira (ex.: analisarLoteBackground) sem extrair este
   // portão junto quebraria com ReferenceError na primeira chamada real.
   'function _aplicarSinaisWorker(',
+  // Monta o bloco de fatos já conhecidos (localização/modelo/regime) que as 3 esteiras de
+  // análise mandam ao Worker — mesma razão do portão acima: quem extrai só a esteira sem isto
+  // junto quebra com ReferenceError.
+  'function _metaConhecidaVaga(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).

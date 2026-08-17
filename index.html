@@ -9498,7 +9498,27 @@ function _aplicarSinaisWorker(alvo, data){
     }
   }
   if(data.documento_idioma_exigido) alvo.idiomaDocExigido=data.documento_idioma_exigido;
+  // localizacao/modelo/regime: a IA também os extrai da descrição, mas o dado capturado da
+  // PÁGINA (extensão/JSON-LD) é fato de primeira mão — a IA só preenche o que o card ainda
+  // não sabia. Escrever por cima do que a página já capturou reabriria a mesma S47 ao
+  // contrário: um card certo ficando errado porque a IA leu mal um trecho da descrição.
+  if(data.localizacao&&!alvo.localizacao) alvo.localizacao=data.localizacao;
+  if(data.modelo&&!alvo.modelo) alvo.modelo=data.modelo;
+  if(data.regime&&!alvo.regime) alvo.regime=data.regime;
   return alvo;
+}
+
+// Fatos que o Senova JÁ SABE sobre a vaga (localização/modelo/regime capturados da página) —
+// vão para a IA como contexto na mensagem de usuário (nunca no bloco de sistema cacheado: são
+// variáveis por vaga e invalidariam o cache caro, aprovado assim pelo senova-viabilidade em
+// 17/ago/2026). Sem isto a IA escrevia "não declarado" sobre algo que o card já mostrava em
+// pill no topo — o card "Head de Desenvolvimento" (ALS) contradizia a si mesmo.
+function _metaConhecidaVaga(loc,modelo,regime){
+  const m={};
+  if(loc&&loc.trim()) m.localizacao=loc.trim().slice(0,80);
+  if(modelo&&modelo.trim()) m.modelo=modelo.trim().slice(0,80);
+  if(regime&&regime.trim()) m.regime=regime.trim().slice(0,80);
+  return m;
 }
 
 async function mvAutoCompatCheck(){
@@ -9527,7 +9547,8 @@ async function mvAutoCompatCheck(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos()})
+      body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),
+        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value)})
     });
     if(!res.ok){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     const data=await res.json();
@@ -9680,7 +9701,8 @@ async function mvReanalisarCompat(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior})
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior,
+        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value)})
     });
     if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     const data=await res.json();
@@ -10804,7 +10826,7 @@ async function analisarLoteBackground(){
   const _analisarUma=async v=>{
     try{
       const desc=v.descricao||v.jobDescription||'';
-      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos()})});
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime)})});
       _loteEmAnalise.delete(String(v.id));
       // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
       // esteira inteira fica quente com um único aquecimento por janela.
