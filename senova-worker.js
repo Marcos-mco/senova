@@ -1,6 +1,13 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.32
+//  SENOVA PROXY — Worker v7.33
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.33 (17/ago/2026) — /api/vagas-lead/score passa a persistir
+//  canalDiretoTipo/Destino/Instrucao no KV do radar (S47). Sem isto, a marca de
+//  "candidatura direta" (e-mail/WhatsApp/telefone) que a IA já detectava era
+//  descartada na gravação de volta ao radar, e some ao reaproveitar nota em
+//  cache. Ver também index.html: analisarLoteBackground, importação do radar e
+//  _montarCardVarredura, que paravam de propagar os mesmos três campos.
 //
 //  NOVIDADES v7.32 (16/ago/2026) — /api/perfil ganha `experiencias[]` estruturado
 //  (S47). POST valida e REJEITA (400 com motivo) quando passa do teto medido pelo
@@ -1025,7 +1032,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.32',
+        status: 'ok', worker: 'senova-proxy', versao: '7.33',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1149,8 +1156,8 @@ export default {
       for (const it of itens) {
         const idx = porId.get(it.id);
         if (idx === undefined) continue;
-        const { score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel } = it;
-        vagasKV[idx] = { ...vagasKV[idx], score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel };
+        const { score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel, canalDiretoTipo, canalDiretoDestino, canalDiretoInstrucao } = it;
+        vagasKV[idx] = { ...vagasKV[idx], score, classificacao, resumo, pontos_fortes, pontos_atencao, salario_compativel, canalDiretoTipo, canalDiretoDestino, canalDiretoInstrucao };
         atualizados++;
       }
       if (atualizados) await env.SENOVA_KV.put('vagas_lead', JSON.stringify(vagasKV));

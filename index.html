@@ -6154,7 +6154,7 @@ async function _gravarNotasNoRadar(itens){
   try{
     await fetch(WORKER_URL+'/api/vagas-lead/score',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({itens:itens.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel}))}),
+      body:JSON.stringify({itens:itens.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel,canalDiretoTipo:v.canalDiretoTipo||'',canalDiretoDestino:v.canalDiretoDestino||'',canalDiretoInstrucao:v.canalDiretoInstrucao||''}))}),
     });
   }catch{}
 }
@@ -6225,7 +6225,7 @@ async function importarVagasLead(){
         // presencial em praça recusada, salário abaixo do piso). Sem carregar
         // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
         // vaga fraca sem dizer por quê.
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||''};
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||'', canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||''};
       }catch{
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
@@ -6467,6 +6467,8 @@ function _montarCardVarredura(v, agora){
     score:v.score, atsScore:(typeof v.score==='number'&&v.score>0)?String(Math.round(v.score)):'', classificacao:v.classificacao, resumo:v.resumo,
     pontos_fortes:v.pontos_fortes||[], compatFortes:v.pontos_fortes||[], compatAtencao:v.pontos_atencao||[], descricao:v.descricao||'', fonte:v.fonte||'',
     localizacao:v.localizacao||'', modelo:v.modelo||'', regime:v.regime||'',
+    canalDiretoTipo:v.canalDiretoTipo||'', canalDiretoDestino:v.canalDiretoDestino||'', canalDiretoInstrucao:v.canalDiretoInstrucao||'',
+    emailDest:(v.canalDiretoTipo==='Email'&&v.canalDiretoDestino)?v.canalDiretoDestino:'',
   };
 }
 
@@ -10816,6 +10818,17 @@ async function analisarLoteBackground(){
     if(data.resumo) vagas[idx].resumo=data.resumo;
     if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }
     if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
+    // Mesma regra de mvAutoCompatCheck (linha ~9506): sem isto, a pegadinha de
+    // candidatura direta (e-mail/WhatsApp/telefone) que a IA já detectou some
+    // no card, porque esta é a esteira que pontua a maioria das vagas hoje.
+    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
+      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
+      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
+      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
+      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest){
+        vagas[idx].emailDest=data.candidatura_direta_destino;
+      }
+    }
     const criterio=_criterioParaVaga(vagas[idx]);
     // Auto-promover: triagem que atinge o Critério da região entra em Oportunidade.
     if(vagas[idx].status==='triagem'&&data.score>=criterio){
