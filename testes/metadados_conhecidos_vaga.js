@@ -35,6 +35,11 @@ console.log('=== _metaConhecidaVaga: só manda o que existe, nunca um rótulo va
     JSON.stringify(exec(s, '_metaConhecidaVaga("   ","  ","")')) === '{}');
   t('undefined/null não quebram',
     JSON.stringify(exec(s, '_metaConhecidaVaga(undefined,null,"Ambos")')) === JSON.stringify({ regime: 'Ambos' }));
+  t('jornada (4º campo, S47 backlog) entra junto quando preenchida',
+    JSON.stringify(exec(s, '_metaConhecidaVaga("Belo Horizonte, MG","Presencial","CLT","Tempo integral")')) ===
+    JSON.stringify({ localizacao: 'Belo Horizonte, MG', modelo: 'Presencial', regime: 'CLT', jornada: 'Tempo integral' }));
+  t('jornada vazia não aparece, e não quebra os outros 3',
+    JSON.stringify(exec(s, '_metaConhecidaVaga("Belo Horizonte, MG","","","")')) === JSON.stringify({ localizacao: 'Belo Horizonte, MG' }));
 }
 
 console.log('\n=== _aplicarSinaisWorker: só preenche o que o card ainda NÃO sabia ===');
@@ -203,6 +208,10 @@ console.log('\n=== o Worker: prompt instrui a nunca contradizer o que já sabe, 
     /_metaPartes\.length \? `DADOS JÁ CONHECIDOS DA VAGA: /.test(worker));
   t('cada campo é sanitizado (sem quebra de linha) e truncado — vem de página de terceiro',
     /_sanitizaMeta = s => String\(s \|\| ''\)\.replace\(\/\[\\r\\n\]\+\/g, ' '\)\.trim\(\)\.slice\(0, 80\)/.test(worker));
+  t('jornada (S47 backlog) entra no bloco de metaConhecida',
+    /if \(_mc\.jornada\) _metaPartes\.push\(`jornada: \$\{_sanitizaMeta\(_mc\.jornada\)\}`\);/.test(worker));
+  t('salário NÃO entra no bloco — senova-viabilidade reprovou (contaminado com pretensão do candidato)',
+    !/_mc\.salario/.test(worker));
 }
 
 fim('METADADOS JÁ CONHECIDOS · O CARD NÃO PODE NEGAR O QUE A PRÓPRIA PILL MOSTRA');

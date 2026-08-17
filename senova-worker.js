@@ -2978,6 +2978,11 @@ async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCan
   if (_mc.localizacao) _metaPartes.push(`localização: ${_sanitizaMeta(_mc.localizacao)}`);
   if (_mc.modelo) _metaPartes.push(`modelo: ${_sanitizaMeta(_mc.modelo)}`);
   if (_mc.regime) _metaPartes.push(`regime: ${_sanitizaMeta(_mc.regime)}`);
+  // jornada entra aqui (aprovado por senova-viabilidade, 17/ago/2026 — vocabulário fechado,
+  // sempre vem de JSON-LD/pill, sem risco de proveniência). salário NÃO entra: o mesmo parecer
+  // reprovou mandar salário como fato — o campo está contaminado com a pretensão salarial do
+  // próprio candidato em cards antigos e a extensão não distingue declarado de estimado.
+  if (_mc.jornada) _metaPartes.push(`jornada: ${_sanitizaMeta(_mc.jornada)}`);
   const _blocoMetaConhecida = _metaPartes.length ? `DADOS JÁ CONHECIDOS DA VAGA: ${_metaPartes.join(' | ')}\n\n` : '';
   // Rubrica primeiro, identidade por último: identidade agora pode mudar (Marcos edita
   // o Perfil) — se ficasse na frente, cada edição invalidava o cache do bloco inteiro.
@@ -2986,7 +2991,7 @@ async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCan
 
 Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — vagas de grandes empresas brasileiras são geralmente CLT; vagas de consultoria ou projetos podem ser PJ ou ambos.
 
-DADOS JÁ CONHECIDOS DA VAGA: se a mensagem do usuário trouxer um bloco "DADOS JÁ CONHECIDOS DA VAGA", os campos ali (localização/modelo/regime) são FATO, capturados direto da página de origem — não da descrição, não da sua leitura. Nunca escreva em pontos_atencao que um desses campos "não foi declarado", "não consta" ou está ausente, e devolva-o no JSON de saída (localizacao/modelo/regime) com o MESMO valor recebido, sem contradizer. Campo que NÃO vier nesse bloco continua sendo extraído normalmente da descrição, como sempre.
+DADOS JÁ CONHECIDOS DA VAGA: se a mensagem do usuário trouxer um bloco "DADOS JÁ CONHECIDOS DA VAGA", os campos ali (localização/modelo/regime/jornada) são FATO, capturados direto da página de origem — não da descrição, não da sua leitura. Nunca escreva em pontos_atencao que um desses campos "não foi declarado", "não consta" ou está ausente. Para localização/modelo/regime, devolva-os no JSON de saída com o MESMO valor recebido, sem contradizer (jornada não tem campo de saída no JSON, mas ainda assim não pode ser contradita em pontos_atencao). Campo que NÃO vier nesse bloco continua sendo extraído normalmente da descrição, como sempre.
 
 IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do candidato informado abaixo. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), isto é IMPEDIMENTO — liste em "impedimentos" (nunca apenas em pontos_atencao, ver seção IMPEDIMENTOS abaixo); nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala, também impedimento. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
 
