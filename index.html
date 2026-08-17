@@ -3589,9 +3589,14 @@ function _idiomaDoCV(idiomaVaga, meus){
 //      card, viaja com ele e não vaza para o próximo. Era exatamente aqui o defeito: a escolha
 //      era global (cvLangManual) e virava um Caps Lock — um clique numa vaga espanhola deixava
 //      todos os CVs seguintes em espanhol, sem nada na tela dizendo isso.
-//   2. o PADRÃO do Perfil, quando a pessoa fixou uma língua ("sempre em inglês").
-//   3. padrão "seguir o idioma da vaga": a língua da vaga, na melhor língua que ela tem.
-//   4. vaga sem sinal de idioma (descrição curta, só bullets): a primeira língua declarada.
+//   2. o PEDIDO EXPLÍCITO da vaga (vaga.idiomaDocExigido, extraído pela IA — "envie o CV em
+//      inglês"), diferente do degrau 3: aqui a vaga DIZ em que língua quer o documento, não
+//      apenas está escrita numa língua. É mais específico que o padrão do Perfil (S47 —
+//      antes deste degrau, o Senova decidia a língua pelo idioma do ANÚNCIO e ignorava um
+//      pedido explícito escrito no meio do texto).
+//   3. o PADRÃO do Perfil, quando a pessoa fixou uma língua ("sempre em inglês").
+//   4. padrão "seguir o idioma da vaga": a língua da vaga, na melhor língua que ela tem.
+//   5. vaga sem sinal de idioma (descrição curta, só bullets): a primeira língua declarada.
 // Em todos os degraus, só passa língua que a pessoa declarou — idiomasDoUsuario() é o filtro
 // ético. E em todos eles, quando ela pede uma língua que declarou mas que o Senova ainda não
 // sabe montar, o motivo diz de quem é a falta: nossa. O documento sai na melhor que sabemos
@@ -3609,6 +3614,16 @@ function _idiomaDecidido(desc, vaga){
   const escolha = meu(vaga && vaga.cvIdioma);
   if (escolha) return devendo(escolha) ? { lang: alternativa(escolha), motivo: _dividaIdioma(escolha) }
                                        : { lang: escolha,             motivo: 'sua escolha para esta vaga' };
+  // Pedido explícito da vaga para o IDIOMA DO DOCUMENTO — nunca cai para o próximo degrau em
+  // silêncio: mesmo quando ela não declarou a língua pedida, o motivo diz isso (CRIVO 6), em vez
+  // de o pedido desaparecer atrás do padrão do Perfil ou do idioma do próprio anúncio.
+  const exigido = (vaga && IDIOMAS[vaga.idiomaDocExigido]) ? vaga.idiomaDocExigido : '';
+  if (exigido) {
+    if (meu(exigido)) return devendo(exigido) ? { lang: alternativa(exigido), motivo: _dividaIdioma(exigido) }
+                                               : { lang: exigido, motivo: 'a vaga pede o documento em ' + IDIOMAS[exigido].nome };
+    const pedido = _idiomaDoCV(exigido, posso);
+    if (pedido) return { lang: pedido, motivo: 'a vaga pede o documento em ' + IDIOMAS[exigido].nome + ', que você não declarou' };
+  }
   const padrao = meu(String((_perfilIdioma && _perfilIdioma.padrao) || 'auto').toUpperCase());
   if (padrao) return devendo(padrao) ? { lang: alternativa(padrao), motivo: _dividaIdioma(padrao) }
                                      : { lang: padrao,             motivo: 'padrão do seu Perfil' };
@@ -6154,7 +6169,7 @@ async function _gravarNotasNoRadar(itens){
   try{
     await fetch(WORKER_URL+'/api/vagas-lead/score',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({itens:itens.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel,canalDiretoTipo:v.canalDiretoTipo||'',canalDiretoDestino:v.canalDiretoDestino||'',canalDiretoInstrucao:v.canalDiretoInstrucao||''}))}),
+      body:JSON.stringify({itens:itens.map(v=>({id:v.id,score:v.score,classificacao:v.classificacao,resumo:v.resumo,pontos_fortes:v.pontos_fortes,pontos_atencao:v.pontos_atencao,salario_compativel:v.salario_compativel,canalDiretoTipo:v.canalDiretoTipo||'',canalDiretoDestino:v.canalDiretoDestino||'',canalDiretoInstrucao:v.canalDiretoInstrucao||'',idiomaDocExigido:v.idiomaDocExigido||''}))}),
     });
   }catch{}
 }
@@ -6225,7 +6240,7 @@ async function importarVagasLead(){
         // presencial em praça recusada, salário abaixo do piso). Sem carregar
         // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
         // vaga fraca sem dizer por quê.
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||'', canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||''};
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||'', canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||'', idiomaDocExigido:analise.documento_idioma_exigido||''};
       }catch{
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
@@ -6469,6 +6484,7 @@ function _montarCardVarredura(v, agora){
     localizacao:v.localizacao||'', modelo:v.modelo||'', regime:v.regime||'',
     canalDiretoTipo:v.canalDiretoTipo||'', canalDiretoDestino:v.canalDiretoDestino||'', canalDiretoInstrucao:v.canalDiretoInstrucao||'',
     emailDest:(v.canalDiretoTipo==='Email'&&v.canalDiretoDestino)?v.canalDiretoDestino:'',
+    idiomaDocExigido:v.idiomaDocExigido||'',
   };
 }
 
@@ -9465,6 +9481,26 @@ function mvRenderSofia(v){
 }
 
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
+// Ponto ÚNICO de gravação dos sinais que a IA extrai da vaga além do score — candidatura direta
+// (canal/destino/instrução) e idioma exigido do documento. TODA esteira que lê a resposta de
+// /api/analisar-vaga chama esta função, em vez de copiar os campos à mão. Foi a cópia manual (4
+// esteiras, 4 listas escritas à mão) que causou a S47: um campo novo entrava na resposta do
+// Worker e ficava mudo em 3 delas, porque nenhuma sabia do campo novo sozinha — só a que tinha
+// sido tocada por último. Campo novo na resposta do Worker → 1 linha aqui, nunca em cada esteira.
+function _aplicarSinaisWorker(alvo, data){
+  if(!alvo||!data) return alvo;
+  if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
+    alvo.canalDiretoTipo=data.candidatura_direta_canal||'';
+    alvo.canalDiretoDestino=data.candidatura_direta_destino||'';
+    alvo.canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
+    if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!alvo.emailDest){
+      alvo.emailDest=data.candidatura_direta_destino;
+    }
+  }
+  if(data.documento_idioma_exigido) alvo.idiomaDocExigido=data.documento_idioma_exigido;
+  return alvo;
+}
+
 async function mvAutoCompatCheck(){
   // A falha se explica na LINHA DE ESTADO do veredicto (logo abaixo de "Ainda sem análise"),
   // não lá embaixo na evidência: quando não há análise, o bloco de sinais está oculto — escrever
@@ -9505,14 +9541,9 @@ async function mvAutoCompatCheck(){
     alvo.compatClass=data.classificacao||'';
     alvo.compatFortes=data.pontos_fortes||[];
     alvo.compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
-      alvo.canalDiretoTipo=data.candidatura_direta_canal||'';
-      alvo.canalDiretoDestino=data.candidatura_direta_destino||'';
-      alvo.canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
-      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!alvo.emailDest){
-        alvo.emailDest=data.candidatura_direta_destino;
-        if(isNew){ const eEl=document.getElementById('mv-email-dest'); if(eEl&&!eEl.value.trim()) eEl.value=data.candidatura_direta_destino; }
-      }
+    _aplicarSinaisWorker(alvo,data);
+    if(isNew&&alvo.canalDiretoTipo==='Email'&&alvo.canalDiretoDestino){
+      const eEl=document.getElementById('mv-email-dest'); if(eEl&&!eEl.value.trim()) eEl.value=alvo.canalDiretoDestino;
     }
     // v.resumo é o campo canônico do resumo (é o que o radar já grava). A cópia em atsAnalise
     // continua porque telas antigas leem de lá, mas quem manda na tela do card é este campo.
@@ -9665,12 +9696,7 @@ async function mvReanalisarCompat(){
     vagas[idx].compatClass=data.classificacao||'';
     vagas[idx].compatFortes=data.pontos_fortes||[];
     vagas[idx].compatAtencao=data.pontos_atencao||[];
-    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
-      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
-      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
-      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
-      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest) vagas[idx].emailDest=data.candidatura_direta_destino;
-    }
+    _aplicarSinaisWorker(vagas[idx],data);
     if(data.resumo) vagas[idx].resumo=String(data.resumo);   // campo canônico — ver mvAutoCompatCheck
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
@@ -10818,17 +10844,7 @@ async function analisarLoteBackground(){
     if(data.resumo) vagas[idx].resumo=data.resumo;
     if(data.pontos_fortes){ vagas[idx].pontos_fortes=data.pontos_fortes; vagas[idx].compatFortes=data.pontos_fortes; }
     if(data.pontos_atencao) vagas[idx].compatAtencao=data.pontos_atencao;
-    // Mesma regra de mvAutoCompatCheck (linha ~9506): sem isto, a pegadinha de
-    // candidatura direta (e-mail/WhatsApp/telefone) que a IA já detectou some
-    // no card, porque esta é a esteira que pontua a maioria das vagas hoje.
-    if(data.candidatura_direta_canal||data.candidatura_direta_destino||data.candidatura_direta_instrucao){
-      vagas[idx].canalDiretoTipo=data.candidatura_direta_canal||'';
-      vagas[idx].canalDiretoDestino=data.candidatura_direta_destino||'';
-      vagas[idx].canalDiretoInstrucao=data.candidatura_direta_instrucao||'';
-      if(data.candidatura_direta_canal==='Email'&&data.candidatura_direta_destino&&!vagas[idx].emailDest){
-        vagas[idx].emailDest=data.candidatura_direta_destino;
-      }
-    }
+    _aplicarSinaisWorker(vagas[idx],data);
     const criterio=_criterioParaVaga(vagas[idx]);
     // Auto-promover: triagem que atinge o Critério da região entra em Oportunidade.
     if(vagas[idx].status==='triagem'&&data.score>=criterio){

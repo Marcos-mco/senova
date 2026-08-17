@@ -47,6 +47,11 @@ const NUCLEO = [
   'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
+  // Ponto único de gravação dos sinais do Worker (candidatura direta + idioma exigido do
+  // documento, S47). Toda esteira que lê /api/analisar-vaga chama esta função — entra no núcleo
+  // porque um teste que extrai só a esteira (ex.: analisarLoteBackground) sem extrair este
+  // portão junto quebraria com ReferenceError na primeira chamada real.
+  'function _aplicarSinaisWorker(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).
