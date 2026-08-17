@@ -4295,7 +4295,7 @@ function saveVagaFromCV() {
   const cargo   = atsCargo   || lastCRM.match(/VAGA:\s*([^|]+)/)?.[1]?.trim() || 'A definir';
   const score   = _atsAnalise.match(/MATCH SCORE:\s*(\d+)/)?.[1]||'';
   const notas   = score?`Match ATS: ${score}/100`:'';
-  {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',salario:'R$15k CLT',proxima:'Gerar .docx final e candidatar',notas,data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
+  {const _t=Date.now();vagas.push({id:_t,empresa,cargo,canal:'LinkedIn',prioridade:'alta',status:'lead',proxima:'Gerar .docx final e candidatar',notas,data:dataAtualFormatada(),createdAt:_t,updatedAt:_t,timeline:[{ts:_t,texto:'Card criado'}]});}
   saveVagas();
   alert(`Vaga "${empresa} — ${cargo}" salva! Acesse Processos para acompanhar.`);
 }
