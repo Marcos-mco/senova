@@ -1,6 +1,16 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.37
+//  SENOVA PROXY — Worker v7.38
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.38 (17/ago/2026) — auditoria de backlog do fix ALS (P5):
+//  parser de JSON-LD em /api/fetch-descricao parava de inferir "Presencial"
+//  corretamente em dois casos: jobLocationType vindo como array (schema.org
+//  permite, comparação era só ===) e jobLocation com só addressCountry (sem
+//  localidade/região/rua — não é evidência de presença física). Vaga remota
+//  podia sair rotulada "Presencial" direto na captura da página. Achado e
+//  corrigido junto com S6 (index.html: metaInferida), que fecha o resto do
+//  problema — evita que um chute da IA vire "fato" travado para sempre nas
+//  reanálises seguintes via metaConhecida.
 //
 //  NOVIDADES v7.37 (17/ago/2026) — auditoria de backlog do fix ALS (S5):
 //  metaConhecida ganha o campo `jornada`, aprovado por senova-viabilidade
@@ -1076,7 +1086,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.37',
+        status: 'ok', worker: 'senova-proxy', versao: '7.38',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1800,11 +1810,18 @@ export default {
                   .replace(/\s{2,}/g,' ').trim();
                 if (clean.length > 100) {
                   const meta = {};
-                  // Localização (jobLocation.address)
+                  // Localização (jobLocation.address) — só conta como ENDEREÇO REAL se tiver
+                  // localidade/região/rua. addressCountry sozinho (comum em vaga remota "só BR")
+                  // não é evidência de presença física — achado pelo senova-auditor (S47, P5):
+                  // {jobLocation:{address:{addressCountry:'BR'}}} virava "Presencial" por engano.
                   const loc = item.jobLocation;
+                  let addrReal = null;
                   if (loc) {
                     const addr = (Array.isArray(loc) ? loc[0] : loc)?.address || {};
-                    const parts = [addr.addressLocality, addr.addressRegion, addr.addressCountry].filter(Boolean);
+                    if (addr.addressLocality || addr.addressRegion || addr.streetAddress) addrReal = addr;
+                  }
+                  if (addrReal) {
+                    const parts = [addrReal.addressLocality, addrReal.addressRegion, addrReal.addressCountry].filter(Boolean);
                     if (parts.length) meta.localizacao = parts.join(', ');
                   }
                   // Jornada (employmentType: FULL_TIME → Tempo integral)
@@ -1814,9 +1831,13 @@ export default {
                     const jMap = { FULL_TIME:'Tempo integral', PART_TIME:'Tempo parcial', CONTRACT:'Contrato', TEMPORARY:'Temporário', INTERN:'Estágio' };
                     if (jMap[t]) meta.jornada = jMap[t];
                   }
-                  // Modalidade (TELECOMMUTE → Remoto, localização física → Presencial)
-                  if (item.jobLocationType === 'TELECOMMUTE') meta.modalidade = 'Remoto';
-                  else if (loc) meta.modalidade = 'Presencial';
+                  // Modalidade (TELECOMMUTE → Remoto, endereço físico real → Presencial).
+                  // jobLocationType pode vir como array pelo schema.org — comparar só com ===
+                  // deixava jobLocationType:["TELECOMMUTE"] cair no else e virar "Presencial"
+                  // por engano (mesmo achado do senova-auditor, S47 P5).
+                  const jlt = [].concat(item.jobLocationType || []).map(x => String(x).toUpperCase());
+                  if (jlt.includes('TELECOMMUTE')) meta.modalidade = 'Remoto';
+                  else if (addrReal) meta.modalidade = 'Presencial';
                   // Salário (baseSalary)
                   const sal = item.baseSalary;
                   if (sal?.value) {

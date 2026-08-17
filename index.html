@@ -6241,7 +6241,16 @@ async function importarVagasLead(){
         // presencial em praça recusada, salário abaixo do piso). Sem carregar
         // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
         // vaga fraca sem dizer por quê.
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null, localizacao:analise.localizacao||'', modelo:analise.modelo||'', regime:analise.regime||'', canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||'', idiomaDocExigido:analise.documento_idioma_exigido||''};
+        // localizacao/modelo/regime aqui são SEMPRE chute da IA (o Radar não manda metaConhecida
+        // — _pedirAnaliseVaga não tem esse parâmetro), nunca captura da página. `v.X||analise.X`
+        // preserva o que já existia em vez de apagar com analise.X vazio, e metaInferida marca o
+        // chute — senão vira o mesmo "fato" travado para sempre que o S6 fechou nas outras 3
+        // esteiras (achado pelo senova-auditor, S47 P5+S6: esta era a 4ª esteira, fora do mapa
+        // original, que _aplicarSinaisWorker não cobre porque monta o card do zero via spread).
+        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null,
+          localizacao:v.localizacao||analise.localizacao||'', modelo:v.modelo||analise.modelo||'', regime:v.regime||analise.regime||'',
+          metaInferida:{...(v.metaInferida||{}), ...((!v.localizacao&&analise.localizacao)?{localizacao:true}:{}), ...((!v.modelo&&analise.modelo)?{modelo:true}:{}), ...((!v.regime&&analise.regime)?{regime:true}:{})},
+          canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||'', idiomaDocExigido:analise.documento_idioma_exigido||''};
       }catch{
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
@@ -8456,6 +8465,16 @@ function saveVaga(){
   const createdAt=existing?.createdAt||parseDateBR(existing?.data)||now;
   // Card novo com análise automática já calculada (via _mvNovoCardAnalise) — absorve aqui, uma vez só.
   const _novoA=isNew?(_mvNovoCardAnalise||{}):{};
+  const _novaLoc=document.getElementById('mv-localizacao').value;
+  const _novoModelo=document.getElementById('mv-modelo').value;
+  const _novoRegime=document.getElementById('mv-regime').value;
+  // Edição manual de localização/modelo/regime é fato de 1ª mão — limpa a marca de "chute da
+  // IA" (metaInferida, S47 S6) só do campo que a pessoa de fato mudou aqui, senão a IA nunca
+  // mais poderia contradizer um valor que ela mesma errou e que a pessoa acabou de corrigir.
+  const _metaInferidaPosSave={...(existing?.metaInferida||{})};
+  if(_novaLoc!==(existing?.localizacao||'')) delete _metaInferidaPosSave.localizacao;
+  if(_novoModelo!==(existing?.modelo||'')) delete _metaInferidaPosSave.modelo;
+  if(_novoRegime!==(existing?.regime||'')) delete _metaInferidaPosSave.regime;
   const obj={
     ...(existing||{}), // trava anti-perda: preserva todo campo já gravado; os de baixo só sobrescrevem
     id:isNew?now:editingVagaId,
@@ -8469,9 +8488,10 @@ function saveVaga(){
     proxima:document.getElementById('mv-proxima').value,
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
     plano:document.getElementById('mv-plano')?.value||'',
-    localizacao:document.getElementById('mv-localizacao').value,
-    modelo:document.getElementById('mv-modelo').value,
-    regime:document.getElementById('mv-regime').value,
+    localizacao:_novaLoc,
+    modelo:_novoModelo,
+    regime:_novoRegime,
+    metaInferida:_metaInferidaPosSave,
     data:existing?.data||'',
     notas:document.getElementById('mv-notas').value,
     emailDest:document.getElementById('mv-email-dest').value,
@@ -9503,9 +9523,13 @@ function _aplicarSinaisWorker(alvo, data){
   // PÁGINA (extensão/JSON-LD) é fato de primeira mão — a IA só preenche o que o card ainda
   // não sabia. Escrever por cima do que a página já capturou reabriria a mesma S47 ao
   // contrário: um card certo ficando errado porque a IA leu mal um trecho da descrição.
-  if(data.localizacao&&!alvo.localizacao) alvo.localizacao=data.localizacao;
-  if(data.modelo&&!alvo.modelo) alvo.modelo=data.modelo;
-  if(data.regime&&!alvo.regime) alvo.regime=data.regime;
+  // Todo campo preenchido AQUI (pela IA, não pela página) fica marcado em metaInferida — é
+  // um chute, não um fato, e _metaConhecidaVaga precisa saber disso para não devolvê-lo à IA
+  // como algo inquestionável na próxima reanálise (senão um erro da 1ª leitura vira "fato"
+  // travado para sempre: achado pelo senova-auditor, S47 S6).
+  if(data.localizacao&&!alvo.localizacao){alvo.localizacao=data.localizacao;alvo.metaInferida={...(alvo.metaInferida||{}),localizacao:true};}
+  if(data.modelo&&!alvo.modelo){alvo.modelo=data.modelo;alvo.metaInferida={...(alvo.metaInferida||{}),modelo:true};}
+  if(data.regime&&!alvo.regime){alvo.regime=data.regime;alvo.metaInferida={...(alvo.metaInferida||{}),regime:true};}
   return alvo;
 }
 
@@ -9517,11 +9541,15 @@ function _aplicarSinaisWorker(alvo, data){
 // mesmo. jornada entrou depois (mesma auditoria de backlog, 17/ago/2026): salário NÃO entra
 // aqui — o senova-viabilidade reprovou, o campo está contaminado com a pretensão salarial do
 // usuário em cards antigos e a extensão não distingue declarado de estimado.
-function _metaConhecidaVaga(loc,modelo,regime,jornada){
+// `inferida` (S47 S6): mapa metaInferida do card — campo marcado ali foi CHUTE da IA numa
+// análise anterior (_aplicarSinaisWorker), não captura da página. Não pode ser mandado de
+// volta como FATO: isso é o que travava o erro para sempre. jornada nunca é marcada (só vem
+// de JSON-LD direto, nunca de _aplicarSinaisWorker), por isso não é filtrada aqui.
+function _metaConhecidaVaga(loc,modelo,regime,jornada,inferida){
   const m={};
-  if(loc&&loc.trim()) m.localizacao=loc.trim().slice(0,80);
-  if(modelo&&modelo.trim()) m.modelo=modelo.trim().slice(0,80);
-  if(regime&&regime.trim()) m.regime=regime.trim().slice(0,80);
+  if(loc&&loc.trim()&&!inferida?.localizacao) m.localizacao=loc.trim().slice(0,80);
+  if(modelo&&modelo.trim()&&!inferida?.modelo) m.modelo=modelo.trim().slice(0,80);
+  if(regime&&regime.trim()&&!inferida?.regime) m.regime=regime.trim().slice(0,80);
   if(jornada&&jornada.trim()) m.jornada=jornada.trim().slice(0,80);
   return m;
 }
@@ -9553,7 +9581,7 @@ async function mvAutoCompatCheck(){
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),
-        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value)})
+        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value,alvo.metaInferida)})
     });
     if(!res.ok){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
     const data=await res.json();
@@ -9707,7 +9735,7 @@ async function mvReanalisarCompat(){
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior,
-        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value)})
+        metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value,v.metaInferida)})
     });
     if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
     const data=await res.json();
@@ -9862,6 +9890,14 @@ function saveVagaSilent(){
   const existing=isNew?null:vagas.find(v=>String(v.id)===String(editingVagaId));
   const now=Date.now();
   const createdAt=existing?.createdAt||now;
+  const _novaLoc=document.getElementById('mv-localizacao')?.value||'';
+  const _novoModelo=document.getElementById('mv-modelo')?.value||'';
+  const _novoRegime=document.getElementById('mv-regime')?.value||'';
+  // Mesmo tratamento de saveVaga() (S47 S6): edição manual limpa a marca de "chute da IA".
+  const _metaInferidaPosSave={...(existing?.metaInferida||{})};
+  if(_novaLoc!==(existing?.localizacao||'')) delete _metaInferidaPosSave.localizacao;
+  if(_novoModelo!==(existing?.modelo||'')) delete _metaInferidaPosSave.modelo;
+  if(_novoRegime!==(existing?.regime||'')) delete _metaInferidaPosSave.regime;
   const obj={
     ...(existing||{}), // trava anti-perda: nunca descartar campos que já existem (compatFortes, emailAssunto, entrevistaData…)
     id:isNew?now:editingVagaId,empresa,
@@ -9874,9 +9910,10 @@ function saveVagaSilent(){
     proxima:document.getElementById('mv-proxima')?.value||'',
     proximaData:document.getElementById('mv-proxima-data')?.value||'',
     plano:document.getElementById('mv-plano')?.value||'',
-    localizacao:document.getElementById('mv-localizacao')?.value||'',
-    modelo:document.getElementById('mv-modelo')?.value||'',
-    regime:document.getElementById('mv-regime')?.value||'',
+    localizacao:_novaLoc,
+    modelo:_novoModelo,
+    regime:_novoRegime,
+    metaInferida:_metaInferidaPosSave,
     data:existing?.data||'',
     notas:document.getElementById('mv-notas')?.value||'',
     emailDest:document.getElementById('mv-email-dest')?.value||'',
@@ -10831,7 +10868,7 @@ async function analisarLoteBackground(){
   const _analisarUma=async v=>{
     try{
       const desc=v.jobDescription||v.descricao||'';
-      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada)})});
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
       _loteEmAnalise.delete(String(v.id));
       // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
       // esteira inteira fica quente com um único aquecimento por janela.

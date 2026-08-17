@@ -40,16 +40,37 @@ console.log('=== _metaConhecidaVaga: só manda o que existe, nunca um rótulo va
     JSON.stringify({ localizacao: 'Belo Horizonte, MG', modelo: 'Presencial', regime: 'CLT', jornada: 'Tempo integral' }));
   t('jornada vazia não aparece, e não quebra os outros 3',
     JSON.stringify(exec(s, '_metaConhecidaVaga("Belo Horizonte, MG","","","")')) === JSON.stringify({ localizacao: 'Belo Horizonte, MG' }));
+  t('campo marcado em metaInferida (S47 S6: foi CHUTE da IA, não fato da página) é OMITIDO do bloco',
+    JSON.stringify(exec(s, '_metaConhecidaVaga("Belo Horizonte, MG","Presencial","CLT","",{modelo:true})')) ===
+    JSON.stringify({ localizacao: 'Belo Horizonte, MG', regime: 'CLT' }));
+  t('os 3 campos marcados como inferidos somem, só jornada fica (jornada nunca é marcada — só vem de JSON-LD)',
+    JSON.stringify(exec(s, '_metaConhecidaVaga("BH","Presencial","CLT","Tempo integral",{localizacao:true,modelo:true,regime:true})')) ===
+    JSON.stringify({ jornada: 'Tempo integral' }));
+  t('sem metaInferida nenhuma (card antigo, campo não existe), comportamento é igual ao de antes',
+    JSON.stringify(exec(s, '_metaConhecidaVaga("Belo Horizonte, MG","Presencial","CLT","")')) ===
+    JSON.stringify({ localizacao: 'Belo Horizonte, MG', modelo: 'Presencial', regime: 'CLT' }));
 }
 
-console.log('\n=== _aplicarSinaisWorker: só preenche o que o card ainda NÃO sabia ===');
+console.log('\n=== _aplicarSinaisWorker: só preenche o que o card ainda NÃO sabia, e marca o chute (S47 S6) ===');
 {
   const s = carregarApp(['function _aplicarSinaisWorker(']);
   t('card vazio recebe localizacao/modelo/regime da IA',
-    JSON.stringify(exec(s, '_aplicarSinaisWorker({}, {localizacao:"Belo Horizonte, MG",modelo:"presencial",regime:"CLT"})')) ===
-    JSON.stringify({ localizacao: 'Belo Horizonte, MG', modelo: 'presencial', regime: 'CLT' }));
+    (() => {
+      const r = exec(s, '_aplicarSinaisWorker({}, {localizacao:"Belo Horizonte, MG",modelo:"presencial",regime:"CLT"})');
+      return r.localizacao === 'Belo Horizonte, MG' && r.modelo === 'presencial' && r.regime === 'CLT';
+    })());
+  t('os 3 campos que a IA preencheu ficam marcados em metaInferida — não são fato, são chute',
+    (() => {
+      const r = exec(s, '_aplicarSinaisWorker({}, {localizacao:"Belo Horizonte, MG",modelo:"presencial",regime:"CLT"})');
+      return r.metaInferida.localizacao === true && r.metaInferida.modelo === true && r.metaInferida.regime === true;
+    })());
   t('card que JÁ tinha localização (capturada da página) não é sobrescrito pela IA',
     exec(s, '_aplicarSinaisWorker({localizacao:"Belo Horizonte, MG"}, {localizacao:"Curitiba, PR"}).localizacao') === 'Belo Horizonte, MG');
+  t('campo que já tinha valor não ganha marca de inferido — não foi a IA que preencheu',
+    (() => {
+      const r = exec(s, '_aplicarSinaisWorker({localizacao:"Belo Horizonte, MG"}, {localizacao:"Curitiba, PR"})');
+      return !r.metaInferida || !r.metaInferida.localizacao;
+    })());
   t('mesmo vale para modelo e regime já capturados',
     (() => {
       const r = exec(s, '_aplicarSinaisWorker({modelo:"hibrido",regime:"PJ"}, {modelo:"remoto",regime:"CLT"})');
@@ -99,6 +120,7 @@ console.log('\n=== mvAutoCompatCheck: manda o que o formulário já tem, sem sob
     const v = app.vagas[0];
     t('localização do card NÃO foi trocada pela leitura da IA (Curitiba)', v.localizacao === 'Belo Horizonte, MG', v.localizacao);
     t('regime, que o card não tinha, foi preenchido pela IA', v.regime === 'CLT', v.regime);
+    t('regime preenchido pela IA fica marcado em metaInferida (S47 S6)', v.metaInferida?.regime === true, JSON.stringify(v.metaInferida));
     delete global.__corpoCapturado;
     resto();
   });
@@ -142,6 +164,7 @@ console.log('\n=== mvReanalisarCompat: mesmo contrato ===');
     const v = app.vagas[0];
     t('modelo já capturado não foi sobrescrito pela IA (Presencial, não remoto)', v.modelo === 'Presencial', v.modelo);
     t('localização, que o card não tinha, foi preenchida pela IA', v.localizacao === 'Belo Horizonte, MG', v.localizacao);
+    t('localização preenchida pela IA fica marcada em metaInferida, modelo (já capturado) não', v.metaInferida?.localizacao === true && !v.metaInferida?.modelo, JSON.stringify(v.metaInferida));
     delete global.__corpoCapturado;
     resto2();
   });
@@ -178,6 +201,7 @@ console.log('\n=== analisarLoteBackground: mesmo contrato, sem formulário abert
     const v = app.vagas[0];
     t('regime já capturado (CLT) não foi sobrescrito pela leitura da IA (PJ)', v.regime === 'CLT', v.regime);
     t('localização e modelo, que a vaga não tinha, vieram da IA', v.localizacao === 'Belo Horizonte, MG' && v.modelo === 'presencial');
+    t('localização e modelo (vindos da IA) marcados em metaInferida, regime (já capturado) não', v.metaInferida?.localizacao === true && v.metaInferida?.modelo === true && !v.metaInferida?.regime, JSON.stringify(v.metaInferida));
     delete global.__corpoCapturado;
     resto3();
   });
@@ -212,6 +236,41 @@ console.log('\n=== o Worker: prompt instrui a nunca contradizer o que já sabe, 
     /if \(_mc\.jornada\) _metaPartes\.push\(`jornada: \$\{_sanitizaMeta\(_mc\.jornada\)\}`\);/.test(worker));
   t('salário NÃO entra no bloco — senova-viabilidade reprovou (contaminado com pretensão do candidato)',
     !/_mc\.salario/.test(worker));
+}
+
+console.log('\n=== P5 (S47): parser de JSON-LD não infere "Presencial" por presença vazia nem erra jobLocationType array ===');
+{
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'senova-worker.js'), 'utf8');
+  t('jobLocationType é normalizado para array antes de checar TELECOMMUTE (schema.org permite array)',
+    /\[\]\.concat\(item\.jobLocationType \|\| \[\]\)\.map\(x => String\(x\)\.toUpperCase\(\)\)/.test(worker));
+  t('"Presencial" só é inferido com endereço REAL (addrReal), nunca pela mera presença de jobLocation',
+    /else if \(addrReal\) meta\.modalidade = 'Presencial'/.test(worker) && !/else if \(loc\) meta\.modalidade = 'Presencial'/.test(worker));
+  t('addressCountry sozinho não conta como endereço real (precisa locality/region/streetAddress)',
+    /addr\.addressLocality \|\| addr\.addressRegion \|\| addr\.streetAddress\) addrReal = addr/.test(worker));
+}
+
+console.log('\n=== S6 (S47): edição manual do card limpa a marca de "chute da IA" só no campo alterado ===');
+{
+  t('saveVaga() limpa metaInferida do campo que a pessoa de fato mudou no formulário',
+    /if\(_novaLoc!==\(existing\?\.localizacao\|\|''\)\) delete _metaInferidaPosSave\.localizacao;/.test(html) &&
+    /if\(_novoModelo!==\(existing\?\.modelo\|\|''\)\) delete _metaInferidaPosSave\.modelo;/.test(html) &&
+    /if\(_novoRegime!==\(existing\?\.regime\|\|''\)\) delete _metaInferidaPosSave\.regime;/.test(html));
+  t('saveVaga() grava metaInferida (já filtrado) de volta no card',
+    /metaInferida:_metaInferidaPosSave,/.test(html));
+  t('saveVagaSilent() tem o mesmo tratamento (2º ponto de gravação do modal)',
+    (html.match(/const _metaInferidaPosSave=\{\.\.\.\(existing\?\.metaInferida\|\|\{\}\)\};/g) || []).length === 2);
+}
+
+console.log('\n=== 4ª esteira (S47 S6): o Radar também chuta localizacao/modelo/regime, e também precisa do guard ===');
+{
+  t('_pedirAnaliseVaga do Radar não manda metaConhecida — confirma que tudo que volta de lá é CHUTE, nunca fato',
+    !/_pedirAnaliseVaga[\s\S]{0,300}metaConhecida/.test(html));
+  t('o resultado do Radar preserva o que já existia (v.X||analise.X), não apaga com analise vazio',
+    /localizacao:v\.localizacao\|\|analise\.localizacao\|\|''.*modelo:v\.modelo\|\|analise\.modelo\|\|''.*regime:v\.regime\|\|analise\.regime\|\|''/.test(html));
+  t('o resultado do Radar marca metaInferida só no que a IA de fato preencheu (campo antes vazio)',
+    /\(!v\.localizacao&&analise\.localizacao\)\?\{localizacao:true\}/.test(html) &&
+    /\(!v\.modelo&&analise\.modelo\)\?\{modelo:true\}/.test(html) &&
+    /\(!v\.regime&&analise\.regime\)\?\{regime:true\}/.test(html));
 }
 
 fim('METADADOS JÁ CONHECIDOS · O CARD NÃO PODE NEGAR O QUE A PRÓPRIA PILL MOSTRA');
