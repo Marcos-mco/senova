@@ -1,6 +1,18 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.35
+//  SENOVA PROXY — Worker v7.36
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.36 (17/ago/2026) — "Vagas que pedem inglês fluente não podem
+//  passar. Eu tenho apenas avançado." Causa raiz medida no KV real (senova-
+//  auditor, 381 vagas): 67 vagas com gap de fluência já detectado pela IA
+//  seguiam com impedimentos=[] porque a instrução só mandava registrar o gap
+//  em pontos_atencao, nunca em impedimentos — e só impedimentos aciona o teto
+//  de score 45 (TETO_SCORE_COM_IMPEDIMENTO, código, linha ~536). Vagas como
+//  "Director of Sales & Marketing" (79) e "Diretor comercial — inglês fluente"
+//  (52) passavam do Critério (55) mesmo com o próprio texto da IA dizendo
+//  "gap real"/"eliminatório". Fluência exigida acima do nível declarado no
+//  Perfil agora é IMPEDIMENTO explícito no prompt — sem mudar o mecanismo de
+//  teto, que já existia e já funciona, só nunca era acionado para este caso.
 //
 //  NOVIDADES v7.35 (17/ago/2026) — card "Head de Desenvolvimento" (ALS): Marcos
 //  viu o card negar saber a localização/regime da vaga enquanto as próprias pills
@@ -1056,7 +1068,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.35',
+        status: 'ok', worker: 'senova-proxy', versao: '7.36',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -2976,10 +2988,10 @@ Regime: se não encontrar CLT ou PJ explicitamente, inferir pelo contexto — va
 
 DADOS JÁ CONHECIDOS DA VAGA: se a mensagem do usuário trouxer um bloco "DADOS JÁ CONHECIDOS DA VAGA", os campos ali (localização/modelo/regime) são FATO, capturados direto da página de origem — não da descrição, não da sua leitura. Nunca escreva em pontos_atencao que um desses campos "não foi declarado", "não consta" ou está ausente, e devolva-o no JSON de saída (localizacao/modelo/regime) com o MESMO valor recebido, sem contradizer. Campo que NÃO vier nesse bloco continua sendo extraído normalmente da descrição, como sempre.
 
-IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do candidato informado abaixo. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), registrar OBRIGATORIAMENTE em pontos_atencao; nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
+IDIOMAS — regra obrigatória: use os níveis de idioma DECLARADOS no perfil do candidato informado abaixo. "avançado" ≠ "fluente". Se a vaga exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) num idioma em que o candidato NÃO é fluente (nível avançado ou inferior), isto é IMPEDIMENTO — liste em "impedimentos" (nunca apenas em pontos_atencao, ver seção IMPEDIMENTOS abaixo); nunca registrar esse idioma como ponto_forte quando o requisito for fluência; nunca afirmar que o candidato "atende" a exigência de fluência nesse idioma. Idioma NÃO declarado no perfil = o candidato não fala, também impedimento. Vaga sediada num país cujo idioma local o candidato não fala é impedimento, salvo se a descrição deixar explícito que o trabalho é conduzido em idioma que ele fala.
 
 IMPEDIMENTOS — avalie ANTES de pontuar. Impedimento é o que torna esta vaga inviável ou contrária ao projeto de vida do candidato (informado abaixo), não um requisito que faltou. Só é impedimento o que a descrição REALMENTE sustenta:
-· idioma local ou exigido que o candidato não fala;
+· idioma local ou exigido que o candidato não fala, OU que exige fluência (fluente/nativo/bilíngue/proficient/C1/C2) acima do nível DECLARADO no perfil dele — ex.: perfil diz "avançado", vaga pede "fluente": impedimento, não só ponto de atenção;
 · presença física obrigatória em praça que ele não aceita (ver projeto de vida) — estar no exterior, por si só, não é impedimento;
 · remuneração declarada abaixo do piso do candidato (ver projeto de vida — o piso é baixo de propósito);
 · nível do trabalho abaixo do porte dele SEM nada que compense — execução individual, operação, porta em porta, "consultor de vendas" com carteira própria, ainda que o TÍTULO diga gerente ou diretor. Julgue pelas responsabilidades, nunca pelo título. ATENÇÃO: isto NÃO é impedimento quando a vaga serve a outra prioridade do projeto de vida (proximidade da filha, residência legal na Europa, viabilizar a vida agora) OU quando a ÁREA/conteúdo é um match forte com a experiência dele (é claramente a praia dele) — aí registre a perda de nível em pontos_atencao e siga;
