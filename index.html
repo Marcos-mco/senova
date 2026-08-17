@@ -6242,15 +6242,15 @@ async function importarVagasLead(){
         // este campo aqui, a nota caía mas o motivo sumia — o card mostrava
         // vaga fraca sem dizer por quê.
         // localizacao/modelo/regime aqui são SEMPRE chute da IA (o Radar não manda metaConhecida
-        // — _pedirAnaliseVaga não tem esse parâmetro), nunca captura da página. `v.X||analise.X`
-        // preserva o que já existia em vez de apagar com analise.X vazio, e metaInferida marca o
-        // chute — senão vira o mesmo "fato" travado para sempre que o S6 fechou nas outras 3
-        // esteiras (achado pelo senova-auditor, S47 P5+S6: esta era a 4ª esteira, fora do mapa
-        // original, que _aplicarSinaisWorker não cobre porque monta o card do zero via spread).
-        return {...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null,
-          localizacao:v.localizacao||analise.localizacao||'', modelo:v.modelo||analise.modelo||'', regime:v.regime||analise.regime||'',
-          metaInferida:{...(v.metaInferida||{}), ...((!v.localizacao&&analise.localizacao)?{localizacao:true}:{}), ...((!v.modelo&&analise.modelo)?{modelo:true}:{}), ...((!v.regime&&analise.regime)?{regime:true}:{})},
+        // — _pedirAnaliseVaga não tem esse parâmetro), nunca captura da página. _gravarMetaVaga
+        // (fonte:'ia') preserva o que já existia e marca metaInferida só no que a IA de fato
+        // preencheu — mesmo ponto único usado por _aplicarSinaisWorker (achado pelo
+        // senova-auditor, S47 P5+S6: esta era a 4ª esteira, fora do mapa original, que
+        // _aplicarSinaisWorker não cobre porque monta o card do zero via spread).
+        const _novoV={...v, score:analise.score??null, classificacao:analise.classificacao||null, resumo:analise.resumo||null, pontos_fortes:analise.pontos_fortes||[], pontos_atencao:analise.pontos_atencao||[], salario_compativel:analise.salario_compativel??null,
           canalDiretoTipo:analise.candidatura_direta_canal||'', canalDiretoDestino:analise.candidatura_direta_destino||'', canalDiretoInstrucao:analise.candidatura_direta_instrucao||'', idiomaDocExigido:analise.documento_idioma_exigido||''};
+        _gravarMetaVaga(_novoV, {localizacao:analise.localizacao, modelo:analise.modelo, regime:analise.regime}, 'ia');
+        return _novoV;
       }catch{
         analisadas++;
         if(btn) btn.textContent=`⏳ Analisando ${analisadas}/${lead.length}…`;
@@ -8420,10 +8420,13 @@ async function _mvAutoFetchDesc(modo){
     const _vi=vagas.findIndex(v=>String(v.id)===String(cardId));
     if(_vi>=0){
       vagas[_vi].jobDescription=_desc;
-      if(data.localizacao&&!vagas[_vi].localizacao){vagas[_vi].localizacao=data.localizacao;const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=data.localizacao;}
-      if(data.modalidade&&!vagas[_vi].modelo){vagas[_vi].modelo=data.modalidade;const me=document.getElementById('mv-modelo');if(me)me.value=data.modalidade;}
-      if(data.jornada&&!vagas[_vi].jornada){vagas[_vi].jornada=data.jornada;const je=document.getElementById('mv-jornada');if(je)je.value=data.jornada;}
-      if(data.salario&&!vagas[_vi].salario){vagas[_vi].salario=data.salario;const se=document.getElementById('mv-salario');if(se)se.value=data.salario;}
+      // JSON-LD é fato de página — sempre vence o que a IA tinha chutado antes (_gravarMetaVaga fonte:'pagina').
+      const _antes={localizacao:vagas[_vi].localizacao,modelo:vagas[_vi].modelo,jornada:vagas[_vi].jornada,salario:vagas[_vi].salario};
+      _gravarMetaVaga(vagas[_vi], {localizacao:data.localizacao, modelo:data.modalidade, jornada:data.jornada, salario:data.salario}, 'pagina');
+      if(vagas[_vi].localizacao!==_antes.localizacao){const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=vagas[_vi].localizacao;}
+      if(vagas[_vi].modelo!==_antes.modelo){const me=document.getElementById('mv-modelo');if(me)me.value=vagas[_vi].modelo;}
+      if(vagas[_vi].jornada!==_antes.jornada){const je=document.getElementById('mv-jornada');if(je)je.value=vagas[_vi].jornada;}
+      if(vagas[_vi].salario!==_antes.salario){const se=document.getElementById('mv-salario');if(se)se.value=vagas[_vi].salario;}
       saveVagas();
       mvUpdateMetaInfo(vagas[_vi]);
     }
@@ -9501,6 +9504,37 @@ function mvRenderSofia(v){
   _mvSyncVerdFold();
 }
 
+// ── PONTO ÚNICO DE GRAVAÇÃO DE METADADOS DA VAGA (localizacao/modelo/regime/jornada/salario) ──
+// TODA esteira que captura ou infere esses campos passa por aqui — extensão, JSON-LD (Worker),
+// IA (_aplicarSinaisWorker) e Radar. fonte:'pagina' é fato de primeira mão e VENCE qualquer
+// chute anterior da IA, apagando a marca metaInferida daquele campo no mesmo gesto. fonte:'ia'
+// só preenche o que o card ainda não sabia (nunca sobrescreve fato real) e marca metaInferida —
+// é chute, não fato, e _metaConhecidaVaga precisa saber disso para não devolvê-lo à IA como algo
+// inquestionável na próxima reanálise.
+// Sem ponto único, cada gravador tinha sua própria guarda "!alvo.campo": um fato real chegando
+// DEPOIS do chute da IA era descartado em silêncio, e a marca metaInferida nunca era limpa por
+// ninguém além de edição manual — o card ficava com o chute errado da 1ª leitura travado para
+// sempre, mesmo com o dado certo disponível. Achado pelo senova-auditor, S47, auditando as
+// lacunas de captura da extensão (item 1, o mais grave dos 7 achados).
+function _gravarMetaVaga(alvo, meta, fonte){
+  if(!alvo||!meta) return alvo;
+  ['localizacao','modelo','regime','jornada','salario'].forEach(campo=>{
+    const val=meta[campo];
+    if(!val) return;
+    if(fonte==='pagina'){
+      alvo[campo]=val;
+      if(alvo.metaInferida&&alvo.metaInferida[campo]){
+        alvo.metaInferida={...alvo.metaInferida};
+        delete alvo.metaInferida[campo];
+      }
+    }else if(fonte==='ia'&&!alvo[campo]){
+      alvo[campo]=val;
+      alvo.metaInferida={...(alvo.metaInferida||{}),[campo]:true};
+    }
+  });
+  return alvo;
+}
+
 // ── COMPATIBILIDADE RÁPIDA (auto ao abrir card lead) ────────────────────────
 // Ponto ÚNICO de gravação dos sinais que a IA extrai da vaga além do score — candidatura direta
 // (canal/destino/instrução) e idioma exigido do documento. TODA esteira que lê a resposta de
@@ -9519,17 +9553,9 @@ function _aplicarSinaisWorker(alvo, data){
     }
   }
   if(data.documento_idioma_exigido) alvo.idiomaDocExigido=data.documento_idioma_exigido;
-  // localizacao/modelo/regime: a IA também os extrai da descrição, mas o dado capturado da
-  // PÁGINA (extensão/JSON-LD) é fato de primeira mão — a IA só preenche o que o card ainda
-  // não sabia. Escrever por cima do que a página já capturou reabriria a mesma S47 ao
-  // contrário: um card certo ficando errado porque a IA leu mal um trecho da descrição.
-  // Todo campo preenchido AQUI (pela IA, não pela página) fica marcado em metaInferida — é
-  // um chute, não um fato, e _metaConhecidaVaga precisa saber disso para não devolvê-lo à IA
-  // como algo inquestionável na próxima reanálise (senão um erro da 1ª leitura vira "fato"
-  // travado para sempre: achado pelo senova-auditor, S47 S6).
-  if(data.localizacao&&!alvo.localizacao){alvo.localizacao=data.localizacao;alvo.metaInferida={...(alvo.metaInferida||{}),localizacao:true};}
-  if(data.modelo&&!alvo.modelo){alvo.modelo=data.modelo;alvo.metaInferida={...(alvo.metaInferida||{}),modelo:true};}
-  if(data.regime&&!alvo.regime){alvo.regime=data.regime;alvo.metaInferida={...(alvo.metaInferida||{}),regime:true};}
+  // localizacao/modelo/regime vêm da IA como CHUTE, nunca fato — _gravarMetaVaga(fonte:'ia')
+  // só preenche o que o card ainda não sabia e marca metaInferida.
+  _gravarMetaVaga(alvo, {localizacao:data.localizacao, modelo:data.modelo, regime:data.regime}, 'ia');
   return alvo;
 }
 
@@ -12751,24 +12777,16 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
     vagas[idx].atsAnalise='';
     vagas[idx].score=null;
   }
-  // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada)
+  // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada) — fato
+  // de página, sempre vence o que a IA tinha chutado antes (_gravarMetaVaga fonte:'pagina').
   if(extra){
-    if(extra.local&&!vagas[idx].localizacao){
-      const loc=(extra.local+'').split('·')[0].split('•')[0].trim();
-      if(loc){vagas[idx].localizacao=loc;const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=loc;}
-    }
-    if(extra.salario&&!vagas[idx].salario){
-      vagas[idx].salario=extra.salario;
-      const se=document.getElementById('mv-salario');if(se)se.value=extra.salario;
-    }
-    if(extra.modalidade&&!vagas[idx].modelo){
-      vagas[idx].modelo=extra.modalidade;
-      const me=document.getElementById('mv-modelo');if(me)me.value=extra.modalidade;
-    }
-    if(extra.jornada&&!vagas[idx].jornada){
-      vagas[idx].jornada=extra.jornada;
-      const je=document.getElementById('mv-jornada');if(je)je.value=extra.jornada;
-    }
+    const _loc=(extra.local+'').split('·')[0].split('•')[0].trim();
+    const _antes={localizacao:vagas[idx].localizacao,salario:vagas[idx].salario,modelo:vagas[idx].modelo,jornada:vagas[idx].jornada};
+    _gravarMetaVaga(vagas[idx], {localizacao:_loc, salario:extra.salario, modelo:extra.modalidade, jornada:extra.jornada}, 'pagina');
+    if(vagas[idx].localizacao!==_antes.localizacao){const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=vagas[idx].localizacao;}
+    if(vagas[idx].salario!==_antes.salario){const se=document.getElementById('mv-salario');if(se)se.value=vagas[idx].salario;}
+    if(vagas[idx].modelo!==_antes.modelo){const me=document.getElementById('mv-modelo');if(me)me.value=vagas[idx].modelo;}
+    if(vagas[idx].jornada!==_antes.jornada){const je=document.getElementById('mv-jornada');if(je)je.value=vagas[idx].jornada;}
     // Cargo/empresa reais da página da vaga → substituem o título feio vindo de
     // e-mail de digest ("…e vagas semelhantes", "…e mais outras"). Guarda: nunca
     // aceitar título de digest nem "LinkedIn" como empresa.

@@ -265,12 +265,30 @@ console.log('\n=== 4ª esteira (S47 S6): o Radar também chuta localizacao/model
 {
   t('_pedirAnaliseVaga do Radar não manda metaConhecida — confirma que tudo que volta de lá é CHUTE, nunca fato',
     !/_pedirAnaliseVaga[\s\S]{0,300}metaConhecida/.test(html));
-  t('o resultado do Radar preserva o que já existia (v.X||analise.X), não apaga com analise vazio',
-    /localizacao:v\.localizacao\|\|analise\.localizacao\|\|''.*modelo:v\.modelo\|\|analise\.modelo\|\|''.*regime:v\.regime\|\|analise\.regime\|\|''/.test(html));
-  t('o resultado do Radar marca metaInferida só no que a IA de fato preencheu (campo antes vazio)',
-    /\(!v\.localizacao&&analise\.localizacao\)\?\{localizacao:true\}/.test(html) &&
-    /\(!v\.modelo&&analise\.modelo\)\?\{modelo:true\}/.test(html) &&
-    /\(!v\.regime&&analise\.regime\)\?\{regime:true\}/.test(html));
+  t('o resultado do Radar passa por _gravarMetaVaga (fonte "ia") — mesmo ponto único do resto do app',
+    /_gravarMetaVaga\(_novoV, \{localizacao:analise\.localizacao, modelo:analise\.modelo, regime:analise\.regime\}, 'ia'\)/.test(html));
+  t('o Radar NÃO monta localizacao/modelo/regime na própria mão (não reabre o "N gravadores")',
+    !/localizacao:v\.localizacao\|\|analise\.localizacao/.test(html));
+}
+
+console.log('\n=== _gravarMetaVaga: ponto único de gravação (S47, auditoria de captura) ===');
+{
+  const s = carregarApp(['function _gravarMetaVaga(']);
+  t('fonte ia preenche vazio e marca inferida',
+    (() => { const r = exec(s, '_gravarMetaVaga({localizacao:""}, {localizacao:"Berlim, Alemanha"}, "ia")');
+      return r.localizacao==='Berlim, Alemanha' && r.metaInferida.localizacao===true; })());
+  t('fonte pagina VENCE o chute anterior da IA (correção do achado nº1 do auditor: fato chegando depois não era mais descartado)',
+    (() => { const r = exec(s, '_gravarMetaVaga({localizacao:"Berlim, Alemanha", metaInferida:{localizacao:true}}, {localizacao:"São Paulo, SP"}, "pagina")');
+      return r.localizacao==='São Paulo, SP'; })());
+  t('fonte pagina apaga a marca metaInferida do campo que acabou de sobrescrever',
+    (() => { const r = exec(s, '_gravarMetaVaga({localizacao:"Berlim, Alemanha", metaInferida:{localizacao:true}}, {localizacao:"São Paulo, SP"}, "pagina")');
+      return !r.metaInferida.localizacao; })());
+  t('fonte ia nunca sobrescreve fato já capturado (guarda antiga preservada)',
+    (() => { const r = exec(s, '_gravarMetaVaga({localizacao:"Curitiba, PR"}, {localizacao:"Remoto"}, "ia")');
+      return r.localizacao==='Curitiba, PR'; })());
+  t('valor vazio não escreve nada, nem em fonte pagina',
+    (() => { const r = exec(s, '_gravarMetaVaga({}, {localizacao:""}, "pagina")');
+      return r.localizacao===undefined; })());
 }
 
 fim('METADADOS JÁ CONHECIDOS · O CARD NÃO PODE NEGAR O QUE A PRÓPRIA PILL MOSTRA');

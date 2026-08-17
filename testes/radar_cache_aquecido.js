@@ -66,7 +66,7 @@ function montarSandbox(vagas, fetchMock, cacheQuenteAte) {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  const fontes = [extrai('function _elegivelParaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
+  const fontes = [extrai('function _elegivelParaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
   vm.runInContext(fontes, sandbox);
   return sandbox;
 }

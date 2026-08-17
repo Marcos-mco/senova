@@ -47,6 +47,9 @@ const NUCLEO = [
   'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
   'function _extrairPerfilTraduzido(',
+  // Ponto único de gravação de localizacao/modelo/regime/jornada/salario (S47, auditoria de
+  // captura). _aplicarSinaisWorker depende dela — entra no núcleo pela mesma razão.
+  'function _gravarMetaVaga(',
   // Ponto único de gravação dos sinais do Worker (candidatura direta + idioma exigido do
   // documento, S47). Toda esteira que lê /api/analisar-vaga chama esta função — entra no núcleo
   // porque um teste que extrai só a esteira (ex.: analisarLoteBackground) sem extrair este
