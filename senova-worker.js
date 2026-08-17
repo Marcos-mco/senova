@@ -1,6 +1,14 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.36
+//  SENOVA PROXY — Worker v7.37
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.37 (17/ago/2026) — auditoria de backlog do fix ALS (S5):
+//  metaConhecida ganha o campo `jornada`, aprovado por senova-viabilidade
+//  (vocabulário fechado, custo desprezível). `salario` foi PROPOSTO e
+//  REPROVADO no mesmo parecer — contaminado com a pretensão salarial do
+//  próprio usuário em cards antigos e sem rastro de proveniência (declarado
+//  pelo anunciante vs. estimativa do portal). Fica de fora até existir esse
+//  rastro.
 //
 //  NOVIDADES v7.36 (17/ago/2026) — "Vagas que pedem inglês fluente não podem
 //  passar. Eu tenho apenas avançado." Causa raiz medida no KV real (senova-
@@ -1068,7 +1076,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.36',
+        status: 'ok', worker: 'senova-proxy', versao: '7.37',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
