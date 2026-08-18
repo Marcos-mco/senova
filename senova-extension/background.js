@@ -750,10 +750,67 @@ function _htmlToText(h) {
     .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// Extrai localizacao/modalidade/jornada/salario do JSON-LD (JobPosting) embutido na página —
+// MESMA regra do parser em senova-worker.js (/api/fetch-descricao, ~linha 1795-1852). Duplicado
+// aqui porque não há bundler/pipeline neste repo para compartilhar módulo entre Worker e
+// extensão (CLAUDE.md: "sem build, sem bundler, sem pipeline de CI"); qualquer ajuste na regra
+// (ex.: addressCountry sozinho não conta como Presencial, jobLocationType pode vir em array)
+// precisa ser replicado nos dois lugares — achado pelo senova-auditor, S47, item 2/7 da
+// auditoria de captura: o enriquecimento em massa baixava esta mesma página e descartava tudo
+// que não fosse descricao/cargo/empresa, fazendo a IA chutar (via metaInferida) dado que a
+// própria página já entregava de graça.
+function _metaDoJsonLd(html) {
+  const ldRe = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let ldM;
+  while ((ldM = ldRe.exec(html)) !== null) {
+    try {
+      const parsed = JSON.parse(ldM[1].trim());
+      const items = Array.isArray(parsed) ? parsed : (parsed['@graph'] ? parsed['@graph'] : [parsed]);
+      for (const item of items) {
+        if (!item || (item['@type'] !== 'JobPosting' && !item.jobLocation && !item.employmentType)) continue;
+        const meta = {};
+        const loc = item.jobLocation;
+        let addrReal = null;
+        if (loc) {
+          const addr = (Array.isArray(loc) ? loc[0] : loc)?.address || {};
+          if (addr.addressLocality || addr.addressRegion || addr.streetAddress) addrReal = addr;
+        }
+        if (addrReal) {
+          const parts = [addrReal.addressLocality, addrReal.addressRegion, addrReal.addressCountry].filter(Boolean);
+          if (parts.length) meta.localizacao = parts.join(', ');
+        }
+        const et = item.employmentType;
+        if (et) {
+          const t = Array.isArray(et) ? et[0] : et;
+          const jMap = { FULL_TIME: 'Tempo integral', PART_TIME: 'Tempo parcial', CONTRACT: 'Contrato', TEMPORARY: 'Temporário', INTERN: 'Estágio' };
+          if (jMap[t]) meta.jornada = jMap[t];
+        }
+        const jlt = [].concat(item.jobLocationType || []).map(x => String(x).toUpperCase());
+        if (jlt.includes('TELECOMMUTE')) meta.modalidade = 'Remoto';
+        else if (addrReal) meta.modalidade = 'Presencial';
+        const sal = item.baseSalary;
+        if (sal?.value) {
+          const cur = sal.currency || 'BRL';
+          const sym = cur === 'BRL' ? 'R$ ' : cur + ' ';
+          const uMap = { MONTH: '/mês', YEAR: '/ano', HOUR: '/hora' };
+          const u = uMap[sal.value.unitText] || '';
+          const mn = sal.value.minValue, mx = sal.value.maxValue;
+          if (mn && mx) meta.salario = `${sym}${mn} – ${sym}${mx}${u}`;
+          else if (mn) meta.salario = `${sym}${mn}${u}`;
+          else if (mx) meta.salario = `${sym}${mx}${u}`;
+        }
+        if (Object.keys(meta).length) return meta;
+      }
+    } catch (e) {}
+  }
+  return {};
+}
+
 // Busca a descrição pela API pública de vaga do LinkedIn (jobs-guest), que devolve
 // o texto SEM abrir aba, sem foco e SEM enviar o cookie do usuário (credentials:'omit').
 // Motivo: o LinkedIn congela a renderização de abas sem foco, então a antiga aba de
-// fundo nunca entregava a descrição. Traz também cargo e empresa reais (limpa título feio).
+// fundo nunca entregava a descrição. Traz também cargo e empresa reais (limpa título feio),
+// e localizacao/modalidade/jornada/salario do JSON-LD — a mesma página já os entrega de graça.
 async function _buscarDescricaoGuest(url) {
   const id = (url.match(/\/jobs\/view\/(\d+)/) || [])[1];
   if (!id) return null;
@@ -769,10 +826,15 @@ async function _buscarDescricaoGuest(url) {
   const mCargo = html.match(/top-card-layout__title[^>]*>([\s\S]*?)<\/h[12]>/i)
               || html.match(/topcard__title[^>]*>([\s\S]*?)<\/h[12]>/i);
   const cargo = mCargo ? _htmlToText(mCargo[1]) : '';
+  const _meta = _metaDoJsonLd(html);
   const mEmp = html.match(/topcard__org-name-link[^>]*>([\s\S]*?)<\/a>/i)
             || html.match(/topcard__flavor[^>]*>([\s\S]*?)<\/span>/i);
-  const empresa = mEmp ? _htmlToText(mEmp[1]) : '';
-  return { descricao, cargo, empresa };
+  let empresa = mEmp ? _htmlToText(mEmp[1]) : '';
+  // topcard__flavor (fallback sem página de empresa) também casa com topcard__flavor--bullet,
+  // que é a LOCALIZAÇÃO, não a empresa — achado pelo senova-auditor, S47, item 2/7. Agora que
+  // JSON-LD entrega a localização real, comparar os dois descarta o falso positivo.
+  if (empresa && _meta.localizacao && empresa.toLowerCase() === _meta.localizacao.toLowerCase()) empresa = '';
+  return { descricao, cargo, empresa, ..._meta };
 }
 
 // Retorna true se conseguiu enriquecer o card; false caso contrário (p/ reprocessar depois).
@@ -786,7 +848,7 @@ async function _enriquecerUma(url, senovaTabId) {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTabId }, world: 'MAIN',
       func: (u, d, extra) => (typeof window.__senovaAtualizarDesc === 'function') ? window.__senovaAtualizarDesc(u, d, extra) : false,
-      args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa }],
+      args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa, local: dados.localizacao, modalidade: dados.modalidade, jornada: dados.jornada, salario: dados.salario }],
     });
     const updated = out && out[0] && out[0].result === true;
     return updated; // só "queima" a tentativa quando o card realmente mudou
