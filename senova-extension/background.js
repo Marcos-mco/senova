@@ -289,7 +289,7 @@ async function salvarVaga(payload) {
 }
 
 async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }, senderTab) {
-  if (!descricao || descricao.length < 100) return;
+  if (!descricao || descricao.length <= 120) return; // limiar único com o app (__senovaAtualizarDesc)
 
   const tabs = await chrome.tabs.query({});
   const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
@@ -305,12 +305,19 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
   }
 
   if (senovaTab) {
-    await chrome.scripting.executeScript({
+    // Igual a _enriquecerUma: checa o retorno. Se o app está aberto mas não achou o card (ex.: URL
+    // de um card criado via digest de e-mail, que não bate com a página atual), __senovaAtualizarDesc
+    // devolve false e a descrição não pode só desaparecer — cai no mesmo fallback do "app fechado".
+    const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id },
       world: 'MAIN',
-      func: (u, d, extra) => { if (typeof window.__senovaAtualizarDesc === 'function') window.__senovaAtualizarDesc(u, d, extra); },
+      func: (u, d, extra) => (typeof window.__senovaAtualizarDesc === 'function') ? window.__senovaAtualizarDesc(u, d, extra) : false,
       args: [url, descricao, { local, salario, modalidade, jornada, cargo, empresa }],
-    }).catch(() => {});
+    }).catch(() => null);
+    const updated = out && out[0] && out[0].result === true;
+    if (!updated) {
+      await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', local, salario, modalidade, jornada, fonte: 'extensao_chrome' }).catch(() => {});
+    }
     if (isDifferentWindow) {
       if (isFromPopup) await chrome.tabs.remove(senderTab.id).catch(() => {});
       await chrome.tabs.update(senovaTab.id, { active: true }).catch(() => {});
