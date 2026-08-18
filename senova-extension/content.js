@@ -32,6 +32,62 @@
     return m ? 'Email: ' + m[0] : null;
   }
 
+  // ── METADADOS VIA JSON-LD (localização/modalidade/jornada/salário) ────────
+  // MESMA regra do parser em senova-worker.js (/api/fetch-descricao) e em
+  // _metaDoJsonLd (background.js, enriquecimento em massa) — três leituras da
+  // mesma fonte (o JobPosting que o próprio site publica), duplicadas porque
+  // este repo não tem bundler para compartilhar módulo entre Worker/extensão
+  // (CLAUDE.md: "sem build, sem bundler"). Ajuste na regra precisa ir nos três.
+  // Achado pelo senova-auditor, S47, item 5/7: só o LinkedIn tentava capturar
+  // esses campos, e via regex solto no bodyText — os outros 9 extratores
+  // (Gupy, Indeed, Catho, Vagas.com, Greenhouse, Lever, Workable, Inhire,
+  // genérico) sempre devolviam local:'' mesmo quando a própria página já
+  // publicava tudo isso em JSON-LD (Gupy, Greenhouse, Lever e Workable publicam).
+  function _metaDaPagina() {
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (const s of scripts) {
+      let parsed;
+      try { parsed = JSON.parse(s.textContent || ''); } catch (_) { continue; }
+      const items = Array.isArray(parsed) ? parsed : (parsed['@graph'] ? parsed['@graph'] : [parsed]);
+      for (const item of items) {
+        if (!item || (item['@type'] !== 'JobPosting' && !item.jobLocation && !item.employmentType)) continue;
+        const meta = {};
+        const loc = item.jobLocation;
+        let addrReal = null;
+        if (loc) {
+          const addr = (Array.isArray(loc) ? loc[0] : loc)?.address || {};
+          if (addr.addressLocality || addr.addressRegion || addr.streetAddress) addrReal = addr;
+        }
+        if (addrReal) {
+          const parts = [addrReal.addressLocality, addrReal.addressRegion, addrReal.addressCountry].filter(Boolean);
+          if (parts.length) meta.local = parts.join(', ');
+        }
+        const et = item.employmentType;
+        if (et) {
+          const t = Array.isArray(et) ? et[0] : et;
+          const jMap = { FULL_TIME: 'Tempo integral', PART_TIME: 'Tempo parcial', CONTRACT: 'Contrato', TEMPORARY: 'Temporário', INTERN: 'Estágio' };
+          if (jMap[t]) meta.jornada = jMap[t];
+        }
+        const jlt = [].concat(item.jobLocationType || []).map(x => String(x).toUpperCase());
+        if (jlt.includes('TELECOMMUTE')) meta.modalidade = 'Remoto';
+        else if (addrReal) meta.modalidade = 'Presencial';
+        const sal = item.baseSalary;
+        if (sal?.value) {
+          const cur = sal.currency || 'BRL';
+          const sym = cur === 'BRL' ? 'R$ ' : cur + ' ';
+          const uMap = { MONTH: '/mês', YEAR: '/ano', HOUR: '/hora' };
+          const u = uMap[sal.value.unitText] || '';
+          const mn = sal.value.minValue, mx = sal.value.maxValue;
+          if (mn && mx) meta.salario = `${sym}${mn} – ${sym}${mx}${u}`;
+          else if (mn) meta.salario = `${sym}${mn}${u}`;
+          else if (mx) meta.salario = `${sym}${mx}${u}`;
+        }
+        if (Object.keys(meta).length) return meta;
+      }
+    }
+    return {};
+  }
+
   // ── LINKEDIN ─────────────────────────────────────────────────────
   // Funciona na página de detalhe (/jobs/view/) E no painel lateral da busca (/jobs/search/)
 
@@ -164,7 +220,11 @@
       if (!empresa && t.empresa && !_LI_SECTION_HEADINGS.test(t.empresa)) empresa = t.empresa;
     }
 
-    const local = txt(
+    // JSON-LD primeiro (estruturado, mesma regra do Worker) — os seletores/regex abaixo só
+    // entram para o que o JSON-LD não trouxer (o painel split-view às vezes não injeta o script).
+    const _jl = _metaDaPagina();
+
+    const local = _jl.local || txt(
       '.job-details-jobs-unified-top-card__primary-description-without-modal span',
       '.jobs-unified-top-card__workplace-type',
       '[class*="topcard__flavor--bullet"]',
@@ -172,9 +232,9 @@
     );
 
     // 3b. Metadados adicionais: salário, modalidade (Presencial/Remoto/Híbrido), jornada (Tempo integral)
-    let salario = '';
-    let modalidade = '';
-    let jornada = '';
+    let salario = _jl.salario || '';
+    let modalidade = _jl.modalidade || '';
+    let jornada = _jl.jornada || '';
 
     // Coleta todos os textos curtos das pills de "job insights"
     const _insightTexts = Array.from(document.querySelectorAll(
@@ -284,6 +344,7 @@
   // ── GUPY ─────────────────────────────────────────────────────────
 
   function extractGupy() {
+    const jl = _metaDaPagina();
     const cargo = txt(
       '[data-testid="job-title"]',
       'h1[class*="JobTitle"]',
@@ -303,12 +364,13 @@
       'main'
     );
     const forma = emailNaDesc(desc) || 'Candidatura via Gupy';
-    return { tipo: 'vaga', cargo, empresa, local: '', descricao: desc, forma_candidatura: forma, canal: 'Gupy', url };
+    return { tipo: 'vaga', cargo, empresa, local: jl.local||'', descricao: desc, forma_candidatura: forma, canal: 'Gupy', url, salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'' };
   }
 
   // ── INHIRE / OUTROS GUPY-POWERED ─────────────────────────────────
 
   function extractInhire() {
+    const jl = _metaDaPagina();
     const cargo = txt('h1[class*="title"], h1[class*="job"], h1');
     const empresa = txt(
       '[class*="company"] h2',
@@ -323,12 +385,13 @@
       'article'
     );
     const forma = emailNaDesc(desc) || 'Candidatura via site da empresa';
-    return { tipo: 'vaga', cargo, empresa, local: '', descricao: desc, forma_candidatura: forma, canal: 'Empresa', url };
+    return { tipo: 'vaga', cargo, empresa, local: jl.local||'', descricao: desc, forma_candidatura: forma, canal: 'Empresa', url, salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'' };
   }
 
   // ── INDEED ───────────────────────────────────────────────────────
 
   function extractIndeed() {
+    const jl = _metaDaPagina();
     const cargo = txt(
       'h1[data-testid="jobsearch-JobInfoHeader-title"]',
       'h1.jobsearch-JobInfoHeader-title',
@@ -341,27 +404,29 @@
     );
     const desc = txtArea('#jobDescriptionText', '[id*="jobDescription"]', 'main');
     const forma = emailNaDesc(desc) || 'Indeed — Candidatura no site';
-    return { tipo: 'vaga', cargo, empresa, local: '', descricao: desc, forma_candidatura: forma, canal: 'Indeed', url };
+    return { tipo: 'vaga', cargo, empresa, local: jl.local||'', descricao: desc, forma_candidatura: forma, canal: 'Indeed', url, salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'' };
   }
 
   // ── CATHO ────────────────────────────────────────────────────────
 
   function extractCatho() {
+    const jl = _metaDaPagina();
     const cargo = txt('h1[class*="title"], h1[class*="job"], h1');
     const empresa = txt('[class*="company"] h2', '[class*="company-name"]', '[class*="empresa"]');
     const desc = txtArea('[class*="job-description"]', '[class*="description"]', 'main');
     const forma = emailNaDesc(desc) || 'Catho — Candidatura no site';
-    return { tipo: 'vaga', cargo, empresa, local: '', descricao: desc, forma_candidatura: forma, canal: 'Catho', url };
+    return { tipo: 'vaga', cargo, empresa, local: jl.local||'', descricao: desc, forma_candidatura: forma, canal: 'Catho', url, salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'' };
   }
 
   // ── VAGAS.COM ────────────────────────────────────────────────────
 
   function extractVagas() {
+    const jl = _metaDaPagina();
     const cargo = txt('h1.job-shortdescription__title', 'h1[class*="title"]', 'h1');
     const empresa = txt('[class*="company"] h2', '[class*="company-name"]');
     const desc = txtArea('[class*="job-description"]', '#vaga-description', 'main');
     const forma = emailNaDesc(desc) || 'Vagas.com — Candidatura no site';
-    return { tipo: 'vaga', cargo, empresa, local: '', descricao: desc, forma_candidatura: forma, canal: 'Vagas.com', url };
+    return { tipo: 'vaga', cargo, empresa, local: jl.local||'', descricao: desc, forma_candidatura: forma, canal: 'Vagas.com', url, salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'' };
   }
 
   // ── GENÉRICO ─────────────────────────────────────────────────────
@@ -398,6 +463,7 @@
   }
 
   function extractGenerico() {
+    const jl = _metaDaPagina();
     const selecao   = window.getSelection()?.toString().trim().slice(0, 5000) || '';
     const metaTitle = meta('og:title') || document.title || '';
     const metaDesc  = meta('og:description');
@@ -417,11 +483,12 @@
         tipo: 'vaga',
         cargo: cargoFinal,
         empresa: empresaOg,
-        local: '',
+        local: jl.local||'',
         descricao: desc,
         forma_candidatura: emailNaDesc(desc) || 'Ver na vaga',
         canal: 'Empresa',
         url,
+        salario: jl.salario||'', modalidade: jl.modalidade||'', jornada: jl.jornada||'',
       };
     }
 
@@ -438,6 +505,7 @@
   // URL: boards.greenhouse.io/COMPANY/jobs/ID
 
   function extractGreenhouse() {
+    const jl = _metaDaPagina();
     const cargo = txt(
       'h1.app-title', 'h1[class*="job-title"]', '.posting-headline h2',
       '[data-qa="job-title"]', 'h1'
@@ -447,13 +515,14 @@
     const empresa = txt('.company-name', '.posting-headline .company', '[class*="company"]') || empresaUrl;
     const desc = txtArea('#content', '.section-wrapper .content', '[class*="posting-description"]', 'main');
     const forma = emailNaDesc(desc) || 'Greenhouse — Candidatura no site';
-    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+    return { tipo:'vaga', cargo, empresa, local:jl.local||'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url, salario:jl.salario||'', modalidade:jl.modalidade||'', jornada:jl.jornada||'' };
   }
 
   // ── LEVER ────────────────────────────────────────────────────────
   // URL: jobs.lever.co/COMPANY/UUID
 
   function extractLever() {
+    const jl = _metaDaPagina();
     const cargo = txt(
       'h2[data-qa="posting-name"]', '.posting-headline h2',
       '[class*="posting-name"]', 'h2', 'h1'
@@ -466,17 +535,18 @@
       '.posting-requirements', '.content[class*="section"]', 'main'
     );
     const forma = emailNaDesc(desc) || 'Lever — Candidatura no site';
-    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+    return { tipo:'vaga', cargo, empresa, local:jl.local||'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url, salario:jl.salario||'', modalidade:jl.modalidade||'', jornada:jl.jornada||'' };
   }
 
   // ── WORKABLE ─────────────────────────────────────────────────────
 
   function extractWorkable() {
+    const jl = _metaDaPagina();
     const cargo   = txt('[data-ui="job-title"]', 'h1[class*="title"]', 'h1');
     const empresa = txt('[data-ui="company-name"]', '[class*="company-name"]', 'header h2');
     const desc    = txtArea('[data-ui="job-description"]', '[class*="job-description"]', 'main');
     const forma   = emailNaDesc(desc) || 'Workable — Candidatura no site';
-    return { tipo:'vaga', cargo, empresa, local:'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url };
+    return { tipo:'vaga', cargo, empresa, local:jl.local||'', descricao:desc, forma_candidatura:forma, canal:'Empresa', url, salario:jl.salario||'', modalidade:jl.modalidade||'', jornada:jl.jornada||'' };
   }
 
   // ── ROTEADOR ────────────────────────────────────────────────────
