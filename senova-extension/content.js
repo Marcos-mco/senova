@@ -646,6 +646,10 @@
             origemUrl:         dados.url,
             descricao:         dados.descricao,
             forma_candidatura: dados.forma_candidatura,
+            local:             dados.local,
+            salario:           dados.salario,
+            modalidade:        dados.modalidade,
+            jornada:           dados.jornada,
           },
         });
 

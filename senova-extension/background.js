@@ -255,6 +255,13 @@ async function salvarVaga(payload) {
       pontos_fortes:     payload.pontos_fortes || [],
       pontos_atencao:    payload.pontos_atencao || [],
       forma_candidatura: payload.forma_candidatura,
+      // Nomes do Worker (localizacao/modelo/jornada/salario) != nomes do extrator
+      // (local/modalidade/jornada/salario) — a tradução mora só aqui, num lugar só.
+      localizacao:       payload.local || '',
+      modelo:            payload.modalidade || '',
+      regime:            payload.regime || '',
+      jornada:           payload.jornada || '',
+      salario:           payload.salario || '',
       fonte:             'extensao_chrome',
     }),
   });
@@ -310,7 +317,7 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
       await chrome.windows.update(senovaTab.windowId, { focused: true }).catch(() => {});
     }
   } else {
-    await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', fonte: 'extensao_chrome' }).catch(() => {});
+    await salvarVaga({ cargo: cargo || '', empresa: empresa || '', origemUrl: url, descricao, canal: 'LinkedIn', local, salario, modalidade, jornada, fonte: 'extensao_chrome' }).catch(() => {});
   }
 }
 
