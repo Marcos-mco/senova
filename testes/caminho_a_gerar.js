@@ -35,6 +35,7 @@ const fontes = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _acharVagaRef(',
+  'function _gravarMetaVaga(',
   'window.__senovaCopilotoGarantirCard=function(',
   'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoGerarCV=function(',
@@ -71,7 +72,7 @@ t('vaga sem card devolve sem_card', r && r.ok === false && r.motivo === 'sem_car
 console.log('\n=== o Caminho A cria o card com a descrição da página ===');
 r = run('__senovaCopilotoGarantirCard', [REF]);
 t('criou o card', r && r.ok && r.criou === true, JSON.stringify(r));
-t('guardou a descrição da página', (sandbox.vagas[0].descricao || '').length > 400);
+t('guardou a descrição da página em jobDescription (campo corrente)', (sandbox.vagas[0].jobDescription || '').length > 400);
 
 console.log('\n=== gerar de novo agora chega a precisa_gerar (não é mais sem_card) ===');
 r = run('__senovaCopilotoGerarCV', [REF, 'pdf']);

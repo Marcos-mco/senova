@@ -13032,19 +13032,26 @@ window.__senovaCopilotoGarantirCard=function(d){
   const idx=_acharVagaRef(d);
   if(idx>=0){
     const v=vagas[idx];
-    // A página tem a descrição completa; o card pode ter nascido de um lead sem ela.
+    // A página tem a descrição completa; o card pode ter nascido de um lead sem ela. Grava em
+    // jobDescription (campo corrente — descricao é só legado) e zera a nota, como
+    // __senovaAtualizarDesc: score calculado da descrição antiga não vale para a nova.
     if(d.descricao&&d.descricao.length>(v.jobDescription||v.descricao||'').length){
-      v.descricao=d.descricao;v.updatedAt=Date.now();saveVagas();
+      v.jobDescription=d.descricao;
+      v.atsScore='';v.atsCvScore='';v.atsAnalise='';v.score=null;
+      v.updatedAt=Date.now();saveVagas();
     }
+    _gravarMetaVaga(v,{localizacao:d.local,modelo:d.modalidade,jornada:d.jornada,salario:d.salario},'pagina');
     return {ok:true,criou:false,id:v.id};
   }
   if(!d.cargo&&!d.empresa) return {ok:false,motivo:'sem_dados'};
   const _t=Date.now();
-  vagas.push({id:_t,empresa:d.empresa||'A definir',cargo:d.cargo||'A definir',
+  const _nova={id:_t,empresa:d.empresa||'A definir',cargo:d.cargo||'A definir',
     canal:d.canal||'Extensão',prioridade:'alta',status:'lead',salario:'',proxima:'',notas:'',
-    descricao:d.descricao||'',origemUrl:d.url||'',data:dataAtualFormatada(),
+    jobDescription:d.descricao||'',origemUrl:d.url||'',data:dataAtualFormatada(),
     createdAt:_t,updatedAt:_t,tags:[],
-    timeline:[{ts:_t,texto:'Card criado pelo copiloto na página da vaga'}]});
+    timeline:[{ts:_t,texto:'Card criado pelo copiloto na página da vaga'}]};
+  _gravarMetaVaga(_nova,{localizacao:d.local,modelo:d.modalidade,jornada:d.jornada,salario:d.salario},'pagina');
+  vagas.push(_nova);
   if(d.score) vagas[vagas.length-1].atsScore=String(d.score);
   saveVagas();
   clearTimeout(window._enriqRenderT);

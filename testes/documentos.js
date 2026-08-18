@@ -20,6 +20,7 @@ const fontes = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _acharVagaRef(',
+  'function _gravarMetaVaga(',
   'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(',
   'window.__senovaCopilotoSalvarCarta=function(',
@@ -54,7 +55,7 @@ let r = run('__senovaCopilotoGarantirCard', [{ url: 'https://empresa-x.com/vaga/
   empresa: 'Empresa X', descricao: 'Descrição completa da vaga com mais de cem caracteres para valer a geração de CV e carta.', score: 78, canal: 'empresa-x.com' }]);
 t('criou o card', r && r.ok && r.criou === true, JSON.stringify(r));
 t('nasce como Oportunidade (lead)', sandbox.vagas[0].status === 'lead', sandbox.vagas[0].status);
-t('guardou a descrição (habilita CV/carta)', (sandbox.vagas[0].descricao || '').length > 50);
+t('guardou a descrição em jobDescription (habilita CV/carta)', (sandbox.vagas[0].jobDescription || '').length > 50);
 t('guardou origemUrl/empresa/cargo', sandbox.vagas[0].origemUrl === 'https://empresa-x.com/vaga/head' && sandbox.vagas[0].empresa === 'Empresa X');
 t('guardou o score', sandbox.vagas[0].atsScore === '78', sandbox.vagas[0].atsScore);
 t('histórico registra a criação', (sandbox.vagas[0].timeline || []).some(x => /Card criado pelo copiloto/i.test(x.texto)));
@@ -67,7 +68,7 @@ t('continua 1 card só', sandbox.vagas.length === 1, 'total=' + sandbox.vagas.le
 console.log('\n=== GARANTIR CARD — completa descrição que faltava no lead ===');
 reset([{ id: 9, empresa: 'Y', cargo: 'Diretor', status: 'lead', origemUrl: 'https://y.com/v/1', descricao: '', timeline: [] }]);
 run('__senovaCopilotoGarantirCard', [{ url: 'https://y.com/v/1', cargo: 'Diretor', empresa: 'Y', descricao: 'Descrição completa vinda da página da vaga, longa o suficiente.' }]);
-t('preencheu a descrição que faltava', (sandbox.vagas[0].descricao || '').length > 30);
+t('preencheu a descrição que faltava (em jobDescription)', (sandbox.vagas[0].jobDescription || '').length > 30);
 t('não criou card novo', sandbox.vagas.length === 1);
 
 console.log('\n=== GARANTIR CARD — não sobrescreve descrição melhor já existente ===');

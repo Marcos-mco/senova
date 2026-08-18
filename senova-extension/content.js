@@ -1710,6 +1710,7 @@
       jobId: r.jobId, url: r.url || p.url || location.href,
       cargo: r.cargo || p.cargo || '', empresa: r.empresa || p.empresa || '',
       descricao: p.descricao || '', canal: r.canal, score: r.score,
+      local: p.local || '', salario: p.salario || '', modalidade: p.modalidade || '', jornada: p.jornada || '',
     };
   }
 

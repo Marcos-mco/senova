@@ -15,7 +15,7 @@ function extrai(a) {
 
 const fontes = [
   'function _jobIdLinkedIn(', 'function dataAtualFormatada(', 'function _marcarCandidaturaEnviada(',
-  'function _acharVagaRef(', 'window.__senovaCopilotoGarantirCard=function(',
+  'function _acharVagaRef(', 'function _gravarMetaVaga(', 'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(', 'window.__senovaCopilotoSalvarCarta=function(',
   'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoSalvarCV=function(', 'window.__senovaCandidaturaEnviada=function(',
@@ -50,7 +50,7 @@ let r = call('__senovaCopilotoGarantirCard', [{ url: 'https://vagas.empresa-x.co
 t('a vaga entrou no Senova (card criado)', r && r.ok && r.criou === true);
 const card = () => sandbox.vagas[0];
 t('nasceu como Oportunidade', card().status === 'lead');
-t('trouxe a descrição da página', (card().descricao || '').length > 100);
+t('trouxe a descrição da página (em jobDescription)', (card().jobDescription || '').length > 100);
 
 console.log('\n[2] Estação 2 — o copiloto prepara a carta');
 r = call('__senovaCopilotoGerarCarta', [{ url: 'https://vagas.empresa-x.com/head-comercial', cargo: 'Head Comercial', empresa: 'Empresa X' }]);

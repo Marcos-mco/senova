@@ -121,7 +121,8 @@ async function assumirNaPagina(tab, dados, passe) {
   // Atualiza o Senova POR TRÁS: cria o card se a vaga veio por fora, ou completa a descrição.
   try {
     await chrome.runtime.sendMessage({ type: 'COPILOTO_GARANTIR_CARD',
-      dados: { url, cargo: pacote.cargo, empresa: pacote.empresa, descricao: dados.descricao || '', score: analise?.score, canal: dominio } });
+      dados: { url, cargo: pacote.cargo, empresa: pacote.empresa, descricao: dados.descricao || '', score: analise?.score, canal: dominio,
+               local: dados.local, salario: dados.salario, modalidade: dados.modalidade, jornada: dados.jornada } });
   } catch (_) {}
   try { await chrome.storage.local.set({ senova_passe: { ...pacote, porFora: !passe, ts: Date.now() } }); } catch (_) {}
   try { await chrome.tabs.sendMessage(tab.id, { type: 'ATIVAR_COPILOTO', analise: pacote }); } catch (_) {}
@@ -199,7 +200,8 @@ async function iniciarCopiloto() {
       type: 'COPILOTO_GARANTIR_CARD',
       dados: { url: analise.url, cargo: analise.cargo, empresa: analise.empresa,
                descricao: _dadosVaga.descricao || '', score: _analise?.score,
-               canal: _dadosVaga.canal || '' },
+               canal: _dadosVaga.canal || '',
+               local: _dadosVaga.local, salario: _dadosVaga.salario, modalidade: _dadosVaga.modalidade, jornada: _dadosVaga.jornada },
     });
     // grava o passe e manda o content script (já rodando na página) acordar o copiloto
     await chrome.storage.local.set({ senova_passe: { ...analise, porFora: true, ts: Date.now() } });
