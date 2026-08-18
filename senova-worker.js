@@ -1163,7 +1163,7 @@ export default {
 
     if (path === '/api/vagas-lead' && request.method === 'POST') {
       const body = await request.json();
-      const { titulo, empresa, url, descricao, canal, score, resumo, pontos_fortes, pontos_atencao, forma_candidatura, fonte } = body;
+      const { titulo, empresa, url, descricao, canal, score, resumo, pontos_fortes, pontos_atencao, forma_candidatura, fonte, localizacao, modelo, regime, jornada, salario } = body;
       if (!titulo) return json({ erro: 'titulo obrigatório' }, 400);
       const raw = await env.SENOVA_KV.get('vagas_lead');
       const vagas = raw ? JSON.parse(raw) : [];
@@ -1171,7 +1171,10 @@ export default {
         id: gerarId({ titulo, empresa: empresa || '', url: url || '' }),
         titulo: titulo.trim(),
         empresa: (empresa || '').trim(),
-        local: 'Brasil',
+        // "Brasil" fixo era fabricação — o app (index.html _montarCardVarredura) lê
+        // v.localizacao, não v.local, então nem o fabricado nem um valor real chegavam
+        // ao card. Achado pelo senova-auditor, S47, item 3/7.
+        localizacao: localizacao || '', modelo: modelo || '', regime: regime || '', jornada: jornada || '', salario: salario || '',
         url: url || '',
         descricao: (descricao || '').slice(0, 5000),
         canal: canal || 'Extensão',
@@ -2182,7 +2185,10 @@ async function alimentarFunilComEmail(emails, env) {
         if (!tituloRelevante(v.titulo)) continue;             // filtra ruído
         vistosSet.add(id); idsLead.add(id);
         vagasLead.push({
-          id, titulo: v.titulo, empresa: '', local: 'Brasil', url: v.url,
+          // Sem "Brasil" fixo — o e-mail de alerta não traz localização real, e o
+          // app (index.html _montarCardVarredura) lê v.localizacao, não v.local.
+          // Mesmo achado do senova-auditor, S47, item 3/7, nesta 3ª esteira.
+          id, titulo: v.titulo, empresa: '', localizacao: '', url: v.url,
           descricao: '', canal: 'Email', fonte: 'email_alerta',
           data: new Date().toLocaleDateString('pt-BR'),
           score: null, resumo: '', pontos_fortes: [], pontos_atencao: [],
@@ -3333,7 +3339,10 @@ async function getOrCreateSenovaFolder(token, env) {
 function montarCard(vaga, local, fonte) {
   return {
     id: gerarId(vaga), titulo: vaga.titulo, empresa: vaga.empresa,
-    local: vaga.local || local.label, url: vaga.url, fonte,
+    // O app lê v.localizacao (index.html _montarCardVarredura) — "local" nunca
+    // chegava ao card, mesmo quando Adzuna/Jobicy traziam localização real.
+    // Achado pelo senova-auditor, S47, item 3/7.
+    localizacao: vaga.local || local.label, url: vaga.url, fonte,
     descricao: (vaga.descricao||'').slice(0,4000),
     score: null, classificacao: null, resumo: null,
     pontos_fortes: [], salario_compativel: null,
