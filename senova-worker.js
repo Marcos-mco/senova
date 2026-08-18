@@ -1,6 +1,14 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.38
+//  SENOVA PROXY — Worker v7.39
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.39 (17/ago/2026) — auditoria de captura da extensão, item 3/7:
+//  3 esteiras que gravam vagas_lead escreviam localização errado. POST
+//  /api/vagas-lead (extensão) e alimentarFunilComEmail (Google Alert)
+//  fabricavam "Brasil" fixo; montarCard (Adzuna+Jobicy, a varredura real)
+//  tinha a localização de verdade da fonte e a perdia gravando em .local —
+//  campo que index.html/_montarCardVarredura nunca leu (lê .localizacao).
+//  Nenhuma das três fabrica mais nada, e as três convergem no campo certo.
 //
 //  NOVIDADES v7.38 (17/ago/2026) — auditoria de backlog do fix ALS (P5):
 //  parser de JSON-LD em /api/fetch-descricao parava de inferir "Presencial"
@@ -1086,7 +1094,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.38',
+        status: 'ok', worker: 'senova-proxy', versao: '7.39',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
