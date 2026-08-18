@@ -100,7 +100,7 @@ console.log('\n=== extractLinkedIn: JSON-LD passa a vir ANTES do regex solto no 
 {
   const corpo = extrai('function extractLinkedIn(');
   t('chama _metaDaPagina() (variável _jl)', /const _jl = _metaDaPagina\(\);/.test(corpo));
-  t('local prioriza _jl.local sobre os seletores DOM', /const local = _jl\.local \|\|/.test(corpo));
+  t('local prioriza _jl.local sobre os seletores DOM', /let local = _jl\.local \|\|/.test(corpo));
   t('salario/modalidade/jornada partem de _jl antes do scan de pills/bodyText',
     /let salario = _jl\.salario \|\| '';/.test(corpo) && /let modalidade = _jl\.modalidade \|\| '';/.test(corpo) && /let jornada = _jl\.jornada \|\| '';/.test(corpo));
 }

@@ -224,7 +224,7 @@
     // entram para o que o JSON-LD não trouxer (o painel split-view às vezes não injeta o script).
     const _jl = _metaDaPagina();
 
-    const local = _jl.local || txt(
+    let local = _jl.local || txt(
       '.job-details-jobs-unified-top-card__primary-description-without-modal span',
       '.jobs-unified-top-card__workplace-type',
       '[class*="topcard__flavor--bullet"]',
@@ -254,7 +254,7 @@
     }
 
     // Fallback: scan do bodyText para campos ainda ausentes
-    if (!salario || !modalidade || !jornada) {
+    if (!salario || !modalidade || !jornada || !local) {
       const bTxt = document.body.innerText || '';
       if (!salario) {
         const sm = bTxt.match(/R\$\s*\d[\d.,]*\s*[KkMm]?(?:\s*por\s*m[eê]s|\/mês)?(?:\s*[-–]\s*R\$\s*\d[\d.,]*\s*[KkMm]?(?:\s*por\s*m[eê]s|\/mês)?)?/);
@@ -268,6 +268,17 @@
       if (!jornada) {
         if (/\btempo integral\b|\bfull.time\b/i.test(bTxt)) jornada = 'Tempo integral';
         else if (/\btempo parcial\b|\bpart.time\b/i.test(bTxt)) jornada = 'Tempo parcial';
+      }
+      // Achado pelo senova-auditor (P3): só salário/modalidade/jornada tinham fallback por
+      // regex no body — "local" dependia só dos seletores CSS acima. Vocabulário fechado (as
+      // 27 UF, igual ao resto do app) para não arriscar casar texto qualquer como se fosse
+      // localização, ao contrário de "presencial/remoto" que já são um conjunto fechado.
+      if (!local) {
+        // Nome de cidade: 1ª palavra maiúscula + até 3 palavras extras (conectores minúsculos
+        // de/da/do/dos/das ou novas palavras maiúsculas) — sem isso, "Vaga em Belo Horizonte"
+        // captura "Vaga em" junto por engano, já que "em" faria a cadeia colar até a cidade real.
+        const lm = bTxt.match(/\b([A-ZÀ-Ý][a-zà-ÿ]*(?:[ \-](?:de|da|do|dos|das|[A-ZÀ-Ý][a-zà-ÿ]*)){0,3}),\s*(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
+        if (lm) local = `${lm[1].trim()}, ${lm[2]}`;
       }
     }
 
