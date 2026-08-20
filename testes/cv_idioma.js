@@ -127,6 +127,7 @@ exec(s, '_perfilIdioma = ' + JSON.stringify({ padrao: 'auto', niveis: null }));
 console.log('\n=== _extrairPerfilTraduzido: fato traduzido só entra se for confiável ===');
 const RESP = (perfil) => `MARCOS FRANCO\n---CV---\nMARCOS FRANCO\nJefe de Ventas\n\nRESUMEN EJECUTIVO\nDirectivo comercial.\n\nCOMPETENCIAS E IDIOMAS\nVentas · Canal\n---PERFIL---\n${perfil}`;
 const PERFIL_OK = JSON.stringify({
+  idioma: 'ES',
   exp: {
     consigliere: { cargo: 'Consultor Sénior', bullets: ['Asesoría a la dirección comercial.'] },
     popper: { cargo: 'Director de Expansión', bullets: ['a', 'b', 'c'] },
@@ -145,21 +146,25 @@ t('sem bloco ---PERFIL--- → null (CV em português, sem tradução)', chamar(s
 t('JSON quebrado → null (nunca meio traduzido)', chamar(s, '_extrairPerfilTraduzido', [RESP('{exp:{')]) === null);
 
 p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
+  idioma: 'ES',
   exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['x'] }, inventada: { cargo: 'Nada', bullets: [] } },
 }))]);
 t('id que não existe no perfil é ignorado (IA não inventa experiência)', p && !p.exp.inventada && !!p.exp.consigliere);
 
 p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
+  idioma: 'ES',
   exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['x'] }, popper: { cargo: 'Director', bullets: ['só um'] } },
 }))]);
 t('bullets em número diferente → cai só naquele item', p && !p.exp.popper && !!p.exp.consigliere);
 
 p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
+  idioma: 'ES',
   exp: { consigliere: { cargo: '', bullets: ['x'] } },
 }))]);
 t('cargo vazio derruba a tradução inteira (não sobrou item bom)', p === null);
 
 p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
+  idioma: 'ES',
   exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['x'] } }, formacao: ['só uma'], idiomas: [],
 }))]);
 t('formação em número diferente → nenhuma formação traduzida (o PDF usa o fato PT)', p && p.formacao === null);
@@ -211,7 +216,7 @@ t('sem trad, cargo cai no fato em português (documento coerente, não vazio)', 
 t('sem trad, idiomas caem no perfil em português', /Português/.test(r.idiomas));
 t('mas os rótulos de data seguem em espanhol', /actualidad/.test(r.experiencias[0].periodo));
 
-const tradParcial = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({ exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['Asesoría.'] } } }))]);
+const tradParcial = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({ idioma: 'ES', exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['Asesoría.'] } } }))]);
 r = exec(s, '_cvParaPDF(' + JSON.stringify(VAGA_ES) + ',' + JSON.stringify(CV_ES) + ',"Jefe de Ventas","ES",' + JSON.stringify(tradParcial) + ')');
 t('tradução parcial: item traduzido usa o espanhol', r.experiencias[0].cargo === 'Consultor Sénior');
 t('tradução parcial: os outros itens não somem do PDF', r.experiencias.length > 1 && !!r.experiencias[1].cargo);

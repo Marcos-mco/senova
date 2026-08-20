@@ -46,6 +46,11 @@ const NUCLEO = [
   'function _idiomaDoCV(',
   'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
+  // Guarda de veracidade dos bullets reescritos por vaga (S48): desde que a IA adapta o texto dos
+  // fatos, e não só o traduz, é este par que impede número novo de entrar no CV.
+  // _extrairPerfilTraduzido depende dos dois — entram no núcleo pela razão do topo do arquivo.
+  'function _numerosDe(',
+  'function _bulletsFieisAosFatos(',
   'function _extrairPerfilTraduzido(',
   // Ponto único de gravação de localizacao/modelo/regime/jornada/salario (S47, auditoria de
   // captura). _aplicarSinaisWorker depende dela — entra no núcleo pela mesma razão.
@@ -64,6 +69,9 @@ const NUCLEO = [
   // função morriam com ReferenceError — exatamente a fragilidade que este núcleo existe para
   // evitar. Régua de produto, não detalhe de layout: ver o comentário dela no index.html.
   'const CV_EXPS_COM_BULLETS =',
+  // Colhe subtítulo, RESUMO e COMPETÊNCIAS do texto livre da IA — outra dependência de
+  // _cvParaPDF, pela mesma razão do topo.
+  'function _secaoDoCV(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).

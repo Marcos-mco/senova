@@ -3421,7 +3421,9 @@ REGRAS ABSOLUTAS:
 - ATS primeiro — sem tabelas, sem colunas, sem caracteres especiais (use hífens, não bullets especiais)
 - Otimize enquadramento, nunca os fatos
 - CV deve ser ATS-clean: texto simples, bullets em hífens, seções em maiúsculas
-- A lista de EXPERIÊNCIA do perfil acima já foi filtrada por relevância por um processo determinístico, ANTES desta chamada. Você NUNCA decide o que é relevante. Você NUNCA pode omitir, cortar ou acrescentar uma experiência da lista, e NUNCA pode reordená-la — a ordem cronológica reversa já está correta. Sua única tarefa sobre esse conteúdo é traduzir (se o idioma pedido não for português) e otimizar a redação — verbos de impacto, números, palavras-chave da vaga — sem alterar o que está incluído nem a ordem.
+- A lista de EXPERIÊNCIA do perfil acima já foi filtrada por relevância por um processo determinístico, ANTES desta chamada. Você NUNCA decide o que é relevante. Você NUNCA pode omitir, cortar ou acrescentar uma experiência da lista, e NUNCA pode reordená-la — a ordem cronológica reversa já está correta. Sua única tarefa sobre esse conteúdo é reescrever a REDAÇÃO de cada bullet mirando ESTA vaga (e traduzir, se o idioma pedido não for português), sem alterar o que está incluído nem a ordem.
+- ÊNFASE POR VAGA (é isto que separa um CV bom de um genérico): dentro de cada bullet, traga para a FRENTE o ângulo que ESTA vaga pede, usando o vocabulário do anúncio. O mesmo fato tem vários ângulos verdadeiros — numa vaga de emissora de TV, "estratégia comercial das 8 afiliadas" é melhor dito como negociação de veiculação publicitária com agências e mercado anunciante; numa vaga de canais indiretos, o mesmo fato é gestão de rede de representantes. Não é inventar: é escolher, entre as verdades do fato, a que responde à vaga.
+- O QUE VOCÊ ESCREVE NO BLOCO ---PERFIL--- É O QUE VAI PARA O DOCUMENTO. Os bullets do documento final são montados por código a partir daquele bloco, não do texto do ---CV---. Um bullet fraco ali é um bullet fraco no CV entregue ao recrutador.
 
 Retorne EXATAMENTE neste formato com estes separadores:
 
@@ -3443,7 +3445,8 @@ VEREDICTO: [FORTE CANDIDATO | CANDIDATO VIÁVEL | GAP SIGNIFICATIVO]
 **A inserir no CV:** [até 6, separadas por ·]
 
 ---CV---
-[CV completo e otimizado para esta vaga específica, no idioma da vaga, ATS-clean sem tabelas, bullets com hífens, seções em maiúsculo, Verbo forte + Escopo + Método + Resultado onde possível]
+[CV completo e otimizado para esta vaga específica, no idioma da vaga, ATS-clean sem tabelas, bullets com hífens, Verbo forte + Escopo + Método + Resultado onde possível]
+Deste bloco o código aproveita três coisas — subtítulo, RESUMO e COMPETÊNCIAS —, e as três são OBRIGATÓRIAS. Escreva cada cabeçalho de seção sozinho na linha, em MAIÚSCULAS, sem asteriscos e sem dois-pontos. A seção de competências é obrigatória mesmo que pareça repetir o resumo: sem ela o documento entregue sai com a rubrica vazia. Liste de 6 a 10 competências separadas por " · ", começando pelas palavras-chave desta vaga.
 
 ---CRM---
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3457,12 +3460,17 @@ MATCH SCORE: [XX]/100
 KEYWORDS: [5 principais separadas por ·]
 PRÓXIMO PASSO: Enviar CV + cover letter em até 48h
 OBSERVAÇÕES: [contexto relevante em 1 linha]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${traduzir ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ---PERFIL---
-Os FATOS do CV (cargos, bullets, formação, idiomas) são montados por código a partir do perfil, não do texto acima — por isso precisam vir traduzidos aqui, em JSON e nada além do JSON:
-{"exp":{"<id da experiência, exatamente como veio em [id:...]>":{"cargo":"...","bullets":["...","..."]}},"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]}
-Regras deste bloco: traduza para ${nomeIdioma}, um bullet traduzido para cada bullet original, na mesma ordem, sem juntar, sem cortar e sem acrescentar. Números, moedas e nomes próprios ficam como estão. Inclua TODAS as experiências que receberam [id:...].` : ''}`;
+Os FATOS do CV (cargos, bullets, formação, idiomas) são montados por código a partir do perfil, não do texto do ---CV--- acima. É por isso que este bloco existe, e é ele que decide o documento final. Devolva JSON e nada além do JSON:
+{"idioma":"${lang}","exp":{"<id da experiência, exatamente como veio em [id:...]>":{${traduzir ? '"cargo":"<cargo traduzido>",' : ''}"bullets":["...","..."]}}${traduzir ? ',"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]' : ''}}
+Regras deste bloco:
+- UM bullet para cada bullet original, na MESMA ORDEM, sem juntar, sem cortar e sem acrescentar. Inclua TODAS as experiências que receberam [id:...].
+- Reescreva cada bullet mirando esta vaga${traduzir ? `, já em ${nomeIdioma}` : ''}, aplicando a ÊNFASE POR VAGA das regras acima: mesmo fato, ângulo que responde ao anúncio, vocabulário do anúncio.
+- NÚMEROS SÃO INTOCÁVEIS. Todo número, valor, percentual, quantidade de pessoas ou de unidades tem de ser exatamente o do bullet original — nem arredondado, nem convertido, nem estimado. Não acrescente número que não esteja no bullet original: o código confere isso e descarta a sua reescrita inteira daquela experiência se aparecer um número novo.
+- Nomes próprios (empresas, instituições, cidades) não mudam.${traduzir ? '' : `
+- NÃO envie "cargo", "formacao" nem "idiomas": em português esses campos são fatos e vêm do perfil.`}`;
 };
 
 // Piso de descrição para gerar CV: abaixo disto é snippet, não vaga. Gerar CV de snippet produz
@@ -12527,11 +12535,24 @@ function _mesLabelPDF(iso,lang){
   return m?`${L.meses[parseInt(m,10)-1]||''} ${a}`.trim():String(a);
 }
 // Extrai o texto de uma seção nomeada do CV da IA (título em MAIÚSCULAS → conteúdo até a próxima).
+// Tira a maquiagem antes de julgar se a linha é um cabeçalho: "**COMPETÊNCIAS**", "## COMPETÊNCIAS"
+// e "COMPETÊNCIAS:" são o mesmo cabeçalho. Sem isto a seção inteira sumia do documento — o CV do
+// Grupo Ric (20/ago/2026) saiu com "COMPETÊNCIAS & IDIOMAS" sem uma única competência listada,
+// porque o extrator não reconheceu o cabeçalho e nunca entrou na seção.
 function _secaoDoCV(cv,re){
   const linhas=String(cv||'').split('\n'); let dentro=false; const buf=[];
-  const ehTitulo=l=>/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}$/.test(l.trim());
-  for(const l of linhas){ const t=l.trim();
-    if(ehTitulo(t)){ if(dentro) break; dentro=re.test(t); continue; }
+  const _limpa=l=>String(l).trim().replace(/^#{1,6}\s*/,'').replace(/^\*\*(.+?)\*\*$/,'$1').trim();
+  const CAB=/^([A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,})$/;
+  const CAB_INLINE=/^([A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}):\s*(\S.*)$/;  // "COMPETÊNCIAS: a · b · c"
+  for(const l of linhas){ const t=_limpa(l);
+    const inline=t.match(CAB_INLINE);
+    const soCab=inline?null:t.replace(/:$/,'').match(CAB);
+    if(inline||soCab){
+      if(dentro) break;                       // chegou a próxima seção: esta acabou
+      dentro=re.test(inline?inline[1]:soCab[1]);
+      if(dentro&&inline) buf.push(inline[2]); // conteúdo na mesma linha do cabeçalho
+      continue;
+    }
     if(dentro && t) buf.push(t);
   }
   return buf.join(' ').replace(/\s+/g,' ').trim();
@@ -13103,6 +13124,24 @@ function _extrairSoCV(texto){
 // isso não passam pela IA: cargos, bullets, formação e idiomas. Vem casado por id, então nada
 // depende de a IA manter ordem ou contagem. Devolve null a qualquer sinal de problema — sem
 // tradução o PDF sai em português, que é feio mas verdadeiro; nunca inventado.
+// Números que aparecem num texto, normalizados só aos dígitos ("R$ 500 milhões" → "500";
+// "8 afiliadas" → "8"). É a matéria-prima da guarda de veracidade abaixo.
+function _numerosDe(txt){
+  return new Set(String(txt||'').match(/\d+/g)||[]);
+}
+// GUARDA DE VERACIDADE (S48). Desde que a IA reescreve os bullets para cada vaga — e não só os
+// traduz — ela passou a ter caneta sobre o texto dos FATOS. A regra do projeto continua a mesma
+// ("a IA nunca decide fatos, só o enquadramento"), e quem a faz valer agora é este código: todo
+// número da reescrita tem de existir no material original DAQUELA experiência (bullets + datas do
+// período). Um número novo = fato novo = reescrita recusada, e aquela experiência cai inteira para
+// o texto original do perfil. Falha para o lado seguro: perde-se adaptação, nunca a verdade.
+function _bulletsFieisAosFatos(orig,adaptados){
+  const permitidos=new Set();
+  (orig.bullets||[]).forEach(b=>_numerosDe(b).forEach(n=>permitidos.add(n)));
+  _numerosDe(orig.inicio).forEach(n=>permitidos.add(n));
+  _numerosDe(orig.fim).forEach(n=>permitidos.add(n));
+  return adaptados.every(b=>[..._numerosDe(b)].every(n=>permitidos.has(n)));
+}
 function _extrairPerfilTraduzido(texto){
   const t=String(texto||'');
   if(!t.includes('---PERFIL---')) return null;
@@ -13111,17 +13150,29 @@ function _extrairPerfilTraduzido(texto){
   if(ini<0||fim<=ini) return null;
   let j; try{ j=JSON.parse(bruto.slice(ini,fim+1)); }catch(_){ return null; }
   if(!j||typeof j!=='object') return null;
+  // O bloco se declara: em português ele traz SÓ bullets reescritos — cargo, formação e idiomas
+  // são fatos e continuam vindo do perfil. Sem a declaração, trata como português (o lado seguro:
+  // nada de fato é substituído). É o que dispensa carregar o idioma até aqui pelos 4 chamadores.
+  const traduzido=(j.idioma==='EN'||j.idioma==='ES');
   const out={exp:{},formacao:null,idiomas:null};
   const porId={}; (PERFIL_MARCOS.experiencias||[]).forEach(e=>{porId[e.id]=e;});
   for(const [id,v] of Object.entries(j.exp||{})){
     const orig=porId[id];
-    // id desconhecido, cargo vazio ou número de bullets diferente = tradução não confiável para
-    // este item. Cai para o português SÓ nele, sem derrubar o resto.
-    if(!orig||!v||typeof v.cargo!=='string'||!v.cargo.trim()) continue;
+    // id desconhecido ou número de bullets diferente = reescrita não confiável para este item.
+    // Cai para o texto do perfil SÓ nele, sem derrubar o resto.
+    if(!orig||!v) continue;
+    // Num documento traduzido o cargo é obrigatório: sem ele o PDF misturaria cargo em português
+    // com bullets em espanhol. Em português o cargo nem é pedido — vem do perfil.
+    if(traduzido&&!(typeof v.cargo==='string'&&v.cargo.trim())) continue;
     const bs=Array.isArray(v.bullets)?v.bullets.filter(b=>typeof b==='string'&&b.trim()):[];
     if(bs.length!==(orig.bullets||[]).length) continue;
-    out.exp[id]={cargo:v.cargo.trim(),bullets:bs.map(b=>b.trim())};
+    const limpos=bs.map(b=>b.trim());
+    if(!_bulletsFieisAosFatos(orig,limpos)) continue;
+    // Cargo só muda quando o documento inteiro muda de língua. Em português é fato, ponto.
+    const cargo=(traduzido&&typeof v.cargo==='string'&&v.cargo.trim())?v.cargo.trim():orig.cargo;
+    out.exp[id]={cargo,bullets:limpos};
   }
+  if(!traduzido) return Object.keys(out.exp).length?out:null;
   const fs=Array.isArray(j.formacao)?j.formacao.filter(s=>typeof s==='string'&&s.trim()):[];
   if(fs.length===(PERFIL_MARCOS.formacao||[]).length) out.formacao=fs.map(s=>s.trim());
   const is=Array.isArray(j.idiomas)?j.idiomas.filter(s=>typeof s==='string'&&s.trim()):[];
