@@ -42,7 +42,9 @@ const sandbox = {
   PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [
     { idioma: 'Português', nivel: 'nativo' }, { idioma: 'Inglês', nivel: 'avancado' }, { idioma: 'Espanhol', nivel: 'avancado' },
   ] },
-  lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null,
+  // lastCVVaga (S48): 6º campo do contexto de PDF — a descrição da vaga que originou o CV.
+  // _pdfCtxUsar lê e restaura os seis; sem ele aqui, a ponte da extensão quebra no sandbox.
+  lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null, lastCVVaga: '',
   _pdfExecBase64: () => 'FAKEB64',
   btoa: s => Buffer.from(s, 'binary').toString('base64'),
   unescape: global.unescape || (s => decodeURIComponent(s)), encodeURIComponent, console,

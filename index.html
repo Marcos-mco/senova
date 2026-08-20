@@ -3846,7 +3846,7 @@ async function analyzeJob() {
     const data = await res.json();
     const text = data.content?.find(b=>b.type==='text')?.text||'';
     // Idioma e fatos traduzidos acompanham o CV até o PDF (ver lastCVLang/lastCVTrad).
-    lastCVLang=_pedidoATS.idioma; lastCVTrad=_extrairPerfilTraduzido(text);
+    lastCVLang=_pedidoATS.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=vaga;
     const parts = text.split('---CV---');
     const analise = parts[0].replace('---ANALISE---','').trim();
     const rest = parts[1]||'';
@@ -3866,23 +3866,34 @@ let _atsAnalise='',_cartaLang='PT',_candidaturaVagaIdx=-1;
 // O PDF monta cargos, bullets, formação e idiomas a partir do PERFIL_MARCOS (português); sem
 // estes dois o documento sairia com resumo em espanhol e experiência em português.
 let lastCVLang='PT',lastCVTrad=null;
+// Descrição da VAGA que originou o CV que está em lastCV. Existe porque _cvParaPDF precisa dela
+// para escolher QUAIS experiências entram no documento (filtrarExperienciasRelevantes casa as
+// tags_area de cada experiência contra o texto da vaga). Até 20/ago/2026 o _buildPDFExecDoc
+// passava `lastCV` nas duas pontas — o filtro comparava o CV contra ele mesmo, então "relevante"
+// virava "o que a IA já tinha escrito", e a trajetória do Perfil que a vaga pedia mas o CV não
+// citou ficava de fora. Sexto campo do contexto de PDF; entra e sai pelo mesmo portão que os
+// outros cinco, pela razão escrita no comentário de _pdfCtxUsar.
+let lastCVVaga='';
 // O PDF Executivo lê o CV de variáveis globais (herança da aba Análise CV). Todo caminho que gera
-// PDF a partir de um CARD precisa emprestar essas globais e devolvê-las — e agora são cinco, não
+// PDF a partir de um CARD precisa emprestar essas globais e devolvê-las — e agora são SEIS, não
 // duas. Cada site fazendo isso à mão é mais um lugar onde esquecer um campo: foi assim que o PDF
 // saiu calibrado pelo cargo de outra vaga. Um lugar só; usar() devolve a função que restaura.
 function _pdfCtxUsar(o){
-  const prev={cv:lastCV,fn:lastCVFilename,cargo:atsCargo,lang:lastCVLang,trad:lastCVTrad};
+  const prev={cv:lastCV,fn:lastCVFilename,cargo:atsCargo,lang:lastCVLang,trad:lastCVTrad,vaga:lastCVVaga};
   lastCV=o.cv||'';
   if(o.filename) lastCVFilename=o.filename;
   atsCargo=o.cargo||'';
   lastCVLang=o.lang||'PT';
   lastCVTrad=o.trad||null;
-  return ()=>{ lastCV=prev.cv; lastCVFilename=prev.fn; atsCargo=prev.cargo; lastCVLang=prev.lang; lastCVTrad=prev.trad; };
+  lastCVVaga=o.vaga||'';
+  return ()=>{ lastCV=prev.cv; lastCVFilename=prev.fn; atsCargo=prev.cargo; lastCVLang=prev.lang; lastCVTrad=prev.trad; lastCVVaga=prev.vaga; };
 }
-// Contexto de PDF a partir de um card — fonte única dos cinco campos.
+// Contexto de PDF a partir de um card — fonte única dos seis campos. A descrição da vaga sai daqui
+// pela mesma cadeia que o app inteiro usa (jobDescription||descricao, ver comentário na dedup).
 function _pdfCtxDoCard(v,cvTexto,filename){
   return _pdfCtxUsar({cv:(cvTexto!==undefined&&cvTexto!==null)?cvTexto:((v&&v.atsCV)||''), filename,
-    cargo:(v&&v.cargo)||'', lang:(v&&v.atsCvIdioma)||'PT', trad:(v&&v.atsPerfilTrad)||null});
+    cargo:(v&&v.cargo)||'', lang:(v&&v.atsCvIdioma)||'PT', trad:(v&&v.atsPerfilTrad)||null,
+    vaga:(v&&(v.jobDescription||v.descricao))||''});
 }
 // Estado do modal de envio: CV do card (p/ anexar o MESMO PDF) + rótulo do arquivo.
 let _candCV='',_candCVFilename='CV_MF';
@@ -7805,7 +7816,7 @@ function openVagaModal(id){
         if(kwEl) kwEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
         if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsCvScore||0);const c2=corDoScore(sc2);resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
         // Restaurar lastCV para permitir downloads sem reanálise — com idioma e fatos traduzidos junto
-        lastCV=v.atsCV; lastCVLang=v.atsCvIdioma||'PT'; lastCVTrad=v.atsPerfilTrad||null;
+        lastCV=v.atsCV; lastCVLang=v.atsCvIdioma||'PT'; lastCVTrad=v.atsPerfilTrad||null; lastCVVaga=v.jobDescription||v.descricao||'';
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
         _mvCVAcab='exec'; mvDocTab('ats');
       } else {
@@ -10059,7 +10070,7 @@ async function gerarCVInline(){
     const canalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
     const canalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
     lastCV=cv;
-    lastCVLang=_pedido.idioma; lastCVTrad=_extrairPerfilTraduzido(text);
+    lastCVLang=_pedido.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=jobDesc||'';
     lastCVFilename=`CV_MF_${(empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
     atsEmpresa=empresa;atsCargo=cargo;
     if(!cv){
@@ -10160,7 +10171,7 @@ async function gerarDocModal(tipo){
     const _bruto=text;  // o card guarda os fatos traduzidos a partir do bruto; a tela mostra só o CV
     if(tipo==='ats'){
       text=_extrairSoCV(text); lastCV=text;
-      lastCVLang=_pedidoDoc.idioma; lastCVTrad=_extrairPerfilTraduzido(_bruto);
+      lastCVLang=_pedidoDoc.idioma; lastCVTrad=_extrairPerfilTraduzido(_bruto); lastCVVaga=jobDesc||'';
     }
     if(outEl) outEl.value=text;
     if(editingVagaId&&editingVagaId!=='new'){
@@ -10201,6 +10212,7 @@ function downloadPDFExecFromModal(btn){
   // Idioma e fatos traduzidos vêm do card (o campo do modal é só texto). Cargo calibra 1 vs 2 páginas.
   const _vCard=vagas[vagas.findIndex(v=>String(v.id)===String(editingVagaId))]||null;
   const _restaurar=_pdfCtxUsar({cv, cargo, lang:(_vCard&&_vCard.atsCvIdioma)||'PT', trad:(_vCard&&_vCard.atsPerfilTrad)||null,
+    vaga:(_vCard&&(_vCard.jobDescription||_vCard.descricao))||'',
     filename:`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`});
   downloadPDFExecutivo();
   _restaurar();
@@ -12542,8 +12554,26 @@ function _nivelAlvoPDF(cargoVaga){
 // Regra aprovada em skill_cv.md: 1 página até Gerente Sênior, 2 páginas para C-Level/Diretoria — mas
 // nunca inventar/apagar fatos, só decide QUANTO aparece neste documento. Medido com jsPDF real
 // (scratchpad, S34): 9 experiências = sempre 2 páginas; p/ caber em 1 mantendo o máximo de trajetória
-// visível, mostra as 5 mais recentes e detalha (bullets) só as 2 mais recentes — as demais viram
+// visível, mostra as 5 mais recentes e detalha (bullets) só as mais recentes — as demais viram
 // linha compacta (cargo · empresa · período, sem bullets). Fatos completos continuam em PERFIL_MARCOS.
+//
+// Quantas ganham bullets: era 2 até 20/ago/2026 — o CV de "Gerente Comercial" saía com 5
+// experiências das quais 3 mudas, e foi o documento que Marcos reprovou (Grupo Zonta).
+//
+// O número novo NÃO é palpite: medido com o jsPDF real (scratchpad, EIXO 2 do skill_qa_cv.md),
+// para este mesmo cargo-alvo e este perfil:
+//
+//   mostrar 5 · bullets nas 2 recentes → 1 página · 3 cargos mudos   (a régua velha)
+//   mostrar 5 · bullets nas 3 recentes → 2 páginas · 2 cargos mudos  (meio-termo: pior dos dois)
+//   mostrar 3 · todas com bullets      → 1 página · 0 mudos          (mas some a RPC/Grupo Globo)
+//   mostrar 5 · todas com bullets      → 2 páginas · 0 mudos         ← escolhido
+//
+// O custo da página é BINÁRIO: qualquer coisa acima de 2 cargos detalhados já estoura para 2
+// páginas. Uma vez pago esse preço, mutar cargo não compra mais nada — só apaga entrega que
+// existe no perfil. Ficar em 1 página exigiria cortar até a 3ª experiência, o que tiraria do
+// documento o Diretor de Marketing na RPC/Grupo Globo: a credencial mais forte da trajetória.
+// Duas páginas para 25 anos de carreira executiva é o padrão do mercado; cargo mudo não é.
+const CV_EXPS_COM_BULLETS = 5;
 // trad = fatos traduzidos (bloco ---PERFIL---), casados por id da experiência. Quando falta a
 // tradução de um item, aquele item sai em português: verdade incompleta é melhor que invenção.
 function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
@@ -12567,7 +12597,7 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
     return {
       cargo:(t&&t.cargo)||e.cargo, empresa:e.empresa, local:e.local||'',
       periodo:`${_mesLabelPDF(e.inicio,lang)} – ${_mesLabelPDF(e.fim,lang)}`,
-      bullets:(nivelAlvo==='gerencial' && idx>=2)?[]:(((t&&t.bullets)||e.bullets||[]).slice())
+      bullets:(nivelAlvo==='gerencial' && idx>=CV_EXPS_COM_BULLETS)?[]:(((t&&t.bullets)||e.bullets||[]).slice())
     };
   });
   // O resumo do CV da IA já vem no idioma certo; o fallback (resumo_geral) é português — só entra
@@ -12607,7 +12637,7 @@ function _buildPDFExecDoc(){
   const margL=18, margR=192, larg=192-18; // 174mm úteis
   const cor=(c)=>doc.setTextColor(c[0],c[1],c[2]);
   const L=_pdfLabels(lastCVLang);
-  const cv=_cvParaPDF(lastCV, lastCV, atsCargo, lastCVLang, lastCVTrad); // fatos do perfil + adaptação da IA (limpa análise vazada); atsCargo calibra 1 vs 2 páginas
+  const cv=_cvParaPDF(lastCVVaga, lastCV, atsCargo, lastCVLang, lastCVTrad); // fatos do perfil + adaptação da IA (limpa análise vazada); atsCargo calibra 1 vs 2 páginas
   let y=22;
   const quebraSe=(h)=>{ if(y+h>282){ doc.addPage(); y=22; } };
 

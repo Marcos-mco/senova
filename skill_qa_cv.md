@@ -61,10 +61,23 @@ Aplica-se só ao texto ADAPTADO pela IA (subtítulo, resumo, competências) — 
 - [ ] Subtítulo e resumo realmente espelham a linguagem do anúncio da vaga (não é o
       texto genérico de fallback — comparar com `subtitulo` padrão em `_cvParaPDF`,
       que só aparece quando a IA não gerou nada aproveitável)
-- [ ] Nível do cargo-alvo (`atsCargo`) resultou no número certo de páginas: até
-      Gerente Sênior = 1 página (5 experiências, bullets só nas 2 mais recentes);
-      Diretoria/C-Level = 2 páginas (histórico completo) — regra em `skill_cv.md`,
-      calibrada com jsPDF real na S34 (ver `_nivelAlvoPDF` em index.html)
+- [ ] Nível do cargo-alvo (`atsCargo`) resultou na curadoria certa: até Gerente Sênior
+      = 5 experiências, todas com bullets (`CV_EXPS_COM_BULLETS` = 5);
+      Diretoria/C-Level = histórico completo (ver `_nivelAlvoPDF` em index.html)
+- [ ] **Nenhum cargo mostrado sai mudo.** A régua de bullets era 2 até 20/ago/2026: o CV
+      de "Gerente Comercial" do Grupo Zonta saiu com 5 experiências das quais 3 sem uma
+      única linha de entrega, e foi reprovado por Marcos. O número novo saiu de medição
+      com jsPDF real, não de palpite — **o custo da página é binário**: acima de 2 cargos
+      detalhados o documento já vai a 2 páginas, então mutar cargo não compra mais nada.
+      Ficar em 1 página exigiria cortar até a 3ª experiência, o que tiraria a RPC/Grupo
+      Globo do documento. Duas páginas para 25 anos de carreira é padrão; cargo mudo não.
+      A tabela medida está no comentário de `CV_EXPS_COM_BULLETS` (index.html).
+      **Se alguém for mexer nessa régua de novo, meça de novo** — o script mora no
+      scratchpad da S48 (`medir_grade.js`), e a receita é a do EIXO 2 acima.
+- [ ] **As experiências que sobraram são as que a VAGA pede**, não as que o CV já citava.
+      `_cvParaPDF(textoVaga, cvTexto, …)`: o 1º argumento tem de ser a descrição da vaga
+      (`lastCVVaga`). Passar `lastCV` nas duas pontas — o defeito corrigido em 20/ago/2026 —
+      faz o filtro comparar o CV contra ele mesmo e sai um PDF bonito com a trajetória errada
 - [ ] Se o cargo-alvo não bateu em nenhum padrão da heurística de nível (`atsCargo`
       ambíguo ou vazio), o default é NUNCA cortar — confirmar que saiu como 2 páginas
       (histórico completo), não 1 pág truncada por engano

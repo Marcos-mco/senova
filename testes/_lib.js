@@ -59,6 +59,11 @@ const NUCLEO = [
   // análise mandam ao Worker — mesma razão do portão acima: quem extrai só a esteira sem isto
   // junto quebra com ReferenceError.
   'function _metaConhecidaVaga(',
+  // Quantas experiências ganham bullets no PDF de nível gerencial (S48). Entra no núcleo pela
+  // razão escrita no topo: é dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa
+  // função morriam com ReferenceError — exatamente a fragilidade que este núcleo existe para
+  // evitar. Régua de produto, não detalhe de layout: ver o comentário dela no index.html.
+  'const CV_EXPS_COM_BULLETS =',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).
@@ -78,6 +83,9 @@ function carregarApp(extras = [], mocks = {}) {
     alert: () => {},
     lastCV: '', lastCVFilename: '', atsCargo: '', _pdfExecBase64: () => 'FAKEB64',
     cvLang: 'PT', cvLangManual: false, lastCVLang: 'PT', lastCVTrad: null,
+    // 6º campo do contexto de PDF (S48): a descrição da vaga que originou o CV em lastCV. Quem
+    // extrai _pdfCtxUsar/_pdfCtxDoCard sem isto quebra com ReferenceError.
+    lastCVVaga: '',
     // Perfil mínimo: quem testa os fatos traduzidos carrega o PERFIL_MARCOS real nos `extras`.
     // Os idiomas declarados vêm junto porque é deles que sai em que línguas o app pode escrever
     // (idiomasDoUsuario) — um perfil sem idiomas faria todo CV cair em português no sandbox.

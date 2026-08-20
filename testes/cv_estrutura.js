@@ -9,6 +9,7 @@ const s = carregarApp([
   'function _mesLabelPDF(',
   'function _secaoDoCV(',
   'function _nivelAlvoPDF(',
+  'const CV_EXPS_COM_BULLETS =',
   'function _cvParaPDF(',
 ]);
 
@@ -54,9 +55,20 @@ t('subtítulo pega a linha certa após o nome', r.subtitulo === 'Diretor Comerci
 
 console.log('\n=== curadoria nível-aware (S34): 1 pág até Gerente Sênior, 2 pág Diretoria/C-Level ===');
 r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, 'Gerente Comercial Sênior']);
-t('gerencial: no máximo 5 experiências (medido p/ caber em 1 pág)', r.experiencias.length <= 5, r.experiencias.length + ' exps');
+t('gerencial: no máximo 5 experiências (o recorte de trajetória; a paginação é outra régua)', r.experiencias.length <= 5, r.experiencias.length + ' exps');
 t('gerencial: cargo atual continua primeiro', /presente/.test(r.experiencias[0].periodo));
-t('gerencial: só as 2 mais recentes mantêm bullets', r.experiencias.slice(0, 2).every(e => e.bullets.length > 0) && r.experiencias.slice(2).every(e => e.bullets.length === 0));
+// Eram 2 até 20/ago/2026: o CV do Grupo Zonta ("Gerente Comercial") saiu com 5 experiências das
+// quais 3 sem uma única linha de entrega, e Marcos reprovou o documento. A régua virou 5 depois de
+// medir as páginas com o jsPDF real — o custo da página é binário (acima de 2 cargos detalhados já
+// são 2 páginas), então mutar cargo não compra mais nada. Ver a tabela no comentário da constante.
+const NBULL = exec(s, 'CV_EXPS_COM_BULLETS');
+t(`gerencial: as ${NBULL} mais recentes mantêm bullets`,
+  r.experiencias.slice(0, NBULL).every(e => e.bullets.length > 0) && r.experiencias.slice(NBULL).every(e => e.bullets.length === 0),
+  r.experiencias.map(e => e.bullets.length).join('/'));
+t('gerencial: NENHUM cargo mostrado sai mudo — é a régua que o documento reprovado violava',
+  r.experiencias.every(e => e.bullets.length > 0),
+  r.experiencias.filter(e => !e.bullets.length).map(e => e.empresa).join(', ') || 'nenhum mudo');
+t('gerencial: a régua é a constante, não um literal solto no ternário', NBULL >= 5);
 t('gerencial: mesmo compactado, RPC continua nos 2 cargos (regra inviolável)', r.experiencias.filter(e => /RPC|Paranaense/i.test(e.empresa)).length === 2);
 t('gerencial: fatos nunca somem do perfil-fonte (só o material encolhe)', exec(s, 'PERFIL_MARCOS.experiencias.length') > 5);
 
@@ -69,5 +81,31 @@ t('c-level: mantém histórico completo', r.experiencias.length > 5, r.experienc
 
 r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, '']);
 t('nível desconhecido: default seguro é NÃO cortar', r.experiencias.length > 5, r.experiencias.length + ' exps');
+
+// ── o 1º argumento é a VAGA, nunca o CV ───────────────────────────────────────────────────
+// _cvParaPDF(textoVaga, cvTexto, …): o 1º argumento decide QUAIS experiências entram, casando
+// as tags_area de cada uma contra o texto da vaga. Até 20/ago/2026 o _buildPDFExecDoc passava
+// `lastCV` nas duas pontas — o filtro comparava o CV contra ele mesmo, então "relevante" virava
+// "o que a IA já tinha escrito" e a trajetória que a vaga pedia mas o CV não citou ficava fora.
+// Erro invisível: o PDF sai bonito, só com as experiências erradas. Por isso é teste de FONTE.
+const { html } = require('./_lib');
+console.log('\n=== o filtro de relevância recebe a vaga, não o próprio CV ===');
+t('_buildPDFExecDoc passa lastCVVaga como textoVaga',
+  /_cvParaPDF\(lastCVVaga,\s*lastCV,/.test(html));
+t('e nunca volta a passar lastCV nas duas pontas',
+  !/_cvParaPDF\(lastCV,\s*lastCV/.test(html));
+
+console.log('\n=== a descrição da vaga entra e sai pelo portão único de contexto do PDF ===');
+// Mesma razão dos outros cinco campos: cada call site montando o contexto à mão é mais um lugar
+// onde esquecer um — foi assim que o PDF já saiu calibrado pelo cargo de outra vaga.
+t('_pdfCtxUsar guarda, escreve e restaura lastCVVaga (os três, não só dois)',
+  /prev=\{[^}]*vaga:lastCVVaga\}/.test(html) &&
+  /lastCVVaga=o\.vaga\|\|''/.test(html) &&
+  /lastCVVaga=prev\.vaga/.test(html));
+t('_pdfCtxDoCard tira a vaga do card pela cadeia canônica (jobDescription||descricao)',
+  /vaga:\(v&&\(v\.jobDescription\|\|v\.descricao\)\)\|\|''/.test(html));
+t('todo caminho que grava lastCV para o PDF também grava a vaga que o originou',
+  html.split('\n').filter(l => /lastCVLang=/.test(l) && /lastCVTrad=/.test(l) && !/^let /.test(l.trim()) && !/prev\./.test(l))
+      .every(l => /lastCVVaga=/.test(l)));
 
 fim('CV_ESTRUTURA');
