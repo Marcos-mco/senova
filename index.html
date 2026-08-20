@@ -12563,38 +12563,45 @@ function _secaoDoCV(cv,re){
 // Testável sem jsPDF (testes/cv_estrutura.js) — o buraco de QA que deixou o cabeçalho errado passar.
 // Classifica o cargo-alvo (texto livre, ex.: "Gerente Comercial") num nível da taxonomia de
 // PERFIL_MARCOS. Some sem sinal claro (string vazia) — nunca corta por dúvida, só por confirmação.
+// Este nível diz à IA a que altura escrever (montarPedidoCV). Ele NÃO decide mais quantas
+// experiências o PDF mostra: essa régua era o corte que apagava a metade mais forte da carreira,
+// e morreu em 20/ago/2026 — ver CV_MAX_EXPS logo abaixo.
 function _nivelAlvoPDF(cargoVaga){
   const s=String(cargoVaga||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   if(/\b(ceo|cmo|cso|coo|cfo|cro|cto|presidente|vice[- ]?presidente|vp|c-level|founder|socio)\b/.test(s)) return 'c-level';
   if(/\b(diretor|diretora|head|director|directora|leiter|leitung)\b/.test(s)) return 'diretoria';
   // ES/EN/DE entram aqui pelo mesmo motivo do detector da extensão: sem eles, "Jefe de Ventas" e
-  // "Sales Manager" não classificam, o PDF nunca calibra para 1 página e sai sempre com 2.
+  // "Sales Manager" não classificam e o pedido à IA sai sem altura de cargo.
   if(/\b(gerente|coordenador|supervisor|especialista|analista|jefe|jefa|responsable|manager|coordinador|especialista|leader)\b/.test(s)) return 'gerencial';
   return '';
 }
-// Regra aprovada em skill_cv.md: 1 página até Gerente Sênior, 2 páginas para C-Level/Diretoria — mas
-// nunca inventar/apagar fatos, só decide QUANTO aparece neste documento. Medido com jsPDF real
-// (scratchpad, S34): 9 experiências = sempre 2 páginas; p/ caber em 1 mantendo o máximo de trajetória
-// visível, mostra as 5 mais recentes e detalha (bullets) só as mais recentes — as demais viram
-// linha compacta (cargo · empresa · período, sem bullets). Fatos completos continuam em PERFIL_MARCOS.
+// Quantas experiências o documento mostra — TODAS com bullets. Não existe mais cargo mudo nem
+// corte por nível de cargo-alvo.
 //
-// Quantas ganham bullets: era 2 até 20/ago/2026 — o CV de "Gerente Comercial" saía com 5
-// experiências das quais 3 mudas, e foi o documento que Marcos reprovou (Grupo Zonta).
+// História desta régua, porque ela errou duas vezes seguidas e cada correção só via metade do
+// problema. Até 20/ago/2026 o CV de nível gerencial mostrava as 5 mais recentes e detalhava só as
+// 2 primeiras: saíam 3 cargos sem uma linha de entrega, e Marcos reprovou o CV do Grupo Zonta.
+// A correção seguinte (mesmo dia) fez todas as 5 mostradas ganharem bullets — e Marcos reprovou de
+// novo, agora o do Grupo Ric. A segunda reprovação é a que tinha razão: o problema nunca foi o
+// silêncio dos cargos, era o CORTE. As 5 mais recentes de uma carreira são as 5 mais recentes, não
+// as 5 melhores — no caso dele, o corte mostrava consultoria e marcenaria e escondia a operação de
+// R$ 40 milhões com 900 escolas, os 180 parceiros com 120 mil alunos e o Troféu Imprensa.
 //
-// O número novo NÃO é palpite: medido com o jsPDF real (scratchpad, EIXO 2 do skill_qa_cv.md),
-// para este mesmo cargo-alvo e este perfil:
+// O teto abaixo é medido com o jsPDF real (scratchpad da S48, `pior_caso.js`; EIXO 2 do
+// skill_qa_cv.md), na vaga mais ampla possível — a que puxa TODAS as experiências do perfil:
 //
-//   mostrar 5 · bullets nas 2 recentes → 1 página · 3 cargos mudos   (a régua velha)
-//   mostrar 5 · bullets nas 3 recentes → 2 páginas · 2 cargos mudos  (meio-termo: pior dos dois)
-//   mostrar 3 · todas com bullets      → 1 página · 0 mudos          (mas some a RPC/Grupo Globo)
-//   mostrar 5 · todas com bullets      → 2 páginas · 0 mudos         ← escolhido
+//   8 experiências · 19 bullets → 2 páginas
+//   9 experiências · 21 bullets → 2 páginas   ← a trajetória inteira de Marcos desde 1996
+//  11 experiências · 25 bullets → 2 páginas   ← teto escolhido
+//  12 experiências · 26 bullets → 3 páginas
 //
-// O custo da página é BINÁRIO: qualquer coisa acima de 2 cargos detalhados já estoura para 2
-// páginas. Uma vez pago esse preço, mutar cargo não compra mais nada — só apaga entrega que
-// existe no perfil. Ficar em 1 página exigiria cortar até a 3ª experiência, o que tiraria do
-// documento o Diretor de Marketing na RPC/Grupo Globo: a credencial mais forte da trajetória.
-// Duas páginas para 25 anos de carreira executiva é o padrão do mercado; cargo mudo não é.
-const CV_EXPS_COM_BULLETS = 5;
+// Ou seja: o corte em 5 nunca comprou página nenhuma. 5 experiências detalhadas já custavam as
+// mesmas 2 páginas que 11. Era perda pura de credencial. O teto existe só para o rabo de início
+// de carreira (os empregos pré-1996) não empurrar o documento para uma terceira página.
+//
+// Se alguém for mexer neste número, MEÇA DE NOVO com o jsPDF: é a terceira vez que um palpite
+// sobre esta régua produz um documento reprovado.
+const CV_MAX_EXPS = 11;
 // trad = fatos traduzidos (bloco ---PERFIL---), casados por id da experiência. Quando falta a
 // tradução de um item, aquele item sai em português: verdade incompleta é melhor que invenção.
 function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
@@ -12609,16 +12616,14 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
   // Fallback calibrado (S37): quando a IA não emitiu subtítulo, NUNCA cair em C-level chumbado
   // (era o "smoking gun" do CV da Kapazi). Posiciona pela vaga; sem cargo, área neutra e verdadeira.
   if(!subtitulo) subtitulo=(cargoVaga&&String(cargoVaga).trim())?String(cargoVaga).trim()+' · Curitiba, PR':'Marketing · Vendas · Operações Comerciais · Curitiba, PR';
-  const nivelAlvo=_nivelAlvoPDF(cargoVaga);
-  let expsFiltradas=filtrarExperienciasRelevantes(textoVaga||'','');
-  if(nivelAlvo==='gerencial') expsFiltradas=expsFiltradas.slice(0,5);
+  const expsFiltradas=filtrarExperienciasRelevantes(textoVaga||'','').slice(0,CV_MAX_EXPS);
   const T=(trad&&trad.exp)?trad.exp:{};
-  const exps=expsFiltradas.map((e,idx)=>{
+  const exps=expsFiltradas.map(e=>{
     const t=T[e.id];
     return {
       cargo:(t&&t.cargo)||e.cargo, empresa:e.empresa, local:e.local||'',
       periodo:`${_mesLabelPDF(e.inicio,lang)} – ${_mesLabelPDF(e.fim,lang)}`,
-      bullets:(nivelAlvo==='gerencial' && idx>=CV_EXPS_COM_BULLETS)?[]:(((t&&t.bullets)||e.bullets||[]).slice())
+      bullets:(((t&&t.bullets)||e.bullets||[]).slice())
     };
   });
   // O resumo do CV da IA já vem no idioma certo; o fallback (resumo_geral) é português — só entra
@@ -13212,8 +13217,8 @@ window.__senovaCopilotoGerarCV=function(ref,formato){
     if(!_cv) return {ok:false,motivo:'sem_card'};
     if(formato==='pdf'){
       // PDF Executivo: reusa o MESMO gerador do envio por e-mail (S28), apontando lastCV para o CV
-      // desta vaga. atsCargo entra junto — é ele que calibra 1 vs 2 páginas em _nivelAlvoPDF; sem
-      // isto o PDF da extensão saía calibrado pelo resíduo da última análise feita no app.
+      // desta vaga. atsCargo entra junto porque compõe o subtítulo quando a IA não emitiu um; sem
+      // isto o PDF da extensão herdava o resíduo da última análise feita no app.
       const _restaurar=_pdfCtxDoCard(v,_cv,baseFn);
       let b64=null; try{ b64=_pdfExecBase64(); }catch(_){}
       _restaurar();

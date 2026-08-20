@@ -61,26 +61,30 @@ Aplica-se só ao texto ADAPTADO pela IA (subtítulo, resumo, competências) — 
 - [ ] Subtítulo e resumo realmente espelham a linguagem do anúncio da vaga (não é o
       texto genérico de fallback — comparar com `subtitulo` padrão em `_cvParaPDF`,
       que só aparece quando a IA não gerou nada aproveitável)
-- [ ] Nível do cargo-alvo (`atsCargo`) resultou na curadoria certa: até Gerente Sênior
-      = 5 experiências, todas com bullets (`CV_EXPS_COM_BULLETS` = 5);
-      Diretoria/C-Level = histórico completo (ver `_nivelAlvoPDF` em index.html)
-- [ ] **Nenhum cargo mostrado sai mudo.** A régua de bullets era 2 até 20/ago/2026: o CV
-      de "Gerente Comercial" do Grupo Zonta saiu com 5 experiências das quais 3 sem uma
-      única linha de entrega, e foi reprovado por Marcos. O número novo saiu de medição
-      com jsPDF real, não de palpite — **o custo da página é binário**: acima de 2 cargos
-      detalhados o documento já vai a 2 páginas, então mutar cargo não compra mais nada.
-      Ficar em 1 página exigiria cortar até a 3ª experiência, o que tiraria a RPC/Grupo
-      Globo do documento. Duas páginas para 25 anos de carreira é padrão; cargo mudo não.
-      A tabela medida está no comentário de `CV_EXPS_COM_BULLETS` (index.html).
-      **Se alguém for mexer nessa régua de novo, meça de novo** — o script mora no
-      scratchpad da S48 (`medir_grade.js`), e a receita é a do EIXO 2 acima.
+- [ ] **A trajetória sai inteira, e nenhum cargo mostrado sai mudo.** O nível do cargo-alvo
+      (`atsCargo`) NÃO decide mais quantas experiências o documento mostra — decide só a
+      altura de cargo que o pedido à IA descreve. O único corte é o teto `CV_MAX_EXPS`
+      (index.html), que existe para o rabo de início de carreira não empurrar uma 3ª página.
+      Esta régua errou duas vezes em 20/ago/2026 e cada correção viu metade do problema:
+      primeiro o CV do Grupo Zonta saiu com 3 de 5 cargos sem uma linha de entrega
+      (reprovado); depois todos os 5 ganharam bullets e o CV do Grupo Ric foi reprovado de
+      novo. A segunda reprovação é a que tinha razão — **o problema era o CORTE, não o
+      silêncio**: as 5 mais recentes de uma carreira são as 5 mais recentes, não as 5
+      melhores, e o corte escondia a operação de R$ 40 milhões com 900 escolas, os 180
+      parceiros com 120 mil alunos e o Troféu Imprensa.
+      Medido com jsPDF real: 5 exps = 2 páginas, 9 = 2, 11 = 2, 12 = 3. **O corte em 5 nunca
+      comprou página nenhuma** — era perda pura de credencial. Duas páginas para 25 anos de
+      carreira é padrão; cargo mudo e carreira truncada não.
+      A tabela medida está no comentário de `CV_MAX_EXPS` (index.html).
+      **Se alguém for mexer nessa régua de novo, MEÇA de novo** — é a terceira vez que um
+      palpite sobre ela produz documento reprovado. Script no scratchpad da S48
+      (`pior_caso.js`), receita no EIXO 2 acima.
 - [ ] **As experiências que sobraram são as que a VAGA pede**, não as que o CV já citava.
       `_cvParaPDF(textoVaga, cvTexto, …)`: o 1º argumento tem de ser a descrição da vaga
       (`lastCVVaga`). Passar `lastCV` nas duas pontas — o defeito corrigido em 20/ago/2026 —
       faz o filtro comparar o CV contra ele mesmo e sai um PDF bonito com a trajetória errada
-- [ ] Se o cargo-alvo não bateu em nenhum padrão da heurística de nível (`atsCargo`
-      ambíguo ou vazio), o default é NUNCA cortar — confirmar que saiu como 2 páginas
-      (histórico completo), não 1 pág truncada por engano
+- [ ] Com cargo-alvo ambíguo ou vazio (`atsCargo`), o documento sai igual ao dos demais
+      níveis — histórico completo, 2 páginas — nunca 1 página truncada por engano
 
 ## EIXO 5 — DESIGN (Brand Book)
 

@@ -9,7 +9,7 @@ const s = carregarApp([
   'function _mesLabelPDF(',
   'function _secaoDoCV(',
   'function _nivelAlvoPDF(',
-  'const CV_EXPS_COM_BULLETS =',
+  'const CV_MAX_EXPS =',
   'function _cvParaPDF(',
 ]);
 
@@ -53,34 +53,40 @@ r = chamar(s, '_cvParaPDF', ['vaga', 'MATCH SCORE: 80\nKeywords\n---CV---\nMARCO
 t('análise nunca entra na estrutura', !/MATCH SCORE/.test(JSON.stringify(r)));
 t('subtítulo pega a linha certa após o nome', r.subtitulo === 'Diretor Comercial', r.subtitulo);
 
-console.log('\n=== curadoria nível-aware (S34): 1 pág até Gerente Sênior, 2 pág Diretoria/C-Level ===');
-r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, 'Gerente Comercial Sênior']);
-t('gerencial: no máximo 5 experiências (o recorte de trajetória; a paginação é outra régua)', r.experiencias.length <= 5, r.experiencias.length + ' exps');
-t('gerencial: cargo atual continua primeiro', /presente/.test(r.experiencias[0].periodo));
-// Eram 2 até 20/ago/2026: o CV do Grupo Zonta ("Gerente Comercial") saiu com 5 experiências das
-// quais 3 sem uma única linha de entrega, e Marcos reprovou o documento. A régua virou 5 depois de
-// medir as páginas com o jsPDF real — o custo da página é binário (acima de 2 cargos detalhados já
-// são 2 páginas), então mutar cargo não compra mais nada. Ver a tabela no comentário da constante.
-const NBULL = exec(s, 'CV_EXPS_COM_BULLETS');
-t(`gerencial: as ${NBULL} mais recentes mantêm bullets`,
-  r.experiencias.slice(0, NBULL).every(e => e.bullets.length > 0) && r.experiencias.slice(NBULL).every(e => e.bullets.length === 0),
-  r.experiencias.map(e => e.bullets.length).join('/'));
-t('gerencial: NENHUM cargo mostrado sai mudo — é a régua que o documento reprovado violava',
-  r.experiencias.every(e => e.bullets.length > 0),
-  r.experiencias.filter(e => !e.bullets.length).map(e => e.empresa).join(', ') || 'nenhum mudo');
-t('gerencial: a régua é a constante, não um literal solto no ternário', NBULL >= 5);
-t('gerencial: mesmo compactado, RPC continua nos 2 cargos (regra inviolável)', r.experiencias.filter(e => /RPC|Paranaense/i.test(e.empresa)).length === 2);
-t('gerencial: fatos nunca somem do perfil-fonte (só o material encolhe)', exec(s, 'PERFIL_MARCOS.experiencias.length') > 5);
-
-r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, 'Diretor Comercial']);
-t('diretoria: mantém histórico completo (2 páginas é o aprovado p/ este nível)', r.experiencias.length > 5, r.experiencias.length + ' exps');
-t('diretoria: todas mantêm bullets', r.experiencias.every(e => e.bullets.length > 0));
-
-r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, 'CMO']);
-t('c-level: mantém histórico completo', r.experiencias.length > 5, r.experiencias.length + ' exps');
-
-r = chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, '']);
-t('nível desconhecido: default seguro é NÃO cortar', r.experiencias.length > 5, r.experiencias.length + ' exps');
+// ── a trajetória não se corta pelo nível do cargo-alvo ────────────────────────────────────
+// História, porque esta régua errou duas vezes seguidas e cada correção só via metade do
+// problema. Até 20/ago/2026 o CV de nível gerencial mostrava as 5 mais recentes e detalhava só
+// as 2 primeiras: saíam 3 cargos sem uma linha de entrega, e Marcos reprovou o CV do Grupo Zonta.
+// A correção seguinte (mesmo dia) deu bullets às 5 mostradas — e Marcos reprovou de novo, o do
+// Grupo Ric. A segunda reprovação é a que tinha razão: o problema nunca foi o silêncio dos
+// cargos, era o CORTE. As 5 mais recentes de uma carreira são as 5 mais recentes, não as 5
+// melhores — no caso dele, o corte mostrava consultoria e marcenaria e escondia a operação de
+// R$ 40 milhões com 900 escolas, os 180 parceiros com 120 mil alunos e o Troféu Imprensa.
+// Medido com jsPDF real (S48): 5 exps = 2 páginas, 11 exps = 2 páginas. O corte não comprava
+// página nenhuma — era perda pura de credencial.
+console.log('\n=== a trajetória é a mesma para qualquer nível de cargo-alvo (S48) ===');
+const MAXEXPS = exec(s, 'CV_MAX_EXPS');
+t('a régua é a constante, não um literal solto', MAXEXPS >= 9, MAXEXPS + '');
+const NIVEIS = ['Gerente Comercial Sênior', 'Diretor Comercial', 'CMO', ''];
+const porNivel = NIVEIS.map(cargo => chamar(s, '_cvParaPDF', [cvAlelo, cvAlelo, cargo]));
+NIVEIS.forEach((cargo, i) => {
+  const rr = porNivel[i], rot = cargo || '(nível desconhecido)';
+  t(`${rot}: NENHUM cargo mostrado sai mudo — é a régua que o Grupo Zonta violava`,
+    rr.experiencias.every(e => e.bullets.length > 0),
+    rr.experiencias.filter(e => !e.bullets.length).map(e => e.empresa).join(', ') || 'nenhum mudo');
+  t(`${rot}: nunca corta a carreira em 5 — é o defeito do Grupo Ric`,
+    rr.experiencias.length > 5, rr.experiencias.length + ' exps');
+  t(`${rot}: respeita o teto medido de ${MAXEXPS}`, rr.experiencias.length <= MAXEXPS, rr.experiencias.length + ' exps');
+  t(`${rot}: cargo atual continua primeiro`, /presente/.test(rr.experiencias[0].periodo));
+  t(`${rot}: RPC continua nos 2 cargos (regra inviolável)`,
+    rr.experiencias.filter(e => /RPC|Paranaense/i.test(e.empresa)).length === 2);
+});
+t('gerencial vê exatamente a mesma trajetória que diretoria — o nível não cura mais o documento',
+  porNivel[0].experiencias.map(e => e.empresa).join('|') === porNivel[1].experiencias.map(e => e.empresa).join('|'));
+t('as credenciais de escala que o corte escondia estão no documento (EADCon · Expoente · Editel)',
+  ['EADCon', 'Expoente', 'Editel'].every(emp => porNivel[0].experiencias.some(e => new RegExp(emp, 'i').test(e.empresa))),
+  porNivel[0].experiencias.map(e => e.empresa.split(' ')[0]).join(', '));
+t('fatos nunca somem do perfil-fonte (só o material encolhe)', exec(s, 'PERFIL_MARCOS.experiencias.length') > 5);
 
 // ── o 1º argumento é a VAGA, nunca o CV ───────────────────────────────────────────────────
 // _cvParaPDF(textoVaga, cvTexto, …): o 1º argumento decide QUAIS experiências entram, casando

@@ -64,11 +64,11 @@ const NUCLEO = [
   // análise mandam ao Worker — mesma razão do portão acima: quem extrai só a esteira sem isto
   // junto quebra com ReferenceError.
   'function _metaConhecidaVaga(',
-  // Quantas experiências ganham bullets no PDF de nível gerencial (S48). Entra no núcleo pela
-  // razão escrita no topo: é dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa
-  // função morriam com ReferenceError — exatamente a fragilidade que este núcleo existe para
-  // evitar. Régua de produto, não detalhe de layout: ver o comentário dela no index.html.
-  'const CV_EXPS_COM_BULLETS =',
+  // Teto de experiências mostradas no PDF (S48). Entra no núcleo pela razão escrita no topo: é
+  // dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa função morriam com
+  // ReferenceError — exatamente a fragilidade que este núcleo existe para evitar. Régua de
+  // produto, não detalhe de layout: ver o comentário dela no index.html.
+  'const CV_MAX_EXPS =',
   // Colhe subtítulo, RESUMO e COMPETÊNCIAS do texto livre da IA — outra dependência de
   // _cvParaPDF, pela mesma razão do topo.
   'function _secaoDoCV(',

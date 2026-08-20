@@ -18,7 +18,7 @@ const s = carregarApp([
   'function _pdfLabels(',
   'function _mesLabelPDF(',
   'function _nivelAlvoPDF(',
-  'const CV_EXPS_COM_BULLETS =',
+  'const CV_MAX_EXPS =',
   'function _cvParaPDF(',
 ]);
 
