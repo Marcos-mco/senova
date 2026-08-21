@@ -14,6 +14,13 @@
 // index.html:6109-6113, achado pelo agente senova-viabilidade antes de virar incidente
 // de novo). Agora usa D1 com UPDATE...SET x=x+1 atômico — este teste passa a exigir o
 // padrão D1, não mais o padrão KV read-modify-write.
+//
+// v7.40 (S48, Fix 0): o balde deixou de ser único. `radar_custo_ia` tinha `dia` como chave
+// e somava tudo numa linha — bastava enquanto só o Radar era medido. Com as portas do Plano
+// de Vida chamando IA, aquele total passaria a misturar dois módulos e não serviria para
+// nenhuma decisão de margem. A tabela agora é `custo_ia` com PK (dia, origem) e TODO ponto
+// de chamada à Anthropic carimba de onde veio — inclusive `/api/claude`, que até aqui
+// gastava sem aparecer em lugar nenhum.
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('./_lib');
@@ -23,13 +30,13 @@ const worker = fs.readFileSync(path.join(__dirname, '..', 'senova-worker.js'), '
 
 console.log('=== a instrumentação nunca inventa número ===');
 t('_registrarCustoIA sai cedo quando não há usage ou não há D1 (resposta sem sucesso)',
-  /async function _registrarCustoIA\(env, usage\) \{\s*\n\s*if \(!usage \|\| !env\.SENOVA_DB\) return;/.test(worker));
+  /async function _registrarCustoIA\(env, usage, origem\) \{\s*\n\s*if \(!usage \|\| !env\.SENOVA_DB\) return;/.test(worker));
 
 console.log('\n=== a instrumentação nunca derruba nem atrasa a análise real ===');
 t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
-  /async function _registrarCustoIA[\s\S]{0,80}try \{[\s\S]{0,900}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
+  /async function _registrarCustoIA[\s\S]{0,200}try \{[\s\S]{0,1400}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
 t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
-  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage\)\)/.test(worker));
+  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, 'radar'\)\)/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
   /async function analisarVaga\([^)]*\bctx\b[^)]*\)/.test(worker) &&
   /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx(, perfilVAnterior)?(, metaConhecida)?\)/.test(worker));
@@ -37,16 +44,29 @@ t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa'
 console.log('\n=== o contador é atômico — sem corrida entre chamadas paralelas do mesmo lote ===');
 t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',
   /async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_DB\.prepare/.test(worker) &&
-  !/async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_KV/.test(worker));
+  !/async function _registrarCustoIA[\s\S]{0,1400}env\.SENOVA_KV/.test(worker));
 t('o upsert soma com o registro existente (ON CONFLICT ... DO UPDATE SET x = x + excluded.x)',
-  /ON CONFLICT\(dia\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
+  /ON CONFLICT\(dia, origem\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
   /tokens_entrada = tokens_entrada \+ excluded\.tokens_entrada/.test(worker));
 
+console.log('\n=== o número tem SUJEITO: Radar e Plano de Vida nunca viram o mesmo total ===');
+// [[feedback_instrumentacao_precisa_de_sujeito]] — número sem dizer QUAL bloco é mentira.
+t('a gravação carimba a origem (coluna origem na tabela custo_ia)',
+  /INSERT INTO custo_ia \(dia, origem,/.test(worker));
+t('a origem vem de um catálogo fechado, e o que não estiver nele cai em "app"',
+  /const ORIGENS_CUSTO = new Set\(\[[^\]]*'radar'[^\]]*'plano_vida'[^\]]*\]\)/.test(worker) &&
+  /ORIGENS_CUSTO\.has\(origem\) \? origem : 'app'/.test(worker));
+t('todo ponto de chamada à Anthropic carimba a sua origem',
+  ['radar','email','sofia','mercado'].every(o => new RegExp(`_registrarCustoIA\\(env, [a-z]+\\.usage, '${o}'\\)`).test(worker)) &&
+  /_registrarCustoIA\(env, dados\.usage, origem\)/.test(worker));
+
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');
-t('GET /api/radar-custo existe e lê radar_custo_ia do D1',
-  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,300}SENOVA_DB\.prepare\([\s\S]{0,150}radar_custo_ia/.test(worker));
-t('a rota respeita o teto de 30 dias (LIMIT 30 na consulta)',
-  /FROM radar_custo_ia ORDER BY dia DESC LIMIT 30/.test(worker));
+t('GET /api/radar-custo existe e lê custo_ia do D1',
+  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,400}SENOVA_DB\.prepare\([\s\S]{0,200}FROM custo_ia/.test(worker));
+t('a rota respeita o teto de 30 DIAS distintos (não 30 linhas)',
+  /SELECT DISTINCT dia FROM custo_ia ORDER BY dia DESC LIMIT 30/.test(worker));
+t('o formato antigo (por_dia com a soma do dia) continua servido — ninguém quebra',
+  /const por_dia = \{\}, por_origem = \{\}/.test(worker) && /return json\(\{ por_dia, por_origem \}\)/.test(worker));
 
 console.log('\n=== a rota nova segue o padrão fail-closed (exige x-senova-key) ===');
 const i = worker.indexOf('const ROTAS_SEM_SEGREDO');

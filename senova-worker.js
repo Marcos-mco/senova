@@ -1,6 +1,30 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.39
+//  SENOVA PROXY — Worker v7.40
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.40 (19/ago/2026) — Fix 0 do Plano de Vida: guardas antes de
+//  qualquer porta subir (S48).
+//  Duas coisas que só eram toleráveis enquanto o único cliente era o app do
+//  Marcos, e que deixam de ser no minuto em que uma FOTO de diploma passa a
+//  subir por aqui:
+//  (a) /api/claude repassava o corpo do browser verbatim — modelo, max_tokens
+//      e imagens escolhidos pelo cliente, sem allowlist nem teto. Agora há
+//      MODELOS_PERMITIDOS (lista fechada), TETO_MAX_TOKENS, TETO_CORPO_BYTES,
+//      TETO_IMAGEM_B64 e TETO_IMAGENS, com recusa 400 e motivo legível em
+//      português. Isto NÃO é autenticação: a rota continua atrás do mesmo
+//      x-senova-key compartilhado — login por pessoa é fix separado. Teto não
+//      substitui porta.
+//  (b) /api/claude gastava sem aparecer em lugar nenhum: só analisarVaga era
+//      medido. Agora TODA chamada à Anthropic carimba a sua origem
+//      ('radar' | 'plano_vida' | 'sofia' | 'email' | 'mercado' | 'app') e o
+//      contador vive em `custo_ia`, com PK (dia, origem) —
+//      migrations/003_custo_ia_origem.sql. O balde único de `radar_custo_ia`
+//      passaria a somar Radar + Plano de Vida na mesma linha, e um total que
+//      ninguém consegue atribuir é pior do que não medir
+//      ([[feedback_instrumentacao_precisa_de_sujeito]]). A tabela antiga fica
+//      congelada como rede, não é apagada.
+//  GET /api/radar-custo mantém o formato `por_dia` que já servia e ganha
+//  `por_origem` ao lado — ninguém que já lia a rota quebra.
 //
 //  NOVIDADES v7.39 (17/ago/2026) — auditoria de captura da extensão, item 3/7:
 //  3 esteiras que gravam vagas_lead escreviam localização errado. POST
@@ -98,6 +122,8 @@
 //  `_registrarCustoIA` e GET /api/radar-custo agora usam D1 (tabela nova
 //  `radar_custo_ia`, migrations/002_radar_custo_ia.sql) com
 //  `UPDATE ... SET x = x + 1` atômico — sem janela de corrida possível.
+//  (A tabela virou `custo_ia`, com origem, na v7.40 acima; o padrão atômico é
+//  o mesmo.)
 //  Zero mudança de contrato para quem já lia a rota; só troca o armazenamento.
 //
 //  NOVIDADES v7.29 (11/ago/2026) — custo real de IA do Radar, medido (S45).
@@ -740,6 +766,71 @@ function segredoOk(request, env) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// GUARDAS DO PROXY /api/claude (v7.40 — S48, Fix 0 do plano do Plano de Vida)
+// ═══════════════════════════════════════════════════════════════════
+// Por que estas guardas existem. Até aqui `/api/claude` repassava o corpo do cliente
+// VERBATIM para a Anthropic: modelo, max_tokens e conteúdo escolhidos pelo browser, sem
+// nenhum teto. Enquanto o cliente era só o app do Marcos isso era uma aposta silenciosa;
+// a partir do momento em que o Plano de Vida ganha porta de FOTO — o usuário aponta a
+// câmera e a imagem sobe por esta mesma rota — vira conta do dono do Worker acionada por
+// botão de usuário. Uma foto em 4032×3024 vira ~4 MB de base64; um `max_tokens` trocado
+// de 800 para 64000 multiplica o custo da saída, que é 56% do custo medido do Radar.
+//
+// A régua é o parecer do `senova-viabilidade`: onboarding inteiro = R$ 0,42. Nada que
+// passe por aqui pode custar múltiplos disso por engano.
+//
+// Nenhum destes limites aperta o uso real — e isso foi MEDIDO, não estimado. A primeira
+// versão deste teto foi escrita em 4096 "porque o maior uso é 3000"; um `grep max_tokens`
+// em todos os call sites mostrou que o maior uso real é 6000 (index.html:3684 —
+// `montarPedidoCV` pede 6000 fora do português, porque a resposta traz o CV E o bloco
+// ---PERFIL--- com os fatos traduzidos). O teto de 4096 teria derrubado em silêncio todo
+// CV em inglês e espanhol. É exatamente o risco de uma guarda escrita por leitura de
+// código em vez de medição: ela quebra o caminho que ninguém testou naquele dia.
+//
+// Modelos: os quatro são os que o app e a extensão já pedem hoje (MODELOS.analise =
+// opus-4-8, MODELOS.rapido = sonnet-4-6, e o haiku do extrator). A extensão não monta
+// pedido próprio — reusa `montarPedidoCV` da página, o portão único de leitura.
+const MODELOS_PERMITIDOS = new Set([
+  'claude-opus-4-8',              // MODELOS.analise — CV e análise longa
+  'claude-sonnet-4-6',            // MODELOS.rapido — a maioria das chamadas
+  'claude-haiku-4-5-20251001',    // extrator de metadados de página
+  'claude-haiku-4-5',             // mesmo modelo, alias sem data
+]);
+// 8000: folga de 33% sobre o maior uso real medido (6000, CV fora do PT) e ~8× abaixo do
+// máximo que o modelo aceitaria. Vale como teto de CONTA: 8000 tokens de saída em Sonnet
+// custam ~R$ 0,66 no pior caso — 8 análises de vaga. Sem teto, 64000 custariam ~R$ 5,30
+// por clique.
+const TETO_MAX_TOKENS   = 8000;
+const TETO_CORPO_BYTES  = 6 * 1024 * 1024;   // 6 MB — cabe uma foto grande, não cabe um álbum
+const TETO_IMAGEM_B64   = 5 * 1024 * 1024;   // a própria Anthropic recusa acima disto
+const TETO_IMAGENS      = 4;                 // um diploma são 1-2 fotos; 4 é folga
+
+// Devolve `null` quando o pedido está dentro das guardas, ou uma string com o motivo.
+// Motivo em português e específico: quem lê isto é o Marcos num toast, não um log.
+function recusarPedidoClaude(body, bytes) {
+  if (bytes > TETO_CORPO_BYTES) return `Pedido grande demais (${(bytes/1048576).toFixed(1)} MB). O limite é 6 MB.`;
+  if (!body || typeof body !== 'object') return 'Pedido malformado.';
+  if (body.stream) return 'Resposta em streaming não é suportada por esta rota.';
+  if (!MODELOS_PERMITIDOS.has(body.model)) return `Modelo não permitido: ${body.model || '(nenhum informado)'}.`;
+  const mt = body.max_tokens;
+  if (!Number.isInteger(mt) || mt < 1) return 'max_tokens ausente ou inválido.';
+  if (mt > TETO_MAX_TOKENS) return `max_tokens acima do teto (${mt} > ${TETO_MAX_TOKENS}).`;
+
+  let imagens = 0;
+  for (const msg of (Array.isArray(body.messages) ? body.messages : [])) {
+    if (!Array.isArray(msg.content)) continue;
+    for (const bloco of msg.content) {
+      if (!bloco || bloco.type !== 'image') continue;
+      imagens++;
+      const dados = bloco.source?.data || '';
+      if (dados.length > TETO_IMAGEM_B64) return 'Imagem grande demais. Tire a foto de novo com menos resolução.';
+    }
+  }
+  if (imagens > TETO_IMAGENS) return `Muitas imagens no mesmo pedido (${imagens}). O limite é ${TETO_IMAGENS}.`;
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function json(data, status=200) {
@@ -966,7 +1057,7 @@ function estaAutorizado(email, whitelist, padroesAtivos) {
 // ═══════════════════════════════════════════════════════════════════
 //  CLASSIFICAÇÃO DE EMAILS VIA IA
 // ═══════════════════════════════════════════════════════════════════
-async function classificarEmails(emails, whitelist, env) {
+async function classificarEmails(emails, whitelist, env, ctx) {
   if (!emails.length) return [];
 
   const CATEGORIAS = {
@@ -1049,6 +1140,7 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
       });
       if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0,300)}`);
       const data = await res.json();
+      if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email'));
       const texto = data.content?.[0]?.text || '';
       const parsed = JSON.parse(texto.replace(/```json|```/g,'').trim());
       parsed.resultados.forEach(r => {
@@ -1094,7 +1186,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.39',
+        status: 'ok', worker: 'senova-proxy', versao: '7.40',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1108,13 +1200,31 @@ export default {
     // ── Claude proxy ─────────────────────────────────────────────────
     if (path === '/api/claude' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const body = await request.json();
+
+      // Lê como texto primeiro: é a única forma de saber o tamanho real do que chegou
+      // ANTES de decidir se vale processar. Ver comentário das guardas em MODELOS_PERMITIDOS.
+      const bruto = await request.text();
+      let body;
+      try { body = JSON.parse(bruto); } catch { return json({ error: 'Pedido malformado.' }, 400); }
+
+      // `origem` é campo NOSSO, para a medição de custo — a Anthropic recusaria um campo
+      // desconhecido, então sai do corpo antes de seguir viagem.
+      const origem = body.origem;
+      delete body.origem;
+
+      const recusa = recusarPedidoClaude(body, bruto.length);
+      if (recusa) return json({ error: recusa }, 400);
+
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
         body: JSON.stringify(body),
       });
-      return json(await resp.json(), resp.status);
+      const dados = await resp.json();
+      // Sem isto, o custo de tudo o que passa por esta rota — inclusive as portas do Plano
+      // de Vida — nasceria invisível, e a única linha medida do app continuaria sendo o Radar.
+      if (resp.ok && ctx) ctx.waitUntil(_registrarCustoIA(env, dados.usage, origem));
+      return json(dados, resp.status);
     }
 
     // ── Análise ATS ──────────────────────────────────────────────────
@@ -1131,7 +1241,7 @@ export default {
     if (path === '/api/sofia-parecer' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const body = await request.json();
-      return json(await parecerSofia(body, env, body.perfilCandidato));
+      return json(await parecerSofia(body, env, body.perfilCandidato, ctx));
     }
 
     // ── O anúncio ainda existe? ──────────────────────────────────────
@@ -1295,23 +1405,32 @@ export default {
       return json(raw ? JSON.parse(raw) : { nunca_executada: true });
     }
 
-    // ── Custo real de IA no Radar (S45 — linha de base para viabilidade/margem) ──
+    // ── Custo real de IA (S45 — linha de base para viabilidade/margem) ──
+    // v7.40: lê de `custo_ia`, que tem origem. `por_dia` mantém exatamente o formato
+    // anterior (soma do dia) para não quebrar quem já lê; `por_origem` é o recorte novo,
+    // e é ele que impede Radar e Plano de Vida de virarem o mesmo número.
     if (path === '/api/radar-custo' && request.method === 'GET') {
-      if (!env.SENOVA_DB) return json({ por_dia: {} });
+      if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {} });
       const { results } = await env.SENOVA_DB.prepare(
-        'SELECT dia, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM radar_custo_ia ORDER BY dia DESC LIMIT 30'
+        'SELECT dia, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM custo_ia ' +
+        'WHERE dia IN (SELECT DISTINCT dia FROM custo_ia ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC'
       ).all();
-      const por_dia = {};
+      const por_dia = {}, por_origem = {};
+      const soma = (alvo, chave, r) => {
+        const a = alvo[chave] || (alvo[chave] = { chamadas:0, tokens_entrada:0, tokens_saida:0, cache_escrita:0, cache_leitura:0 });
+        a.chamadas       += r.chamadas;
+        a.tokens_entrada += r.tokens_entrada;
+        a.tokens_saida   += r.tokens_saida;
+        a.cache_escrita  += r.cache_escrita;
+        a.cache_leitura  += r.cache_leitura;
+      };
       for (const r of results) {
-        por_dia[r.dia] = {
-          chamadas: r.chamadas,
-          tokens_entrada: r.tokens_entrada,
-          tokens_saida: r.tokens_saida,
-          cache_escrita: r.cache_escrita,
-          cache_leitura: r.cache_leitura
-        };
+        soma(por_dia, r.dia, r);
+        soma(por_origem, r.origem, r);
+        por_dia[r.dia].origens = por_dia[r.dia].origens || {};
+        soma(por_dia[r.dia].origens, r.origem, r);
       }
-      return json({ por_dia });
+      return json({ por_dia, por_origem });
     }
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
@@ -1453,7 +1572,7 @@ export default {
         .map(e => ({...e, categoria:'irrelevante', label:'Social LinkedIn', emoji:'👥', prioridade:1, resumo:'Notificação social do LinkedIn'}));
       const emailsNormais = emailsParaClassificar.filter(e => !isSocialLinkedIn(e));
 
-      const classificadosIA = await classificarEmails(emailsNormais, whitelist, env);
+      const classificadosIA = await classificarEmails(emailsNormais, whitelist, env, ctx);
       const idsClassificadosIA = new Set(classificadosIA.map(e => e.id));
       // E-mails cujo lote de classificação falhou (rede/IA) não entram em classificadosIA —
       // não marcar como vistos/lidos, para reaparecerem como novos na próxima busca em vez
@@ -1761,7 +1880,7 @@ export default {
           if (parsed.status !== 'rss_indisponivel') return json(parsed);
         }
       }
-      const resultado = await buscarSinaisMercado(env);
+      const resultado = await buscarSinaisMercado(env, ctx);
       if (resultado.status === 'ok') {
         await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 4 * 60 * 60 });
       }
@@ -2982,17 +3101,26 @@ function vagaRecente(d, janelaDias = 3) {
 // nessa mesma chave — o defeito já documentado em index.html:6109-6113 ("de 280
 // vagas, só 26 ficaram com nota"). `UPDATE ... SET x = x + 1` no D1 é uma única
 // instrução SQL, sem essa janela de corrida — ver migrations/002_radar_custo_ia.sql.
-async function _registrarCustoIA(env, usage) {
+// v7.40 — a medição ganha SUJEITO. Até aqui todo consumo caía num balde por dia, o que
+// bastava enquanto só `analisarVaga` era medido. Com o Plano de Vida ganhando portas que
+// chamam IA, um balde único somaria Radar + Plano de Vida no mesmo número e nenhuma decisão
+// de margem poderia mais se apoiar nele — o defeito de [[feedback_instrumentacao_precisa_de_sujeito]].
+// `origem` é fechada de propósito: quem inventar um rótulo novo cai em 'app' e aparece como
+// tal, em vez de criar uma linha órfã que ninguém sabe ler depois.
+const ORIGENS_CUSTO = new Set(['radar', 'plano_vida', 'sofia', 'email', 'mercado', 'app']);
+async function _registrarCustoIA(env, usage, origem) {
   if (!usage || !env.SENOVA_DB) return;
+  const quem = ORIGENS_CUSTO.has(origem) ? origem : 'app';
   try {
     const hoje = new Date().toISOString().slice(0, 10);
     await env.SENOVA_DB.prepare(
-      'INSERT INTO radar_custo_ia (dia, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, 1, ?, ?, ?, ?) ' +
-      'ON CONFLICT(dia) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
+      'INSERT INTO custo_ia (dia, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, ?, 1, ?, ?, ?, ?) ' +
+      'ON CONFLICT(dia, origem) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
       'tokens_saida = tokens_saida + excluded.tokens_saida, cache_escrita = cache_escrita + excluded.cache_escrita, ' +
       'cache_leitura = cache_leitura + excluded.cache_leitura'
     ).bind(
       hoje,
+      quem,
       usage.input_tokens || 0,
       usage.output_tokens || 0,
       usage.cache_creation_input_tokens || 0,
@@ -3090,7 +3218,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'radar'));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
@@ -3153,7 +3281,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
 // Diretor, fecha a partir de R$15k" meses depois de Marcos zerar exatamente
 // isso. A Sofia então contradizia, no mesmo card, a nota que este arquivo dava.
 // Quem chama manda os FATOS DA VAGA; PERFIL_MARCOS + PROJETO_DE_VIDA saem daqui.
-async function parecerSofia(dados, env, perfilCandidato) {
+async function parecerSofia(dados, env, perfilCandidato, ctx) {
   // Identidade dinâmica (S46) — mesma fonte de analisarVaga, ver montarIdentidadeCandidato.
   const { texto: perfil } = await montarIdentidadeCandidato(env, perfilCandidato);
   const d = dados || {};
@@ -3246,6 +3374,7 @@ Complete sempre os três, e termine a última frase — texto cortado no meio va
     });
     if (!resp.ok) return { erro:true, texto:'' };
     const data = await resp.json();
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'sofia'));
     const bruto = (data.content || []).find(b => b.type === 'text')?.text || '';
     // O card joga este texto na tela como está — markdown que escapa do prompt chega ao
     // usuário como "**Parte 1**" literal. Instrução é pedido; isto é garantia.
@@ -3419,7 +3548,7 @@ async function buscarGoogleNewsRSS(query) {
   } catch { return []; }
 }
 
-async function buscarSinaisMercado(env) {
+async function buscarSinaisMercado(env, ctx) {
   // Tenta Bing primeiro (mais acessível de IPs cloud), depois Google como fallback
   const buscar = async q => {
     const bing = await buscarBingNewsRSS(q);
@@ -3449,7 +3578,7 @@ async function buscarSinaisMercado(env) {
   ).slice(0, 5);
 
   if (!relevantes.length) return { sinais: [], status: algumOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'bing_news' };
-  const sinaisAnalisados = await analisarSinaisMercado(relevantes, env);
+  const sinaisAnalisados = await analisarSinaisMercado(relevantes, env, ctx);
 
   // Enriquecer com Hunter.io — só sinais de alta relevância com domínio conhecido
   const enriched = await Promise.allSettled(
@@ -3494,7 +3623,7 @@ async function buscarEmailHunter(dominio, env) {
   } catch { return null; }
 }
 
-async function analisarSinaisMercado(itens, env) {
+async function analisarSinaisMercado(itens, env, ctx) {
   const lista = itens.map((it, i) => `[${i}] TÍTULO: ${it.titulo} | FONTE: ${it.empresa || it.local || ''}`).join('\n');
   const prompt = `Você é assistente de inteligência de mercado para Marcos Franco, executivo sênior de marketing (CMO/Diretor) buscando recolocação C-Level no Brasil.\n\nAnalise cada notícia e retorne JSON. Para cada item relevante, identifique oportunidade de networking ou candidatura.\n\nNOTÍCIAS:\n${lista}\n\nResponda SOMENTE JSON:\n{"sinais":[{"indice":0,"empresa":"...","dominio":"empresa.com.br","tipo":"movimento_exec|expansao|fusao|outro","relevancia":1-5,"resumo":"1 frase","sugestao_msg":"mensagem curta calorosa máx 2 linhas, tom executivo"}]}\n\nRegras:\n- Inclua apenas relevância ≥ 3.\n- "dominio": domínio web da empresa (ex: "globo.com", "itau.com.br"). Se não souber com certeza, use null.`;
   try {
@@ -3504,6 +3633,7 @@ async function analisarSinaisMercado(itens, env) {
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await resp.json();
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado'));
     const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
     return (parsed.sinais || []).map(s => ({
       ...itens[s.indice],
