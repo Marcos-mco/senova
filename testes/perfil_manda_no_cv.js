@@ -123,7 +123,7 @@ t('e o mestrado de Évora está lá', doc.formacao.some(f => /Évora/.test(f.ins
 
 chamar(s, '_formCarregar', [[]]);
 t('a tela de formação abre preenchida, não vazia', exec(s, '_formDados.length') === sementeForm.length);
-t('com o curso, a instituição e o período', exec(s, `_formDados.find(f=>/Évora/.test(f.instituicao)).titulo`) === 'Mestre em Marketing');
+t('com o curso, a instituição e o período', exec(s, `_formDados.find(f=>/Évora/.test(f.instituicao)).titulo`) === 'Mestre em Gestão de Empresas — Especialização em Marketing');
 
 exec(s, `(function(){
   const e=_formDados.find(f=>/Évora/.test(f.instituicao));
