@@ -906,6 +906,16 @@ select option { background: var(--bg2); }
         <button class="btn btn-ghost" onclick="expAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar experiência</button>
       </div>
 
+      <!-- Minha formação (mesma regra das experiências: é daqui que sai a formação do CV) -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Minha formação</div>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:16px;">
+          É daqui que sai a seção FORMAÇÃO ACADÊMICA do CV, na ordem em que estiver aqui. Fora do português, a Sofia traduz o nome do curso; instituição e período vão como você escreveu.
+        </div>
+        <div id="form-lista"></div>
+        <button class="btn btn-ghost" onclick="formAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar formação</button>
+      </div>
+
       <!-- Dados para candidatura (sensíveis) — APENAS neste navegador -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -3133,12 +3143,46 @@ function guardarExperienciasSalvas(lista){
 // Ponto único de leitura da carreira. Ver o comentário do topo deste bloco.
 function experienciasDoCV(){ return experienciasSalvas() || experienciasSemente(); }
 
+// ── A formação segue a mesma regra da carreira ─────────────────────────────────────────────
+// Mesmo defeito, descoberto um dia depois (21/ago/2026): o Perfil não tinha NENHUM campo de
+// formação. Marcos atualizou o mestrado de Évora onde dava — no CV mestre colado — e o documento
+// continuou com o bloco fixo, porque o CV mestre é texto guardado, nunca lido na hora de escrever.
+// São TRÊS os leitores da formação: o prompt da IA (perfilFormatadoPara), o documento (_cvParaPDF)
+// e a guarda que confere a tradução item a item (_extrairPerfilTraduzido) — daí o ponto único.
+function formacaoSemente(){ return PERFIL_MARCOS.formacao || []; }
+function _perfilFormKey(){ return 'senova_perfil_formacao'; }
+
+// Sem curso e sem instituição não há linha para escrever no documento.
+function _formUtilizavel(f){ return !!(String(f.titulo||'').trim() && String(f.instituicao||'').trim()); }
+function _formDaTelaParaCV(f){
+  return {
+    titulo: String(f.titulo||'').trim(),
+    instituicao: String(f.instituicao||'').trim(),
+    periodo: String(f.periodo||'').trim()
+  };
+}
+function formacaoSalva(){
+  let bruto=null;
+  try{ bruto=JSON.parse(localStorage.getItem(_perfilFormKey())||'null'); }catch(_){ }
+  if(!Array.isArray(bruto)||!bruto.length) return null;
+  const uteis=bruto.map(_formDaTelaParaCV).filter(_formUtilizavel);
+  return uteis.length ? uteis : null;
+}
+function guardarFormacaoSalva(lista){
+  try{
+    if(Array.isArray(lista)&&lista.length) localStorage.setItem(_perfilFormKey(),JSON.stringify(lista));
+    else localStorage.removeItem(_perfilFormKey());
+  }catch(_){ }
+}
+// Ponto único de leitura da formação.
+function formacaoDoCV(){ return formacaoSalva() || formacaoSemente(); }
+
 // O cache é do navegador; o dado é do Worker. Uma leitura no boot mantém os dois de acordo sem
 // pendurar chamada de rede no caminho do CV, que já é o mais caro do app. Falha em silêncio de
 // propósito: sem rede, o CV sai com a semente, como saía antes.
 document.addEventListener('DOMContentLoaded', () => {
   fetch(WORKER_URL+'/api/perfil').then(r=>r.ok?r.json():null)
-    .then(p=>{ if(p) guardarExperienciasSalvas(p.experiencias); }).catch(()=>{});
+    .then(p=>{ if(p){ guardarExperienciasSalvas(p.experiencias); guardarFormacaoSalva(p.formacao); } }).catch(()=>{});
 });
 
 // Filtro determinístico (sem IA) que decide QUAIS experiências de PERFIL_MARCOS entram no material
@@ -3196,7 +3240,7 @@ EXPERIÊNCIA (já filtrada por relevância e em ordem cronológica reversa — l
 ${formatarExperienciasPerfil(exps, comIds)}
 
 FORMAÇÃO:
-${PERFIL_MARCOS.formacao.map(f => `- ${f.titulo}, ${f.instituicao} (${f.periodo})`).join('\n')}
+${formacaoDoCV().map(f => `- ${f.titulo}, ${f.instituicao} (${f.periodo})`).join('\n')}
 
 IDIOMAS:
 ${PERFIL_MARCOS.idiomas.map(i => `- ${i.idioma}: ${i.nivel}`).join('\n')}`;
@@ -4769,6 +4813,66 @@ function _expParaPayload(){
   })).filter(e => e.cargo || e.empresa);
 }
 
+// ═══════════════════════════════════════════════
+//  MINHA FORMAÇÃO (Perfil estruturado)
+// ═══════════════════════════════════════════════
+// Mesma mecânica das experiências, e pela mesma razão: enquanto não existiu este editor, a
+// formação do CV só podia ser mudada por dentro do código. Ver formacaoDoCV.
+let _formDados = [];
+function _formNovoId(){ return 'form_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function _formCampo(id, campo, valor){
+  const f = _formDados.find(x=>x.id===id);
+  if(!f) return;
+  f[campo] = valor;
+}
+function formRenderizar(){
+  const lista = document.getElementById('form-lista');
+  if(!lista) return;
+  if(!_formDados.length){
+    lista.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:4px 0 14px;">Nenhuma formação cadastrada ainda.</p>';
+    return;
+  }
+  lista.innerHTML = _formDados.map(f => `
+    <div class="form-item" id="form-${f.id}" style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--bg3);">
+      <div style="margin-bottom:12px;"><label class="field-label">Curso ou título</label><input type="text" value="${_expEsc(f.titulo)}" maxlength="160" placeholder="ex: Mestre em Marketing" oninput="_formCampo('${f.id}','titulo',this.value)"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+        <div><label class="field-label">Instituição</label><input type="text" value="${_expEsc(f.instituicao)}" maxlength="160" placeholder="ex: Universidade de Évora, Portugal" oninput="_formCampo('${f.id}','instituicao',this.value)"></div>
+        <div><label class="field-label">Período</label><input type="text" value="${_expEsc(f.periodo)}" maxlength="40" placeholder="ex: 2002-2004" oninput="_formCampo('${f.id}','periodo',this.value)"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button onclick="formRemover('${f.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;">Remover</button>
+      </div>
+    </div>`).join('');
+}
+function formAdicionar(){
+  const novo = {id:_formNovoId(), titulo:'', instituicao:'', periodo:''};
+  _formDados.push(novo);
+  formRenderizar();
+  setTimeout(()=>{ const el=document.querySelector(`#form-${novo.id} input`); if(el) el.focus(); }, 0);
+}
+function formRemover(id){
+  _formDados = _formDados.filter(f=>f.id!==id);
+  formRenderizar();
+}
+// Sem nada salvo, abre com a formação que o CV usa hoje — pela mesma razão de _expCarregar:
+// tela vazia faria parecer que não há formação registrada, quando há.
+function _formCarregar(lista){
+  const fonte = (Array.isArray(lista)&&lista.length) ? lista : formacaoSemente();
+  _formDados = fonte.map(f=>({
+    id: f.id || _formNovoId(),
+    titulo: f.titulo||'', instituicao: f.instituicao||'', periodo: f.periodo||''
+  }));
+  formRenderizar();
+}
+function _formParaPayload(){
+  return _formDados.map(f => ({
+    id: f.id,
+    titulo: (f.titulo||'').trim(),
+    instituicao: (f.instituicao||'').trim(),
+    periodo: (f.periodo||'').trim()
+  })).filter(f => f.titulo || f.instituicao);
+}
+
 function abrirImportLinkedIn(){
   const a=document.getElementById('import-li-area');
   if(a) a.style.display=a.style.display==='none'?'block':'none';
@@ -4867,6 +4971,8 @@ async function carregarPerfil(){
     _cvMasterSetLang('pt');
     guardarExperienciasSalvas(p.experiencias);
     _expCarregar(p.experiencias);
+    guardarFormacaoSalva(p.formacao);
+    _formCarregar(p.formacao);
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
     document.getElementById('perfil-localizacoes').value=p.localizacoes||'';
@@ -4956,6 +5062,7 @@ async function salvarPerfil(){
     dias_inativo:parseInt(document.getElementById('config-dias-inativo')?.value)||7,
     freq_varredura:document.querySelector('input[name="perfil-freq-varredura"]:checked')?.value||'diaria',
     experiencias:_expParaPayload(),
+    formacao:_formParaPayload(),
   };
   // Espelha a régua de idioma no navegador na mesma hora: o card decide o idioma sem passar
   // por esta aba, e salvar aqui tem de valer no próximo card que se abrir.
@@ -4973,6 +5080,7 @@ async function salvarPerfil(){
     // Só depois do Worker aceitar. O cache do navegador é o que o CV lê na hora de escrever o
     // documento — gravá-lo antes da confirmação faria o CV usar uma carreira que não está salva.
     guardarExperienciasSalvas(dados.experiencias);
+    guardarFormacaoSalva(dados.formacao);
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
     config.score_minimo_por_regiao=smr;
@@ -12787,7 +12895,7 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
     nome:c.nome, subtitulo, contato:`${c.telefone} · ${c.email} · ${c.linkedin}`,
     resumo:_secaoDoCV(cv,/resumo|resumen|summary/i)||PERFIL_MARCOS.resumo_geral,
     experiencias:exps,
-    formacao:PERFIL_MARCOS.formacao.map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:f.instituicao,periodo:f.periodo})),
+    formacao:formacaoDoCV().map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:f.instituicao,periodo:f.periodo})),
     competencias:_secaoDoCV(cv,/compet|skills/i)||_competenciasDoPerfil(expsFiltradas,textoVaga,lang),
     idiomas:(trad&&trad.idiomas)?trad.idiomas.join(' · '):PERFIL_MARCOS.idiomas.map(i=>`${i.idioma} (${i.nivel})`).join(' · ')
   };
@@ -13334,7 +13442,7 @@ function _extrairPerfilTraduzido(texto){
   }
   if(!traduzido) return Object.keys(out.exp).length?out:null;
   const fs=Array.isArray(j.formacao)?j.formacao.filter(s=>typeof s==='string'&&s.trim()):[];
-  if(fs.length===(PERFIL_MARCOS.formacao||[]).length) out.formacao=fs.map(s=>s.trim());
+  if(fs.length===(formacaoDoCV()||[]).length) out.formacao=fs.map(s=>s.trim());
   const is=Array.isArray(j.idiomas)?j.idiomas.filter(s=>typeof s==='string'&&s.trim()):[];
   if(is.length===(PERFIL_MARCOS.idiomas||[]).length) out.idiomas=is.map(s=>s.trim());
   return Object.keys(out.exp).length?out:null;

@@ -1383,6 +1383,19 @@ export default {
           return json({ erro: 'O conjunto de experiências passou do limite total. Resuma alguma entrega e tente de novo.' }, 400);
         }
       }
+      // Formação: mesma política das experiências — rejeita com o motivo, nunca corta em
+      // silêncio. Tetos folgados sobre o perfil real (4 formações / ~380 chars): o custo aqui
+      // é a seção FORMAÇÃO do PDF, que precisa caber nas 2 páginas junto com a carreira.
+      if (Array.isArray(dados.formacao)) {
+        if (dados.formacao.length > 10) {
+          return json({ erro: `Máximo de 10 formações — você tem ${dados.formacao.length}. Remova uma antes de salvar.` }, 400);
+        }
+        for (const f of dados.formacao) {
+          if ((f.titulo||'').length > 160 || (f.instituicao||'').length > 160 || (f.periodo||'').length > 40) {
+            return json({ erro: `"${(f.titulo||f.instituicao||'uma formação')}" tem um campo maior que o permitido. Resuma e tente de novo.` }, 400);
+          }
+        }
+      }
       await env.SENOVA_KV.put('perfil_usuario', JSON.stringify(dados));
       return json({ ok: true });
     }

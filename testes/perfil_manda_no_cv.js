@@ -24,6 +24,11 @@ const s = carregarApp([
   'function expRenderizar(',
   'function _expCarregar(',
   'function _expParaPayload(',
+  'let _formDados =',
+  'function _formNovoId(',
+  'function formRenderizar(',
+  'function _formCarregar(',
+  'function _formParaPayload(',
 ]);
 
 const VAGA = 'Gerente Comercial em Curitiba, liderança de equipe de vendas e canais indiretos.';
@@ -104,5 +109,39 @@ t('"2019" (só o ano)', iso('2019') === '2019-01');
 t('"ontem" não vira data', iso('ontem') === '');
 t('vazio continua vazio', iso('') === '');
 t('a volta para a tela', chamar(s, '_mesBR', ['2020-03']) === '03/2020');
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// FORMAÇÃO — mesmo defeito, descoberto um dia depois. Marcos: "foi atualizado no meu perfil o
+// mestrado de Évora, mas não no CV". Não tinha como: o Perfil não possuía NENHUM campo de
+// formação. O único lugar onde dava para escrever "Évora" era o CV mestre colado, que é texto
+// guardado e nunca lido na hora de escrever o documento.
+console.log('\n=== a formação sai do Perfil, com a mesma rede da carreira ===');
+const sementeForm = exec(s, 'PERFIL_MARCOS.formacao');
+let doc = cvDoc();
+t('sem nada salvo, a formação é a de sempre', doc.formacao.length === sementeForm.length, String(doc.formacao.length));
+t('e o mestrado de Évora está lá', doc.formacao.some(f => /Évora/.test(f.instituicao)));
+
+chamar(s, '_formCarregar', [[]]);
+t('a tela de formação abre preenchida, não vazia', exec(s, '_formDados.length') === sementeForm.length);
+t('com o curso, a instituição e o período', exec(s, `_formDados.find(f=>/Évora/.test(f.instituicao)).titulo`) === 'Mestre em Marketing');
+
+exec(s, `(function(){
+  const e=_formDados.find(f=>/Évora/.test(f.instituicao));
+  e.titulo='Mestre em Marketing e Comunicação Empresarial';
+  e.periodo='2002-2005';
+  guardarFormacaoSalva(_formParaPayload());
+})()`);
+let doc2 = cvDoc();
+let evora = doc2.formacao.find(f => /Évora/.test(f.instituicao));
+t('a correção do mestrado chega ao documento', evora.titulo === 'Mestre em Marketing e Comunicação Empresarial', evora.titulo);
+t('e o período corrigido também', evora.periodo === '2002-2005', evora.periodo);
+t('as outras formações continuam intactas', doc2.formacao.length === sementeForm.length);
+
+exec(s, `guardarFormacaoSalva([{titulo:'',instituicao:'',periodo:'2020'}])`);
+t('formação sem curso e sem instituição é descartada', exec(s, 'formacaoSalva()') === null);
+t('e o CV volta para a formação de sempre', cvDoc().formacao.length === sementeForm.length);
+
+exec(s, 'guardarFormacaoSalva([])');
+t('apagar tudo na tela não apaga a formação do documento', cvDoc().formacao.length === sementeForm.length);
 
 fim('Perfil manda no CV');

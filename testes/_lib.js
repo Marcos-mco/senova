@@ -77,6 +77,15 @@ const NUCLEO = [
   'function experienciasSalvas(',
   'function guardarExperienciasSalvas(',
   'function experienciasDoCV(',
+  // A formação segue a mesma regra, e tem TRÊS leitores (prompt, documento e guarda de
+  // tradução) — mesma razão do grupo acima.
+  'function formacaoSemente(',
+  'function _perfilFormKey(',
+  'function _formUtilizavel(',
+  'function _formDaTelaParaCV(',
+  'function formacaoSalva(',
+  'function guardarFormacaoSalva(',
+  'function formacaoDoCV(',
   // Teto de experiências mostradas no PDF (S48). Entra no núcleo pela razão escrita no topo: é
   // dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa função morriam com
   // ReferenceError — exatamente a fragilidade que este núcleo existe para evitar. Régua de
