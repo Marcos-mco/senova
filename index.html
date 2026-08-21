@@ -2895,7 +2895,22 @@ const PERFIL_MARCOS = {
     linkedin: "linkedin.com/in/marcos-franco-69153a12",
     localizacao: "Curitiba, PR"
   },
-  resumo_geral: "Executivo com mais de 25 anos liderando operações comerciais e de marketing de grande escala, com forte atuação em gestão de vendas, expansão de mercado e liderança de equipes de alta performance.",
+  // SEMENTE DE TODO RESUMO DE CV. Este texto entra em `perfilFormatadoPara` como "RESUMO:", e é
+  // dele que a IA parte para escrever o RESUMO EXECUTIVO de cada vaga; quando a IA não devolve
+  // resumo aproveitável, ele vira o resumo do documento tal e qual (_cvParaPDF).
+  //
+  // Até 20/ago/2026 dizia só "Executivo com mais de 25 anos liderando operações comerciais e de
+  // marketing de grande escala…" — nenhuma empresa, nenhum número, nenhuma credencial. Marcos
+  // reprovou o CV gerado pelo app com uma frase só: "Não cita RPC, Afiliada Globo, que é o mais
+  // importante." Estava certo, e o defeito era aqui: a credencial mais forte da carreira dele —
+  // mais de dez anos dentro de emissora de televisão afiliada do Grupo Globo — não existia em
+  // lugar nenhum do material que a IA recebe, a não ser dentro do parêntese do nome da empresa.
+  // Pedir "resumo específico desta vaga" a partir de uma semente genérica devolve resumo genérico.
+  //
+  // Régua para quem for reescrever: NENHUM número ou nome aqui pode ser mais generoso do que os
+  // bullets abaixo. "Mais de dez anos" na RPC é 2008-11 → 2019-04, dez anos e cinco meses — o CV
+  // antigo chumbado no código dizia "quase 12 anos", o que era falso.
+  resumo_geral: "Executivo com mais de 25 anos à frente de operações comerciais e de marketing de grande escala. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo no Paraná, onde respondeu pela estratégia comercial e de marketing das 8 emissoras do estado, com equipe de 30 profissionais e carteira de clientes superior a R$ 500 milhões. Antes disso, liderou operação comercial nacional de R$ 40 milhões com 900 escolas conveniadas e campanhas publicitárias de R$ 20 milhões coordenando 25 agências.",
   experiencias: [
     {
       id: "consigliere", cargo: "Consultor Sênior", empresa: "Consigliere Consultoria",
@@ -2931,7 +2946,11 @@ const PERFIL_MARCOS = {
       tags_area: ["marketing", "estratégia comercial", "gestão de equipes", "mídia"], nivel: "diretoria",
       incluir_por_padrao: true,
       bullets: [
-        "Responsável pela estratégia comercial e de marketing das 8 afiliadas do Paraná, com equipe de 30 profissionais.",
+        // "8 afiliadas do Paraná" até 20/ago/2026. Quem não conhece a sigla RPC não descobria em
+        // lugar nenhum do bullet que se trata de emissora de televisão nem do Grupo Globo — a
+        // informação vivia só no parêntese do campo `empresa`. O fato não mudou; passou a estar
+        // escrito. Ver a nota no `resumo_geral`.
+        "Responsável pela estratégia comercial e de marketing das 8 emissoras de televisão da RPC no Paraná, afiliada do Grupo Globo, com equipe de 30 profissionais.",
         "Gestão de carteira de clientes superior a R$ 500 milhões.",
         "Liderou suporte a vendas, inteligência de mercado e treinamentos em técnicas de vendas e comportamento do consumidor."
       ]
@@ -2941,7 +2960,7 @@ const PERFIL_MARCOS = {
       local: "Curitiba, PR", inicio: "2008-11", fim: "2012-04",
       tags_area: ["marketing", "mídia", "gestão"], nivel: "gerencial",
       incluir_por_padrao: true,
-      bullets: ["Atuou na gestão de marketing das afiliadas do Paraná, dando suporte à estratégia comercial da emissora, precedendo a promoção a Diretor de Marketing em 2012."]
+      bullets: ["Atuou na gestão de marketing das emissoras da RPC no Paraná, afiliada do Grupo Globo, dando suporte à estratégia comercial da casa, precedendo a promoção a Diretor de Marketing em 2012."]
     },
     {
       id: "eadcon", cargo: "Diretor de Marketing", empresa: "EADCon",
@@ -3102,7 +3121,7 @@ Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR
 
 RESUMO EXECUTIVO
 
-Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Quase 12 anos na RPC/Globo como Diretor de Marketing — equipe de 30 pessoas, 8 afiliadas, carteira de R$ 500 milhões. Sólida formação internacional: MBA FGV, Mestre em Direção de Marketing e Vendas pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
+Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo, os últimos sete como Diretor de Marketing — equipe de 30 pessoas, 8 emissoras, carteira de R$ 500 milhões. Sólida formação internacional: MBA FGV, Mestre em Direção de Marketing e Vendas pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
 
 EXPERIÊNCIA PROFISSIONAL
 
@@ -3415,6 +3434,7 @@ NÍVEL-ALVO DESTA VAGA: ${nivelRotulo}.
 CALIBRAÇÃO DE ENQUADRAMENTO (regra decisiva de qualidade — não negociável):
 - O SUBTÍTULO (linha logo abaixo do nome) e o RESUMO espelham o CARGO e a linguagem DESTA vaga, não o ápice da carreira. Numa vaga de execução (analista, especialista, coordenação), o subtítulo é a ÁREA da vaga (ex.: para "Analista de Marketing de Produto" → "Marketing de Produto | Lançamento, Portfólio e Inteligência de Mercado"). NUNCA use "CMO · CSO · CEO" nem "Diretor" como subtítulo de uma vaga abaixo desse nível — rótulo acima do nível da vaga desqualifica por sobrequalificação.
 - Os FATOS não mudam: a trajetória executiva permanece íntegra e completa nas experiências. Muda só o DESTAQUE — o RESUMO (2–3 frases diretas, específicas desta vaga, sem clichê corporativo) e as COMPETÊNCIAS trazem à frente exatamente o que ESTA vaga pede, com as palavras-chave do título e das responsabilidades.
+- O RESUMO NOMEIA A CREDENCIAL, e nomear é escrever o nome. Entre as experiências acima, escolha a que mais pesa PARA ESTA VAGA e diga-a com todas as letras no resumo: a empresa pelo nome, o que ela é (setor, porte, grupo a que pertence) e o número que prova a escala. "Executivo com mais de 25 anos em operações comerciais" não diz nada que outro candidato não possa dizer — é resumo reprovado. "Mais de dez anos na RPC, afiliada do Grupo Globo no Paraná, à frente das 8 emissoras do estado e de carteira superior a R$ 500 milhões" é o mesmo candidato, com a credencial visível. Um resumo que termine sem citar uma única empresa da lista acima está errado, qualquer que seja a vaga.
 REGRAS ABSOLUTAS:
 - NUNCA invente métricas ou fatos não presentes no perfil acima
 - Preserve voz elegante e profissional
@@ -10580,7 +10600,7 @@ async function startInterview(){
 
   const genPrompt=`Você é um ${tipoLabel} conduzindo uma ${faseLabel} para a posição: ${cargo}.
 
-Candidato: Marcos Franco — executivo sênior, 30+ anos, ex-Diretor de Marketing RPC/Globo (12 anos, 30 pessoas, 8 afiliadas, R$500M), MBA FGV, Master's Barcelona.
+Candidato: Marcos Franco — executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M), MBA FGV, Master's Barcelona.
 
 Gere EXATAMENTE 5 perguntas para esta entrevista. A pergunta 1 DEVE SER "Me fale sobre você" (ou equivalente em ${lang}). A pergunta 2 deve ser sobre a saída do último emprego. As demais devem ser específicas para ${cargo} e para a fase ${faseLabel}.
 
@@ -10665,7 +10685,7 @@ PERGUNTA: "${questions[currentQ]}"
 
 RESPOSTA DE MARCOS: "${answer}"
 
-PERFIL: Executivo sênior, 30+ anos, ex-Diretor RPC/Globo (12 anos, 30 pessoas, 8 afiliadas, R$500M portfolio), MBA FGV, Master's Barcelona.
+PERFIL: Executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M portfolio), MBA FGV, Master's Barcelona.
 
 Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXATO:
 

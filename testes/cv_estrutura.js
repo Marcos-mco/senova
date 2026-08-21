@@ -1,5 +1,5 @@
 // Estrutura do CV para o PDF: fatos do PERFIL_MARCOS (robusto) + adaptação do CV da IA.
-const { carregarApp, chamar, exec, assert } = require('./_lib');
+const { carregarApp, chamar, exec, assert, html } = require('./_lib');
 const { t, fim } = assert();
 const s = carregarApp([
   'const PERFIL_MARCOS = {',
@@ -48,6 +48,37 @@ r = chamar(s, '_cvParaPDF', ['', '']);
 t('resumo cai no resumo_geral do perfil', r.resumo.length > 20);
 t('experiências ainda vêm (fatos)', r.experiencias.length > 0);
 
+// ── a credencial mais forte não pode depender de a IA lembrar dela ────────────────────────
+// 20/ago/2026, reprovação de Marcos ao CV gerado pelo app, em uma frase: "Não cita RPC,
+// Afiliada Globo, que é o mais importante." Ele estava certo, e o defeito não era da IA: o
+// `resumo_geral` — semente de TODO resumo de CV, e resumo final quando a IA não devolve nada —
+// dizia apenas "Executivo com mais de 25 anos liderando operações comerciais e de marketing de
+// grande escala", sem uma empresa, sem um número. E os bullets da RPC diziam "8 afiliadas do
+// Paraná": quem não conhece a sigla não descobria que é emissora de televisão nem que é do
+// Grupo Globo — isso vivia só no parêntese do campo `empresa`. Pedir "resumo específico desta
+// vaga" a partir de semente genérica devolve resumo genérico, em qualquer modelo.
+console.log('\n=== a credencial mais forte está escrita no material, não subentendida (S48) ===');
+const RESUMO_SEMENTE = exec(s, 'PERFIL_MARCOS.resumo_geral');
+t('o resumo-semente nomeia a RPC', /RPC/.test(RESUMO_SEMENTE), RESUMO_SEMENTE.slice(0, 70) + '…');
+t('o resumo-semente diz que é afiliada do Grupo Globo', /Grupo Globo/.test(RESUMO_SEMENTE));
+t('o resumo-semente traz número que prova escala', /R\$ ?\d/.test(RESUMO_SEMENTE));
+t('o resumo do documento (fallback sem IA) carrega a credencial', /RPC/.test(r.resumo) && /Grupo Globo/.test(r.resumo));
+// Tempo de casa: 2008-11 → 2019-04 são dez anos e cinco meses. O CV chumbado antigo dizia "quase
+// 12 anos" — inflar tempo de casa é mentira, e mentira não passa por aqui nem para vender melhor.
+t('nenhum lugar do app infla o tempo de RPC para 11 ou 12 anos',
+  !/\b(1[12]) anos\b[^.]{0,40}(RPC|Globo)|\b(RPC|Globo)\b[^.]{0,40}\b(1[12]) anos\b/i.test(html),
+  (html.match(/.{0,50}\b1[12] anos\b.{0,50}/i) || ['nenhum'])[0]);
+
+const RPC = exec(s, "PERFIL_MARCOS.experiencias.filter(e=>/^rpc-/.test(e.id))");
+t('as duas passagens pela RPC continuam no perfil', RPC.length === 2);
+RPC.forEach(e => {
+  const texto = e.bullets.join(' ');
+  t(`[${e.id}] o bullet diz que a casa é do Grupo Globo — não deixa no parêntese do nome`,
+    /Grupo Globo/.test(texto), texto.slice(0, 80) + '…');
+  t(`[${e.id}] o bullet diz que são emissoras, não "afiliadas" sem sujeito`,
+    /emissora/i.test(texto), texto.slice(0, 80) + '…');
+});
+
 console.log('\n=== defesa dupla: análise junto → limpa antes ===');
 r = chamar(s, '_cvParaPDF', ['vaga', 'MATCH SCORE: 80\nKeywords\n---CV---\nMARCOS FRANCO\nDiretor Comercial\n\nRESUMO EXECUTIVO\nx']);
 t('análise nunca entra na estrutura', !/MATCH SCORE/.test(JSON.stringify(r)));
@@ -94,7 +125,6 @@ t('fatos nunca somem do perfil-fonte (só o material encolhe)', exec(s, 'PERFIL_
 // `lastCV` nas duas pontas — o filtro comparava o CV contra ele mesmo, então "relevante" virava
 // "o que a IA já tinha escrito" e a trajetória que a vaga pedia mas o CV não citou ficava fora.
 // Erro invisível: o PDF sai bonito, só com as experiências erradas. Por isso é teste de FONTE.
-const { html } = require('./_lib');
 console.log('\n=== o filtro de relevância recebe a vaga, não o próprio CV ===');
 t('_buildPDFExecDoc passa lastCVVaga como textoVaga',
   /_cvParaPDF\(lastCVVaga,\s*lastCV,/.test(html));

@@ -29,7 +29,7 @@ const bloco = (bullets, extra) => '---CV---\nMARCOS FRANCO\n\n---PERFIL---\n' +
 
 console.log('=== o material bruto existe e é o que o defeito congelava ===');
 t('a experiência da RPC tem 3 bullets no perfil', (ORIG.bullets || []).length === 3);
-t('e os números que o CV pode citar estão neles', /8 afiliadas/.test(ORIG.bullets[0]) && /500 milhões/.test(ORIG.bullets[1]));
+t('e os números que o CV pode citar estão neles', /\b8 emissoras/.test(ORIG.bullets[0]) && /500 milhões/.test(ORIG.bullets[1]));
 
 console.log('\n=== a reescrita HONESTA chega ao documento ===');
 // Mesmos fatos, mesmos números, ângulo de TV — que é o que a vaga da RIC pedia.
@@ -92,5 +92,13 @@ t('o prompt declara os números intocáveis',
   /NÚMEROS SÃO INTOCÁVEIS/.test(html));
 t('a seção COMPETÊNCIAS é exigida (saiu vazia no CV do Grupo Ric)',
   /seção de competências é obrigatória/i.test(html));
+// "Não cita RPC, Afiliada Globo, que é o mais importante" — Marcos, 20/ago/2026, sobre o CV
+// gerado pelo app. O material foi corrigido (ver `resumo_geral` e os bullets da RPC), mas material
+// bom com pedido frouxo volta a produzir "Executivo com mais de 25 anos em operações comerciais".
+// O prompt tem de exigir o nome próprio da empresa no resumo, não só "seja específico".
+t('o prompt exige que o RESUMO nomeie a credencial pelo nome da empresa',
+  /O RESUMO NOMEIA A CREDENCIAL/.test(html));
+t('e diz explicitamente que resumo sem nenhuma empresa citada está errado',
+  /sem citar uma única empresa/i.test(html));
 
 fim('BULLETS POR VAGA');
