@@ -64,6 +64,19 @@ const NUCLEO = [
   // análise mandam ao Worker — mesma razão do portão acima: quem extrai só a esteira sem isto
   // junto quebra com ReferenceError.
   'function _metaConhecidaVaga(',
+  // De onde vem a carreira do CV (21/ago/2026): a tela Perfil › Minhas Experiências é a fonte e o
+  // PERFIL_MARCOS é a semente/rede. filtrarExperienciasRelevantes e _extrairPerfilTraduzido — os
+  // DOIS leitores da carreira — passam por experienciasDoCV; sem este grupo no núcleo, todo teste
+  // que extrai um dos dois morreria com ReferenceError. Exatamente a fragilidade do topo.
+  'function experienciasSemente(',
+  'function _perfilExpKey(',
+  'function _mesISO(',
+  'function _mesBR(',
+  'function _expDaTelaParaCV(',
+  'function _expUtilizavel(',
+  'function experienciasSalvas(',
+  'function guardarExperienciasSalvas(',
+  'function experienciasDoCV(',
   // Teto de experiências mostradas no PDF (S48). Entra no núcleo pela razão escrita no topo: é
   // dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa função morriam com
   // ReferenceError — exatamente a fragilidade que este núcleo existe para evitar. Régua de
@@ -103,6 +116,13 @@ function carregarApp(extras = [], mocks = {}) {
     PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [
       { idioma: 'Português', nivel: 'nativo' }, { idioma: 'Inglês', nivel: 'avancado' }, { idioma: 'Espanhol', nivel: 'avancado' },
     ] },
+    // localStorage de mentira, mas de verdade: guarda e devolve. É onde vive o cache das
+    // experiências que o usuário salvou no Perfil (ver experienciasSalvas). Sem ele o teste não
+    // consegue simular "Marcos editou a própria carreira" — só o caminho da semente.
+    localStorage: (() => {
+      const m = {};
+      return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; } };
+    })(),
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     unescape: global.unescape || (s => decodeURIComponent(s)),
     encodeURIComponent, console,

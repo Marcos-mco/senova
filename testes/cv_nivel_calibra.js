@@ -44,6 +44,17 @@ const fontes = [
   'function _idiomaDoCV(',
   'function _idiomaDecidido(',
   'function _idiomaDoPedido(',
+  // De onde vem a carreira (21/ago/2026): filtrarExperienciasRelevantes lê o Perfil salvo pelo
+  // usuário e cai no PERFIL_MARCOS como rede. Ver testes/perfil_manda_no_cv.js.
+  'function experienciasSemente(',
+  'function _perfilExpKey(',
+  'function _mesISO(',
+  'function _mesBR(',
+  'function _expDaTelaParaCV(',
+  'function _expUtilizavel(',
+  'function experienciasSalvas(',
+  'function guardarExperienciasSalvas(',
+  'function experienciasDoCV(',
   'function filtrarExperienciasRelevantes(',
   'function formatarExperienciasPerfil(',
   'function perfilFormatadoPara(',

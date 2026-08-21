@@ -21,6 +21,17 @@ const fontes = [
   'const IDIOMAS={', 'const _PDF_LABELS={', 'function idiomaEntregavel(', 'let _perfilIdioma=',
   'function _niveisIdiomaDeclarados(', 'function idiomasDoUsuario(', 'function idiomasEntregaveis(', 'function _dividaIdioma(',
   'const _IDIOMA_MARCAS = {', 'function _idiomaDaVaga(', 'function _idiomaDoCV(', 'function _idiomaDecidido(', 'function _idiomaDoPedido(',
+  // De onde vem a carreira (21/ago/2026): _extrairPerfilTraduzido casa a reescrita da IA com o
+  // fato original, e o fato agora vem do Perfil salvo. Ver testes/perfil_manda_no_cv.js.
+  'function experienciasSemente(',
+  'function _perfilExpKey(',
+  'function _mesISO(',
+  'function _mesBR(',
+  'function _expDaTelaParaCV(',
+  'function _expUtilizavel(',
+  'function experienciasSalvas(',
+  'function guardarExperienciasSalvas(',
+  'function experienciasDoCV(',
   'function _extrairPerfilTraduzido(',
   'function _pdfCtxUsar(', 'function _pdfCtxDoCard(',
   'function _nivelAlvoPDF(',

@@ -900,7 +900,7 @@ select option { background: var(--bg2); }
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Minhas experiências</div>
         <div style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:16px;">
-          Histórico estruturado por cargo. Ainda não entra em nenhuma análise — é a base que a Sofia vai usar para montar o CV por vaga.
+          É daqui que sai a sua carreira no CV. As entregas que você escrever são os fatos: a Sofia escolhe quais entram em cada vaga e adapta a redação, mas nunca acrescenta um número que não esteja aqui.
         </div>
         <div id="exp-lista"></div>
         <button class="btn btn-ghost" onclick="expAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar experiência</button>
@@ -3053,6 +3053,94 @@ const PERFIL_MARCOS = {
   ]
 };
 
+// ═══════════════════════════════════════════════
+//  DE ONDE VEM A CARREIRA DO CV
+// ═══════════════════════════════════════════════
+// Até 21/ago/2026 a lista de experiências vivia SÓ no bloco acima. A tela Perfil › Minhas
+// Experiências existia e salvava no Worker, mas o que fosse escrito ali não chegava a lugar
+// nenhum: quem corrigisse os últimos seis anos continuava recebendo o mesmo CV de antes, sem
+// nenhum aviso de que a edição fora ignorada. Agora a tela é a fonte e o bloco acima é a
+// semente e a rede:
+//   · há experiência salva e utilizável → o CV usa a salva;
+//   · não há (Perfil nunca preenchido, Worker fora do ar, dado quebrado) → usa a semente,
+//     exatamente como fazia antes. O documento nunca sai com a carreira vazia.
+// UM só ponto de leitura (experienciasDoCV) porque são DOIS os leitores: o filtro que monta o
+// material da vaga e a guarda de veracidade dos bullets traduzidos. Um leitor que ficasse para
+// trás faria os dois falarem de carreiras diferentes, e a guarda passaria a descartar em
+// silêncio toda reescrita da IA — o padrão "N gravadores" que já custou caro na S47.
+// Funções, e não constantes, de propósito: os testes carregam o app extraindo blocos do
+// index.html por balanceamento de chaves, e uma const de uma linha só arrastaria o arquivo
+// inteiro atrás dela. O que a espinha do CV depende tem de ser extraível isoladamente.
+function experienciasSemente(){ return PERFIL_MARCOS.experiencias || []; }
+function _perfilExpKey(){ return 'senova_perfil_experiencias'; }
+
+// A tela pede mm/aaaa; o documento e a ordenação cronológica precisam de aaaa-mm. Converte nos
+// dois sentidos e aceita o que a pessoa de fato digita ("11/2025", "2025-11", "2025").
+function _mesISO(txt){
+  const s=String(txt||'').trim();
+  if(!s) return '';
+  let m=s.match(/^(\d{4})-(\d{1,2})$/);      if(m) return m[1]+'-'+String(+m[2]).padStart(2,'0');
+  m=s.match(/^(\d{1,2})[\/.\-](\d{4})$/);    if(m) return m[2]+'-'+String(+m[1]).padStart(2,'0');
+  m=s.match(/^(\d{4})$/);                    if(m) return m[1]+'-01';
+  return '';
+}
+function _mesBR(iso){
+  const m=String(iso||'').match(/^(\d{4})-(\d{2})$/);
+  return m ? m[2]+'/'+m[1] : String(iso||'');
+}
+
+// Uma experiência da TELA (campos de texto) na forma que o resto do app consome: tags em lista,
+// datas em aaaa-mm e `fim: null` no cargo atual — é esse null, e não a caixa "Cargo atual", que
+// filtrarExperienciasRelevantes lê para saber o que ainda está em curso.
+function _expDaTelaParaCV(e){
+  const tags = Array.isArray(e.tags_area) ? e.tags_area
+             : String(e.tags_area||'').split(',').map(t=>t.trim()).filter(Boolean);
+  return {
+    id: e.id || ('exp_'+Math.random().toString(36).slice(2,9)),
+    cargo: String(e.cargo||'').trim(),
+    empresa: String(e.empresa||'').trim(),
+    local: String(e.local||'').trim(),
+    inicio: _mesISO(e.inicio),
+    fim: (e.atual || e.fim===null) ? null : (_mesISO(e.fim) || null),
+    tags_area: tags,
+    nivel: String(e.nivel||'').trim(),
+    incluir_por_padrao: e.incluir_por_padrao!==false,
+    bullets: Array.isArray(e.bullets) ? e.bullets.map(b=>String(b).trim()).filter(Boolean)
+           : String(e.bullets_texto||'').split('\n').map(b=>b.trim()).filter(Boolean)
+  };
+}
+// Sem cargo, sem empresa ou sem início não dá para escrever a linha no documento — e meia linha
+// no CV é pior do que linha nenhuma.
+function _expUtilizavel(e){ return !!(e.cargo && e.empresa && e.inicio); }
+
+// O que o usuário salvou no Perfil, já na forma que o CV consome. null quando não há nada de que
+// se possa fazer um documento — e aí quem responde é a semente.
+function experienciasSalvas(){
+  let bruto=null;
+  try{ bruto=JSON.parse(localStorage.getItem(_perfilExpKey())||'null'); }catch(_){ }
+  if(!Array.isArray(bruto)||!bruto.length) return null;
+  const uteis=bruto.map(_expDaTelaParaCV).filter(_expUtilizavel);
+  return uteis.length ? uteis : null;
+}
+// Guarda o que o Worker tem (ou o que acabou de ser salvo). SÓ o que veio do Worker entra aqui:
+// a semente exibida numa tela ainda não salva não é dado do usuário e não pode passar por um.
+function guardarExperienciasSalvas(lista){
+  try{
+    if(Array.isArray(lista)&&lista.length) localStorage.setItem(_perfilExpKey(),JSON.stringify(lista));
+    else localStorage.removeItem(_perfilExpKey());
+  }catch(_){ }
+}
+// Ponto único de leitura da carreira. Ver o comentário do topo deste bloco.
+function experienciasDoCV(){ return experienciasSalvas() || experienciasSemente(); }
+
+// O cache é do navegador; o dado é do Worker. Uma leitura no boot mantém os dois de acordo sem
+// pendurar chamada de rede no caminho do CV, que já é o mais caro do app. Falha em silêncio de
+// propósito: sem rede, o CV sai com a semente, como saía antes.
+document.addEventListener('DOMContentLoaded', () => {
+  fetch(WORKER_URL+'/api/perfil').then(r=>r.ok?r.json():null)
+    .then(p=>{ if(p) guardarExperienciasSalvas(p.experiencias); }).catch(()=>{});
+});
+
 // Filtro determinístico (sem IA) que decide QUAIS experiências de PERFIL_MARCOS entram no material
 // desta vaga. Roda ANTES de qualquer chamada ao Claude — a IA nunca decide isso, só recebe a lista
 // já filtrada e otimiza a redação (ver ATS_SYSTEM/CARTA_SYSTEM/EMAIL_ENVIO_SYSTEM).
@@ -3072,7 +3160,7 @@ function filtrarExperienciasRelevantes(textoVaga, nivelVaga) {
     || (exp.tags_area || []).some(tagBate)
     || (!!nivelVaga && norm(nivelVaga) === norm(exp.nivel));
   const dataFim = exp => exp.fim === null ? '9999-99' : exp.fim;
-  return PERFIL_MARCOS.experiencias
+  return experienciasDoCV()
     .filter(relevante)
     .slice()
     .sort((a, b) => {
@@ -4644,12 +4732,22 @@ function expRemover(id){
   _expDados = _expDados.filter(e=>e.id!==id);
   expRenderizar();
 }
+// Tela vazia era o pior dos mundos: dava a entender que não havia carreira registrada, quando
+// havia — só que num bloco fixo do código, fora do alcance de quem quisesse corrigi-la. Sem nada
+// salvo, a tela abre com a mesma carreira que o CV usa, para ser revista e salva. O `id` de cada
+// experiência é preservado de propósito: é por ele que a guarda de veracidade casa a reescrita da
+// IA com o fato original (ver _extrairPerfilTraduzido).
 function _expCarregar(lista){
-  _expDados = (Array.isArray(lista)?lista:[]).map(e=>({
+  const fonte = (Array.isArray(lista)&&lista.length) ? lista : experienciasSemente();
+  const dataTela = v => { const iso=_mesISO(v); return iso ? _mesBR(iso) : String(v||''); };
+  _expDados = fonte.map(e=>({
     id: e.id || _expNovoId(),
     cargo: e.cargo||'', empresa: e.empresa||'', local: e.local||'',
-    inicio: e.inicio||'', fim: e.fim||'', atual: !!e.atual,
-    nivel: e.nivel||'', tags_area: e.tags_area||'',
+    inicio: dataTela(e.inicio),
+    fim: e.fim===null ? '' : dataTela(e.fim),
+    atual: e.fim===null ? true : !!e.atual,
+    nivel: e.nivel||'',
+    tags_area: Array.isArray(e.tags_area) ? e.tags_area.join(', ') : (e.tags_area||''),
     incluir_por_padrao: e.incluir_por_padrao!==false,
     bullets_texto: Array.isArray(e.bullets) ? e.bullets.join('\n') : ''
   }));
@@ -4767,6 +4865,7 @@ async function carregarPerfil(){
     const _cvStr=v=>typeof v==='string'?v:(v&&v.value?String(v.value):'');
     _cvMasterDados={pt:_cvStr(p.cv_master_pt)||_cvStr(p.cv_master)||'',en:_cvStr(p.cv_master_en)||'',es:_cvStr(p.cv_master_es)||''};
     _cvMasterSetLang('pt');
+    guardarExperienciasSalvas(p.experiencias);
     _expCarregar(p.experiencias);
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
@@ -4871,6 +4970,9 @@ async function salvarPerfil(){
       if(btn){btn.disabled=false;btn.textContent='Salvar perfil';}
       return;
     }
+    // Só depois do Worker aceitar. O cache do navegador é o que o CV lê na hora de escrever o
+    // documento — gravá-lo antes da confirmação faria o CV usar uma carreira que não está salva.
+    guardarExperienciasSalvas(dados.experiencias);
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
     config.score_minimo_por_regiao=smr;
@@ -13213,7 +13315,7 @@ function _extrairPerfilTraduzido(texto){
   // nada de fato é substituído). É o que dispensa carregar o idioma até aqui pelos 4 chamadores.
   const traduzido=(j.idioma==='EN'||j.idioma==='ES');
   const out={exp:{},formacao:null,idiomas:null};
-  const porId={}; (PERFIL_MARCOS.experiencias||[]).forEach(e=>{porId[e.id]=e;});
+  const porId={}; (experienciasDoCV()||[]).forEach(e=>{porId[e.id]=e;});
   for(const [id,v] of Object.entries(j.exp||{})){
     const orig=porId[id];
     // id desconhecido ou número de bullets diferente = reescrita não confiável para este item.
