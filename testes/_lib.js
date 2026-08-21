@@ -86,6 +86,17 @@ const NUCLEO = [
   'function formacaoSalva(',
   'function guardarFormacaoSalva(',
   'function formacaoDoCV(',
+  // O contato tem DOIS leitores (prompt e cabeçalho do documento) e ainda alimenta o
+  // reconhecedor da linha do nome, usado por _pdfCabecalhoCorpo e _cvParaPDF — mesma razão do topo.
+  'function contatoSemente(',
+  'function _perfilContatoKey(',
+  'function _contatoUtilizavel(',
+  'function _contatoDaTelaParaCV(',
+  'function contatoSalvo(',
+  'function guardarContatoSalvo(',
+  'function contatoDoCV(',
+  'function _linhaContato(',
+  'function _ehLinhaDoNome(',
   // Teto de experiências mostradas no PDF (S48). Entra no núcleo pela razão escrita no topo: é
   // dependência de _cvParaPDF, e sem ela os 4 testes que extraem essa função morriam com
   // ReferenceError — exatamente a fragilidade que este núcleo existe para evitar. Régua de
@@ -122,9 +133,15 @@ function carregarApp(extras = [], mocks = {}) {
     // Perfil mínimo: quem testa os fatos traduzidos carrega o PERFIL_MARCOS real nos `extras`.
     // Os idiomas declarados vêm junto porque é deles que sai em que línguas o app pode escrever
     // (idiomasDoUsuario) — um perfil sem idiomas faria todo CV cair em português no sandbox.
+    // O contato também é mínimo obrigatório desde 21/ago/2026: é dele que _ehLinhaDoNome tira o
+    // nome para reconhecer a linha do nome no CV. Sem ele o PDF trataria "MARCOS FRANCO" como
+    // título profissional — que foi exatamente como este buraco apareceu.
     PERFIL_MARCOS: { experiencias: [], formacao: [], idiomas: [
       { idioma: 'Português', nivel: 'nativo' }, { idioma: 'Inglês', nivel: 'avancado' }, { idioma: 'Espanhol', nivel: 'avancado' },
-    ] },
+    ], contato: {
+      nome: 'Marcos Franco', telefone: '(41) 99615-2224', email: 'marcos_mco@hotmail.com',
+      linkedin: 'linkedin.com/in/marcos-franco-69153a12', localizacao: 'Curitiba, PR',
+    } },
     // localStorage de mentira, mas de verdade: guarda e devolve. É onde vive o cache das
     // experiências que o usuário salvou no Perfil (ver experienciasSalvas). Sem ele o teste não
     // consegue simular "Marcos editou a própria carreira" — só o caminho da semente.

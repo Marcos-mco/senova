@@ -3177,6 +3177,65 @@ function guardarFormacaoSalva(lista){
 // Ponto único de leitura da formação.
 function formacaoDoCV(){ return formacaoSalva() || formacaoSemente(); }
 
+// São DOIS os leitores do contato: o prompt da IA (perfilFormatadoPara) e o cabeçalho do documento
+// (_cvParaPDF). Até 21/ago/2026 os dois liam o bloco fixo, e o que a pessoa digitava no Perfil —
+// nome, telefone, e-mail, LinkedIn — era salvo no Worker e nunca chegava ao papel. Mesmo desenho
+// de experienciasDoCV/formacaoDoCV: ponto único de leitura, semente como rede.
+function contatoSemente(){ return PERFIL_MARCOS.contato || {}; }
+function _perfilContatoKey(){ return 'senova_perfil_contato'; }
+// Cabeçalho sem nome não é documento; sem nenhum canal de retorno, o recrutador não consegue
+// responder. Estes dois são o mínimo para o contato da tela substituir a semente.
+function _contatoUtilizavel(c){
+  const t=v=>String((c&&c[v])||'').trim();
+  return !!(t('nome') && (t('email') || t('telefone')));
+}
+function _contatoDaTelaParaCV(c){
+  const t=v=>String(v==null?'':v).trim();
+  return { nome:t(c.nome), telefone:t(c.telefone), email:t(c.email), linkedin:t(c.linkedin), localizacao:t(c.localizacao) };
+}
+function contatoSalvo(){
+  let bruto=null;
+  try{ bruto=JSON.parse(localStorage.getItem(_perfilContatoKey())||'null'); }catch(_){ }
+  if(!bruto||typeof bruto!=='object') return null;
+  const limpo=_contatoDaTelaParaCV(bruto);
+  return _contatoUtilizavel(limpo) ? limpo : null;
+}
+function guardarContatoSalvo(c){
+  try{
+    const limpo=(c&&typeof c==='object')?_contatoDaTelaParaCV(c):null;
+    if(limpo&&_contatoUtilizavel(limpo)) localStorage.setItem(_perfilContatoKey(),JSON.stringify(limpo));
+    else localStorage.removeItem(_perfilContatoKey());
+  }catch(_){ }
+}
+// Ponto único de leitura do contato. A tela responde por nome, telefone, e-mail e LinkedIn —
+// inclusive quando a pessoa apaga um deles de propósito. A localização o Perfil ainda não
+// pergunta, então continua vindo da semente.
+function contatoDoCV(){
+  const s=contatoSemente(), t=contatoSalvo();
+  if(!t) return s;
+  return { nome:t.nome, telefone:t.telefone, email:t.email, linkedin:t.linkedin, localizacao:t.localizacao||s.localizacao||'' };
+}
+// Uma linha de contato nunca sai com separador solto: só entra o que existe.
+function _linhaContato(c,campos){ return campos.map(k=>String((c&&c[k])||'').trim()).filter(Boolean).join(' · '); }
+
+// Duas rotinas do PDF precisam saber se uma linha do CV é a linha do nome: _pdfCabecalhoCorpo
+// (para não repetir o nome no subtítulo) e _cvParaPDF (para achar o subtítulo). As duas tinham
+// "marcos franco" escrito no código. Agora as duas perguntam a mesma coisa ao contato.
+//   estrito=true  → a linha tem de ser o nome inteiro e nada mais (é a linha do nome).
+//   estrito=false → basta começar pelo nome (serve para pular a linha, seja lá o que venha depois).
+function _ehLinhaDoNome(linha, estrito){
+  const nome=String((contatoDoCV()||{}).nome||'').trim();
+  if(!nome) return false;
+  const partes=nome.split(/\s+/).filter(Boolean);
+  const usar=estrito?partes:partes.slice(0,2);
+  if(!usar.length) return false;
+  const esc=w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const re=new RegExp('^'+usar.map(esc).join('\\s+')+(estrito?'\\s*$':''),'i');
+  return re.test(String(linha||'').trim());
+}
+
+
+
 // O cache é do navegador; o dado é do Worker. Uma leitura no boot mantém os dois de acordo sem
 // pendurar chamada de rede no caminho do CV, que já é o mais caro do app. Falha em silêncio de
 // propósito: sem rede, o CV sai com a semente, como saía antes.
@@ -3230,9 +3289,9 @@ function formatarExperienciasPerfil(exps, comIds) {
 // única para ATS_SYSTEM, CARTA_SYSTEM e EMAIL_ENVIO_SYSTEM. A lista de experiências já vem decidida
 // e ordenada por filtrarExperienciasRelevantes; a IA que receber este bloco só traduz/otimiza redação.
 function perfilFormatadoPara(textoVaga, nivelVaga, comIds) {
-  const c = PERFIL_MARCOS.contato;
+  const c = contatoDoCV();
   const exps = filtrarExperienciasRelevantes(textoVaga, nivelVaga);
-  return `${c.nome} · ${c.telefone} · ${c.email} · ${c.linkedin} · ${c.localizacao}
+  return `${_linhaContato(c,['nome','telefone','email','linkedin','localizacao'])}
 
 RESUMO: ${PERFIL_MARCOS.resumo_geral}
 
@@ -4976,6 +5035,7 @@ async function carregarPerfil(){
     _expCarregar(p.experiencias);
     guardarFormacaoSalva(p.formacao);
     _formCarregar(p.formacao);
+    guardarContatoSalvo({nome:p.nome,telefone:p.telefone,email:p.email,linkedin:p.linkedin});
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
     document.getElementById('perfil-localizacoes').value=p.localizacoes||'';
@@ -5084,6 +5144,7 @@ async function salvarPerfil(){
     // documento — gravá-lo antes da confirmação faria o CV usar uma carreira que não está salva.
     guardarExperienciasSalvas(dados.experiencias);
     guardarFormacaoSalva(dados.formacao);
+    guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin});
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
     config.score_minimo_por_regiao=smr;
@@ -12863,7 +12924,7 @@ function _pdfCabecalhoCorpo(cvTexto){
   const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto):(cvTexto||'');
   const linhas=cv.split('\n');
   const _ehContato=s=>/@|linkedin|\(\d{2}\)|\d{4}[-\s.]?\d{4}/i.test(s||'');
-  const _ehNome=s=>/^marcos\s+franco\s*$/i.test((s||'').trim());
+  const _ehNome=s=>_ehLinhaDoNome(s,true);
   const _ehSecao=s=>/^(resumo|compet[êe]ncias|experi[êe]ncia|forma[çc][ãa]o|idiomas?|perfil|objetivo)/i.test((s||'').trim());
   let titulo='';
   for(let i=0;i<Math.min(6,linhas.length);i++){
@@ -13001,11 +13062,11 @@ function _competenciasDoPerfil(exps, textoVaga, lang){
   return escolhidas.map(x => x.tag.charAt(0).toUpperCase() + x.tag.slice(1)).join(' · ');
 }
 function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
-  const c=PERFIL_MARCOS.contato;
+  const c=contatoDoCV();
   const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto||''):(cvTexto||'');
   const linhas=cv.split('\n').map(l=>l.trim()).filter(Boolean);
   const _ehContato=s=>/@|linkedin|\(\d{2}\)/i.test(s);
-  const _ehNome=s=>/^marcos\s+franco/i.test(s);
+  const _ehNome=s=>_ehLinhaDoNome(s,false);
   const _ehSecao=s=>/^[A-ZÀ-Ú][A-ZÀ-Ú0-9 &·|/–-]{3,}$/.test(s);
   let subtitulo='';
   for(const l of linhas){ if(_ehNome(l)||_ehContato(l)) continue; if(_ehSecao(l)) break; subtitulo=l; break; }
@@ -13025,7 +13086,7 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
   // O resumo do CV da IA já vem no idioma certo; o fallback (resumo_geral) é português — só entra
   // quando a IA não devolveu resumo, e aí o documento inteiro já estaria comprometido.
   return {
-    nome:c.nome, subtitulo, contato:`${c.telefone} · ${c.email} · ${c.linkedin}`,
+    nome:c.nome, subtitulo, contato:_linhaContato(c,['telefone','email','linkedin']),
     resumo:_secaoDoCV(cv,/resumo|resumen|summary/i)||PERFIL_MARCOS.resumo_geral,
     experiencias:exps,
     formacao:formacaoDoCV().map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:f.instituicao,periodo:f.periodo})),
