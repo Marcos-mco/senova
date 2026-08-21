@@ -3051,10 +3051,15 @@ const PERFIL_MARCOS = {
     }
   ],
   formacao: [
+    // `fonte:'diploma'` = este texto foi lido do documento, palavra por palavra. É o que
+    // autoriza o Senova a PROPOR correção ao que a pessoa já salvou (ver _formDivergencias).
+    // `marcas` = por onde se reconhece a mesma instituição no que ela escreveu na tela.
+    // Barcelona não tem `fonte`: não há documento na pasta de diplomas, e sem papel o Senova
+    // não corrige ninguém.
     { titulo: "Mestre em Direção de Marketing e Vendas", instituicao: "Universitat de Barcelona, Espanha", periodo: "2013/2014" },
-    { titulo: "Mestrado em Gestão de Empresas, especialização em Marketing", instituicao: "Universidade de Évora, Portugal", periodo: "2002-2004" },
-    { titulo: "Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)", instituicao: "FGV / ISAE, Curitiba", periodo: "1999-2000" },
-    { titulo: "Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda", instituicao: "FAAP, São Paulo", periodo: "1989-1995" }
+    { titulo: "Mestrado em Gestão de Empresas, especialização em Marketing", instituicao: "Universidade de Évora, Portugal", periodo: "2002-2004", fonte: "diploma", marcas: ["evora"] },
+    { titulo: "Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)", instituicao: "FGV / ISAE, Curitiba", periodo: "1999-2000", fonte: "diploma", marcas: ["fgv","isae"] },
+    { titulo: "Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda", instituicao: "FAAP, São Paulo", periodo: "1989-1995", fonte: "diploma", marcas: ["faap"] }
   ],
   idiomas: [
     { idioma: "Português", nivel: "nativo" },
@@ -4884,14 +4889,99 @@ function _formCampo(id, campo, valor){
   if(!f) return;
   f[campo] = valor;
 }
+// ═══ RECONCILIAÇÃO COM O DOCUMENTO ═══
+// O buraco que isto fecha (medido em 21/ago/2026, com a tela de Marcos à vista): desde que o
+// Perfil passou a mandar no CV, o que está salvo VENCE o texto de fábrica. Isso é certo — quem
+// manda é a pessoa. Mas criou um caminho sem saída: quando o Senova passa a saber algo melhor
+// (hoje, o texto lido do diploma; amanhã, o diploma lido pela própria Sofia), o que está salvo
+// fica velho e NINGUÉM avisa. O CV continua saindo com o dado antigo, calado.
+//
+// A regra: o Senova nunca sobrescreve em silêncio o que a pessoa escreveu. Ele mostra as duas
+// versões e ela decide. E só propõe o que tem documento por trás (fonte:'diploma').
+function _formNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function _formDocumentadas(){ return formacaoSemente().filter(f=>f.fonte==='diploma'&&Array.isArray(f.marcas)&&f.marcas.length); }
+// Trava do segundo usuário: a semente é a formação de UMA pessoa. Propor o diploma dela a
+// outra pessoa seria pôr a credencial errada no CV de alguém — o oposto do que o Senova é.
+// Compara primeiro e último nome, não a string inteira: quem escreve "Marcos Ribeiro Franco" na
+// tela é a mesma pessoa, e uma comparação exata calaria o aviso em silêncio — que é justamente o
+// defeito que este mecanismo existe para acabar.
+function _perfilEhDaSemente(){
+  const pn=s=>{ const p=_formNorm(s).split(/\s+/).filter(Boolean); return p.length?p[0]+' '+p[p.length-1]:''; };
+  const meu=pn((contatoDoCV()||{}).nome), semente=pn(((PERFIL_MARCOS||{}).contato||{}).nome);
+  return !!semente && meu===semente;
+}
+function _formDispensadas(){
+  try{ const v=JSON.parse(localStorage.getItem('senova_form_reconc_dispensadas')||'[]'); return Array.isArray(v)?v:[]; }catch(_){ return []; }
+}
+function _formDispensar(chave){
+  const l=_formDispensadas(); if(l.includes(chave)) return;
+  l.push(chave); try{ localStorage.setItem('senova_form_reconc_dispensadas',JSON.stringify(l)); }catch(_){ }
+}
+// Chave da proposta: instituição + o TEXTO proposto. Se amanhã o documento disser outra coisa,
+// a proposta é nova e volta a aparecer — dispensar uma vez não cala o Senova para sempre.
+function _formChaveProposta(doc){ return doc.marcas[0]+'|'+doc.titulo+'|'+doc.periodo; }
+function _formDivergencias(lista){
+  if(!_perfilEhDaSemente()) return [];
+  const docs=_formDocumentadas(), fora=_formDispensadas(), out=[];
+  (lista||[]).forEach(f=>{
+    const inst=_formNorm(f.instituicao);
+    if(!inst) return;
+    const doc=docs.find(d=>d.marcas.some(m=>inst.includes(_formNorm(m))));
+    if(!doc) return;
+    const difTitulo=_formNorm(f.titulo).trim()!==_formNorm(doc.titulo).trim();
+    const difPeriodo=_formNorm(f.periodo).replace(/[^0-9a-z]/g,'')!==_formNorm(doc.periodo).replace(/[^0-9a-z]/g,'');
+    if(!difTitulo&&!difPeriodo) return;
+    const chave=_formChaveProposta(doc);
+    if(fora.includes(chave)) return;
+    out.push({id:f.id,chave,doc,atual:{titulo:f.titulo,periodo:f.periodo,instituicao:f.instituicao}});
+  });
+  return out;
+}
+function _formBannerHTML(divs){
+  if(!divs.length) return '';
+  const t=divs.length===1?'Uma formação não bate com o seu diploma':divs.length+' formações não batem com os seus diplomas';
+  return `
+    <div style="border:1px solid var(--amber);background:var(--amber-bg);border-radius:10px;padding:16px 18px;margin-bottom:16px;">
+      <div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;">${t}</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:14px;">O texto ao lado de "No diploma" foi lido do documento. O que está no seu perfil foi salvo antes desta leitura.</div>
+      ${divs.map(d=>`
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">${_expEsc(d.doc.instituicao)}</div>
+          <div style="font-size:15px;color:var(--text2);line-height:1.5;"><span style="color:var(--text3);">Salvo:</span> ${_expEsc(d.atual.titulo)} · ${_expEsc(d.atual.periodo)}</div>
+          <div style="font-size:15px;color:var(--text);line-height:1.5;margin-top:2px;"><span style="color:var(--text3);">No diploma:</span> ${_expEsc(d.doc.titulo)} · ${_expEsc(d.doc.periodo)}</div>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button onclick="formUsarDoDiploma('${d.id}')" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Usar o do diploma</button>
+            <button onclick="formManterOMeu('${d.id}')" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Manter o meu</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+// Aceitar aplica E SALVA. Marcos foi explícito: "não precisa arrumar na mão". Um botão que só
+// mudasse a tela e esperasse um Salvar depois seria a mesma promessa não cumprida de novo.
+async function formUsarDoDiploma(id){
+  const d=_formDivergencias(_formDados).find(x=>x.id===id);
+  if(!d) return;
+  const f=_formDados.find(x=>x.id===id);
+  if(!f) return;
+  f.titulo=d.doc.titulo; f.periodo=d.doc.periodo; f.instituicao=d.doc.instituicao;
+  formRenderizar();
+  await salvarPerfil();
+}
+function formManterOMeu(id){
+  const d=_formDivergencias(_formDados).find(x=>x.id===id);
+  if(!d) return;
+  _formDispensar(d.chave);
+  formRenderizar();
+}
 function formRenderizar(){
   const lista = document.getElementById('form-lista');
   if(!lista) return;
+  const _aviso = _formBannerHTML(_formDivergencias(_formDados));
   if(!_formDados.length){
-    lista.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:4px 0 14px;">Nenhuma formação cadastrada ainda.</p>';
+    lista.innerHTML = _aviso + '<p style="font-size:13px;color:var(--text3);padding:4px 0 14px;">Nenhuma formação cadastrada ainda.</p>';
     return;
   }
-  lista.innerHTML = _formDados.map(f => `
+  lista.innerHTML = _aviso + _formDados.map(f => `
     <div class="form-item" id="form-${f.id}" style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--bg3);">
       <div style="margin-bottom:12px;"><label class="field-label">Curso ou título</label><input type="text" value="${_expEsc(f.titulo)}" maxlength="160" placeholder="ex: Mestre em Marketing" oninput="_formCampo('${f.id}','titulo',this.value)"></div>
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
