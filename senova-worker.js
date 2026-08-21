@@ -462,7 +462,7 @@ const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 const PERFIL_MARCOS = `
 Marcos Franco, 59 anos (nasceu em 15/07/1967), Curitiba/PR — Brasil.
 Executivo sênior com 30 anos de experiência em marketing, vendas/comercial e negócios.
-Formação: Mestre em Direção de Marketing e Vendas · Universitat de Barcelona, Espanha (2013/2014); Mestrado em Gestão de Empresas, especialização em Marketing · Universidade de Évora, Portugal (2002–2004); MBA em Administração de Empresas · FGV (1998–2000); Comunicação Social, habilitação em Publicidade e Propaganda · FAAP (1989–1993).
+Formação: Mestre em Direção de Marketing e Vendas · Universitat de Barcelona, Espanha (2013/2014); Mestrado em Gestão de Empresas, especialização em Marketing · Universidade de Évora, Portugal (2002–2004); Pós-Graduação Lato Sensu em Gestão Empresarial, nível especialização · FGV / ISAE, Curitiba (1999–2000); Bacharel em Comunicação Social, habilitação em Publicidade e Propaganda · FAAP, São Paulo (1989–1995).
 Idiomas: português nativo, inglês avançado, espanhol avançado.
 Experiências:
 - Editel Listas Telefônicas (Grupo Carvajal): Superintendente Regional de Vendas – Nordeste (2001–2005) — equipe 45 pessoas, orçamento R$5mi/ano
