@@ -144,4 +144,30 @@ t('todo caminho que grava lastCV para o PDF também grava a vaga que o originou'
   html.split('\n').filter(l => /lastCVLang=/.test(l) && /lastCVTrad=/.test(l) && !/^let /.test(l.trim()) && !/prev\./.test(l))
       .every(l => /lastCVVaga=/.test(l)));
 
+// ── a rubrica COMPETÊNCIAS nunca sai vazia ────────────────────────────────────────────────
+// O defeito real: o CV do Grupo Ric saiu com o título "COMPETÊNCIAS & IDIOMAS" impresso e nada
+// embaixo, porque a IA não emitiu a seção e o código caía em string vazia. É a seção que o robô
+// do RH lê para casar o CV com o anúncio — ir para o recrutador com ela em branco é pior do que
+// não ter a rubrica. A rede usa as áreas que o próprio perfil declara; não inventa competência.
+console.log('\n=== COMPETÊNCIAS: a rubrica nunca vai ao recrutador em branco ===');
+const SEM_COMP = 'MARCOS FRANCO\n\nRESUMO EXECUTIVO\nExecutivo comercial.\n\nEXPERIÊNCIA PROFISSIONAL\nx';
+const VAGA_TV = 'Gerente de Negócios em emissora de TV: mídia, estratégia comercial e vendas para agências.';
+const semComp = chamar(s, '_cvParaPDF', [VAGA_TV, SEM_COMP, 'Gerente de Negócios', 'PT', null]);
+t('CV sem seção de competências ainda entrega a lista preenchida', !!semComp.competencias, semComp.competencias);
+t('e ela é feita das áreas que o perfil declara, não de invenção', (() => {
+  const decl = new Set(exec(s, 'PERFIL_MARCOS.experiencias.flatMap(e=>e.tags_area||[]).map(x=>x.toLowerCase())'));
+  return semComp.competencias.split('·').map(x => x.trim().toLowerCase()).every(x => decl.has(x));
+})(), semComp.competencias);
+t('as áreas que a vaga cita vêm à frente', /^(Mídia|Marketing|Estratégia comercial|Vendas)/.test(semComp.competencias), semComp.competencias);
+t('rótulo que não é competência fica fora (início de carreira · revenda Apple)',
+  !/início de carreira|revenda apple/i.test(semComp.competencias));
+t('"Gestão" solta fica fora — não diz nada ao lado de "Gestão comercial"',
+  !semComp.competencias.split('·').map(x => x.trim()).includes('Gestão'), semComp.competencias);
+t('a lista não vira parede de palavra-chave (teto de 8)', semComp.competencias.split('·').length <= 8);
+t('quando a IA EMITE a seção, é a dela que vale — a rede não atropela',
+  /Negociação com agências/.test(chamar(s, '_cvParaPDF', [VAGA_TV,
+    SEM_COMP + '\n\nCOMPETÊNCIAS\nNegociação com agências · Mídia', 'Gerente de Negócios', 'PT', null]).competencias));
+t('em CV que não é português a rede se cala (palavra em português não ajuda ninguém lá)',
+  chamar(s, '_cvParaPDF', [VAGA_TV, SEM_COMP, 'Gerente de Negócios', 'EN', null]).competencias === '');
+
 fim('CV_ESTRUTURA');

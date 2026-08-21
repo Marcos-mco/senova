@@ -72,6 +72,9 @@ const NUCLEO = [
   // Colhe subtítulo, RESUMO e COMPETÊNCIAS do texto livre da IA — outra dependência de
   // _cvParaPDF, pela mesma razão do topo.
   'function _secaoDoCV(',
+  // Rede da seção COMPETÊNCIAS quando a IA não a emite (S48) — dependência de _cvParaPDF, mesma
+  // razão do topo.
+  'function _competenciasDoPerfil(',
 ];
 
 // Carrega o app num sandbox: núcleo + funções `extras` do teste, com mocks mínimos (sobrescrevíveis).

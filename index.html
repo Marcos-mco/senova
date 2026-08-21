@@ -12624,6 +12624,39 @@ function _nivelAlvoPDF(cargoVaga){
 const CV_MAX_EXPS = 11;
 // trad = fatos traduzidos (bloco ---PERFIL---), casados por id da experiência. Quando falta a
 // tradução de um item, aquele item sai em português: verdade incompleta é melhor que invenção.
+// COMPETÊNCIAS é a seção que o robô do RH lê para casar o CV com o anúncio. Quando a IA não a
+// emite — e isso aconteceu no CV do Grupo Ric — o documento ia para o recrutador com a rubrica
+// "COMPETÊNCIAS & IDIOMAS" escrita e nada embaixo. Este fallback não inventa competência nenhuma:
+// usa as áreas que o próprio perfil já declara em cada experiência MOSTRADA, com as que a vaga
+// cita à frente e depois as mais recorrentes na carreira. Ficam de fora os rótulos que não são
+// competência ("início de carreira", "revenda Apple") e "gestão" solta, que não diz nada ao lado
+// de "gestão comercial". Só em português: as áreas estão escritas em português, e palavra
+// portuguesa num CV em inglês não ajuda nem o robô nem o leitor.
+function _competenciasDoPerfil(exps, textoVaga, lang){
+  // Mora dentro da função de propósito: solta lá fora ela seria uma dependência a mais para os
+  // testes extraírem, e o extrator deles balanceia chaves, não colchetes.
+  const FORA = ['inicio de carreira','revenda apple','tecnologia','color management','gestao'];
+  if(lang && lang !== 'PT') return '';
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const vaga = norm(textoVaga);
+  const cont = new Map();
+  (exps||[]).forEach(e => (e.tags_area||[]).forEach(tag => {
+    const k = norm(tag);
+    if(!k || FORA.includes(k)) return;
+    const at = cont.get(k) || { tag, n:0 };
+    at.n++; cont.set(k, at);
+  }));
+  const ordenado = [...cont.entries()].sort((a,b) =>
+    (vaga.includes(b[0])?1:0) - (vaga.includes(a[0])?1:0) || b[1].n - a[1].n);
+  const escolhidas = [];
+  for(const [k,v] of ordenado){
+    if(escolhidas.length >= 8) break;
+    // "operações" ao lado de "operações comerciais" é a mesma competência dita duas vezes.
+    if(escolhidas.some(x => x.k.startsWith(k) || k.startsWith(x.k))) continue;
+    escolhidas.push({ k, tag:v.tag });
+  }
+  return escolhidas.map(x => x.tag.charAt(0).toUpperCase() + x.tag.slice(1)).join(' · ');
+}
 function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
   const c=PERFIL_MARCOS.contato;
   const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto||''):(cvTexto||'');
@@ -12653,7 +12686,7 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
     resumo:_secaoDoCV(cv,/resumo|resumen|summary/i)||PERFIL_MARCOS.resumo_geral,
     experiencias:exps,
     formacao:PERFIL_MARCOS.formacao.map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:f.instituicao,periodo:f.periodo})),
-    competencias:_secaoDoCV(cv,/compet|skills/i)||'',
+    competencias:_secaoDoCV(cv,/compet|skills/i)||_competenciasDoPerfil(expsFiltradas,textoVaga,lang),
     idiomas:(trad&&trad.idiomas)?trad.idiomas.join(' · '):PERFIL_MARCOS.idiomas.map(i=>`${i.idioma} (${i.nivel})`).join(' · ')
   };
 }
