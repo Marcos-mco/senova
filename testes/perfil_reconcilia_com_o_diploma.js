@@ -98,14 +98,14 @@ console.log('\n=== a trava do segundo usuário ===');
 exec(s, `guardarContatoSalvo({nome:'Ana Ribeiro Costa',telefone:'(11) 90000-0000',email:'ana@exemplo.com'})`);
 t('o perfil deixa de ser o da semente', chamar(s, '_perfilEhDaSemente', []) === false);
 t('e nenhuma formação alheia é proposta a ela', divs(TELA_DELE).length === 0);
-exec(s, `guardarContatoSalvo(null)`);
+exec(s, `guardarContatoSalvo(null,true)`);
 t('de volta ao dono da semente, o aviso volta', chamar(s, '_perfilEhDaSemente', []) === true);
 // E a trava não pode calar o dono por causa do nome do meio: quem escreve o nome completo na
 // tela é a mesma pessoa. Uma comparação exata daria o mesmo silêncio que se está consertando.
 exec(s, `guardarContatoSalvo({nome:'Marcos Ribeiro Franco',telefone:'(41) 99615-2224',email:'marcos_mco@hotmail.com'})`);
 t('o nome completo continua sendo o dono da semente', chamar(s, '_perfilEhDaSemente', []) === true);
 t('e o aviso continua de pé', divs(TELA_DELE).length === 3, 'FAAP segue dispensada acima');
-exec(s, `guardarContatoSalvo(null)`);
+exec(s, `guardarContatoSalvo(null,true)`);
 
 console.log('\n=== fiação: isto vale na tela real ===');
 const fs = require('fs');
@@ -115,7 +115,7 @@ t('o aviso aparece mesmo sem nenhuma formação cadastrada', /lista\.innerHTML =
 t('e junto da lista quando há', /lista\.innerHTML = _aviso \+ _formDados\.map/.test(src));
 t('aceitar não para na tela: salva o perfil', /f\.periodo=d\.doc\.periodo;[\s\S]{0,80}await salvarPerfil\(\);/.test(src));
 t('e salvar o Perfil registra o que ela reescreveu',
-  /guardarFormacaoSalva\(dados\.formacao\);\s*_formDispensarEditadas\(\);/.test(src));
+  /guardarFormacaoSalva\(dados\.formacao,true\);\s*_formDispensarEditadas\(\);/.test(src));
 t('a tela guarda como estava ao abrir, para saber o que ela mexeu',
   /_formOriginal = _formDados\.map/.test(src));
 

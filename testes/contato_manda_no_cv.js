@@ -71,15 +71,17 @@ t('e a linha não fica com separador solto', !/·\s*·|·\s*$|^\s*·/.test(d3.co
 t('o que sobrou continua lá', d3.contato === '(41) 3333-1010 · marcos@senova.app', d3.contato);
 
 console.log('\n=== contato quebrado nunca vira documento sem cabeçalho ===');
-exec(s, `guardarContatoSalvo({nome:'',telefone:'(41) 3333-1010',email:'x@y.com'})`);
+// O `true` diz que isto é ato da pessoa — ela salvou o Perfil com o nome apagado. Sem ele, uma
+// LEITURA de rede que voltasse assim já não apaga nada: é a trava do apagador silencioso (S50).
+exec(s, `guardarContatoSalvo({nome:'',telefone:'(41) 3333-1010',email:'x@y.com'},true)`);
 t('sem nome, o contato salvo é descartado', exec(s, 'contatoSalvo()') === null);
 t('e o CV volta para o contato de sempre', doc().nome === semente.nome);
 
-exec(s, `guardarContatoSalvo({nome:'Marcos Franco',telefone:'',email:'',linkedin:'linkedin.com/in/x'})`);
+exec(s, `guardarContatoSalvo({nome:'Marcos Franco',telefone:'',email:'',linkedin:'linkedin.com/in/x'},true)`);
 t('sem nenhum canal de retorno, também é descartado', exec(s, 'contatoSalvo()') === null);
 t('e o CV volta para o contato de sempre', doc().contato === `${semente.telefone} · ${semente.email} · ${semente.linkedin}`);
 
-exec(s, `guardarContatoSalvo(null)`);
+exec(s, `guardarContatoSalvo(null,true)`);
 t('limpar tudo não deixa o cabeçalho vazio', doc().nome === semente.nome);
 
 console.log('\n=== o nome deixou de estar escrito no código: outra pessoa tem CV correto ===');
@@ -107,7 +109,7 @@ t('o prompt da IA lê o ponto único', /const c = contatoDoCV\(\);/.test(html));
 t('o cabeçalho do documento lê o ponto único', /const c=contatoDoCV\(\);/.test(html));
 t('salvarPerfil espelha o contato no navegador', /guardarContatoSalvo\(\{nome:dados\.nome/.test(html));
 t('e só DEPOIS do Worker aceitar (junto de experiências e formação)',
-  /guardarExperienciasSalvas\(dados\.experiencias\);[\s\S]{0,120}guardarContatoSalvo\(\{nome:dados\.nome/.test(html));
+  /guardarExperienciasSalvas\(dados\.experiencias,true\);[\s\S]{0,200}guardarContatoSalvo\(\{nome:dados\.nome/.test(html));
 t('carregarPerfil espelha o contato ao abrir a tela', /guardarContatoSalvo\(\{nome:p\.nome/.test(html));
 
 fim('Contato manda no CV');

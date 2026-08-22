@@ -3151,10 +3151,18 @@ function experienciasSalvas(){
 }
 // Guarda o que o Worker tem (ou o que acabou de ser salvo). SÓ o que veio do Worker entra aqui:
 // a semente exibida numa tela ainda não salva não é dado do usuário e não pode passar por um.
-function guardarExperienciasSalvas(lista){
+//
+// `atoDoUsuario` é a trava contra o apagador silencioso (22/ago/2026). Estas funções eram
+// chamadas de dois lugares muito diferentes: quando a PESSOA salva o Perfil, e quando o app LÊ o
+// Perfil do Worker no arranque. As duas apagavam igual. Bastava a leitura voltar diferente do
+// esperado — Worker fora do ar respondendo um erro em JSON, chave de acesso vencida, resposta de
+// um perfil que ainda não tem o campo — para a carreira salva ser apagada do navegador em
+// silêncio; e a gravação seguinte cimentava a semente por cima. Agora, quem só LÊ nunca apaga:
+// não saber uma coisa não é o mesmo que ela ter deixado de existir. Apagar é ato de quem salva.
+function guardarExperienciasSalvas(lista,atoDoUsuario){
   try{
     if(Array.isArray(lista)&&lista.length) localStorage.setItem(_perfilExpKey(),JSON.stringify(lista));
-    else localStorage.removeItem(_perfilExpKey());
+    else if(atoDoUsuario) localStorage.removeItem(_perfilExpKey());
   }catch(_){ }
 }
 // Ponto único de leitura da carreira. Ver o comentário do topo deste bloco.
@@ -3185,10 +3193,11 @@ function formacaoSalva(){
   const uteis=bruto.map(_formDaTelaParaCV).filter(_formUtilizavel);
   return uteis.length ? uteis : null;
 }
-function guardarFormacaoSalva(lista){
+// `atoDoUsuario`: mesma trava de guardarExperienciasSalvas — quem só lê nunca apaga.
+function guardarFormacaoSalva(lista,atoDoUsuario){
   try{
     if(Array.isArray(lista)&&lista.length) localStorage.setItem(_perfilFormKey(),JSON.stringify(lista));
-    else localStorage.removeItem(_perfilFormKey());
+    else if(atoDoUsuario) localStorage.removeItem(_perfilFormKey());
   }catch(_){ }
 }
 // Ponto único de leitura da formação.
@@ -3217,11 +3226,14 @@ function contatoSalvo(){
   const limpo=_contatoDaTelaParaCV(bruto);
   return _contatoUtilizavel(limpo) ? limpo : null;
 }
-function guardarContatoSalvo(c){
+// `atoDoUsuario`: mesma trava de guardarExperienciasSalvas — quem só lê nunca apaga. Aqui era o
+// caso mais traiçoeiro dos três: a leitura monta o objeto campo a campo ({nome:p.nome,...}), então
+// uma resposta de erro do Worker chegava aqui com a mesma cara de um cabeçalho apagado de propósito.
+function guardarContatoSalvo(c,atoDoUsuario){
   try{
     const limpo=(c&&typeof c==='object')?_contatoDaTelaParaCV(c):null;
     if(limpo&&_contatoUtilizavel(limpo)) localStorage.setItem(_perfilContatoKey(),JSON.stringify(limpo));
-    else localStorage.removeItem(_perfilContatoKey());
+    else if(atoDoUsuario) localStorage.removeItem(_perfilContatoKey());
   }catch(_){ }
 }
 // Ponto único de leitura do contato. A tela responde por nome, telefone, e-mail e LinkedIn —
@@ -5169,6 +5181,12 @@ function _onPerfilProjetoVidaInput(){
   cc.textContent=n+'/4000 caracteres';
   cc.style.color=n>=4000?'#CC0000':'var(--text3)';
 }
+// A tela do Perfil chegou a ser preenchida a partir de QUALQUER resposta do Worker — inclusive de
+// uma resposta de erro. Quando isso acontecia, os campos ficavam vazios, e vazio na tela é
+// indistinguível de "apaguei de propósito": bastava a pessoa clicar em Salvar para gravar um
+// perfil em branco por cima do seu. Esta variável guarda a única pergunta que importa antes de
+// salvar: eu cheguei a saber o que estava lá?
+let _perfilCarregado=false;
 async function carregarPerfil(){
   // Desenha o seletor de idioma ANTES do fetch: se o Worker não responder, a pessoa ainda vê uma
   // lista (a do cache local) em vez de um dropdown vazio. Depois do fetch ele é redesenhado.
@@ -5176,9 +5194,14 @@ async function carregarPerfil(){
   // Os diplomas moram neste navegador: a lista se desenha mesmo com o Worker fora do ar,
   // por isso vem ANTES do try do fetch e nao depende dele.
   _certCarregar();
+  _perfilCarregado=false;
   try{
     const res=await fetch(WORKER_URL+'/api/perfil');
+    // Antes de tocar num único campo da tela. Sem esta linha, uma resposta 401/500 com um erro em
+    // JSON era tratada como se fosse o perfil: cada campo virava '' e o cache do CV era apagado.
+    if(!res.ok) throw new Error('perfil HTTP '+res.status);
     const p=await res.json();
+    if(!p||typeof p!=='object'||Array.isArray(p)) throw new Error('perfil em formato inesperado');
     document.getElementById('perfil-nome').value=p.nome||'';
     document.getElementById('perfil-cargo-alvo').value=p.cargo_alvo||'';
     document.getElementById('perfil-email').value=p.email||'';
@@ -5224,6 +5247,9 @@ async function carregarPerfil(){
     if(p.dias_inativo){ _diasInativo=p.dias_inativo; const inp=document.getElementById('config-dias-inativo'); if(inp) inp.value=p.dias_inativo; }
     const freq=p.freq_varredura||'diaria';
     const freqEl=document.getElementById('perfil-freq-'+freq); if(freqEl) freqEl.checked=true;
+    // Daqui para baixo é acessório (status do Outlook, whitelist): o perfil já está na tela e
+    // salvar já é seguro. É por isso que a marca vem aqui, e não no fim da função.
+    _perfilCarregado=true;
     const pill=document.getElementById('outlook-status-perfil');
     if(pill) pill.textContent='';
     try{
@@ -5235,10 +5261,23 @@ async function carregarPerfil(){
       const wData=await wRes.json();
       _renderWhitelistChips(wData.dominios||[]);
     }catch{}
-  }catch(e){ console.warn('carregarPerfil',e); }
+  }catch(e){
+    console.warn('carregarPerfil',e);
+    // Falhar calado aqui é o começo da perda: a pessoa vê uma tela vazia, supõe que o Senova
+    // esqueceu o perfil dela, digita tudo de novo e salva — por cima do que estava guardado.
+    showToast('Não consegui carregar o seu perfil agora.');
+    alert('Não consegui carregar o seu perfil agora — o Senova não está conseguindo falar com o servidor.\n\nOs campos desta tela podem estar vazios, mas o seu perfil continua guardado: nada foi perdido. Por segurança, salvar está bloqueado até eu conseguir ler o que está lá.\n\nVerifique a conexão e recarregue a página.');
+  }
 }
 
 async function salvarPerfil(){
+  // A trava do apagador silencioso (22/ago/2026). Se a tela nunca chegou a ser preenchida com o
+  // perfil de verdade, o que está nela não é uma edição: é um formulário em branco. Salvar isso
+  // grava vazio por cima da carreira, da formação e do contato — no Worker, de onde não há volta.
+  if(!_perfilCarregado){
+    alert('Não vou salvar agora: eu não consegui ler o seu perfil quando esta tela abriu.\n\nSe eu salvasse, gravaria o que está aqui — possivelmente em branco — por cima do que está guardado.\n\nRecarregue a página e abra o Perfil de novo. O que estava salvo continua lá.');
+    return;
+  }
   const btn=document.getElementById('btn-salvar-perfil');
   if(btn){btn.disabled=true;btn.textContent='Salvando…';}
   const modelos=['presencial','hibrido','remoto'].filter(m=>document.getElementById(`perfil-modelo-${m}`)?.checked).join(',');
@@ -5299,10 +5338,12 @@ async function salvarPerfil(){
     }
     // Só depois do Worker aceitar. O cache do navegador é o que o CV lê na hora de escrever o
     // documento — gravá-lo antes da confirmação faria o CV usar uma carreira que não está salva.
-    guardarExperienciasSalvas(dados.experiencias);
-    guardarFormacaoSalva(dados.formacao);
+    // O `true` é o que autoriza apagar: aqui, e só aqui, uma lista vazia significa que a PESSOA
+    // esvaziou a tela de propósito. Nas leituras (arranque e abertura do Perfil) ele não vai.
+    guardarExperienciasSalvas(dados.experiencias,true);
+    guardarFormacaoSalva(dados.formacao,true);
     _formDispensarEditadas();
-    guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin});
+    guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin},true);
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
     config.score_minimo_por_regiao=smr;

@@ -72,6 +72,10 @@ console.log('=== salvar o Perfil não pode levar o cofre junto ===');
     _setPontosTermos() {}, _lerCriterioUI: () => ({ br: 60, espt: 60, de: 60, remoto: 60, us: 60 }),
     _cvMasterDados: { pt: 'CV em português', en: '', es: '' },
     _guardarPerfilIdioma() {}, _perfilRenderIdiomaPadrao() {},
+    // A tela abriu normalmente: o Perfil foi lido do Worker antes de a pessoa editar. Sem isto,
+    // salvarPerfil se recusa a gravar — é a trava contra salvar formulário em branco por cima
+    // do que está guardado (S50, ver _perfilCarregado no index.html).
+    _perfilCarregado: true,
     parseInt, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
   });
 
