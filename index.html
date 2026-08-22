@@ -1195,7 +1195,7 @@ select option { background: var(--bg2); }
       <!-- Certificados e diplomas -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Certificados e diplomas</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Fotos ou PDFs dos seus diplomas. Ficam guardados neste navegador — ainda não entram nos documentos que a Sofia escreve.</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Fotos ou PDFs dos seus diplomas. Ficam guardados neste navegador — ainda não entram nos documentos que a Sofia escreve. Como existem só aqui, faça uma cópia em Preferências › Backup e restauração.</div>
         <div id="perfil-cert-lista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;border:1.5px dashed var(--border2);border-radius:var(--radius);padding:12px 16px;background:var(--bg3);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--action)'" onmouseout="this.style.borderColor='var(--border2)'">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--action)" stroke-width="1.8"><path d="M8 10V2M4 6l4-4 4 4"/><rect x="2" y="12" width="12" height="2" rx="1" stroke-width="1.4"/></svg>
@@ -1322,9 +1322,10 @@ select option { background: var(--bg2); }
       <!-- Backup e Restauração -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--action);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Backup e restauração</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Exporte todos os seus dados como arquivo JSON. Guarde o arquivo em segurança e restaure quando precisar.<br>Por segurança, a cópia não inclui a sua chave de acesso — ao restaurar num aparelho novo, cole-a em Integrações.</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Exporte todos os seus dados como arquivo JSON. Guarde o arquivo em segurança e restaure quando precisar.<br>Por segurança, a cópia não inclui a sua chave de acesso — ao restaurar num aparelho novo, cole-a em Integrações.<br>Seus certificados e diplomas são arquivos e saem à parte, num pacote .zip — eles existem só neste navegador.</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="exportarDados()" style="font-size:13px;padding:9px 20px;">⬇ Exportar dados</button>
+          <button class="btn btn-ghost" onclick="baixarDocumentos()" style="font-size:13px;padding:9px 20px;">⬇ Baixar meus documentos</button>
           <label class="btn btn-ghost" style="font-size:13px;padding:9px 20px;cursor:pointer;display:inline-flex;align-items:center;">
             ⬆ Importar backup
             <input type="file" accept=".json" style="display:none;" onchange="importarDados(this)">
@@ -5597,6 +5598,101 @@ function certAbrir(id){
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
+// ── A CÓPIA DOS DOCUMENTOS ─────────────────────────────────────────────────────────────────
+// 22/ago/2026. Os diplomas passaram a ser guardados de verdade na S49 — e num lugar que a
+// exportação de dados não varre: ela lê o localStorage, e o cofre mora no IndexedDB. Ou seja,
+// "Exportar dados" saía dizendo-se completa sem os únicos arquivos que existem em UM lugar só.
+// Limpar o navegador perdia os diplomas para sempre.
+//
+// A cópia sai como .zip sem compressão (formato "store"), montado à mão: é padrão de mercado,
+// abre em qualquer computador sem o Senova, e os documentos saem legíveis do outro lado. O
+// caminho de volta é o que já existe e já foi testado — arrastar os arquivos de novo no card.
+// Nada aqui sobe para lugar nenhum: o arquivo vai do navegador direto para o disco da pessoa.
+function _crc32(u8){
+  let tab=_crc32.tab;
+  if(!tab){ tab=_crc32.tab=new Int32Array(256);
+    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); tab[n]=c; } }
+  let crc=-1;
+  for(let i=0;i<u8.length;i++) crc=(crc>>>8)^tab[(crc^u8[i])&0xFF];
+  return (crc^-1)>>>0;
+}
+// Nome de arquivo que o sistema operacional aceita, sem colisão: dois "diploma.pdf" não podem
+// virar um só dentro do pacote — seria perder um documento em silêncio, de novo.
+function _zipNome(nome,usados){
+  let n=String(nome||'documento').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/^\.+/,'').trim()||'documento';
+  if(!usados[n.toLowerCase()]){ usados[n.toLowerCase()]=1; return n; }
+  const p=n.lastIndexOf('.'), base=p>0?n.slice(0,p):n, ext=p>0?n.slice(p):'';
+  let i=2; while(usados[(base+' ('+i+')'+ext).toLowerCase()]) i++;
+  const f=base+' ('+i+')'+ext; usados[f.toLowerCase()]=1; return f;
+}
+function _zipStore(itens){
+  const enc=new TextEncoder(), locais=[], central=[];
+  let desloc=0, tamCentral=0;
+  itens.forEach(it=>{
+    const nome=enc.encode(it.nome), dados=it.bytes, crc=_crc32(dados);
+    const d=(it.quando instanceof Date && !isNaN(it.quando))?it.quando:new Date();
+    const hora=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF;
+    const data=(((Math.max(1980,d.getFullYear())-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true);
+    lh.setUint16(8,0,true); lh.setUint16(10,hora,true); lh.setUint16(12,data,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,dados.length,true); lh.setUint32(22,dados.length,true);
+    lh.setUint16(26,nome.length,true); lh.setUint16(28,0,true);
+    locais.push(new Uint8Array(lh.buffer),nome,dados);
+    const cd=new DataView(new ArrayBuffer(46));
+    cd.setUint32(0,0x02014b50,true); cd.setUint16(4,20,true); cd.setUint16(6,20,true);
+    cd.setUint16(8,0x0800,true); cd.setUint16(10,0,true); cd.setUint16(12,hora,true); cd.setUint16(14,data,true);
+    cd.setUint32(16,crc,true); cd.setUint32(20,dados.length,true); cd.setUint32(24,dados.length,true);
+    cd.setUint16(28,nome.length,true); cd.setUint32(42,desloc,true);
+    central.push(new Uint8Array(cd.buffer),nome);
+    desloc+=30+nome.length+dados.length; tamCentral+=46+nome.length;
+  });
+  const fim=new DataView(new ArrayBuffer(22));
+  fim.setUint32(0,0x06054b50,true); fim.setUint16(8,itens.length,true); fim.setUint16(10,itens.length,true);
+  fim.setUint32(12,tamCentral,true); fim.setUint32(16,desloc,true);
+  return new Blob(locais.concat(central,[new Uint8Array(fim.buffer)]),{type:'application/zip'});
+}
+async function baixarDocumentos(){
+  let itens;
+  try{ itens=await Diplomas.todos(); }
+  catch(e){ showToast('Não consegui abrir os seus documentos agora.'); return; }
+  if(!itens.length){ showToast('Você ainda não guardou nenhum documento aqui.'); return; }
+  const usados={}, arquivos=[];
+  for(const d of itens){
+    // Um pacote que sai faltando um documento é pior do que não sair: a pessoa guarda e só
+    // descobre no dia de precisar. Se um arquivo não puder ser lido, recuso o pacote e digo qual.
+    try{ arquivos.push({nome:_zipNome(d.nome,usados), bytes:new Uint8Array(await d.arquivo.arrayBuffer()), quando:new Date(d.entrou||Date.now())}); }
+    catch(e){ showToast('Não consegui ler "'+(d.nome||'documento')+'". A cópia não saiu.'); return; }
+  }
+  const dt=new Date();
+  arquivos.push({nome:'LEIA-ME.txt', quando:dt, bytes:new TextEncoder().encode(
+    'Documentos pessoais guardados no Senova\r\n'+
+    'Cópia gerada em '+dt.toLocaleString('pt-BR')+'.\r\n\r\n'+
+    'São os arquivos que você adicionou em Perfil > Certificados e diplomas.\r\n'+
+    'Eles ficam apenas no seu navegador: nunca subiram para a internet, e esta\r\n'+
+    'cópia é a única forma de tirá-los de lá.\r\n\r\n'+
+    'Para restaurar num aparelho novo: abra o Senova, vá em Perfil > Certificados\r\n'+
+    'e diplomas e adicione estes arquivos de novo.\r\n\r\n'+
+    'Contém documentos pessoais. Guarde em lugar seguro.\r\n')});
+  const url=URL.createObjectURL(_zipStore(arquivos));
+  const a=document.createElement('a'); a.href=url;
+  a.download='senova_documentos_pessoais_'+dt.getFullYear()+String(dt.getMonth()+1).padStart(2,'0')+String(dt.getDate()).padStart(2,'0')+'.zip';
+  a.click(); URL.revokeObjectURL(url);
+  showToast(itens.length===1?'1 documento na cópia.':itens.length+' documentos na cópia.');
+}
+// O que o backup principal precisa saber para não se anunciar completo: nomes, tipos e tamanhos,
+// nunca os bytes. Se o cofre não puder ser lido, devolve null — e a cópia principal sai assim
+// mesmo, dizendo que não sabe. A rede nunca fica refém do acessório.
+async function _documentosManifesto(){
+  try{
+    const itens=await Promise.race([
+      Diplomas.todos(),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('demorou')),3000)),
+    ]);
+    return (itens||[]).map(d=>({nome:d.nome,tipo:d.tipo,bytes:d.bytes,entrou:d.entrou}));
+  }catch(e){ return null; }
+}
+
 function salvarDiasInativo(val){
   const n=Math.max(3,Math.min(30,parseInt(val)||7));
   _diasInativo=n;
@@ -9202,9 +9298,18 @@ function exportarDados(){
   }
   _exportarDadosAgora();
 }
-function _exportarDadosAgora(){
-  const backup={versao:'1.1',data:new Date().toISOString(),
-    nota:'Esta cópia NÃO contém a chave de acesso ao Worker. Ao restaurar num aparelho novo, cole-a em Perfil › Integrações.',
+async function _exportarDadosAgora(){
+  // Os documentos do cofre não cabem aqui (são megabytes de foto, e este arquivo é de texto).
+  // Então a cópia lista o que existe e diz onde baixá-lo — em vez de calar e parecer inteira.
+  const docs=await _documentosManifesto();
+  const backup={versao:'1.2',data:new Date().toISOString(),
+    nota:'Esta cópia NÃO contém a chave de acesso ao Worker. Ao restaurar num aparelho novo, cole-a em Perfil › Integrações. Contém dados pessoais (incluindo CPF e data de nascimento, se você os preencheu): guarde como documento, em lugar seguro.',
+    documentos:docs||[],
+    documentos_nota: docs===null
+      ? 'Não consegui ler o cofre de documentos deste navegador ao gerar esta cópia, então não sei dizer o que há lá dentro. Confira em Perfil › Certificados e diplomas.'
+      : (docs.length
+          ? 'Os '+docs.length+' documentos acima NÃO estão dentro deste arquivo — só os nomes. Baixe-os em Perfil › Backup e restauração › "Baixar meus documentos".'
+          : 'Nenhum documento guardado neste navegador quando esta cópia foi gerada.'),
     dados:{}};
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('senova')&&!_naoExportar(k))backup.dados[k]=localStorage.getItem(k);}
   // O arquivo morto mudou de casa e já não aparece na varredura acima. Sem esta
@@ -9225,7 +9330,9 @@ function _exportarDadosAgora(){
   const a=document.createElement('a');a.href=url;
   const d=new Date();a.download=`senova_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
   a.click();URL.revokeObjectURL(url);
-  const info=document.getElementById('backup-info');if(info)info.textContent=`Exportado em ${d.toLocaleString('pt-BR')}`;
+  const info=document.getElementById('backup-info');
+  if(info)info.textContent=`Exportado em ${d.toLocaleString('pt-BR')}`
+    + (docs&&docs.length?` — seus ${docs.length} documentos não vão neste arquivo: baixe-os ao lado.`:'');
   showToast('✅ Backup exportado');
 }
 function importarDados(input){
@@ -9262,6 +9369,11 @@ function importarDados(input){
       // nuvem de propósito: sem chave, o arquivo também não sobe, e a causa é esta.
       if(!localStorage.getItem('senova_app_key')){
         alert('Dados restaurados.\n\nEsta cópia não traz a chave de acesso — por segurança, ela nunca sai no backup.\n\nCole a sua em Perfil › Integrações para o Senova voltar a analisar vagas e buscar oportunidades.');
+      }
+      // Os documentos são arquivos e saem num pacote à parte. Quem restaura num aparelho novo
+      // precisa ouvir isso agora, não descobrir no dia de precisar do diploma.
+      if(Array.isArray(backup.documentos)&&backup.documentos.length){
+        alert('Esta cópia lista '+backup.documentos.length+' documentos seus (certificados e diplomas), mas eles não vêm dentro dela — são arquivos e saem num pacote .zip à parte.\n\nSe este é um aparelho novo, adicione-os de novo em Perfil › Certificados e diplomas.');
       }
       // O mesmo, com o arquivo na nuvem — e com duas diferenças que custam dado.
       // A primeira: os arquivados de uma cópia ANTERIOR à separação em dois blocos

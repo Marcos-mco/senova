@@ -453,7 +453,7 @@ async function main() {
     const ls = armazenamento({ senova_vagas_v2: '[]', senova_arquivo_na_nuvem: '1', senova_app_key: 'k' });
     const baixados = [];
     const s = montar(ls, ceu, [
-      extrai('function _naoExportar('), extrai('function exportarDados('), extrai('function _exportarDadosAgora('),
+      extrai('function _naoExportar('), extrai('function exportarDados('), extrai('async function _documentosManifesto('), extrai('async function _exportarDadosAgora('),
     ]);
     Object.assign(s.ST, { _frioCarregado: true, _frioNaNuvem: true,
       _frio: JSON.stringify(cards), _rawFrio: JSON.stringify(cards), _descIgnotas: new Set() });
@@ -481,7 +481,7 @@ async function main() {
     const ls = armazenamento({ senova_vagas_v2: '[]', senova_arquivo_na_nuvem: '1', senova_app_key: 'k' });
     const baixados = [], alertas = [];
     const s = montar(ls, ceu, [
-      extrai('function _naoExportar('), extrai('function exportarDados('), extrai('function _exportarDadosAgora('),
+      extrai('function _naoExportar('), extrai('function exportarDados('), extrai('async function _documentosManifesto('), extrai('async function _exportarDadosAgora('),
     ]);
     Object.assign(s.ST, { _frioCarregado: true, _frioNaNuvem: true,
       _frio: JSON.stringify(cards), _rawFrio: JSON.stringify(cards),

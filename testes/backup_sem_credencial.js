@@ -68,17 +68,20 @@ function montar(fontes, ls, mocks) {
 }
 
 // ── 1. O que sai no arquivo ────────────────────────────────────────────────────
-console.log('=== a cópia exportada: todo o trabalho, nenhuma credencial ===');
 let arquivo = '';
-{
+// Bloco assíncrono desde 22/ago/2026: a cópia consulta o cofre de documentos (IndexedDB) antes
+// de sair, para listar o que ela NÃO carrega dentro. Ver backup_leva_os_diplomas.js.
+async function bloco1() {
+  console.log('=== a cópia exportada: todo o trabalho, nenhuma credencial ===');
   const ls = armazenamento();
   // A exportação virou duas funções: `exportarDados` é o portão (recusa sair antes de o
   // arquivo de encerrados estar completo) e `_exportarDadosAgora` é a varredura que monta a
   // cópia. As duas precisam vir, senão o sandbox estoura em ReferenceError.
-  const s = montar(['function exportarDados(', 'function _exportarDadosAgora('], ls, {
+  const s = montar(['function exportarDados(', 'async function _documentosManifesto(', 'async function _exportarDadosAgora('], ls, {
     Blob: function (partes) { arquivo = String(partes[0]); },
   });
   vm.runInContext('exportarDados()', s);
+  await new Promise(r => setImmediate(r));
 
   // Controle positivo primeiro: sem ele, "não vaza" passaria com um arquivo vazio.
   t('o arquivo saiu e não está vazio', arquivo.length > 50, arquivo.length + ' bytes');
@@ -101,6 +104,7 @@ let arquivo = '';
   t('e diz onde recolá-la', /Integra[çc][õo]es/i.test(arquivo));
 }
 
+function resto() {
 // ── 2. O que entra na importação ───────────────────────────────────────────────
 // Backups feitos ANTES deste guard trazem a chave dentro. Restaurar um deles não pode
 // reescrever a credencial deste navegador — nem com a antiga do próprio dono (que pode ter
@@ -179,3 +183,6 @@ console.log('\n=== a razão está escrita junto da varredura ===');
 }
 
 fim('BACKUP · LEVA O TRABALHO, NÃO A CREDENCIAL');
+}
+
+bloco1().then(resto);
