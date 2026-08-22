@@ -220,7 +220,9 @@ console.log('\n=== o Worker: prompt instrui a nunca contradizer o que já sabe, 
     /async function analisarVaga\([^)]*metaConhecida[^)]*\)/.test(worker));
   t('a rota POST /api\\/analisar-vaga desestrutura metaConhecida do corpo recebido e repassa',
     /const \{ titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida \}/.test(worker) &&
-    /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida\)/.test(worker));
+    // Ver a mesma nota em radar_custo_medido.js: o que se guarda é a POSIÇÃO do argumento, não o
+    // tamanho da lista — argumento novo no fim (S50: o dono do Perfil) não é regressão nenhuma.
+    /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida[,)]/.test(worker));
   t('o bloco de metadados vai na MENSAGEM DE USUÁRIO, nunca no array `system` (cacheado)',
     (() => {
       const iSystem = worker.indexOf('system:[');

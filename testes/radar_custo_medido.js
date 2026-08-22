@@ -39,7 +39,10 @@ t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
   /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, 'radar'\)\)/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
   /async function analisarVaga\([^)]*\bctx\b[^)]*\)/.test(worker) &&
-  /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx(, perfilVAnterior)?(, metaConhecida)?\)/.test(worker));
+  // O que importa aqui é a POSIÇÃO do ctx, não quantos argumentos vêm depois: fixar a lista
+  // inteira fazia este teste cair a cada argumento novo (foi o que aconteceu na S50, quando o
+  // dono do Perfil entrou no fim da chamada) sem nada ter quebrado de verdade.
+  /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx[,)]/.test(worker));
 
 console.log('\n=== o contador é atômico — sem corrida entre chamadas paralelas do mesmo lote ===');
 t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',

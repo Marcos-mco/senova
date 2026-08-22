@@ -1,6 +1,14 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.40
+//  SENOVA PROXY — Worker v7.41
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.41 (22/ago/2026) — Fix 1 do Plano de Vida: o Perfil passa a ser
+//  DE QUEM O ESCREVEU (S50). Até aqui o Perfil inteiro morava numa chave única do
+//  KV (`perfil_usuario`) e a régua de nota mínima morava em DUAS casas (o perfil e
+//  `config_varredura`, esta global). Ver o bloco "O PERFIL É DE QUEM O ESCREVEU",
+//  que guarda as três travas da virada: a chave antiga nunca é apagada, o legado só
+//  é herdado por quem o escreveu, e banco fora do ar volta a operar pela chave antiga
+//  em vez de esquecer quem a pessoa é.
 //
 //  NOVIDADES v7.40 (19/ago/2026) — Fix 0 do Plano de Vida: guardas antes de
 //  qualquer porta subir (S48).
@@ -504,13 +512,16 @@ PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
 // (Marcos): o hardcoded É a identidade dele. No dia em que existir um 2º usuário
 // real, este ramo tem de virar erro ("complete seu Perfil antes de analisar") —
 // nunca herdar a identidade de Marcos em silêncio.
-async function montarIdentidadeCandidato(env, override) {
+// S50: recebe o dono (`userId`) para ler o perfil DELE — sem isso, a análise de qualquer
+// usuário sairia montada sobre a vida de quem escreveu a chave única. Sem dono, cai na chave
+// antiga, que é o comportamento de sempre.
+async function montarIdentidadeCandidato(env, override, userId) {
   if (typeof override === 'string' && override.trim()) {
     return { texto: override.trim(), perfilV: null, origem: 'override' };
   }
   let p = null;
   try {
-    const raw = await env.SENOVA_KV.get('perfil_usuario');
+    const raw = await lerPerfilBruto(env, userId);
     p = raw ? JSON.parse(raw) : null;
   } catch { p = null; } // JSON malformado no KV = tratar como vazio, nunca quebrar a análise
 
@@ -918,6 +929,118 @@ async function donoAtual(request, env) {
   return confirmado ? confirmado.user_id : novo;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  O PERFIL É DE QUEM O ESCREVEU  (S50 — Fix 1 do plano do Plano de Vida)
+// ═══════════════════════════════════════════════════════════════════
+// Até aqui o Perfil inteiro morava numa chave só: `perfil_usuario`. Com um segredo
+// compartilhado e uma pessoa usando, ninguém sentia — mas essa é a chave de onde a análise de
+// vaga tira QUEM é o candidato, e de onde a tela de Perfil se desenha. O segundo usuário a
+// salvar gravaria a vida dele por cima da do primeiro, e a análise sairia com a identidade
+// trocada. Não é risco de amanhã: aconteceria no primeiro minuto do primeiro convidado.
+//
+// Agora cada dono tem a sua chave — `perfil_usuario:<user_id>` —, achada pelo mesmo mecanismo
+// que já escolhe as linhas de Processos no D1 (donoAtual). Três travas cercam a virada:
+//
+//   1. A CHAVE ANTIGA NUNCA É APAGADA. Ela fica onde está, e a gravação escreve nas DUAS
+//      enquanto o dono for o dela. É isso que faz o caminho de volta ser "publicar a versão
+//      anterior do Worker", sem restaurar backup nenhum.
+//   2. O LEGADO SÓ É HERDADO POR QUEM É DELE. `perfil_dono_legado` guarda o user_id que o
+//      escreveu (gravado na migração, antes deste deploy). Sem essa trava, um usuário novo que
+//      ainda não salvou nada abriria o Senova com a vida de outra pessoa na tela — o mesmo
+//      defeito do DEFAULT_VAGAS da S40, um andar acima e com dado muito pior.
+//   3. SEM DONO, VIDA NORMAL. Se o D1 estiver fora do ar, `donoSeguro` devolve null e tudo
+//      opera pela chave antiga. Indisponibilidade de banco não pode virar "o Senova esqueceu
+//      quem você é" — nem, muito pior, gravar em branco por cima do que estava guardado.
+const CHAVE_PERFIL_LEGADO = 'perfil_usuario';
+const CHAVE_DONO_LEGADO   = 'perfil_dono_legado';
+
+function chavePerfil(userId) {
+  return userId ? `${CHAVE_PERFIL_LEGADO}:${userId}` : CHAVE_PERFIL_LEGADO;
+}
+
+// Nunca lança. Quem chama está no caminho de uma leitura que hoje funciona — e continuar
+// funcionando importa mais do que saber o dono (trava 3 acima).
+async function donoSeguro(request, env) {
+  try {
+    if (!env.SENOVA_DB) return null;
+    return await donoAtual(request, env);
+  } catch (err) {
+    console.warn('[perfil/dono] indisponível, seguindo pela chave antiga:', err && err.message);
+    return null;
+  }
+}
+
+// Quem escreveu a chave antiga. Gravado na migração; se faltar (deploy sem migração), o
+// primeiro dono que aparecer a adota — hoje existe um segredo só, então "o primeiro" é o
+// próprio. Adoção fica no log: herdar a vida de alguém nunca pode ser silencioso.
+async function _donoDoLegado(env, userId) {
+  const marcado = await env.SENOVA_KV.get(CHAVE_DONO_LEGADO);
+  if (marcado) return marcado;
+  if (!userId) return null;
+  await env.SENOVA_KV.put(CHAVE_DONO_LEGADO, userId);
+  console.log('[perfil/migracao] chave antiga adotada por', userId);
+  return userId;
+}
+
+async function lerPerfilBruto(env, userId) {
+  const chave = chavePerfil(userId);
+  const meu = await env.SENOVA_KV.get(chave);
+  if (meu !== null) return meu;
+  if (chave === CHAVE_PERFIL_LEGADO) return null;
+  const legado = await env.SENOVA_KV.get(CHAVE_PERFIL_LEGADO);
+  if (legado === null) return null;
+  if ((await _donoDoLegado(env, userId)) !== userId) return null; // não é seu: começa vazio
+  // Cópia preguiçosa e não destrutiva, só como rede. A conferência byte a byte de verdade é a
+  // da migração manual, feita antes deste deploy: o KV é eventualmente consistente, e reler
+  // aqui, no mesmo instante da escrita, pode devolver o valor anterior sem nada estar errado.
+  try { await env.SENOVA_KV.put(chave, legado); }
+  catch (err) { console.warn('[perfil/migracao] cópia falhou, servindo a chave antiga:', err && err.message); }
+  return legado;
+}
+
+async function gravarPerfilBruto(env, userId, texto) {
+  await env.SENOVA_KV.put(chavePerfil(userId), texto);
+  // Espelho na chave antiga enquanto o dono for o dela (trava 1). Sai quando o esquema novo do
+  // Perfil entrar (Fix 2) — não antes, e nunca por conveniência.
+  if (userId && (await _donoDoLegado(env, userId)) === userId) {
+    try { await env.SENOVA_KV.put(CHAVE_PERFIL_LEGADO, texto); }
+    catch (err) { console.warn('[perfil/espelho] falhou:', err && err.message); }
+  }
+}
+
+// A RÉGUA DE NOTA MÍNIMA TEM UMA CASA SÓ, E É O PERFIL.
+// Ela morava em duas: `score_minimo_*` no perfil e `score_minimo_por_regiao` dentro de
+// `config_varredura` (achado R9 do senova-auditor). Duas casas para o mesmo número é uma
+// divergência esperando a vez — e a casa da config é GLOBAL, então a régua de uma pessoa
+// valeria para todas. A fonte passa a ser o perfil, que é de quem o escreveu; a config segue
+// respondendo o campo, agora derivado, para não quebrar nenhum leitor — inclusive um app
+// aberto há dias no navegador de alguém.
+const REGUA_REGIOES = ['br', 'espt', 'de', 'remoto', 'us'];
+const REGUA_PADRAO = { br: 70, espt: 55, de: 50, remoto: 60, us: 65 };
+
+async function lerReguaDoPerfil(env, userId) {
+  let p = null;
+  try { const raw = await lerPerfilBruto(env, userId); p = raw ? JSON.parse(raw) : null; } catch { p = null; }
+  const r = {};
+  for (const k of REGUA_REGIOES) {
+    const v = p && p[`score_minimo_${k}`];
+    r[k] = (typeof v === 'number' && !isNaN(v)) ? v : REGUA_PADRAO[k];
+  }
+  return r;
+}
+
+async function gravarReguaNoPerfil(env, userId, smr) {
+  if (!smr || typeof smr !== 'object') return;
+  let p = {};
+  try { const raw = await lerPerfilBruto(env, userId); p = raw ? JSON.parse(raw) : {}; } catch { p = {}; }
+  let mudou = false;
+  for (const k of REGUA_REGIOES) {
+    const v = smr[k];
+    if (typeof v === 'number' && !isNaN(v) && p[`score_minimo_${k}`] !== v) { p[`score_minimo_${k}`] = v; mudou = true; }
+  }
+  if (mudou) await gravarPerfilBruto(env, userId, JSON.stringify(p));
+}
+
 function htmlResp(content, status=200) {
   return new Response(content, {
     status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' }
@@ -1186,7 +1309,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.40',
+        status: 'ok', worker: 'senova-proxy', versao: '7.41',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1231,7 +1354,7 @@ export default {
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida));
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, await donoSeguro(request, env)));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -1241,7 +1364,7 @@ export default {
     if (path === '/api/sofia-parecer' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const body = await request.json();
-      return json(await parecerSofia(body, env, body.perfilCandidato, ctx));
+      return json(await parecerSofia(body, env, body.perfilCandidato, ctx, await donoSeguro(request, env)));
     }
 
     // ── O anúncio ainda existe? ──────────────────────────────────────
@@ -1341,7 +1464,7 @@ export default {
 
     // ── Perfil do usuário ────────────────────────────────────────────
     if (path === '/api/perfil' && request.method === 'GET') {
-      const raw = await env.SENOVA_KV.get('perfil_usuario');
+      const raw = await lerPerfilBruto(env, await donoSeguro(request, env));
       // projeto_vida_texto semeado com o hardcoded atual (S46): Marcos parte de algo
       // pronto pra reescrever na própria voz, em vez de campo vazio — ver montarIdentidadeCandidato.
       const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7, experiencias:[] };
@@ -1396,18 +1519,31 @@ export default {
           }
         }
       }
-      await env.SENOVA_KV.put('perfil_usuario', JSON.stringify(dados));
+      await gravarPerfilBruto(env, await donoSeguro(request, env), JSON.stringify(dados));
       return json({ ok: true });
     }
 
     // ── Config varredura ─────────────────────────────────────────────
+    // O que fica aqui é a esteira da busca automática — quais frentes rodam, com quais termos.
+    // É infraestrutura compartilhada (existe UM cron), e por isso segue global. O que é da
+    // PESSOA — a régua de nota mínima por região — passa a vir do perfil dela, derivado na
+    // resposta para que nenhum leitor sinta a mudança. Ver "A RÉGUA ... TEM UMA CASA SÓ".
     if (path === '/api/config-varredura' && request.method === 'GET') {
       const raw = await env.SENOVA_KV.get('config_varredura');
-      return json(raw ? JSON.parse(raw) : CONFIG_PADRAO);
+      const config = { ...(raw ? JSON.parse(raw) : CONFIG_PADRAO) };
+      config.score_minimo_por_regiao = await lerReguaDoPerfil(env, await donoSeguro(request, env));
+      return json(config);
     }
 
     if (path === '/api/config-varredura' && request.method === 'POST') {
       const nova = await request.json();
+      // A régua chega junto (o app ainda a manda daqui, e um app em cache mandará por dias):
+      // é encaminhada ao perfil de quem pediu e NÃO volta a morar na config — senão a segunda
+      // casa renasce no primeiro salvamento.
+      if (nova && nova.score_minimo_por_regiao) {
+        await gravarReguaNoPerfil(env, await donoSeguro(request, env), nova.score_minimo_por_regiao);
+        delete nova.score_minimo_por_regiao;
+      }
       await env.SENOVA_KV.put('config_varredura', JSON.stringify(nova));
       return json({ status: 'Configuração salva' });
     }
@@ -3144,12 +3280,13 @@ async function _registrarCustoIA(env, usage, origem) {
   }
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida) {
-  // Identidade dinâmica (S46): lê perfil_usuario do KV direto no Worker — ver
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono) {
+  // Identidade dinâmica (S46): lê o perfil do KV direto no Worker — ver
   // montarIdentidadeCandidato. perfilCandidato continua existindo como override
   // explícito (dry-run/testes); em produção nenhum call site manda, então isto
   // sempre resolve via KV (ou hardcoded, se o Perfil ainda estiver vazio).
-  const { texto: perfil, perfilV, origem: perfilOrigem } = await montarIdentidadeCandidato(env, perfilCandidato);
+  // S50: `dono` diz de QUEM é o perfil a ler — a identidade da análise é a de quem pediu.
+  const { texto: perfil, perfilV, origem: perfilOrigem } = await montarIdentidadeCandidato(env, perfilCandidato, dono);
   const _scoreAnt = (typeof scoreAnterior === 'number' && scoreAnterior > 0) ? scoreAnterior : 0;
   // Fatos que o app já capturou da página (localização/modelo/regime) — nunca no bloco de
   // sistema cacheado (varia por vaga, invalidaria o cache caro), sempre na mensagem de usuário,
@@ -3294,9 +3431,9 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
 // Diretor, fecha a partir de R$15k" meses depois de Marcos zerar exatamente
 // isso. A Sofia então contradizia, no mesmo card, a nota que este arquivo dava.
 // Quem chama manda os FATOS DA VAGA; PERFIL_MARCOS + PROJETO_DE_VIDA saem daqui.
-async function parecerSofia(dados, env, perfilCandidato, ctx) {
+async function parecerSofia(dados, env, perfilCandidato, ctx, dono) {
   // Identidade dinâmica (S46) — mesma fonte de analisarVaga, ver montarIdentidadeCandidato.
-  const { texto: perfil } = await montarIdentidadeCandidato(env, perfilCandidato);
+  const { texto: perfil } = await montarIdentidadeCandidato(env, perfilCandidato, dono);
   const d = dados || {};
   const campo = (v, vazio) => (typeof v === 'string' && v.trim()) ? v.trim() : vazio;
   const empresa = campo(d.empresa, 'não informada');
