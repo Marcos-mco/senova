@@ -462,7 +462,7 @@ const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 const PERFIL_MARCOS = `
 Marcos Franco, 59 anos (nasceu em 15/07/1967), Curitiba/PR — Brasil.
 Executivo sênior com 30 anos de experiência em marketing, vendas/comercial e negócios.
-Formação: Mestre em Direção de Marketing e Vendas · Universitat de Barcelona, Espanha (2013/2014); Mestrado em Gestão de Empresas, especialização em Marketing · Universidade de Évora, Portugal (2002–2004); Pós-Graduação Lato Sensu em Gestão Empresarial, nível especialização · FGV / ISAE, Curitiba (1999–2000); Bacharel em Comunicação Social, habilitação em Publicidade e Propaganda · FAAP, São Paulo (1989–1995).
+Formação: Máster en Dirección de Marketing and Sales · Universitat de Barcelona, Espanha (2013/2014); Mestrado em Gestão de Empresas, especialização em Marketing · Universidade de Évora, Portugal (2002–2004); Pós-Graduação Lato Sensu em Gestão Empresarial, nível especialização · FGV / ISAE, Curitiba (1999–2000); Bacharel em Comunicação Social, habilitação em Publicidade e Propaganda · FAAP, São Paulo (1989–1995).
 Idiomas: português nativo, inglês avançado, espanhol avançado.
 Experiências:
 - Editel Listas Telefônicas (Grupo Carvajal): Superintendente Regional de Vendas – Nordeste (2001–2005) — equipe 45 pessoas, orçamento R$5mi/ano
@@ -471,7 +471,7 @@ Experiências:
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
 Remuneração: IDEAL R$15–25k CLT; ACEITA a partir de R$8k para viver com dignidade — R$8k paga as contas dele e tira a filha do papel de sustentá-lo. R$8k é o PISO DE DIGNIDADE: abaixo disso, impedimento. Entre R$8k e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
-Formação europeia (vale como qualificação da UE): Mestrado — Universidade de Évora, Portugal · Mestrado — Universitat de Barcelona, Espanha. Diplomas emitidos e reconhecidos dentro da União Europeia.
+Formação de pós-graduação feita na Europa: Universidade de Évora, Portugal (2002–2004) · Universitat de Barcelona, Espanha (2013/2014). Diplomas emitidos por instituições da União Europeia.
 Aberto a: Brasil, remoto (confirmado 14/ago — não considerar mais Espanha/Alemanha/Portugal presenciais)
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
 `.trim();

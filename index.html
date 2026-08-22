@@ -3054,9 +3054,9 @@ const PERFIL_MARCOS = {
     // `fonte:'diploma'` = este texto foi lido do documento, palavra por palavra. É o que
     // autoriza o Senova a PROPOR correção ao que a pessoa já salvou (ver _formDivergencias).
     // `marcas` = por onde se reconhece a mesma instituição no que ela escreveu na tela.
-    // Barcelona não tem `fonte`: não há documento na pasta de diplomas, e sem papel o Senova
-    // não corrige ninguém.
-    { titulo: "Mestre em Direção de Marketing e Vendas", instituicao: "Universitat de Barcelona, Espanha", periodo: "2013/2014" },
+    // Uma formação SEM `fonte` nunca é proposta: sem papel, o Senova não corrige ninguém.
+    // As quatro têm documento desde 22/ago/2026, quando Marcos anexou o de Barcelona.
+    { titulo: "Máster en Dirección de Marketing and Sales", instituicao: "Universitat de Barcelona, Espanha", periodo: "2013/2014", fonte: "diploma", marcas: ["barcelona"] },
     { titulo: "Mestrado em Gestão de Empresas, especialização em Marketing", instituicao: "Universidade de Évora, Portugal", periodo: "2002-2004", fonte: "diploma", marcas: ["evora"] },
     { titulo: "Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)", instituicao: "FGV / ISAE, Curitiba", periodo: "1999-2000", fonte: "diploma", marcas: ["fgv","isae"] },
     { titulo: "Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda", instituicao: "FAAP, São Paulo", periodo: "1989-1995", fonte: "diploma", marcas: ["faap"] }
@@ -3317,7 +3317,7 @@ Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR
 
 RESUMO EXECUTIVO
 
-Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo, os últimos sete como Diretor de Marketing — equipe de 30 pessoas, 8 emissoras, carteira de R$ 500 milhões. Sólida formação internacional: MBA FGV, Mestre em Direção de Marketing e Vendas pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
+Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo, os últimos sete como Diretor de Marketing — equipe de 30 pessoas, 8 emissoras, carteira de R$ 500 milhões. Sólida formação internacional: pós-graduação em Gestão Empresarial pela FGV e Máster en Dirección de Marketing and Sales pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
 
 EXPERIÊNCIA PROFISSIONAL
 
@@ -3371,7 +3371,7 @@ Início de carreira: DLS – Dória, Lara e Stalimir Associados · Editora Abril
 
 FORMAÇÃO ACADÊMICA
 
-Mestre em Direção de Marketing e Vendas
+Máster en Dirección de Marketing and Sales
 Universitat de Barcelona — Barcelona, Espanha · 2013/2014
 
 Mestrado em Gestão de Empresas, especialização em Marketing
@@ -3394,7 +3394,7 @@ Marketing & Growth Executive | CMO · CSO · CEO | Curitiba, Brazil
 
 EXECUTIVE SUMMARY
 
-Senior executive with 25+ years leading large-scale operations across media, education and technology in Brazil. Nearly 12 years at RPC/Globo (Paraná's largest TV network) as Marketing Director — team of 30, 8 affiliates, R$500M portfolio. Strong international background: MBA at FGV, Master's in Marketing and Sales Management at Universitat de Barcelona. Expert in growth strategy, high-performance team management and digital transformation.
+Senior executive with 25+ years leading large-scale operations across media, education and technology in Brazil. Over ten years at RPC/Globo (Paraná's largest TV network), the last seven as Marketing Director — team of 30, 8 affiliates, R$500M portfolio. Strong international background: postgraduate specialisation in Business Management at FGV and Máster en Dirección de Marketing and Sales at Universitat de Barcelona. Expert in growth strategy, high-performance team management and digital transformation.
 
 PROFESSIONAL EXPERIENCE
 
@@ -3448,7 +3448,7 @@ Early career: DLS – Dória, Lara e Stalimir · Editora Abril · Intec Tecnolog
 
 EDUCATION
 
-Master's in Marketing and Sales Management
+Máster en Dirección de Marketing and Sales
 Universitat de Barcelona — Barcelona, Spain · 2013/2014
 
 Master's in Business Management — Marketing Specialisation
@@ -3471,7 +3471,7 @@ Ejecutivo de Marketing y Crecimiento | CMO · CSO · CEO | Curitiba, Brasil
 
 RESUMEN EJECUTIVO
 
-Ejecutivo senior con más de 25 años liderando operaciones de gran escala en los sectores de medios, educación y tecnología en Brasil. Casi 12 años en RPC/Globo (la mayor red de TV de Paraná) como Director de Marketing — equipo de 30 personas, 8 afiliadas, cartera de R$500 millones. Sólida formación internacional: MBA en FGV, Máster en Dirección de Marketing and Sales en la Universitat de Barcelona. Especialista en estrategia de crecimiento, gestión de equipos de alto rendimiento y transformación digital.
+Ejecutivo senior con más de 25 años liderando operaciones de gran escala en los sectores de medios, educación y tecnología en Brasil. Más de diez años en RPC/Globo (la mayor red de TV de Paraná), los últimos siete como Director de Marketing — equipo de 30 personas, 8 afiliadas, cartera de R$500 millones. Sólida formación internacional: posgrado en Gestión Empresarial en FGV y Máster en Dirección de Marketing and Sales en la Universitat de Barcelona. Especialista en estrategia de crecimiento, gestión de equipos de alto rendimiento y transformación digital.
 
 EXPERIENCIA PROFESIONAL
 
@@ -11094,7 +11094,7 @@ async function startInterview(){
 
   const genPrompt=`Você é um ${tipoLabel} conduzindo uma ${faseLabel} para a posição: ${cargo}.
 
-Candidato: Marcos Franco — executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M), MBA FGV, Master's Barcelona.
+Candidato: Marcos Franco — executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M), pós-graduação FGV, Máster Universitat de Barcelona.
 
 Gere EXATAMENTE 5 perguntas para esta entrevista. A pergunta 1 DEVE SER "Me fale sobre você" (ou equivalente em ${lang}). A pergunta 2 deve ser sobre a saída do último emprego. As demais devem ser específicas para ${cargo} e para a fase ${faseLabel}.
 
@@ -11179,7 +11179,7 @@ PERGUNTA: "${questions[currentQ]}"
 
 RESPOSTA DE MARCOS: "${answer}"
 
-PERFIL: Executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M portfolio), MBA FGV, Master's Barcelona.
+PERFIL: Executivo sênior, 30+ anos, ex-Diretor de Marketing da RPC, afiliada do Grupo Globo (10 anos na casa, 30 pessoas, 8 emissoras, R$500M portfolio), pós-graduação FGV, Máster Universitat de Barcelona.
 
 Avalie de forma construtiva e elegante. Responda em ${lang} com este formato EXATO:
 

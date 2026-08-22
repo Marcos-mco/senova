@@ -39,7 +39,7 @@ const divs = (lista) => chamar(s, '_formDivergencias', [lista]);
 console.log('=== a tela dele: o Senova enxerga o que não bate ===');
 let d = divs(TELA_DELE);
 const porInst = (ds, marca) => ds.find(x => x.doc.instituicao.toLowerCase().includes(marca));
-t('as três formações com diploma são apontadas', d.length === 3, d.length + ' → ' + d.map(x => x.doc.instituicao).join(' | '));
+t('as quatro formações com diploma são apontadas', d.length === 4, d.length + ' → ' + d.map(x => x.doc.instituicao).join(' | '));
 t('a FAAP entra: o título salvo omite o grau de bacharel', !!porInst(d, 'faap'));
 t('e propõe o texto do diploma', porInst(d, 'faap').doc.titulo === 'Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda');
 t('com a data que o diploma conhece', porInst(d, 'faap').doc.periodo === '1989-1995');
@@ -48,12 +48,17 @@ t('a proposta guarda o que estava salvo, para mostrar os dois lados', porInst(d,
 t('e aponta a linha certa da tela', porInst(d, 'fgv').id === 'f3');
 t('Évora entra porque o título salvo está incompleto', !!porInst(d, 'évora'));
 
-console.log('\n=== Barcelona NÃO entra: não existe documento ===');
-// A única linha da formação sem foto na pasta de diplomas. Sem papel, o Senova não corrige
-// ninguém — nem para melhor. Se um dia o diploma aparecer, ele ganha fonte:'diploma' e passa a
-// valer pela mesma porta.
-t('nenhuma proposta menciona Barcelona', !d.some(x => /barcelona/i.test(x.doc.instituicao)));
-t('e a semente marca só o que tem documento', chamar(s, '_formDocumentadas', []).length === 3);
+console.log('\n=== sem documento, sem proposta — a regra que não depende de qual linha é ===');
+// Em 21/ago/2026 Barcelona era a única formação sem foto na pasta, e servia de prova viva desta
+// regra. Em 22/ago Marcos anexou o diploma, e ela entrou pela porta certa: ganhou fonte:'diploma'
+// e passou a ser proposta como as outras. A regra continua valendo, e agora é guardada por um
+// caso que não depende de qual linha da vida dele está descoberta.
+t('Barcelona agora tem documento e é proposta', !!porInst(d, 'barcelona'));
+t('com o título que o diploma confere', porInst(d, 'barcelona').doc.titulo === 'Máster en Dirección de Marketing and Sales');
+t('uma formação que o Senova não conhece nunca é tocada',
+  divs([{ id: 'x1', titulo: 'Extensão em Finanças', instituicao: 'Insper, São Paulo', periodo: '2010' }]).length === 0);
+t('e uma entrada sem instituição também não', divs([{ id: 'x2', titulo: 'Curso qualquer', instituicao: '', periodo: '2010' }]).length === 0);
+t('só o que tem documento por trás pode propor', chamar(s, '_formDocumentadas', []).every(f => f.fonte === 'diploma'));
 
 console.log('\n=== o que já bate com o diploma fica quieto ===');
 const JA_CERTO = [
@@ -66,7 +71,7 @@ t('diferença só de acento ou caixa não conta como divergência',
 
 console.log('\n=== o Senova mostra os dois lados, e a pessoa decide ===');
 const html = chamar(s, '_formBannerHTML', [divs(TELA_DELE)]);
-t('o aviso diz quantas são', /3 formações não batem/.test(html));
+t('o aviso diz quantas são', /4 formações não batem/.test(html));
 t('mostra o que está salvo', /MBA em Administração de Empresas/.test(html));
 t('e o que o documento diz', /Pós-Graduação Lato Sensu em Gestão Empresarial/.test(html));
 t('oferece aceitar', /formUsarDoDiploma\('f3'\)/.test(html));
@@ -97,7 +102,7 @@ t('de volta ao dono da semente, o aviso volta', chamar(s, '_perfilEhDaSemente', 
 // tela é a mesma pessoa. Uma comparação exata daria o mesmo silêncio que se está consertando.
 exec(s, `guardarContatoSalvo({nome:'Marcos Ribeiro Franco',telefone:'(41) 99615-2224',email:'marcos_mco@hotmail.com'})`);
 t('o nome completo continua sendo o dono da semente', chamar(s, '_perfilEhDaSemente', []) === true);
-t('e o aviso continua de pé', divs(TELA_DELE).length === 2, 'FAAP segue dispensada acima');
+t('e o aviso continua de pé', divs(TELA_DELE).length === 3, 'FAAP segue dispensada acima');
 exec(s, `guardarContatoSalvo(null)`);
 
 console.log('\n=== fiação: isto vale na tela real ===');
