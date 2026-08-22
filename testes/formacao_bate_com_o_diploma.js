@@ -47,16 +47,27 @@ t('os três gabaritos (PT/EN/ES) foram corrigidos juntos',
   (html.match(/FAAP — São Paulo.{0,20}1989–1995/g) || []).length === GABARITOS);
 t('o Worker diz a mesma coisa', /Bacharel em Comunicação Social, habilitação em Publicidade e Propaganda · FAAP/.test(worker));
 
-console.log('\n=== FGV: o certificado é de especialização, não de MBA ===');
+console.log('\n=== FGV: o nome do curso é o do certificado; o "MBA" é decisão de Marcos ===');
+// 22/ago/2026, decisão dele com o certificado à vista: "vou manter o MBA da Getúlio Vargas,
+// porque aqui no Brasil MBA — por mais estranho que possa parecer — é sinônimo de pós-graduação".
+// É verdade: lato sensu é o que o mercado brasileiro chama de MBA, e a própria FGV batiza assim
+// os cursos dela. O erro do app nunca foi a palavra MBA — era "Administração de Empresas", nome
+// que o certificado não traz. O curso é GESTÃO EMPRESARIAL, e é isso que ficou.
 t('a semente nomeia o curso do certificado',
-  /Pós-Graduação Lato Sensu em Gestão Empresarial \(Especialização\)/.test(html));
+  /"MBA em Gestão Empresarial", instituicao: "FGV \/ ISAE, Curitiba"/.test(html));
+t('e o Worker guarda o que o papel diz por extenso, para a IA não inflar o grau',
+  /MBA em Gestão Empresarial \(pós-graduação lato sensu, nível especialização, 388h\)/.test(worker));
 t('com a instituição inteira (a parceria está no papel)', /"FGV \/ ISAE, Curitiba", periodo: "1999-2000"/.test(html));
 t('nenhum "MBA em Administração de Empresas" restou no app', !/MBA em Administração de Empresas/.test(html));
 t('nem no Worker', !/MBA em Administração de Empresas/.test(worker));
 t('nem a versão inglesa dele', !/MBA in Business Administration/.test(html));
 t('nem a espanhola', !/MBA en Administración de Empresas/.test(html));
 t('e 1998 não sobrou como início', !/FGV.{0,30}1998/.test(html));
-t('o Worker traz o nível que o certificado diz', /nível especialização · FGV \/ ISAE, Curitiba \(1999–2000\)/.test(worker));
+t('o Worker traz o nível que o certificado diz', /nível especialização, 388h\) · FGV \/ ISAE, Curitiba \(1999–2000\)/.test(worker));
+// Fora do Brasil, "MBA" afirma um grau que este certificado não confere — e o inglês e o espanhol
+// são justamente os CVs que atravessam a fronteira. A decisão dele foi explícita sobre o Brasil.
+t('o gabarito inglês continua preciso', /Postgraduate Specialisation in Business Management/.test(html));
+t('o espanhol também', /Posgrado Lato Sensu en Gestión Empresarial/.test(html));
 
 console.log('\n=== Barcelona: o nome do programa é o que a universidade emite ===');
 t('a semente usa o título do diploma', /Máster en Dirección de Marketing and Sales/.test(html));

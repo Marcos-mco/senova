@@ -11,7 +11,8 @@
 //   1. divergência entre o salvo e o documento SEMPRE aparece na tela (nunca some no silêncio);
 //   2. o Senova NUNCA sobrescreve sozinho — a pessoa aceita ou mantém o dela;
 //   3. só se propõe o que tem documento por trás (fonte:'diploma');
-//   4. a semente é a formação de UMA pessoa: um segundo usuário jamais recebe o diploma dela.
+//   4. a semente é a formação de UMA pessoa: um segundo usuário jamais recebe o diploma dela;
+//   5. quem edita e salva encerrou o assunto — o Senova não reabre a proposta que ela já respondeu.
 const { carregarApp, chamar, exec, assert } = require('./_lib');
 const { t, fim } = assert();
 const s = carregarApp([
@@ -25,6 +26,7 @@ const s = carregarApp([
   'function _formChaveProposta(',
   'function _formDivergencias(',
   'function _formBannerHTML(',
+  'function _formDispensarEditadas(',
 ]);
 
 // A tela de Marcos no dia em que ele reclamou, campo por campo.
@@ -43,7 +45,7 @@ t('as quatro formações com diploma são apontadas', d.length === 4, d.length +
 t('a FAAP entra: o título salvo omite o grau de bacharel', !!porInst(d, 'faap'));
 t('e propõe o texto do diploma', porInst(d, 'faap').doc.titulo === 'Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda');
 t('com a data que o diploma conhece', porInst(d, 'faap').doc.periodo === '1989-1995');
-t('a FGV entra: o certificado não confere MBA', porInst(d, 'fgv').doc.titulo === 'Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)');
+t('a FGV entra: o certificado não diz "Administração de Empresas"', porInst(d, 'fgv').doc.titulo === 'MBA em Gestão Empresarial');
 t('a proposta guarda o que estava salvo, para mostrar os dois lados', porInst(d, 'fgv').atual.titulo === 'MBA em Administração de Empresas');
 t('e aponta a linha certa da tela', porInst(d, 'fgv').id === 'f3');
 t('Évora entra porque o título salvo está incompleto', !!porInst(d, 'évora'));
@@ -73,7 +75,7 @@ console.log('\n=== o Senova mostra os dois lados, e a pessoa decide ===');
 const html = chamar(s, '_formBannerHTML', [divs(TELA_DELE)]);
 t('o aviso diz quantas são', /4 formações não batem/.test(html));
 t('mostra o que está salvo', /MBA em Administração de Empresas/.test(html));
-t('e o que o documento diz', /Pós-Graduação Lato Sensu em Gestão Empresarial/.test(html));
+t('e o que o documento diz', /MBA em Gestão Empresarial/.test(html));
 t('oferece aceitar', /formUsarDoDiploma\('f3'\)/.test(html));
 t('e oferece manter o que é dela', /formManterOMeu\('f3'\)/.test(html));
 t('no singular, o texto acompanha', /Uma formação não bate/.test(chamar(s, '_formBannerHTML', [divs(JA_CERTO.concat([TELA_DELE[3]]))])));
@@ -112,5 +114,32 @@ t('formRenderizar desenha o aviso antes da lista', /const _aviso = _formBannerHT
 t('o aviso aparece mesmo sem nenhuma formação cadastrada', /lista\.innerHTML = _aviso \+ '<p style/.test(src));
 t('e junto da lista quando há', /lista\.innerHTML = _aviso \+ _formDados\.map/.test(src));
 t('aceitar não para na tela: salva o perfil', /f\.periodo=d\.doc\.periodo;[\s\S]{0,80}await salvarPerfil\(\);/.test(src));
+t('e salvar o Perfil registra o que ela reescreveu',
+  /guardarFormacaoSalva\(dados\.formacao\);\s*_formDispensarEditadas\(\);/.test(src));
+t('a tela guarda como estava ao abrir, para saber o que ela mexeu',
+  /_formOriginal = _formDados\.map/.test(src));
 
+
+console.log('\n=== a última palavra é de quem escreve na tela ===');
+// 22/ago/2026, Marcos: "vou editar o texto novo. O que vai valer é o que eu edito por último".
+// Sem esta regra o Senova viraria um chato: ele reescreve a linha do jeito dele, salva, e o aviso
+// reaparece propondo o diploma outra vez, para sempre. Editar E salvar É a decisão dele.
+exec(s, `localStorage.removeItem('senova_form_reconc_dispensadas')`);
+exec(s, `_formDados = ${JSON.stringify(TELA_DELE)}`);
+exec(s, `_formOriginal = _formDados.map(f=>({id:f.id, titulo:f.titulo, periodo:f.periodo}))`);
+t('antes de qualquer edição, as quatro seguem propostas', divs(TELA_DELE).length === 4);
+// Ele reescreve a linha da FGV — mantendo o "MBA", que no Brasil é como se chama a pós-graduação
+// lato sensu — e corrige o ano de entrada. Continua diferente do certificado, e tudo bem: é dele.
+exec(s, `_formDados[2].titulo = 'MBA em Gestão Empresarial pela FGV'; _formDados[2].periodo = '1999-2000'`);
+exec(s, `_formDispensarEditadas()`);
+const depois = exec(s, `_formDivergencias(_formDados)`);
+t('a linha que ele reescreveu para de ser proposta', !porInst(depois, 'fgv'));
+t('e as que ele não tocou continuam sendo', depois.length === 3, depois.length + '');
+t('inclusive a FAAP, que ele nem abriu', !!porInst(depois, 'faap'));
+// Salvar o Perfil por outro motivo (mudar o telefone, por exemplo) não pode calar avisos que ele
+// nunca leu: sem edição na formação, nada mais é dispensado.
+exec(s, `_formDispensarEditadas()`);
+t('salvar sem mexer na formação não dispensa mais nada', exec(s, `_formDivergencias(_formDados)`).length === 3);
+// E a decisão dele fica de pé: a tela reaberta amanhã não ressuscita a proposta já encerrada.
+t('a dispensa sobrevive à releitura da tela', divs(TELA_DELE).length === 3);
 fim('O Perfil reconcilia com o diploma');

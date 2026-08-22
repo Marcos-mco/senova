@@ -3058,7 +3058,7 @@ const PERFIL_MARCOS = {
     // As quatro têm documento desde 22/ago/2026, quando Marcos anexou o de Barcelona.
     { titulo: "Máster en Dirección de Marketing and Sales", instituicao: "Universitat de Barcelona, Espanha", periodo: "2013/2014", fonte: "diploma", marcas: ["barcelona"] },
     { titulo: "Mestrado em Gestão de Empresas, especialização em Marketing", instituicao: "Universidade de Évora, Portugal", periodo: "2002-2004", fonte: "diploma", marcas: ["evora"] },
-    { titulo: "Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)", instituicao: "FGV / ISAE, Curitiba", periodo: "1999-2000", fonte: "diploma", marcas: ["fgv","isae"] },
+    { titulo: "MBA em Gestão Empresarial", instituicao: "FGV / ISAE, Curitiba", periodo: "1999-2000", fonte: "diploma", marcas: ["fgv","isae"] },
     { titulo: "Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda", instituicao: "FAAP, São Paulo", periodo: "1989-1995", fonte: "diploma", marcas: ["faap"] }
   ],
   idiomas: [
@@ -3317,7 +3317,7 @@ Executivo de Marketing & Crescimento | CMO · CSO · CEO | Curitiba, PR
 
 RESUMO EXECUTIVO
 
-Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo, os últimos sete como Diretor de Marketing — equipe de 30 pessoas, 8 emissoras, carteira de R$ 500 milhões. Sólida formação internacional: pós-graduação em Gestão Empresarial pela FGV e Máster en Dirección de Marketing and Sales pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
+Executivo sênior com mais de 25 anos liderando operações de grande escala nos setores de mídia, educação e tecnologia. Mais de dez anos na RPC – Rede Paranaense de Comunicação, afiliada do Grupo Globo, os últimos sete como Diretor de Marketing — equipe de 30 pessoas, 8 emissoras, carteira de R$ 500 milhões. Sólida formação internacional: MBA em Gestão Empresarial pela FGV e Máster en Dirección de Marketing and Sales pela Universitat de Barcelona. Especialista em estratégia de crescimento, gestão de equipes de alta performance e transformação digital.
 
 EXPERIÊNCIA PROFISSIONAL
 
@@ -3377,7 +3377,7 @@ Universitat de Barcelona — Barcelona, Espanha · 2013/2014
 Mestrado em Gestão de Empresas, especialização em Marketing
 Universidade de Évora — Évora, Portugal · 2002–2004
 
-Pós-Graduação Lato Sensu em Gestão Empresarial (Especialização)
+MBA em Gestão Empresarial
 FGV / ISAE — Curitiba, PR · 1999–2000
 
 Bacharel em Comunicação Social — habilitação em Publicidade e Propaganda
@@ -4883,6 +4883,7 @@ function _expParaPayload(){
 // Mesma mecânica das experiências, e pela mesma razão: enquanto não existiu este editor, a
 // formação do CV só podia ser mudada por dentro do código. Ver formacaoDoCV.
 let _formDados = [];
+let _formOriginal = [];
 function _formNovoId(){ return 'form_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 function _formCampo(id, campo, valor){
   const f = _formDados.find(x=>x.id===id);
@@ -5011,7 +5012,26 @@ function _formCarregar(lista){
     id: f.id || _formNovoId(),
     titulo: f.titulo||'', instituicao: f.instituicao||'', periodo: f.periodo||''
   }));
+  // Retrato de como a formação estava ao abrir a tela. É a régua de _formDispensarEditadas:
+  // sem ele não dá para distinguir "ela reescreveu esta linha" de "ela nem chegou a olhar".
+  _formOriginal = _formDados.map(f=>({id:f.id, titulo:f.titulo, periodo:f.periodo}));
   formRenderizar();
+}
+// A ÚLTIMA PALAVRA É DE QUEM ESCREVE. Regra dada por Marcos em 22/ago/2026: "o que vai valer é o
+// que eu edito por último". Se ela reescreveu uma linha e salvou, ela decidiu — mesmo que o
+// resultado continue diferente do diploma (o MBA da FGV é o caso dele: no Brasil, MBA é como se
+// chama a pós-graduação lato sensu). Continuar propondo ali seria reabrir uma discussão que ela
+// já encerrou. Dispensa só o que ela MEXEU: uma linha que ela nem tocou continua sendo proposta,
+// senão salvar o Perfil por outro motivo calaria avisos que ela nunca leu.
+function _formDispensarEditadas(){
+  const antes = new Map((_formOriginal||[]).map(f=>[f.id,f]));
+  _formDivergencias(_formDados).forEach(d=>{
+    const o = antes.get(d.id);
+    if(!o) return;                                   // linha nova: ainda não houve decisão sobre ela
+    if(o.titulo===d.atual.titulo && o.periodo===d.atual.periodo) return;  // intocada
+    _formDispensar(d.chave);
+  });
+  _formOriginal = _formDados.map(f=>({id:f.id, titulo:f.titulo, periodo:f.periodo}));
 }
 function _formParaPayload(){
   return _formDados.map(f => ({
@@ -5234,6 +5254,7 @@ async function salvarPerfil(){
     // documento — gravá-lo antes da confirmação faria o CV usar uma carreira que não está salva.
     guardarExperienciasSalvas(dados.experiencias);
     guardarFormacaoSalva(dados.formacao);
+    _formDispensarEditadas();
     guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin});
     const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
     const config=await resConfig.json();
