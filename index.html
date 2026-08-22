@@ -2221,6 +2221,17 @@ select option { background: var(--bg2); }
             <button id="mv-refazer-cv-btn" class="btn btn-ghost" onclick="gerarCVInline()"
                     style="display:none;flex-shrink:0;font-size:13px;padding:7px 14px;">Refazer CV</button>
           </div>
+          <!-- Algo a destacar SÓ nesta vaga. gerarCVInline e gerarDocModal já liam este campo
+               desde sempre — ele nunca existiu na tela, então o CV do card saía sempre sem
+               contexto de rodada. O outro caminho, "Acrescentar algo sobre mim", é o oposto:
+               vai para o Perfil e vale para todas as vagas. Aqui é uso único, e a etiqueta diz. -->
+          <div>
+            <button id="mv-ctx-toggle" onclick="mvToggleCtxAnalise()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--action);font-family:var(--font);font-weight:600;padding:0;">+ Algo a destacar só nesta vaga</button>
+            <div id="mv-ctx-form" style="display:none;margin-top:8px;">
+              <textarea id="mv-ctx-analise" rows="2" placeholder="Ex.: fui indicado pelo diretor de RH desta empresa; destacar liderança de time em outro país." style="font-size:13px;line-height:1.6;font-family:var(--font);width:100%;box-sizing:border-box;resize:vertical;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);"></textarea>
+              <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Entra no CV e na carta desta vaga. Não fica salvo — para valer em todas as vagas, use "Acrescentar algo sobre mim", no veredicto.</div>
+            </div>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
             <div style="min-width:0;">
               <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">CV Executivo</div>
@@ -4021,16 +4032,51 @@ function ctxToggleUsar(id, usar) {
 function ctxTextoAtivos() {
   return (ctxCarregar() || []).filter(e => e.usar).map(e => e.texto);
 }
+// Quantos complementos do Perfil cabem num CV. Não é economia de token — é foco: acima disso o
+// documento vira lista de tudo o que a pessoa já fez, que é o oposto de um CV adaptado. Os mais
+// fortes vêm primeiro, então o corte tira sempre o mais fraco.
+const CTX_MAX_NO_CV = 8;
+function _ctxNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+// As etiquetas que a própria entrada declara depois de "Relevante:" — curadoria humana, escrita
+// por quem viveu aquilo. Valem mais que coincidência de palavra solta.
+function _ctxEtiquetas(texto){
+  const m = /relevante\s*:\s*([^]*)$/i.exec(String(texto||''));
+  if(!m) return [];
+  return m[1].split(/[,;.]/).map(x => _ctxNorm(x).trim()).filter(x => x.length > 2);
+}
+// Siglas reconhecidas por como a pessoa as ESCREVEU (caixa alta), sem lista fixa que envelhece:
+// SAP, ERP, ISO, CRM, B2C, TOTVS entram sozinhas — e a sigla nova que ela escrever amanhã também.
+function _ctxSiglas(texto){
+  return (String(texto||'').match(/\b[A-Z][A-Z0-9]{1,5}\b/g) || []).filter(x => /[A-Z]{2}/.test(x));
+}
+// A PENEIRA DO CV. O score de compatibilidade recebe TODOS os complementos ativos; aqui há filtro
+// porque o CV é curto e material irrelevante empurra para fora o que importa.
+//
+// A régua antiga era literal e burra: só palavras com MAIS de 5 letras. "Gestão de implantação
+// ERP: Oracle · SAP · TOTVS" não entrava num CV para vaga de SAP — a sigla tem três letras. O
+// mesmo acontecia com IA, ISO, CRM. Três correções, e a antiga continua inteira dentro da nova:
+//   1. acento e caixa deixam de decidir ("produção" casa com "producao");
+//   2. sigla vale 2 pontos — e casa SÓ em caixa alta no anúncio, porque "ia" minúsculo é o verbo
+//      ir em português, e "ia ser" não é experiência com inteligência artificial;
+//   3. etiqueta declarada em "Relevante:" vale 2 pontos, ou seja, entra sozinha.
+// Palavra comum de 6+ letras vale 1, casada exatamente como antes — por isso NADA que entrava
+// antes deixa de entrar. Ver testes/contexto_do_perfil_chega_ao_cv.js.
 function ctxBuscarRelevantes(vagaTexto) {
   ctxInicializar();
   const entries = (ctxCarregar() || []).filter(e => e.usar);
   if (!entries.length) return [];
-  const vaga = vagaTexto.toLowerCase();
-  return entries.filter(e => {
-    const words = e.texto.toLowerCase().split(/[\s,·•\-–:()\/]+/).filter(w => w.length > 5);
-    const matches = words.filter(w => vaga.includes(w));
-    return matches.length >= 2;
-  });
+  const vagaN = _ctxNorm(vagaTexto);
+  const siglasVaga = new Set(_ctxSiglas(vagaTexto));
+  const pontuadas = entries.map(e => {
+    let pontos = 0;
+    _ctxEtiquetas(e.texto).forEach(tag => { if (vagaN.includes(tag)) pontos += 2; });
+    _ctxSiglas(e.texto).forEach(sig => { if (siglasVaga.has(sig)) pontos += 2; });
+    _ctxNorm(e.texto).split(/[\s,·•\-–:()\/]+/).filter(w => w.length > 5)
+      .forEach(w => { if (vagaN.includes(w)) pontos += 1; });
+    return { e, pontos };
+  }).filter(x => x.pontos >= 2);
+  pontuadas.sort((a, b) => b.pontos - a.pontos);
+  return pontuadas.slice(0, CTX_MAX_NO_CV).map(x => x.e);
 }
 
 function _hideAtsExtras(){}
@@ -8296,6 +8342,7 @@ function openVagaModal(id){
   _mvDadosAberto=(id==='new'); // Dados da vaga: aberto ao criar à mão, recolhido ao reabrir
   _mvVerdAberto=false;         // Veredicto: a conclusão à vista, o raciocínio sob demanda
   const isNew=id==='new';
+  _mvLimparCtxAnalise();   // contexto de uso único é do card que abre agora, nunca do anterior
   document.getElementById('modal-vaga-title').value=isNew?'Novo Processo':'Editar Processo';
   document.getElementById('mv-delete-btn').style.display=isNew?'none':'flex';
   if(!isNew){
@@ -10231,6 +10278,26 @@ function mvAtualizarEnriquecer(){
   const ta=document.getElementById('mv-enriquecer-texto');if(ta)ta.value='';
   const st=document.getElementById('mv-enriquecer-status');if(st){st.style.display='none';st.innerHTML='';}
   _mvAtualizarHintEnriquecer();
+}
+// O contexto de uso único abre e fecha no mesmo botão — diferente do "Acrescentar algo sobre
+// mim", que se fecha sozinho ao ser enviado, porque ali existe um envio. Aqui não há envio: o
+// texto fica na tela até a pessoa gerar o documento.
+function mvToggleCtxAnalise(){
+  const form=document.getElementById('mv-ctx-form');
+  const btn=document.getElementById('mv-ctx-toggle');
+  if(!form) return;
+  const aberto=form.style.display!=='none';
+  form.style.display=aberto?'none':'';
+  if(btn) btn.textContent=(aberto?'+':'\u2212')+' Algo a destacar só nesta vaga';
+  if(!aberto){ const ta=document.getElementById('mv-ctx-analise'); if(ta) ta.focus(); }
+}
+// Zera o contexto de uso único. O modal do card é UM só, reaproveitado a cada abertura: sem esta
+// limpeza, o que se escreveu sobre a vaga A entraria dentro do CV da vaga B — e ninguém veria,
+// porque o campo nasce recolhido. Chamada sem condição em openVagaModal, card novo ou antigo.
+function _mvLimparCtxAnalise(){
+  const ta=document.getElementById('mv-ctx-analise'); if(ta) ta.value='';
+  const form=document.getElementById('mv-ctx-form'); if(form) form.style.display='none';
+  const btn=document.getElementById('mv-ctx-toggle'); if(btn) btn.textContent='+ Algo a destacar só nesta vaga';
 }
 function mvToggleEnriquecer(){
   const form=document.getElementById('mv-enriquecer-form');
