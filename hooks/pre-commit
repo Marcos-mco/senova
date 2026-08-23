@@ -1,0 +1,25 @@
+#!/bin/sh
+# Trava de commit do Senova. Cópia versionada — hooks vivem em .git/hooks, que não vai no
+# repositório e se perde em todo clone novo. Para instalar:
+#
+#     cp hooks/pre-commit .git/hooks/pre-commit
+#
+# Por que existe (S51): a suíte de testes só rodava porque eu lembrava de rodá-la. Toda trava
+# que depende de alguém lembrar é a trava que já falhou — foi assim que a regra de
+# universalidade ("nada de nome próprio na camada que decide") foi escrita em documento e
+# quebrada no mesmo dia.
+set -e
+
+echo "── pre-commit Senova ──"
+
+# 1. Nenhuma chamada à Anthropic direto do browser. Regra de ouro do CLAUDE.md: a chave da
+#    API vive no Worker; um fetch direto do index.html a publicaria para qualquer visitante.
+if grep -q "api\.anthropic\.com" index.html; then
+  echo "BLOQUEADO: index.html chama api.anthropic.com direto. Toda chamada passa pelo Worker."
+  exit 1
+fi
+
+# 2. A espinha inteira. Inclui a catraca de universalidade (senova_para_qualquer_um.js).
+node testes/run.js
+
+echo "── ok ──"

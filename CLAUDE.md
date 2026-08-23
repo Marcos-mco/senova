@@ -139,6 +139,26 @@ Antes da FASE 1, classificar a mudança nas categorias abaixo. Cada categoria ex
 | Segurança | auth, tokens, dados sensíveis, rotas do Worker | Skill `security-review` + `senova-auditor` |
 | UI/UX/copy | qualquer tela, texto, cor, componente | `skill_design_senova.md` + `skill_ux_writing.md` |
 | Bug relatado por Marcos, qualquer categoria | qualquer "não está funcionando" | Nunca propor fix por leitura de código só — medir a causa raiz no dado real (backup exportado, D1, ou `senova-auditor`) antes de codar |
+| **Regra de negócio nova / decisão automática** | qualquer condição que decida sozinha: gastar IA, filtrar, classificar, pontuar, esconder | **Crivo de universalidade** (abaixo) + `testes/senova_para_qualquer_um.js` verde |
+
+## Crivo de universalidade — o Senova é para qualquer um, em qualquer lugar
+
+Regra dita por Marcos em 23/ago/2026: *"vc está escrevendo um aplicativo para venda em
+qualquer lugar do planeta e pode ser utilizado por qq um."*
+
+> **Nome de serviço, de país ou de pessoa só pode viver em duas camadas: no adaptador que
+> fala com aquele serviço, e no dado que o usuário configurou. Nunca na camada que decide.**
+
+Falar com a Adzuna exige código da Adzuna — isso é um plugin, é legítimo. O app perguntar
+*"isto é Adzuna?"* para decidir alguma coisa, não é. Antes de escrever qualquer condição:
+*esta linha sobrevive a um usuário em Berlim que nunca ouviu falar de Adzuna?*
+
+O modo de falha recorrente tem nome: **a medição de um usuário virando lei para todos**
+(`DEFAULT_VAGAS` S40, dossiê sem credencial S41, semente do contexto complementar S49,
+`PERFIL_MARCOS` em toda análise, `_fonteVarredura` S51). Por isso a trava é executável e
+não documental: `testes/senova_para_qualquer_um.js` mede a dívida em três famílias, com
+teto que **só pode cair**, e roda no pre-commit (`hooks/pre-commit`, instalar com
+`cp hooks/pre-commit .git/hooks/pre-commit`).
 
 **FASE 1 — Arquiteto (antes de codar)**
 1. Ler `skill_qa.md` — protocolo completo de qualidade
@@ -160,6 +180,7 @@ Nunca pedir "veja se está ok" sem descrever o cenário.
 - Nunca substituir `index.html` por arquivo externo
 - Nunca refatorar CSS junto com correção de bug
 - Nunca commitar sem rodar o checklist do `skill_qa.md`
+- Nenhuma decisão do app pode depender de nome de serviço, país ou pessoa (crivo de universalidade)
 - Um fix de cada vez: commit → Marcos testa → aprova → próximo
 - Salvar backup `senova_v[N]_[data].html` antes de editar `index.html`
 
