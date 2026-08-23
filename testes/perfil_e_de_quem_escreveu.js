@@ -220,7 +220,9 @@ const PERFIL_MARCOS_KV = JSON.stringify({ nome: 'Marcos Franco', telefone: '(41)
     (worker.match(/SENOVA_KV\.get\('perfil_usuario'\)/g) || []).length === 0);
   t('a análise de vaga monta a identidade do dono que pediu',
     /montarIdentidadeCandidato\(env, perfilCandidato, dono\)/.test(worker)
-    && /analisarVaga\([^)]*metaConhecida, await donoSeguro\(request, env\)\)/.test(worker));
+    // Termina em [,)]: o que importa é que o dono venha logo depois de metaConhecida, não que
+    // a lista acabe ali (S51 acrescentou a origem da esteira no fim).
+    && /analisarVaga\([^)]*metaConhecida, await donoSeguro\(request, env\)[,)]/.test(worker));
   t('o parecer da Sofia também', /parecerSofia\(body, env, body\.perfilCandidato, ctx, await donoSeguro\(request, env\)\)/.test(worker));
   t('GET /api/config-varredura deriva a régua do perfil, sem quebrar quem lê o campo',
     /config\.score_minimo_por_regiao = await lerReguaDoPerfil\(env, await donoSeguro\(request, env\)\);/.test(worker));

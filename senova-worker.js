@@ -1,6 +1,17 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.41
+//  SENOVA PROXY — Worker v7.42
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.42 (23/ago/2026) — a varredura automática de vagas é CANCELADA, e a
+//  medição de custo ganha o segundo nível de sujeito (S51).
+//  O cron `0 10 * * *` sai do wrangler.toml: ele não gastava IA, mas enchia a piscina
+//  do radar com até 80 vagas/dia que a esteira da Home pontuava a R$ 0,08 cada. Dez dias
+//  de medição: Adzuna rendeu 2 cards e 0 currículos; o e-mail, 211 cards e 6 currículos.
+//  A colheita de e-mail (`0 */3 * * *`) fica de pé — é o canal que produziu candidatura.
+//  E `analisarVaga` para de carimbar tudo como 'radar': quem chama diz de onde veio
+//  (`esteira_home`, `card_aberto`, `extensao`), porque com um rótulo só a análise do card
+//  que Marcos abre para se candidatar era contada junto com a esteira automática — e
+//  "cortar o radar" cortaria justamente o que ele mais usa.
 //
 //  NOVIDADES v7.41 (22/ago/2026) — Fix 1 do Plano de Vida: o Perfil passa a ser
 //  DE QUEM O ESCREVEU (S50). Até aqui o Perfil inteiro morava numa chave única do
@@ -1309,7 +1320,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.41',
+        status: 'ok', worker: 'senova-proxy', versao: '7.42',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1353,8 +1364,8 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, await donoSeguro(request, env)));
+      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem } = await request.json();
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, await donoSeguro(request, env), origem));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -2377,6 +2388,9 @@ export default {
   // A higiene roda DEPOIS da entrada de vagas nas duas pontas: primeiro entra o que é novo,
   // depois sai o que já morreu ou saiu da janela — nunca o contrário, senão a rodada limpa
   // o radar velho e devolve lixo novo no mesmo minuto.
+  // 23/ago/2026: o cron das 10h está desligado no wrangler.toml — hoje só o de 3 em 3
+  // horas dispara, e ele cai no `else`. O ramo da varredura fica escrito de propósito:
+  // é o caminho de volta, e "Varrer agora" (POST /api/varredura-manual) continua vivo.
   async scheduled(event, env, ctx) {
     if (event.cron === '0 10 * * *') ctx.waitUntil(executarVarredura(env, true).then(() => higienizarRadar(env)));
     else ctx.waitUntil(colherVagasDeEmail(env).then(() => higienizarRadar(env)));
@@ -3256,7 +3270,16 @@ function vagaRecente(d, janelaDias = 3) {
 // de margem poderia mais se apoiar nele — o defeito de [[feedback_instrumentacao_precisa_de_sujeito]].
 // `origem` é fechada de propósito: quem inventar um rótulo novo cai em 'app' e aparece como
 // tal, em vez de criar uma linha órfã que ninguém sabe ler depois.
-const ORIGENS_CUSTO = new Set(['radar', 'plano_vida', 'sofia', 'email', 'mercado', 'app']);
+// v7.42 — a medição ganha o SEGUNDO nível de sujeito. 'radar' respondia por 2.684 das 2.741
+// chamadas (97,9%), mas o rótulo era carimbado dentro de `analisarVaga`: TODA análise de vaga
+// virava "radar", viesse ela da esteira automática da Home, do card que Marcos abriu para se
+// candidatar ou da extensão. Com um rótulo só, "cortar o radar" podia virar corte justamente
+// no que ele mais usa. As sub-origens abaixo separam as esteiras; 'radar' fica de pé porque é
+// o histórico de 10 dias já gravado — e é o rótulo de quem não disser de onde veio.
+const ORIGENS_CUSTO = new Set([
+  'radar', 'plano_vida', 'sofia', 'email', 'mercado', 'app',
+  'esteira_home', 'card_aberto', 'extensao',
+]);
 async function _registrarCustoIA(env, usage, origem) {
   if (!usage || !env.SENOVA_DB) return;
   const quem = ORIGENS_CUSTO.has(origem) ? origem : 'app';
@@ -3280,7 +3303,7 @@ async function _registrarCustoIA(env, usage, origem) {
   }
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto) {
   // Identidade dinâmica (S46): lê o perfil do KV direto no Worker — ver
   // montarIdentidadeCandidato. perfilCandidato continua existindo como override
   // explícito (dry-run/testes); em produção nenhum call site manda, então isto
@@ -3368,7 +3391,11 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'radar'));
+    // v7.42: quem chamou diz de qual esteira veio. Sem isso, a análise do card que Marcos
+    // abriu para se candidatar era contada como "radar" junto com a esteira automática — e
+    // "cortar o radar" cortaria o que ele mais usa. Chamada que não se identifica continua
+    // 'radar': o rótulo do histórico, nunca um rótulo inventado que suma da medição.
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar'));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;

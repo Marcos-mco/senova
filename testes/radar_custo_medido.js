@@ -35,8 +35,12 @@ t('_registrarCustoIA sai cedo quando não há usage ou não há D1 (resposta sem
 console.log('\n=== a instrumentação nunca derruba nem atrasa a análise real ===');
 t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
   /async function _registrarCustoIA[\s\S]{0,200}try \{[\s\S]{0,1400}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
+// v7.42 (S51): o rótulo da análise deixou de ser a constante 'radar' — quem chama diz de
+// qual esteira veio, e 'radar' virou o padrão de quem não disser. O que este teste guarda
+// é o waitUntil (não atrasar a resposta), não mais o literal; a sub-origem tem guarda
+// própria em testes/varredura_cancelada.js.
 t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
-  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, 'radar'\)\)/.test(worker));
+  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'\)\)/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
   /async function analisarVaga\([^)]*\bctx\b[^)]*\)/.test(worker) &&
   // O que importa aqui é a POSIÇÃO do ctx, não quantos argumentos vêm depois: fixar a lista
@@ -60,7 +64,9 @@ t('a origem vem de um catálogo fechado, e o que não estiver nele cai em "app"'
   /const ORIGENS_CUSTO = new Set\(\[[^\]]*'radar'[^\]]*'plano_vida'[^\]]*\]\)/.test(worker) &&
   /ORIGENS_CUSTO\.has\(origem\) \? origem : 'app'/.test(worker));
 t('todo ponto de chamada à Anthropic carimba a sua origem',
-  ['radar','email','sofia','mercado'].every(o => new RegExp(`_registrarCustoIA\\(env, [a-z]+\\.usage, '${o}'\\)`).test(worker)) &&
+  ['email','sofia','mercado'].every(o => new RegExp(`_registrarCustoIA\\(env, [a-z]+\\.usage, '${o}'\\)`).test(worker)) &&
+  // A análise de vaga carimba a esteira que pediu, com 'radar' de padrão (v7.42).
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'\)/.test(worker) &&
   /_registrarCustoIA\(env, dados\.usage, origem\)/.test(worker));
 
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');

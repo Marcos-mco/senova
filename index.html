@@ -1379,7 +1379,8 @@ select option { background: var(--bg2); }
           <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);">⚡ Busca automática</div>
           <div id="varredura-status-pill" style="font-size:12px;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:20px;">Carregando…</div>
         </div>
-        <div style="font-size:12.5px;color:var(--text3);margin-bottom:10px;">Adzuna · Jobicy — cron diário 07:00 BRT</div>
+        <div style="font-size:12.5px;color:var(--text3);margin-bottom:10px;">Adzuna · Jobicy — <strong style="color:var(--text2);">automático desligado</strong> desde 23/ago/2026. Só busca quando você pedir.</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:10px;background:var(--bg3);padding:10px 12px;border-radius:8px;">Em 10 dias de medição, esta busca rendeu 2 processos e nenhum currículo enviado, ao custo de cerca de R$ 195 por mês em análise. Os alertas por e-mail renderam 211 processos e 6 currículos, e continuam ligados de 3 em 3 horas.</div>
         <div id="varredura-ultima-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:12px;">—</div>
         <button class="btn btn-ghost" onclick="dispararVarreduraManual()" id="btn-varredura-manual" style="font-size:13px;padding:8px 16px;">▶ Buscar agora</button>
         <div id="varredura-save-ok" style="display:none;font-size:12.5px;color:var(--green);margin-top:8px;font-weight:600;"></div>
@@ -6872,16 +6873,33 @@ async function salvarConfigVarredura(){
 }
 
 async function dispararVarreduraManual(){
+  // O custo é dito ANTES do clique, e é o custo de verdade. Buscar não custa nada —
+  // Adzuna e Jobicy são chamadas HTTP grátis. O que custa é a análise de cada vaga
+  // trazida, e é por isso que a rodada inteira tem preço.
+  if(!confirm(
+    'Buscar agora nas fontes automáticas (Adzuna e Jobicy)?\n\n'+
+    'A busca é gratuita, mas cada vaga trazida custa cerca de R$ 0,08 para ser analisada. '+
+    'Uma rodada traz até 80 vagas — cerca de R$ 6,40.\n\n'+
+    'Em 10 dias de medição, a busca automática rendeu 2 processos e nenhum currículo '+
+    'enviado; os alertas por e-mail renderam 211 processos e 6 currículos. Por isso ela '+
+    'está desligada no automático desde 23/ago/2026.'
+  )) return;
   const btn = document.getElementById('btn-varredura-manual');
-  if(btn){btn.textContent='⏳ Varrendo…';btn.disabled=true;}
+  if(btn){btn.textContent='⏳ Buscando…';btn.disabled=true;}
   try{
     await fetch(WORKER_URL+'/api/varredura-manual',{method:'POST'});
     setTimeout(async()=>{
       await carregarStatusVarredura();
-      if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
+      // A autorização é dada aqui e gasta na colheita logo abaixo. Chamar
+      // verificarVagasVarredura direto é o que traz o resultado desta rodada sem
+      // obrigá-lo a ir até a Home — e sem deixar a permissão pendurada.
+      _varreduraPedida=true;
+      try{ await verificarVagasVarredura(); }finally{ _varreduraPedida=false; }
+      if(btn){btn.textContent='▶ Buscar agora';btn.disabled=false;}
     }, 8000);
   }catch{
-    if(btn){btn.textContent='▶ Varrer agora';btn.disabled=false;}
+    _varreduraPedida=false;
+    if(btn){btn.textContent='▶ Buscar agora';btn.disabled=false;}
   }
 }
 
@@ -7410,7 +7428,12 @@ function renderWidgetRevisao(){
         <div style="font-size:12.5px;color:var(--text3);">${escHtml(ex.sub)}</div>
         <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
           ${nota===null
-            ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Avaliando…</span>`
+            ? (_fonteVarredura(v)&&v.analisePedida!==true
+                // "Avaliando…" seria mentira: com a busca automática desligada, ninguém
+                // vai avaliar esta vaga sozinho. O card fica, o link fica, e "Enviar para
+                // Processos" abre-a — é lá que a análise é pedida, por ato dele.
+                ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Sem análise · busca automática desligada</span>`
+                : `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Avaliando…</span>`)
             : `<span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:10px;color:${cls.cor};background:${bgDoScore(nota)};">${nota} · ${cls.titulo}</span>`}
         </div>
         ${motivo?`<div style="display:flex;gap:6px;font-size:12.5px;color:var(--amber);background:var(--amber-bg);border-radius:7px;padding:7px 9px;line-height:1.45;">
@@ -7464,6 +7487,9 @@ function renderWidgetRevisao(){
 function _promoverTriagem(id){
   const idx=vagas.findIndex(v=>String(v.id)===String(id)&&v.status==='triagem');
   if(idx<0) return;
+  // "Enviar para Processos" É o gesto. Vaga da varredura só é analisada por ato dele, e
+  // este é o ato — sem isto, ela chegaria a Processos e ficaria muda para sempre.
+  vagas[idx].analisePedida=true;
   setStatus(vagas[idx],'lead',{skipConfirm:true,texto:'Enviada para Processos'});
   saveVagas(); aplicarFiltros(); renderWidgetRevisao();
   showToast('✅ Enviada para Processos');
@@ -7481,14 +7507,14 @@ function _pcEnviarSelecionadas(){
   let n=0;
   cbs.filter(cb=>cb.dataset.type==='triagem').forEach(cb=>{
     const i=vagas.findIndex(v=>String(v.id)===String(cb.dataset.id)&&v.status==='triagem');
-    if(i>=0){ setStatus(vagas[i],'lead',{skipConfirm:true,texto:'Enviada para Processos'}); n++; }
+    if(i>=0){ vagas[i].analisePedida=true; setStatus(vagas[i],'lead',{skipConfirm:true,texto:'Enviada para Processos'}); n++; }
   });
   // varredura: reler lista e remover do MAIOR índice p/ o menor (splice não bagunça)
   const idxs=cbs.filter(cb=>cb.dataset.type==='revisao').map(cb=>parseInt(cb.dataset.idx)).sort((a,b)=>b-a);
   if(idxs.length){
     let lista=[]; try{ lista=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
     const agora=Date.now();
-    idxs.forEach(i=>{ const v=lista[i]; if(v){ vagas.push(_montarCardVarredura(v,agora)); lista.splice(i,1); n++; } });
+    idxs.forEach(i=>{ const v=lista[i]; if(v){ const _c=_montarCardVarredura(v,agora); _c.analisePedida=true; vagas.push(_c); lista.splice(i,1); n++; } });
     try{ localStorage.setItem(_REVISAO_KEY, JSON.stringify(lista)); }catch{}
   }
   saveVagas(); aplicarFiltros(); renderWidgetRevisao();
@@ -7848,6 +7874,10 @@ let _vagasLeadPendentes=[];
 let _vagasLeadAutoAdicionadas=0;
 let _loteEmAnalise=new Set();
 let _varreduraStatus=null;
+// Autorização de UMA colheita da varredura, dada por "Buscar agora" (Configurações).
+// Nasce falsa a cada carga do app: a varredura automática está cancelada desde
+// 23/ago/2026, e nada de Adzuna/Jobicy entra no Kanban sem um gesto dele.
+let _varreduraPedida=false;
 let _emailsAvulsos=[];
 let _emailsProcesso=[];
 let _emailsMercado=[];
@@ -10360,7 +10390,7 @@ async function mvAutoCompatCheck(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),
+      body:JSON.stringify({titulo:cargoAtual||'',empresa:empresaAtual||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),origem:'card_aberto',
         metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value,alvo.metaInferida)})
     });
     if(!res.ok){ _mvCompatMsg('Não foi possível calcular agora.'); return; }
@@ -10534,7 +10564,7 @@ async function mvReanalisarCompat(){
   try{
     const res=await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior,
+      body:JSON.stringify({titulo:v.cargo||'',empresa:v.empresa||'',descricao:jobDesc.slice(0,5000),contexto:ctxTextoAtivos(),scoreAnterior:scoreAnterior||undefined,perfilVAnterior,origem:'card_aberto',
         metaConhecida:_metaConhecidaVaga(document.getElementById('mv-localizacao')?.value,document.getElementById('mv-modelo')?.value,document.getElementById('mv-regime')?.value,document.getElementById('mv-jornada')?.value,v.metaInferida)})
     });
     if(!res.ok){ showToast('Não foi possível recalcular. Tente novamente.'); mvUpdateScoreDisplay(); return null; }
@@ -11578,13 +11608,21 @@ async function verificarVagasVarredura(){
     try{ if(resCfg.ok) _configVarredura=await resCfg.json(); }catch{}
     _reavaliarTriagem(); // promove triagem já pontuada que passa o Critério (inclui os recolhidos)
     const deletados=Store.deletados();
+    // 23/ago/2026: com a varredura cancelada, o que vem de Adzuna/Jobicy NÃO entra mais
+    // no Kanban por conta própria. Não é apagado — continua na piscina do radar no
+    // Worker, e volta inteiro no dia em que ele pedir "Buscar agora" (`_varreduraPedida`)
+    // ou religar o cron. Deixar entrar sem poder pontuar criaria card mudo, eternamente
+    // "Avaliando…" — economia paga com mentira na tela, que não é economia.
     const pendentes=(dataLead.vagas||[])
-      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v)&&!_vagaJaExiste(v));
+      .filter(v=>!vagas.some(e=>String(e.id)===String(v.id))&&!deletados.has(String(v.id))&&!_ehVagaLixo(v)&&!_vagaJaExiste(v))
+      .filter(v=>!_fonteVarredura(v)||_varreduraPedida);
     _vagasLeadPendentes=[];
     if(pendentes.length>0){
       const agora=Date.now();
       pendentes.forEach(v=>{
         const card=_montarCardVarredura(v,agora);
+        // A permissão viaja no card: ele pediu esta rodada, então esta rodada é analisada.
+        if(_varreduraPedida&&_fonteVarredura(card)) card.analisePedida=true;
         // NADA entra no Kanban sem nota. Toda vaga vinda de fora nasce em
         // TRIAGEM ("Para Considerar") e só vira Oportunidade quando a
         // Compatibilidade atinge o Critério da região — a promoção é
@@ -11601,6 +11639,10 @@ async function verificarVagasVarredura(){
       // ainda não foi avaliado é justamente a mentira que estamos tirando daqui.
       _vagasLeadAutoAdicionadas=0;
     }
+    // A permissão vale por UMA colheita, e é gasta aqui — inclusive quando a rodada não
+    // trouxe nada. Sem isto, um "Buscar agora" de hoje continuaria autorizando a entrada
+    // (e a conta) em toda visita à Home até o app ser recarregado.
+    _varreduraPedida=false;
     // FORA do if de propósito. Antes só rodava quando chegava vaga nova, então
     // os cards mudos que JÁ estavam no Kanban nunca eram analisados — e é
     // exatamente esse o estoque de hoje. E é _recalcLeadsReset, não
@@ -11646,8 +11688,23 @@ function atualizarSinalVarredura(){ atualizarSinalOportunidades(); }
 // fila, e as outras 147 atrás delas nunca chegam a ser analisadas.
 // É memória de sessão de propósito: no próximo Ctrl+Shift+R tenta de novo.
 const _analiseFalhou=new Set();
+// 23/ago/2026 — a varredura automática está CANCELADA (decisão de Marcos). Estas são as
+// fontes dela. O e-mail (`email_alerta`, `email`), a extensão (`extensao_chrome`) e o que
+// Marcos cria à mão NÃO estão aqui: continuam sendo analisados como sempre.
+// Medido em 10 dias: Adzuna/Jobicy renderam 2 cards e 0 currículos enviados; o e-mail,
+// 211 cards e 6 currículos. O gasto nunca foi coletar — foi pontuar cada vaga coletada.
+// Vocabulário fechado, e dentro da própria função de propósito: quem depender dela leva a
+// lista junto, sem uma segunda declaração para manter em dia.
+function _fonteVarredura(v){
+  const f=String(v?.fonte||'').toLowerCase();
+  return f==='adzuna'||f==='jobicy';
+}
 function _elegivelParaAnalise(v){
+  // `analisePedida` é o gesto dele: vaga trazida por "Buscar agora" carrega a permissão
+  // no próprio card. Permissão por card, não modo global — assim uma rodada pedida hoje
+  // não autoriza silenciosamente todas as de amanhã.
   return (v.status==='lead'||v.status==='triagem')
+    && (!_fonteVarredura(v) || v.analisePedida===true)
     && ((v.jobDescription||v.descricao||'').trim().length>120)
     && typeof v.score!=='number' && !v.atsScore
     && !_analiseFalhou.has(String(v.id));
@@ -11669,7 +11726,7 @@ async function analisarLoteBackground(){
   const _analisarUma=async v=>{
     try{
       const desc=v.jobDescription||v.descricao||'';
-      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),origem:'esteira_home',metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
       _loteEmAnalise.delete(String(v.id));
       // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
       // esteira inteira fica quente com um único aquecimento por janela.
@@ -13652,6 +13709,9 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   // em "Aguardando análise" quando a descrição não mudou mas nunca foi pontuada).
   const _semNota=!(vagas[idx].atsScore&&parseInt(vagas[idx].atsScore)>0)&&!(typeof vagas[idx].score==='number'&&vagas[idx].score>0);
   if((vagas[idx].status==='lead'||vagas[idx].status==='triagem')&&desc.length>120&&(_descMudou||_semNota)){
+    // Abrir a página da vaga com a extensão é gesto dele — vale como pedido de análise
+    // mesmo que a vaga tenha entrado pela varredura, hoje desligada no automático.
+    vagas[idx].analisePedida=true;
     clearTimeout(window._enriqRecalcT);
     window._enriqRecalcT=setTimeout(()=>{ try{ analisarLoteBackground(); }catch{} }, 1500);
   }

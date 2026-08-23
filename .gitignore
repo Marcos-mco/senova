@@ -21,3 +21,6 @@ Thumbs.db
 # Segredos do Worker em desenvolvimento (wrangler dev os lê daqui). Os de produção vivem
 # em Cloudflare › Settings › Variables e NUNCA no repositório.
 .dev.vars
+
+# Backups locais do Worker (snapshots de senova-worker.js)
+*.js.bak

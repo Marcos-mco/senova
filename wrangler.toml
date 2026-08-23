@@ -20,4 +20,10 @@ database_name = "senova"
 database_id = "362f0754-baa9-4630-a78f-2572519a9e04"
 
 [triggers]
-crons = ["0 10 * * *", "0 */3 * * *"]
+# 23/ago/2026 — a varredura automática de vagas (`0 10 * * *`, Adzuna + Jobicy) está
+# DESLIGADA por decisão de Marcos. Ela não gastava IA por si, mas despejava até 80 vagas
+# por dia na piscina do radar, e a esteira da Home pagava R$ 0,08 para pontuar cada uma.
+# O rendimento medido em 10 dias: Adzuna, 2 cards e 0 currículos enviados; e-mail, 211
+# cards e 6 currículos. Fica só a colheita de e-mail (`0 */3 * * *`), que não chama IA.
+# Para voltar atrás: reinserir "0 10 * * *" abaixo e `npx wrangler deploy`.
+crons = ["0 */3 * * *"]

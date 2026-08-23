@@ -219,7 +219,9 @@ console.log('\n=== o Worker: prompt instrui a nunca contradizer o que já sabe, 
   t('analisarVaga aceita metaConhecida como parâmetro',
     /async function analisarVaga\([^)]*metaConhecida[^)]*\)/.test(worker));
   t('a rota POST /api\\/analisar-vaga desestrutura metaConhecida do corpo recebido e repassa',
-    /const \{ titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida \}/.test(worker) &&
+    // Mesma regra do argumento: guarda-se a presença e a ordem, não o fim da lista — campo
+    // novo no corpo (S51: a origem da esteira) não é regressão nenhuma.
+    /const \{ titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida[,\s}]/.test(worker) &&
     // Ver a mesma nota em radar_custo_medido.js: o que se guarda é a POSIÇÃO do argumento, não o
     // tamanho da lista — argumento novo no fim (S50: o dono do Perfil) não é regressão nenhuma.
     /analisarVaga\(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida[,)]/.test(worker));
