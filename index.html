@@ -4553,7 +4553,7 @@ async function candidatarVagaATS(){
   vagas[savedIdx].canalDiretoDestino=vagas[savedIdx].canalDiretoDestino||atsCanalDiretoDestino;
   vagas[savedIdx].canalDiretoInstrucao=vagas[savedIdx].canalDiretoInstrucao||atsCanalDiretoInstrucao;
   const _tipoDest=vagas[savedIdx].canalDiretoTipo||atsCanalDiretoTipo;
-  const emailDest=(idx>=0?vagas[idx].emailDest:'')||atsEmailDest||(_tipoDest==='Email'?atsCanalDiretoDestino:'');
+  const emailDest=destinoCandidatura(vagas[savedIdx],(idx>=0?vagas[idx].emailDest:''),atsEmailDest,_tipoDest==='Email'?atsCanalDiretoDestino:'');
   const codigoDest=vagas[savedIdx].canalDiretoInstrucao||'';
   atsOrigemVagaId=null;atsEmailDest='';atsEmpresa='';atsCargo='';atsCanalDiretoTipo='';atsCanalDiretoDestino='';atsCanalDiretoInstrucao='';
   saveVagas();
@@ -8552,9 +8552,10 @@ function openVagaModal(id){
       ?notasBruta.replace(/<[^>]+>/g,' ').replace(/https?:\/\/\S+/g,'').replace(/\[[^\]]+\]/g,'').replace(/&[a-z]+;/gi,' ').replace(/%[0-9A-F]{2}/gi,' ').replace(/\s+/g,' ').trim()
       :notasBruta;
     document.getElementById('mv-notas').value=notasLimpas;
-    const emailDestVal=v.emailDest||'';
-    const isNoReply=/noreply|no-reply|notifications@|alerts@|jobs@linkedin|mailer@|bounce@/i.test(emailDestVal);
-    document.getElementById('mv-email-dest').value=isNoReply?'':emailDestVal;
+    // Mostra o endereço de verdade da candidatura — inclusive o que veio da análise em
+    // `canalDiretoDestino` e nunca chegou a `emailDest`. Caixa que não lê resposta continua
+    // sendo escondida, mas o campo em branco NÃO apaga mais o que está guardado (saveVaga).
+    document.getElementById('mv-email-dest').value=destinoCandidatura(v);
     const origemUrlVal=v.origemUrl||'';
     const _urlRuim=!origemUrlVal.startsWith('http')||origemUrlVal.includes('@')||/comm\/feed|\/feed\?|linkedin\.com\/(mynetwork|notifications|messaging|premium|learning)/i.test(origemUrlVal);
     const origemUrlLimpa=_urlRuim?'':origemUrlVal;
@@ -8938,7 +8939,7 @@ async function candidatarDoModal(){
   // saveVaga() não copia lastCV para card novo — persiste aqui (card = fonte de verdade).
   if(!vagas[vagaIdx].atsCV && lastCV){ setCV(vagas[vagaIdx],lastCV); saveVagas(); }
   const saved=vagas[vagaIdx];
-  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:saved.emailDest||'',carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
+  abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:destinoCandidatura(saved),carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
 }
 function marcarEntrevista(){ document.getElementById('mv-status').value='entrevista'; atualizarBotoes(); }
 function registrarResultado(){ document.getElementById('mv-status').value='proposta'; atualizarBotoes(); }
@@ -9282,7 +9283,10 @@ function saveVaga(){
     metaInferida:_metaInferidaPosSave,
     data:existing?.data||'',
     notas:document.getElementById('mv-notas').value,
-    emailDest:document.getElementById('mv-email-dest').value,
+    // Campo em branco não apaga endereço guardado: o card esconde caixas que não leem
+    // resposta, e antes disto o "Salvar" gravava esse branco por cima da fonte — perda
+    // silenciosa, no mesmo clique em que candidatarDoModal() salva e logo relê.
+    emailDest:(document.getElementById('mv-email-dest').value||'').trim()||existing?.emailDest||'',
     origemUrl:document.getElementById('mv-origem-url').value,
     motivo:document.getElementById('mv-motivo').value,
     indicacao:document.getElementById('mv-indicacao')?.value||existing?.indicacao||'',
@@ -10763,7 +10767,7 @@ function saveVagaSilent(){
     metaInferida:_metaInferidaPosSave,
     data:existing?.data||'',
     notas:document.getElementById('mv-notas')?.value||'',
-    emailDest:document.getElementById('mv-email-dest')?.value||'',
+    emailDest:(document.getElementById('mv-email-dest')?.value||'').trim()||existing?.emailDest||'',
     origemUrl:document.getElementById('mv-origem-url')?.value||'',
     motivo:document.getElementById('mv-motivo')?.value||'',
     jobDescription:document.getElementById('mv-job-desc')?.value||'',
@@ -12403,6 +12407,27 @@ async function enviarRespostaEmailAvulso(btn){
   }catch{btn.textContent='Erro — tentar novamente';btn.style.color='var(--red)';btn.disabled=false;}
 }
 
+// ── PARA QUEM VAI A CANDIDATURA — ponto único de LEITURA ─────────────────────
+// 24/ago/2026 (S52). Marcos: "a candidatura por email do card parou de funcionar". Medido
+// no D1, no dado real: a última candidatura que saiu (FGV, 21/jul) tinha o endereço em
+// `canalDiretoDestino` e `emailDest` **undefined** — ela só pôde sair pela tela Analisar CV,
+// que caía para `canalDiretoDestino`. O caminho do CARD lia só `emailDest`, e por isso abria
+// o modal com o campo vazio e morria em "Preencha o email do recrutador".
+// A causa de fundo é a de sempre: `emailDest` era um ESPELHO oportunista, escrito por três
+// lugares diferentes, todos sob `if(!alvo.emailDest)` e todos só no momento da análise.
+// Espelho não é fonte. Aqui a fonte é lida uma vez só, na mesma ordem, por todo mundo —
+// e a guarda de no-reply (não se manda currículo para caixa que não lê) vale para todos,
+// em vez de existir só na hora de desenhar a tela.
+function _ehNoReply(e){ return /noreply|no-reply|notifications@|alerts@|mailer@|bounce@|donotreply/i.test(String(e||'')); }
+function destinoCandidatura(v,...alternativas){
+  const tipo=(v&&(v.canalDiretoTipo||(v.canalDiretoEmail?'Email':'')))||'';
+  const canal=tipo==='Email'?((v&&(v.canalDiretoDestino||v.canalDiretoEmail))||''):'';
+  for(const c of [v&&v.emailDest,...alternativas,canal]){
+    const e=String(c||'').trim();
+    if(e&&/@/.test(e)&&!_ehNoReply(e)) return e;
+  }
+  return '';
+}
 function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv,codigoDest}){
   _candidaturaVagaIdx=savedVagaIdx;
   document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
@@ -12489,12 +12514,20 @@ async function enviarCandidaturaOutlook(btn){
   if(!assunto){alert('Preencha o assunto.');return;}
   if(!corpo){alert('O corpo do email está vazio.');return;}
   // Anexa o MESMO PDF Executivo do card (seta os globais que o gerador lê e restaura).
+  // A montagem do PDF fica DENTRO do try: fora dele, um erro aqui escapava da função com o
+  // botão ainda escrito "Enviar pelo Outlook" — clique morto, sem uma palavra na tela.
   let anexos=[];
-  if(_candCV.trim()){
-    const _restaurar=_pdfCtxDoCard(vagas[_candidaturaVagaIdx],_candCV,_candCVFilename);
-    const b64=_pdfExecBase64();
-    _restaurar();
-    if(b64) anexos=[{nome:_candCVFilename+'_executivo.pdf',conteudoBase64:b64,tipo:'application/pdf'}];
+  try{
+    if(_candCV.trim()){
+      const _restaurar=_pdfCtxDoCard(vagas[_candidaturaVagaIdx],_candCV,_candCVFilename);
+      let b64='';
+      try{ b64=_pdfExecBase64(); } finally { _restaurar(); }
+      if(b64) anexos=[{nome:_candCVFilename+'_executivo.pdf',conteudoBase64:b64,tipo:'application/pdf'}];
+    }
+  }catch(e){
+    if(!confirm('Não consegui montar o PDF do CV para anexar. Enviar só com o texto do e-mail?')) {
+      btn.textContent='Enviar pelo Outlook';btn.disabled=false;return;
+    }
   }
   if(!anexos.length && !confirm('Nenhum CV em anexo. Enviar só com o texto do e-mail?')) return;
   btn.textContent='Enviando…';btn.disabled=true;
