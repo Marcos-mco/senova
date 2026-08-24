@@ -2299,7 +2299,7 @@ select option { background: var(--bg2); }
       <div class="mv-sec">
         <div class="mv-sec-head"><span class="mv-sec-title" id="mv-andamento-title">Dados da vaga</span></div>
         <!-- auto-fit: quando um campo sai por já estar nos pills do topo, os que ficam preenchem a linha -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:8px;">
+        <div id="mv-dados-operacional" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:8px;">
           <input type="text" id="mv-localizacao" placeholder="Localização" style="font-size:13px;" oninput="mvUpdateScoreDisplay()">
           <select id="mv-modelo" style="font-size:13px;" onchange="mvUpdateScoreDisplay()">
             <option value="">Modelo</option>
@@ -9048,8 +9048,22 @@ function mvAjustarSecoesStatus(status){
   //  candidatar-se já está nos pills do cabeçalho; o operacional reaparece a partir de CV Enviado.
   //  Exceção: criação manual de card (novo) precisa dos campos para digitar.
   const _isNovoCard=!editingVagaId||editingVagaId==='new';
+  // 24/ago/2026: a seção inteira sumia na Oportunidade salva, e junto sumia o "Email do
+  // recrutador" — o campo que ele preenche na criação manual e de que a candidatura depende.
+  // Ele mandou deixá-lo visível. A decisão da S38 continua valendo para o resto: o operacional
+  // (localização, modelo, regime, canal, notas) só reaparece a partir de CV Enviado, porque na
+  // Oportunidade o que decide já está nos pills do topo. Fica na tela o par que responde
+  // "como chego à vaga" e "com quem falo" — que é do que a candidatura precisa.
   // order '5' no lead: na criação manual (novo) "Dados" fica abaixo da descrição, não no topo.
-  if(andamentoSec){ andamentoSec.style.display=(isLead&&!_isNovoCard)?'none':''; andamentoSec.style.order=isLead?'5':''; }
+  const _leadSalvo=isLead&&!_isNovoCard;
+  if(andamentoSec){ andamentoSec.style.display=''; andamentoSec.style.order=isLead?'5':''; }
+  const _tituloDados=document.getElementById('mv-andamento-title');
+  if(_tituloDados) _tituloDados.textContent=_leadSalvo?'Link da vaga e contato':'Dados da vaga';
+  const _oper=document.getElementById('mv-dados-operacional');
+  if(_oper) _oper.style.display=_leadSalvo?'none':'grid';
+  const _notas=document.getElementById('mv-notas');
+  if(_notas) _notas.style.display=_leadSalvo?'none':'';
+  if(_leadSalvo){ const _ind=document.getElementById('mv-indicacao-row'); if(_ind) _ind.style.display='none'; }
   const _dadosToggleWrap=document.getElementById('mv-dados-toggle-wrap');
   if(_dadosToggleWrap) _dadosToggleWrap.style.display='none';
   const timelineSec=document.getElementById('mv-timeline-section');

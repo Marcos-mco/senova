@@ -197,6 +197,35 @@ console.log('\n=== clique morto: montar o PDF não pode escapar sem uma palavra 
     /Não consegui montar o PDF/.test(fn) && /btn\.textContent='Enviar pelo Outlook';btn\.disabled=false;return;/.test(fn));
 }
 
+console.log('\n=== o campo do recrutador não pode sumir da Oportunidade salva ===');
+{
+  // Ele preenche "Email do recrutador" ao criar o card à mão — e, salvo o card, a seção
+  // inteira era ocultada no estágio Oportunidade: o campo saía da vista e não havia como
+  // conferir nem corrigir o destino. Marcos: "deixar visível".
+  const i = html.indexOf('function mvAjustarSecoesStatus(');
+  const fn = html.slice(i, html.indexOf('\nfunction ', i + 10));
+  t('a seção deixou de ser ocultada em bloco na Oportunidade salva',
+    !/andamentoSec\.style\.display=\(isLead&&!_isNovoCard\)\?'none':''/.test(fn));
+  t('e passa a ficar visível em todos os estágios',
+    /andamentoSec\.style\.display=''/.test(fn));
+  t('o operacional (localização, modelo, regime, canal) continua fora da Oportunidade — decisão da S38',
+    /_oper\.style\.display=_leadSalvo\?'none':'grid'/.test(fn));
+  t('as notas também seguem fora da Oportunidade', /_notas\.style\.display=_leadSalvo\?'none':''/.test(fn));
+  t('o título diz a verdade sobre o que sobrou na tela',
+    /_leadSalvo\?'Link da vaga e contato':'Dados da vaga'/.test(fn));
+
+  // O bloco que sobra tem de conter os dois campos — se alguém mover o e-mail para dentro do
+  // grid operacional, ele volta a sumir sem nenhum teste reclamar.
+  const iOper = html.indexOf('id="mv-dados-operacional"');
+  const fimOper = html.indexOf('id="mv-indicacao-row"', iOper);
+  t('o campo do recrutador NÃO está dentro do bloco que é ocultado',
+    html.indexOf('id="mv-email-dest"') > fimOper, 'o campo caiu dentro de mv-dados-operacional');
+  t('e a URL da vaga o acompanha, no mesmo par',
+    html.indexOf('id="mv-origem-url"') > fimOper);
+  t('o campo continua avisando o pill enquanto ele digita',
+    /id="mv-email-dest"[^>]*oninput="mvSyncEnvioDireto\(\)"/.test(html));
+}
+
 console.log('\n=== nada disto depende de nome de portal (crivo de universalidade) ===');
 {
   const i = html.indexOf('function _ehNoReply(');
