@@ -1,6 +1,32 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.42
+//  SENOVA PROXY — Worker v7.44
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.44 (24/ago/2026) — a descrição completa da vaga volta a ser capturada.
+//  Bug relatado por Marcos: "a candidatura por email do card parou de funcionar" e "também
+//  parou de trazer a descrição completa da vaga". Uma raiz só, externa e medida: em 6 buscas
+//  (3 vagas ativas do LinkedIn, página pública e endpoint guest) o HTML volta 200 com ~300 KB
+//  e ZERO blocos `application/ld+json`. O portal removeu o JSON-LD — que era o ÚNICO passo de
+//  /api/fetch-descricao capaz de devolver descrição completa. Sem descrição não há análise;
+//  sem análise não há `candidatura_direta_destino`; sem ele o card deixa de oferecer o envio
+//  por e-mail. Nada tinha sido publicado: a captura dependia de um contrato de terceiro.
+//  Agora existe um passo 1.5 que lê o bloco da descrição do próprio HTML, por uma TABELA de
+//  contêineres tentada em ordem para qualquer página (adaptador, não decisão por portal).
+//  Medido entregando 2.249-3.918 caracteres onde antes voltava HTTP 422.
+//
+//  NOVIDADES v7.43 (24/ago/2026) — a medição de custo ganha o TERCEIRO nível de sujeito:
+//  DE QUEM foi o gasto (S52, Passo D0).
+//  A 003 respondeu "o que gastou" (origem); a PK (dia, origem) tornava "quem gastou"
+//  impossível de perguntar. Agora `custo_ia_v2` tem PK (dia, user_id, origem) —
+//  migrations/004_custo_ia_por_usuario.sql — e as cinco chamadas de IA medidas passam o
+//  dono adiante (análise de vaga, Sofia, e-mail, sinais de mercado e o proxy /api/claude).
+//  Duas coisas dependiam disso e nenhuma é de amanhã: o teto de gasto por pessoa (com balde
+//  comum, o primeiro a gastar fecharia a torneira dos outros) e os três usuários de
+//  homologação, que virariam um total sem atribuição — o defeito que a 003 existiu para
+//  evitar, um andar acima. Chamada sem dono conferido é carimbada 'nao_atribuido', nunca
+//  posta na conta de alguém por conveniência. GET /api/radar-custo passa a responder o gasto
+//  de QUEM PERGUNTA (mesmo número de hoje, com um segredo só) e ganha o recorte
+//  `por_usuario`; `por_dia` e `por_origem` mantêm o formato anterior.
 //
 //  NOVIDADES v7.42 (23/ago/2026) — a varredura automática de vagas é CANCELADA, e a
 //  medição de custo ganha o segundo nível de sujeito (S51).
@@ -1191,7 +1217,7 @@ function estaAutorizado(email, whitelist, padroesAtivos) {
 // ═══════════════════════════════════════════════════════════════════
 //  CLASSIFICAÇÃO DE EMAILS VIA IA
 // ═══════════════════════════════════════════════════════════════════
-async function classificarEmails(emails, whitelist, env, ctx) {
+async function classificarEmails(emails, whitelist, env, ctx, dono) {
   if (!emails.length) return [];
 
   const CATEGORIAS = {
@@ -1274,7 +1300,7 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
       });
       if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0,300)}`);
       const data = await res.json();
-      if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email'));
+      if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email', dono));
       const texto = data.content?.[0]?.text || '';
       const parsed = JSON.parse(texto.replace(/```json|```/g,'').trim());
       parsed.resultados.forEach(r => {
@@ -1320,7 +1346,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.42',
+        status: 'ok', worker: 'senova-proxy', versao: '7.44',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1357,7 +1383,12 @@ export default {
       const dados = await resp.json();
       // Sem isto, o custo de tudo o que passa por esta rota — inclusive as portas do Plano
       // de Vida — nasceria invisível, e a única linha medida do app continuaria sendo o Radar.
-      if (resp.ok && ctx) ctx.waitUntil(_registrarCustoIA(env, dados.usage, origem));
+      // O dono é descoberto DENTRO do waitUntil de propósito: esta é a rota mais quente do
+      // app, e uma consulta ao D1 antes de devolver a resposta cobraria latência de todo
+      // mundo para servir a contabilidade. Depois da resposta, ela não custa nada a ninguém.
+      if (resp.ok && ctx) ctx.waitUntil(
+        donoSeguro(request, env).then(dono => _registrarCustoIA(env, dados.usage, origem, dono))
+      );
       return json(dados, resp.status);
     }
 
@@ -1569,13 +1600,45 @@ export default {
     // v7.40: lê de `custo_ia`, que tem origem. `por_dia` mantém exatamente o formato
     // anterior (soma do dia) para não quebrar quem já lê; `por_origem` é o recorte novo,
     // e é ele que impede Radar e Plano de Vida de virarem o mesmo número.
+    //
+    // v7.43 (S52, D0): a tabela passa a ser `custo_ia_v2`, que tem dono. Duas decisões aqui:
+    //
+    //   O PAINEL MOSTRA O GASTO DE QUEM PERGUNTA, NÃO O DO MUNDO. Hoje há um segredo só, então
+    //   "o meu" e "o total" são o mesmo número e nada muda na tela. Mas somar o gasto de todos
+    //   é uma rota que vaza no dia em que o portão abrir — e esse é exatamente o defeito da
+    //   S41 ([[project_vazamento_vagas_lead_s41]]), onde uma rota nasceu servindo o que só
+    //   fazia sentido enquanto existia um usuário. O filtro entra antes de haver o que vazar.
+    //
+    //   O HISTÓRICO 'nao_atribuido' SÓ APARECE PARA QUEM É DELE. Ele é anterior à migração 004
+    //   e ninguém conferiu de quem era; herdá-lo é a mesma pergunta que o Perfil já responde,
+    //   então usa a mesma resposta — `perfil_dono_legado`, o mecanismo aprovado na S50, lido
+    //   sem adotar nada (adoção é ato do Perfil, não de um painel de custo). Quem não é o dono
+    //   do legado vê a própria conta começando do zero, que é a verdade.
     if (path === '/api/radar-custo' && request.method === 'GET') {
-      if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {} });
+      if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {}, por_usuario: {} });
+      const dono = await donoSeguro(request, env);
+      const donoLegado = await env.SENOVA_KV.get(CHAVE_DONO_LEGADO);
+      // Sem dono (D1 indisponível na hora da consulta), a única conta que dá para mostrar com
+      // honestidade é a não atribuída — inventar um dono para poder somar seria pior que vazio.
+      //
+      // Legado sem reivindicação: se `perfil_dono_legado` ainda não foi gravado, ninguém o
+      // reivindicou. Ele então pertence a quem pergunta APENAS enquanto existir uma pessoa
+      // cadastrada — condição que se fecha sozinha no minuto em que a segunda entrar, e que
+      // não depende de saber quem a primeira é.
+      const meus = [];
+      if (dono) meus.push(dono);
+      let herdaLegado = !dono || donoLegado === dono;
+      if (!herdaLegado && dono && !donoLegado) {
+        const quantos = await env.SENOVA_DB.prepare('SELECT COUNT(*) AS n FROM usuarios WHERE ativo=1').first();
+        herdaLegado = (quantos?.n || 0) <= 1;
+      }
+      if (herdaLegado) meus.push(CUSTO_SEM_DONO);
+      const vagas = meus.map(() => '?').join(',');
       const { results } = await env.SENOVA_DB.prepare(
-        'SELECT dia, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM custo_ia ' +
-        'WHERE dia IN (SELECT DISTINCT dia FROM custo_ia ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC'
-      ).all();
-      const por_dia = {}, por_origem = {};
+        `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM custo_ia_v2 ` +
+        `WHERE user_id IN (${vagas}) AND dia IN (SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN (${vagas}) ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC`
+      ).bind(...meus, ...meus).all();
+      const por_dia = {}, por_origem = {}, por_usuario = {};
       const soma = (alvo, chave, r) => {
         const a = alvo[chave] || (alvo[chave] = { chamadas:0, tokens_entrada:0, tokens_saida:0, cache_escrita:0, cache_leitura:0 });
         a.chamadas       += r.chamadas;
@@ -1587,10 +1650,11 @@ export default {
       for (const r of results) {
         soma(por_dia, r.dia, r);
         soma(por_origem, r.origem, r);
+        soma(por_usuario, r.user_id, r);
         por_dia[r.dia].origens = por_dia[r.dia].origens || {};
         soma(por_dia[r.dia].origens, r.origem, r);
       }
-      return json({ por_dia, por_origem });
+      return json({ por_dia, por_origem, por_usuario });
     }
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
@@ -1732,7 +1796,7 @@ export default {
         .map(e => ({...e, categoria:'irrelevante', label:'Social LinkedIn', emoji:'👥', prioridade:1, resumo:'Notificação social do LinkedIn'}));
       const emailsNormais = emailsParaClassificar.filter(e => !isSocialLinkedIn(e));
 
-      const classificadosIA = await classificarEmails(emailsNormais, whitelist, env, ctx);
+      const classificadosIA = await classificarEmails(emailsNormais, whitelist, env, ctx, await donoSeguro(request, env));
       const idsClassificadosIA = new Set(classificadosIA.map(e => e.id));
       // E-mails cujo lote de classificação falhou (rede/IA) não entram em classificadosIA —
       // não marcar como vistos/lidos, para reaparecerem como novos na próxima busca em vez
@@ -2040,7 +2104,7 @@ export default {
           if (parsed.status !== 'rss_indisponivel') return json(parsed);
         }
       }
-      const resultado = await buscarSinaisMercado(env, ctx);
+      const resultado = await buscarSinaisMercado(env, ctx, await donoSeguro(request, env));
       if (resultado.status === 'ok') {
         await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 4 * 60 * 60 });
       }
@@ -2068,7 +2132,14 @@ export default {
           },
           signal: AbortSignal.timeout(10000),
         });
-        if (!pageRes.ok) return json({ error: `HTTP ${pageRes.status}` }, 502);
+        // 429 é o portal barrando o Worker por volume, não a vaga sendo inacessível — e é
+        // um estado que já foi visto ao vivo em /api/link-vivo. Ele precisa se declarar:
+        // confundido com "exige login", manda o usuário fazer algo que não resolve nada.
+        if (!pageRes.ok) return json({
+          error: `HTTP ${pageRes.status}`,
+          portalBloqueou: pageRes.status === 429 || pageRes.status === 403,
+          http: pageRes.status,
+        }, 502);
         const html = await pageRes.text();
 
         // Detecta LinkedIn authwall (login obrigatório)
@@ -2156,6 +2227,63 @@ export default {
           t.includes('respeita a sua privacidade') || t.includes('respects your privacy') ||
           t.includes('cookies essenciais') || t.includes('use essential') ||
           (t.includes('cookie') && (t.includes('privacy') || t.includes('privacidade')));
+
+        // 1.5. O BLOCO DA DESCRIÇÃO NO PRÓPRIO HTML (medido em 24/ago/2026).
+        //
+        // Por que este passo existe. Até hoje o passo 1 (JSON-LD) era o único que entregava
+        // descrição COMPLETA de vaga do LinkedIn. Ele parou: em 6 buscas medidas (3 vagas
+        // ativas, página pública e endpoint guest), o HTML volta 200 com ~300 KB e ZERO
+        // blocos `application/ld+json`. Sem ele, a rota caía no passo 2/3 (teaser "veja esta
+        // vaga…", rejeitado) e no passo 4, que produz 13 mil caracteres de aviso de cookie
+        // e dispara _isPrivacyGarbage → HTTP 422. Resultado na tela: card sem descrição,
+        // logo sem análise, logo sem canal direto — e a candidatura por e-mail some do card
+        // sem nenhum aviso. Um sintoma só, com esta raiz.
+        //
+        // A tabela abaixo é ADAPTADOR, não decisão: nenhuma linha pergunta "isto é
+        // LinkedIn?" para se comportar diferente — a lista inteira é tentada em ordem para
+        // QUALQUER página, e um portal novo entra acrescentando uma linha. É o mesmo estatuto
+        // da chave da Adzuna (crivo de universalidade, CLAUDE.md).
+        const CONTEINERES_DESCRICAO = [
+          'show-more-less-html__markup',        // LinkedIn — medido entregando 2.249-3.918 chars
+          'description__text',                  // LinkedIn (variante da página pública)
+          'jobsearch-JobComponent-description',  // Indeed
+          'jobDescriptionText',
+          'job-description',                    // genérico: Gupy, Lever, Greenhouse e outros ATS
+        ];
+        // Recorta o elemento inteiro BALANCEANDO a tag de abertura com a de fechamento.
+        // Parar no primeiro </div> truncaria a descrição no primeiro sub-bloco; com o
+        // balanceamento, as 6 amostras terminam em frase completa.
+        const _recortarConteiner = (marcador) => {
+          const i = html.indexOf(marcador);
+          if (i === -1) return '';
+          const abre = html.lastIndexOf('<', i);
+          const fecha = html.indexOf('>', i);
+          if (abre === -1 || fecha === -1) return '';
+          const tag = (html.slice(abre + 1, fecha).match(/^([a-z0-9]+)/i) || [])[1];
+          if (!tag) return '';
+          const reTag = new RegExp(`<${tag}\\b|</${tag}>`, 'gi');
+          reTag.lastIndex = fecha;
+          let nivel = 1, m;
+          while ((m = reTag.exec(html))) {
+            nivel += m[0][1] === '/' ? -1 : 1;
+            if (nivel === 0) return html.slice(fecha + 1, m.index);
+          }
+          return '';   // tag nunca fechou: HTML quebrado, melhor cair para os passos seguintes
+        };
+        for (const marcador of CONTEINERES_DESCRICAO) {
+          const bruto = _recortarConteiner(marcador);
+          if (!bruto) continue;
+          const clean = bruto
+            .replace(/<br\s*\/?>/gi, '\n').replace(/<li[^>]*>/gi, '\n• ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+            .replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+          // As mesmas duas guardas dos passos seguintes: um contêiner que só contém aviso de
+          // cookie ou teaser de e-mail não vale mais que nenhum.
+          if (clean.length > 300 && !_isEmailTeaser(clean) && !_isPrivacyGarbage(clean)) {
+            return json({ descricao: clean.slice(0, 5000) });
+          }
+        }
 
         // 2. og:description — parcial mas útil para análise inicial
         const ogM = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']{60,})["']/i)
@@ -3280,18 +3408,37 @@ const ORIGENS_CUSTO = new Set([
   'radar', 'plano_vida', 'sofia', 'email', 'mercado', 'app',
   'esteira_home', 'card_aberto', 'extensao',
 ]);
-async function _registrarCustoIA(env, usage, origem) {
+// v7.43 (S52, Passo D0) — a medição ganha o TERCEIRO nível de sujeito: de QUEM foi o gasto.
+// A 003 respondeu "o que gastou"; a PK (dia, origem) tornava "quem gastou" impossível de
+// perguntar, porque as chamadas de todas as pessoas caíam no mesmo balde. Duas coisas
+// dependem disso e nenhuma é de amanhã: o teto de gasto por usuário que Marcos pediu
+// ("temos que ter limite sim") precisa somar o dia DAQUELA pessoa — com balde comum, o
+// primeiro a gastar fecharia a torneira dos outros dois —, e três usuários de homologação
+// virariam um total que ninguém consegue atribuir, que é o defeito que a 003 existiu para
+// evitar, um andar acima. Ver migrations/004_custo_ia_por_usuario.sql.
+//
+// SEM DONO NÃO É "DE NINGUÉM", É "NÃO SEI DE QUEM". Quando `donoSeguro` devolve null (D1
+// fora do ar, é o desenho da S50 — banco fora do ar não vira "o Senova esqueceu quem você
+// é"), a chamada é carimbada `nao_atribuido` em vez de ser posta na conta de alguém por
+// conveniência. É o mesmo rótulo do histórico anterior a esta migração, e diz a verdade
+// literal sobre as duas coisas: ninguém conferiu de quem eram.
+const CUSTO_SEM_DONO = 'nao_atribuido';
+async function _registrarCustoIA(env, usage, origem, dono) {
   if (!usage || !env.SENOVA_DB) return;
   const quem = ORIGENS_CUSTO.has(origem) ? origem : 'app';
+  // String vazia é tão "não sei" quanto null — e viraria uma linha órfã que nenhum painel
+  // sabe ler depois.
+  const deQuem = (typeof dono === 'string' && dono.trim()) ? dono : CUSTO_SEM_DONO;
   try {
     const hoje = new Date().toISOString().slice(0, 10);
     await env.SENOVA_DB.prepare(
-      'INSERT INTO custo_ia (dia, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, ?, 1, ?, ?, ?, ?) ' +
-      'ON CONFLICT(dia, origem) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
+      'INSERT INTO custo_ia_v2 (dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, ?, ?, 1, ?, ?, ?, ?) ' +
+      'ON CONFLICT(dia, user_id, origem) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
       'tokens_saida = tokens_saida + excluded.tokens_saida, cache_escrita = cache_escrita + excluded.cache_escrita, ' +
       'cache_leitura = cache_leitura + excluded.cache_leitura'
     ).bind(
       hoje,
+      deQuem,
       quem,
       usage.input_tokens || 0,
       usage.output_tokens || 0,
@@ -3395,7 +3542,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // abriu para se candidatar era contada como "radar" junto com a esteira automática — e
     // "cortar o radar" cortaria o que ele mais usa. Chamada que não se identifica continua
     // 'radar': o rótulo do histórico, nunca um rótulo inventado que suma da medição.
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar'));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
@@ -3551,7 +3698,7 @@ Complete sempre os três, e termine a última frase — texto cortado no meio va
     });
     if (!resp.ok) return { erro:true, texto:'' };
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'sofia'));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'sofia', dono));
     const bruto = (data.content || []).find(b => b.type === 'text')?.text || '';
     // O card joga este texto na tela como está — markdown que escapa do prompt chega ao
     // usuário como "**Parte 1**" literal. Instrução é pedido; isto é garantia.
@@ -3725,7 +3872,7 @@ async function buscarGoogleNewsRSS(query) {
   } catch { return []; }
 }
 
-async function buscarSinaisMercado(env, ctx) {
+async function buscarSinaisMercado(env, ctx, dono) {
   // Tenta Bing primeiro (mais acessível de IPs cloud), depois Google como fallback
   const buscar = async q => {
     const bing = await buscarBingNewsRSS(q);
@@ -3755,7 +3902,7 @@ async function buscarSinaisMercado(env, ctx) {
   ).slice(0, 5);
 
   if (!relevantes.length) return { sinais: [], status: algumOk ? 'sem_resultados' : 'rss_indisponivel', fonte: 'bing_news' };
-  const sinaisAnalisados = await analisarSinaisMercado(relevantes, env, ctx);
+  const sinaisAnalisados = await analisarSinaisMercado(relevantes, env, ctx, dono);
 
   // Enriquecer com Hunter.io — só sinais de alta relevância com domínio conhecido
   const enriched = await Promise.allSettled(
@@ -3800,7 +3947,7 @@ async function buscarEmailHunter(dominio, env) {
   } catch { return null; }
 }
 
-async function analisarSinaisMercado(itens, env, ctx) {
+async function analisarSinaisMercado(itens, env, ctx, dono) {
   const lista = itens.map((it, i) => `[${i}] TÍTULO: ${it.titulo} | FONTE: ${it.empresa || it.local || ''}`).join('\n');
   const prompt = `Você é assistente de inteligência de mercado para Marcos Franco, executivo sênior de marketing (CMO/Diretor) buscando recolocação C-Level no Brasil.\n\nAnalise cada notícia e retorne JSON. Para cada item relevante, identifique oportunidade de networking ou candidatura.\n\nNOTÍCIAS:\n${lista}\n\nResponda SOMENTE JSON:\n{"sinais":[{"indice":0,"empresa":"...","dominio":"empresa.com.br","tipo":"movimento_exec|expansao|fusao|outro","relevancia":1-5,"resumo":"1 frase","sugestao_msg":"mensagem curta calorosa máx 2 linhas, tom executivo"}]}\n\nRegras:\n- Inclua apenas relevância ≥ 3.\n- "dominio": domínio web da empresa (ex: "globo.com", "itau.com.br"). Se não souber com certeza, use null.`;
   try {
@@ -3810,7 +3957,7 @@ async function analisarSinaisMercado(itens, env, ctx) {
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado'));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado', dono));
     const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
     return (parsed.sinais || []).map(s => ({
       ...itens[s.indice],

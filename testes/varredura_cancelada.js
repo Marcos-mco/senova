@@ -25,11 +25,14 @@ const worker = fs.readFileSync(path.join(raiz, 'senova-worker.js'), 'utf8');
 const wrangler = fs.readFileSync(path.join(raiz, 'wrangler.toml'), 'utf8');
 
 const app = carregarApp(
-  ['function _fonteVarredura(', 'function _elegivelParaAnalise(', 'function _promoverTriagem('],
+  ['function _fonteVarredura(', 'function _elegivelParaAnalise(', 'function _analiseNoTeto(', 'function _promoverTriagem('],
   {
     // `const _analiseFalhou=new Set()` não tem corpo em chaves para o extrator balancear —
     // entra como mock. Vazio é o estado real de um app recém-aberto.
     _analiseFalhou: new Set(),
+    // Idem: const simples. O valor de verdade tem guarda própria em
+    // testes/analise_para_de_tentar.js; aqui só precisa existir para o predicado rodar.
+    TETO_TENTATIVAS_ANALISE: 3,
     renderWidgetRevisao() {},
   }
 );
@@ -96,7 +99,10 @@ t('"Buscar agora" (POST /api/varredura-manual) continua existindo',
 console.log('\n=== toda análise diz de QUAL esteira veio ===');
 t('a origem viaja do pedido até a gravação do custo',
   /async function analisarVaga\([^)]*\borigemCusto\b\s*\)/.test(worker) &&
-  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'\)/.test(worker));
+  // Termina em [,)] e não em ')': a v7.43 acrescentou o dono DEPOIS da origem, e fixar o
+  // fecho de parêntese faria esta asserção cair sem nada ter regredido
+  // ([[feedback_teste_guarda_posicao_nao_lista_s50]]).
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'[,)]/.test(worker));
 t('quem não se identifica continua sendo "radar" — o rótulo do histórico, nunca um sumiço da medição',
   /origemCusto \|\| 'radar'/.test(worker));
 t('as sub-origens estão no catálogo fechado (o que não estiver nele cai em "app")',

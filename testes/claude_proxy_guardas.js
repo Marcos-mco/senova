@@ -102,10 +102,13 @@ t('os blocos de imagem são realmente percorridos (não é teto só no papel)',
 t('streaming é recusado (a rota devolve JSON de uma vez)', /if \(body\.stream\) return/.test(worker));
 
 console.log('\n=== o custo desta rota deixa de nascer invisível ===');
+// Termina em [,)]: a v7.43 acrescentou o dono depois da origem
+// ([[feedback_teste_guarda_posicao_nao_lista_s50]]).
 t('a rota registra custo com origem',
-  /_registrarCustoIA\(env, dados\.usage, origem\)/.test(rota));
+  /_registrarCustoIA\(env, dados\.usage, origem[,)]/.test(rota));
 t('só registra quando a chamada deu certo (nunca inventa número)',
-  /if \(resp\.ok && ctx\) ctx\.waitUntil\(_registrarCustoIA/.test(rota));
+  /if \(resp\.ok && ctx\) ctx\.waitUntil\(/.test(rota) &&
+  /donoSeguro\(request, env\)\.then\(dono => _registrarCustoIA/.test(rota));
 t('o campo `origem` é nosso e sai do corpo antes de ir para a Anthropic',
   /delete body\.origem/.test(rota) &&
   rota.indexOf('delete body.origem') < rota.indexOf('api.anthropic.com'));

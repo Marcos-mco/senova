@@ -21,6 +21,15 @@
 // nenhuma decisão de margem. A tabela agora é `custo_ia` com PK (dia, origem) e TODO ponto
 // de chamada à Anthropic carimba de onde veio — inclusive `/api/claude`, que até aqui
 // gastava sem aparecer em lugar nenhum.
+//
+// v7.43 (S52, Passo D0): o mesmo defeito, um andar acima. `custo_ia` respondia "o que
+// gastou" e a PK (dia, origem) tornava "QUEM gastou" impossível de perguntar. A tabela agora
+// é `custo_ia_v2` com PK (dia, user_id, origem). Duas coisas dependem disso: o teto de gasto
+// por pessoa (com balde comum, o primeiro a gastar fecharia a torneira dos outros dois) e os
+// três usuários de homologação, que virariam um total sem atribuição. E uma regra nova de
+// honestidade entra aqui: chamada cujo dono não foi conferido é carimbada 'nao_atribuido',
+// NUNCA posta na conta de alguém por conveniência — atribuir sem conferir é exatamente a
+// doença que a catraca de universalidade nomeia.
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('./_lib');
@@ -30,17 +39,17 @@ const worker = fs.readFileSync(path.join(__dirname, '..', 'senova-worker.js'), '
 
 console.log('=== a instrumentação nunca inventa número ===');
 t('_registrarCustoIA sai cedo quando não há usage ou não há D1 (resposta sem sucesso)',
-  /async function _registrarCustoIA\(env, usage, origem\) \{\s*\n\s*if \(!usage \|\| !env\.SENOVA_DB\) return;/.test(worker));
+  /async function _registrarCustoIA\(env, usage, origem[,)][^)]*\) \{\s*\n\s*if \(!usage \|\| !env\.SENOVA_DB\) return;/.test(worker));
 
 console.log('\n=== a instrumentação nunca derruba nem atrasa a análise real ===');
 t('_registrarCustoIA está em try/catch (falha na gravação não propaga)',
-  /async function _registrarCustoIA[\s\S]{0,200}try \{[\s\S]{0,1400}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
+  /async function _registrarCustoIA[\s\S]{0,700}try \{[\s\S]{0,1700}\} catch \(err\) \{[\s\S]{0,120}\}\r?\n\}/.test(worker));
 // v7.42 (S51): o rótulo da análise deixou de ser a constante 'radar' — quem chama diz de
 // qual esteira veio, e 'radar' virou o padrão de quem não disser. O que este teste guarda
 // é o waitUntil (não atrasar a resposta), não mais o literal; a sub-origem tem guarda
 // própria em testes/varredura_cancelada.js.
 t('a chamada roda em ctx.waitUntil (não atrasa a resposta ao cliente)',
-  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'\)\)/.test(worker));
+  /ctx\.waitUntil\(_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'[,)]/.test(worker));
 t('analisarVaga recebe ctx e o call site de POST /api\\/analisar-vaga o repassa',
   /async function analisarVaga\([^)]*\bctx\b[^)]*\)/.test(worker) &&
   // O que importa aqui é a POSIÇÃO do ctx, não quantos argumentos vêm depois: fixar a lista
@@ -53,29 +62,61 @@ t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',
   /async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_DB\.prepare/.test(worker) &&
   !/async function _registrarCustoIA[\s\S]{0,1400}env\.SENOVA_KV/.test(worker));
 t('o upsert soma com o registro existente (ON CONFLICT ... DO UPDATE SET x = x + excluded.x)',
-  /ON CONFLICT\(dia, origem\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
+  /ON CONFLICT\(dia, user_id, origem\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
   /tokens_entrada = tokens_entrada \+ excluded\.tokens_entrada/.test(worker));
 
 console.log('\n=== o número tem SUJEITO: Radar e Plano de Vida nunca viram o mesmo total ===');
 // [[feedback_instrumentacao_precisa_de_sujeito]] — número sem dizer QUAL bloco é mentira.
-t('a gravação carimba a origem (coluna origem na tabela custo_ia)',
-  /INSERT INTO custo_ia \(dia, origem,/.test(worker));
+t('a gravação carimba a origem (coluna origem na tabela custo_ia_v2)',
+  /INSERT INTO custo_ia_v2 \(dia, user_id, origem,/.test(worker));
 t('a origem vem de um catálogo fechado, e o que não estiver nele cai em "app"',
   /const ORIGENS_CUSTO = new Set\(\[[^\]]*'radar'[^\]]*'plano_vida'[^\]]*\]\)/.test(worker) &&
   /ORIGENS_CUSTO\.has\(origem\) \? origem : 'app'/.test(worker));
 t('todo ponto de chamada à Anthropic carimba a sua origem',
-  ['email','sofia','mercado'].every(o => new RegExp(`_registrarCustoIA\\(env, [a-z]+\\.usage, '${o}'\\)`).test(worker)) &&
+  ['email','sofia','mercado'].every(o => new RegExp(`_registrarCustoIA\\(env, [a-z]+\\.usage, '${o}'[,)]`).test(worker)) &&
   // A análise de vaga carimba a esteira que pediu, com 'radar' de padrão (v7.42).
-  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'\)/.test(worker) &&
-  /_registrarCustoIA\(env, dados\.usage, origem\)/.test(worker));
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar'[,)]/.test(worker) &&
+  /_registrarCustoIA\(env, dados\.usage, origem[,)]/.test(worker));
+
+console.log('\n=== o número tem o TERCEIRO sujeito: de QUEM foi o gasto (v7.43, S52) ===');
+t('a tabela tem dono na chave primária — três usuários nunca viram um total só',
+  /PRIMARY KEY \(dia, user_id, origem\)/.test(
+    fs.readFileSync(path.join(__dirname, '..', 'migrations', '004_custo_ia_por_usuario.sql'), 'utf8')));
+t('_registrarCustoIA recebe o dono e o grava',
+  /async function _registrarCustoIA\(env, usage, origem, dono\)/.test(worker) &&
+  /\.bind\(\s*\n?\s*hoje,\s*\n?\s*deQuem,/.test(worker));
+t('dono não conferido vira "nao_atribuido" — nunca a conta de outra pessoa',
+  /const CUSTO_SEM_DONO = 'nao_atribuido'/.test(worker) &&
+  /const deQuem = \(typeof dono === 'string' && dono\.trim\(\)\) \? dono : CUSTO_SEM_DONO;/.test(worker));
+t('as CINCO chamadas medidas passam o dono adiante (nenhuma cai no balde anônimo por esquecimento)',
+  /_registrarCustoIA\(env, data\.usage, 'email', dono\)/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, 'sofia', dono\)/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, 'mercado', dono\)/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar', dono\)/.test(worker) &&
+  /_registrarCustoIA\(env, dados\.usage, origem, dono\)/.test(worker));
+t('quem não tinha dono na assinatura passou a receber — classificarEmails e os sinais de mercado',
+  /async function classificarEmails\(emails, whitelist, env, ctx, dono\)/.test(worker) &&
+  /async function buscarSinaisMercado\(env, ctx, dono\)/.test(worker) &&
+  /async function analisarSinaisMercado\(itens, env, ctx, dono\)/.test(worker));
+t('/api/claude descobre o dono DEPOIS de responder (a contabilidade não cobra latência do usuário)',
+  /ctx\.waitUntil\(\s*\n?\s*donoSeguro\(request, env\)\.then\(dono => _registrarCustoIA\(env, dados\.usage, origem, dono\)\)/.test(worker));
 
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');
-t('GET /api/radar-custo existe e lê custo_ia do D1',
-  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,400}SENOVA_DB\.prepare\([\s\S]{0,200}FROM custo_ia/.test(worker));
+t('GET /api/radar-custo existe e lê custo_ia_v2 do D1',
+  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,1600}SENOVA_DB\.prepare\([\s\S]{0,300}FROM custo_ia_v2/.test(worker));
 t('a rota respeita o teto de 30 DIAS distintos (não 30 linhas)',
-  /SELECT DISTINCT dia FROM custo_ia ORDER BY dia DESC LIMIT 30/.test(worker));
+  /SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN \(\$\{vagas\}\) ORDER BY dia DESC LIMIT 30/.test(worker));
 t('o formato antigo (por_dia com a soma do dia) continua servido — ninguém quebra',
-  /const por_dia = \{\}, por_origem = \{\}/.test(worker) && /return json\(\{ por_dia, por_origem \}\)/.test(worker));
+  /const por_dia = \{\}, por_origem = \{\}, por_usuario = \{\}/.test(worker) &&
+  /return json\(\{ por_dia, por_origem, por_usuario \}\)/.test(worker));
+// [[project_vazamento_vagas_lead_s41]] — a rota que servia o que só fazia sentido com um
+// usuário. O filtro entra antes de haver o que vazar, não depois.
+t('o painel mostra o gasto de QUEM PERGUNTA, não a soma do mundo',
+  /path === '\/api\/radar-custo'[\s\S]{0,900}const dono = await donoSeguro\(request, env\)/.test(worker) &&
+  /WHERE user_id IN \(\$\{vagas\}\)/.test(worker));
+t('o histórico não atribuído só é herdado por quem é dele (mesmo mecanismo do Perfil)',
+  /path === '\/api\/radar-custo'[\s\S]{0,1200}donoLegado === dono/.test(worker) &&
+  /path === '\/api\/radar-custo'[\s\S]{0,1600}COUNT\(\*\) AS n FROM usuarios WHERE ativo=1/.test(worker));
 
 console.log('\n=== a rota nova segue o padrão fail-closed (exige x-senova-key) ===');
 const i = worker.indexOf('const ROTAS_SEM_SEGREDO');

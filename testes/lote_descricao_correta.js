@@ -24,6 +24,7 @@ function montarSandbox(vaga, fetchMock) {
     RUBRICA_V,
     fetch: fetchMock,
     _loteEmAnalise: new Set(), _analiseFalhou: new Set(),
+    TETO_TENTATIVAS_ANALISE: 3, // const simples; guarda do valor em testes/analise_para_de_tentar.js
     _cacheQuenteAte: Date.now() + 60000, // cache quente: dispara direto, sem serializar
     ctxTextoAtivos: () => '',
     _criterioParaVaga: () => 0,
@@ -36,7 +37,7 @@ function montarSandbox(vaga, fetchMock) {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  const fontes = [extrai('function _fonteVarredura('), extrai('function _elegivelParaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
+  const fontes = [extrai('function _fonteVarredura('), extrai('function _elegivelParaAnalise('), extrai('function _analiseNoTeto('), extrai('function _registrarFalhaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
   vm.runInContext(fontes, sandbox);
   return sandbox;
 }
