@@ -2326,7 +2326,7 @@ select option { background: var(--bg2); }
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:start;">
           <input type="text" id="mv-origem-url" placeholder="URL da vaga" style="font-size:13px;"
                  oninput="(()=>{const l=document.getElementById('mv-link-vaga');if(l){l.dataset.url=this.value.trim();l.style.display=this.value.trim()?'':'none';}})()">
-          <input type="email" id="mv-email-dest" placeholder="Email do recrutador" style="font-size:13px;">
+          <input type="email" id="mv-email-dest" placeholder="Email do recrutador" oninput="mvSyncEnvioDireto()" style="font-size:13px;">
         </div>
         <div id="mv-proxima-section" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="text" id="mv-proxima" placeholder="Próxima ação" style="font-size:13px;">
@@ -8925,9 +8925,13 @@ async function candidatarDoModal(){
   if(!isNew&&!v) return;
   if(!((v&&v.atsCV)||lastCV)){
     // sem CV — gera DENTRO do card (mesma geração já usada pelos botões de download), nunca navega para outra tela.
-    await _mvGarantirCV(document.getElementById('mv-doc-pill-resposta'));
-    // mvSyncDocsCV zera o buffer no card lead — a fonte confiável do CV é a global lastCV.
-    if(!lastCV) return; // gerarCVInline já avisou o motivo (descrição curta, erro etc.)
+    const _gerou=await _mvGarantirCV(document.getElementById('mv-doc-pill-resposta'));
+    // Duas leituras do mesmo fato davam clique morto: _mvGarantirCV olha o buffer da tela e
+    // esta linha olhava só a global. Se o CV entrou no buffer e a global ficou para trás, o
+    // clique voltava sem CV e sem uma palavra. Agora vale qualquer uma das duas.
+    if(!lastCV&&!_gerou) return; // gerarCVInline/_mvTemDescricaoPara já disseram o motivo
+    if(!lastCV){ const _buf=document.getElementById('mv-ats-cv-txt'); if(_buf&&_buf.value.trim()) lastCV=_buf.value; }
+    if(!lastCV) return;
   }
   // tem CV — salva o modal e abre o modal-candidatura. NÃO muda o status aqui:
   // o card só vira "CV Enviado" quando o envio for confirmado (enviarCandidaturaOutlook →
@@ -9910,17 +9914,28 @@ function mvClicarDocResposta(btn){
   if(btn&&btn.dataset.modoEnvio==='1'){ candidatarDoModal(); return; }
   mvAbrirDoc('resposta', btn);
 }
-// Decide o modo do pill conforme a vaga. Candidatura direta por e-mail = há um destino
-// de e-mail detectado (canalDiretoDestino com @, ou canalDiretoTipo 'Email'). WhatsApp/
-// Telefone NÃO entram aqui — o envio é via Outlook/e-mail. Campos legados: canalDiretoEmail.
+// Decide o modo do pill conforme a vaga.
+//
+// 24/ago/2026 (S52), Marcos: "estou tentando o card Zonta, foi um card criado manualmente,
+// ainda não funciona". Não era regressão — **o card feito à mão nunca teve como enviar**.
+// Este pill é o ÚNICO caminho do card para a candidatura por e-mail, e ele só abria quando a
+// ANÁLISE tinha detectado candidatura direta (`canalDireto*`). Num card criado à mão não há
+// análise: o endereço que ele digita no campo "Email do recrutador" ficava sem porta.
+//
+// A pergunta certa não é "a análise detectou?" e sim **"existe destino, e fui EU que comecei
+// a conversa?"**. A marca de que alguém escreveu primeiro é `emailAssunto`/`fonte:email*`,
+// gravados só por quem cria card a partir da caixa de entrada. Sem essa marca, um endereço no
+// card é destino de candidatura — venha ele da análise ou do teclado dele.
+// WhatsApp/Telefone continuam fora: o envio aqui é por e-mail (destinoCandidatura filtra).
 function mvSyncEnvioDireto(){
   const btn=document.getElementById('mv-doc-pill-resposta');
   if(!btn) return;
   const v=editingVagaId==='new'?_mvNovoCardAnalise:(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
-  const _canalDest=v?.canalDiretoDestino||v?.canalDiretoEmail||'';
-  const _canalTipo=v?.canalDiretoTipo||(v?.canalDiretoEmail?'Email':'');
-  const _ehEmailDireto=!!_canalDest&&(/@/.test(_canalDest)||_canalTipo==='Email');
-  if(_ehEmailDireto){ btn.textContent='Enviar candidatura por e-mail →'; btn.dataset.modoEnvio='1'; }
+  // O que está digitado na tela conta antes de salvar — senão o pill mentiria até o "Salvar".
+  const _digitado=document.getElementById('mv-email-dest')?.value||'';
+  const _ehResposta=!!(v&&(v.emailAssunto||/^email/.test(v.fonte||'')));
+  const _destino=destinoCandidatura(v,_digitado);
+  if(_destino&&!_ehResposta){ btn.textContent='Enviar candidatura por e-mail →'; btn.dataset.modoEnvio='1'; }
   else { btn.textContent='Resposta por e-mail'; btn.dataset.modoEnvio=''; }
 }
 // Sincroniza a área Documentos com o card: buffer do CV + view (Executivo por padrão).
