@@ -1,6 +1,21 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.44
+//  SENOVA PROXY — Worker v7.45
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.45 (25/ago/2026) — "cuidado em não sermos bloqueados" (Marcos, S52). Duas
+//  mudanças, ambas medidas pelo senova-auditor:
+//  1. RECUSA DO PORTAL DEIXA DE DOBRAR A CARGA. Quando o jobs-guest respondia 429/403/503,
+//     `_verificarLinkedInGuest` devolvia null e quem chamou caía no fetch genérico — do MESMO
+//     host que acabara de dizer não. Cada verificação bloqueada custava 2 requisições em vez
+//     de 1, e a higiene do radar faz 30 por rodada, 8 rodadas/dia: o bloqueio dobrava a carga
+//     exatamente quando o portal pedia para parar. Agora a recusa é declarada
+//     (`inconclusivo/portal_bloqueou`) e a segunda batida não acontece. 404 continua sendo
+//     prova de morte — bloqueio e ausência são coisas diferentes.
+//  2. O SENOVA PARA DE SE DIZER ROBÔ DO GOOGLE. A busca no Google News mandava
+//     `User-Agent: Googlebot/2.1`. Não era volume, era postura, e contradizia a regra ética do
+//     projeto. Agora há UMA identificação (`UA_SENOVA`), usada por Google News e Jobicy.
+//     Página de VAGA segue com header de navegador — ali o portal recusa robô, e sem isso vaga
+//     viva viraria "morta". Decisão de Marcos; guard em testes/como_o_senova_se_apresenta.js.
 //
 //  NOVIDADES v7.44 (24/ago/2026) — a descrição completa da vaga volta a ser capturada.
 //  Bug relatado por Marcos: "a candidatura por email do card parou de funcionar" e "também
@@ -613,6 +628,15 @@ async function montarIdentidadeCandidato(env, override, userId) {
 // inteiro é coberto ao longo dos dias sem estourar o teto de subrequests do
 // Worker (2 países × 5 termos × 2 fontes = 20 fetches por execução).
 const QUERIES_POR_RODADA = 5;
+
+// Como o Senova se apresenta quando fala com um feed público (RSS, APIs abertas). Ponto
+// único: o mesmo nome tem de sair de todos os pontos, senão vira "N gravadores" da mesma
+// identidade. Páginas de vaga são outro caso — ali o portal recusa robô e o header de
+// navegador é o que permite ler o anúncio que o usuário já podia ler no browser dele.
+// Sem endereço de contato de propósito: o único que existe hoje carrega o nome de uma
+// pessoa, e nome de pessoa não entra em código (crivo de universalidade). Entra quando o
+// produto tiver domínio próprio.
+const UA_SENOVA = 'Mozilla/5.0 (compatible; SenovaBot/1.0)';
 
 // Teto do radar. O corte antigo era `.slice(0, 100)` DEPOIS de um sort por score —
 // e vaga nova entra com score null, então `null - null` = NaN, o sort virava no-op
@@ -1346,7 +1370,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.44',
+        status: 'ok', worker: 'senova-proxy', versao: '7.45',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -2741,8 +2765,14 @@ function _hostProibido(h) {
 // extensão já usa para enriquecer descrição, senova-extension/background.js:757-760) devolve o
 // HTML real da vaga sem authwall e carimba `closed-job` na encerrada. Medido contra o gabarito
 // do senova-auditor: 8/8 mortas com o marcador, 4/4 vivas sem ele e com o título presente.
-// Se o jobs-guest não responder (bloqueio de IP da Cloudflare, por ex.) devolve null e quem
-// chamou cai no fetch genérico abaixo — nunca inventa "vivo" por falta de uma fonte.
+// Se o jobs-guest não responder devolve null e quem chamou cai no fetch genérico abaixo —
+// nunca inventa "vivo" por falta de uma fonte.
+// EXCEÇÃO, 25/ago/2026 (S52), Marcos: "cuidado em não sermos bloqueados". Recusa explícita
+// (429/403/503) NÃO é "não respondeu": é o portal pedindo para parar. Cair no fetch genérico
+// depois dela é bater DE NOVO no mesmo host — cada verificação bloqueada custava 2
+// requisições em vez de 1, e a higiene do radar faz 30 por rodada. O bloqueio dobrava a
+// carga exatamente quando ele já tinha dito não.
+function _ehRecusaDePortal(status) { return status === 429 || status === 403 || status === 503; }
 async function _verificarLinkedInGuest(id) {
   const ctrl = new AbortController();
   const relogio = setTimeout(() => ctrl.abort(), 9000);
@@ -2755,6 +2785,7 @@ async function _verificarLinkedInGuest(id) {
       },
     });
     if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
+    if (_ehRecusaDePortal(r.status)) return { estado: 'inconclusivo', motivo: 'portal_bloqueou', http: r.status };
     if (!r.ok) { console.log('[link-vivo/diag] guest não-ok', id, r.status); return null; }
     const html = await r.text();
     if (/closed-job/i.test(html)) return { estado: 'morto', motivo: 'linkedin_closed_job', http: r.status };
@@ -3277,7 +3308,7 @@ async function buscarJobicy(query, local) {
   const params = new URLSearchParams({ feed:'job_feed', job_categories:'management', search_keywords:termo });
   if (regiao) params.set('search_region', regiao);
   const resp = await fetch(`https://jobicy.com/?${params}`, {
-    headers: { 'User-Agent':'Mozilla/5.0 (compatible; SenovaBot/1.0)', 'Accept':'text/xml' },
+    headers: { 'User-Agent': UA_SENOVA, 'Accept':'text/xml' },
     signal: AbortSignal.timeout(8000),
   });
   if (!resp.ok) return [];
@@ -3860,8 +3891,13 @@ async function buscarBingNewsRSS(query) {
 async function buscarGoogleNewsRSS(query) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=pt-BR&gl=BR&ceid=BR:pt`;
   try {
+    // 25/ago/2026 (S52), decisão de Marcos. Este header dizia `Googlebot/2.1` — o Senova se
+    // apresentava ao Google como se fosse o robô do próprio Google. Não era volume, era
+    // postura, e contradizia o que está escrito na regra ética: o Senova é símbolo de
+    // honestidade. Agora se identifica pelo nome, como já fazia com o Jobicy, aceitando o
+    // custo de o feed poder recusar. Ver SOFIA_ALMA.md.
     const resp = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)', 'Accept': 'application/rss+xml,text/xml' },
+      headers: { 'User-Agent': UA_SENOVA, 'Accept': 'application/rss+xml,text/xml' },
       signal: AbortSignal.timeout(6000),
       redirect: 'follow',
     });

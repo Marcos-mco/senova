@@ -54,6 +54,7 @@ vm.createContext(sandbox);
 vm.runInContext([
   extrai('const SINAIS_DE_ENCERRAMENTO ='),
   extrai('function _hostProibido('),
+  extrai('function _ehRecusaDePortal('),
   extrai('async function _verificarLinkedInGuest('),
   extrai('async function verificarLinkVaga('),
 ].join('\n;\n'), sandbox);
@@ -139,11 +140,25 @@ const URL_ADZUNA = 'https://www.adzuna.com.br/details/5199?utm_medium=api&utm_so
   t('/comm/jobs/view/{id} também extrai o ID e vira MORTO via jobs-guest', r.estado === 'morto', JSON.stringify(r));
   t('o ID extraído do /comm/ é o número certo', _urlsPedidas.some(u => u.endsWith('/jobPosting/4310000111')), _urlsPedidas.join(','));
 
-  console.log('\n=== LinkedIn: guest bloqueado ou ambíguo NUNCA inventa "vivo" — cai pro caminho genérico ===');
+  console.log('\n=== LinkedIn: guest bloqueado ou ambíguo NUNCA inventa "vivo" ===');
+  // 25/ago/2026 (S52), Marcos: "cuidado em não sermos bloqueados". Recusa explícita do portal
+  // deixou de cair no fetch genérico: insistir no MESMO host que acabou de dizer não fazia cada
+  // verificação bloqueada custar 2 requisições em vez de 1 — e a higiene do radar faz 30 por
+  // rodada, 8 rodadas por dia. O bloqueio DOBRAVA a carga justamente quando ele já tinha
+  // pedido para parar. A resposta continua a mesma (inconclusivo); o que mudou é o preço.
+  for (const [nome, status] of [['429 (excesso de requisições)', 429], ['403 (recusa)', 403], ['503 (indisponível)', 503]]) {
+    _urlsPedidas = [];
+    _respostaPorUrl = () => ({ status, html: '' });
+    r = await checar('https://www.linkedin.com/jobs/view/4320681531');
+    t(`${nome} = INCONCLUSIVO (nunca vivo, nunca morto)`, r.estado === 'inconclusivo', JSON.stringify(r));
+    t(`${nome}: diz que foi bloqueio, não "não sei"`, r.motivo === 'portal_bloqueou', JSON.stringify(r));
+    t(`${nome}: NÃO bate uma segunda vez no mesmo host`, _urlsPedidas.length === 1, _urlsPedidas.length + ' requisições: ' + _urlsPedidas.join(','));
+  }
+  // 404 continua sendo prova de que a vaga sumiu — bloqueio e ausência são coisas diferentes.
   _urlsPedidas = [];
-  _respostaPorUrl = (u) => ({ status: 403, html: '' }); // bloqueado nos dois fetches
+  _respostaPorUrl = () => ({ status: 404, html: '' });
   r = await checar('https://www.linkedin.com/jobs/view/4320681531');
-  t('jobs-guest bloqueado (403) cai pro fetch genérico, que também bloqueado = INCONCLUSIVO (nunca vivo)', r.estado === 'inconclusivo', JSON.stringify(r));
+  t('404 no guest continua sendo MORTO (não virou bloqueio)', r.estado === 'morto', JSON.stringify(r));
 
   _urlsPedidas = [];
   _respostaPorUrl = (u) => u.includes('jobs-guest') ? { status: 200, html: '<html>marcação que o guest não reconhece</html>' } : { status: 200, html: VAGA_VIVA };
