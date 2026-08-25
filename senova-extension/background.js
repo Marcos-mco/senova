@@ -675,6 +675,55 @@ async function _tentadasAdd(set, url) {
   await chrome.storage.session.set({ senova_enriq_tentadas: [...set].slice(-300) });
 }
 
+// ── QUANDO O PORTAL DIZ "PARE" ───────────────────────────────────────
+// 24/ago/2026 (S52). Marcos: "cuidado em não sermos bloqueados". Não é hipótese — o
+// LinkedIn já devolveu HTTP 429 ao Senova. Aqui o 429 era apagado por um `if(!r.ok)
+// return null`: virava "não consegui", a URL nunca entrava em `tentadas` (só o sucesso
+// queimava a tentativa) e o alarme de 1 minuto repetia as MESMAS 6 URLs para sempre —
+// teto de 8.640 requisições/dia ao mesmo host, do IP de casa, batendo mais forte
+// exatamente quando ele pediu para parar.
+// Duas travas, ambas por HOST e não por nome de portal (crivo de universalidade: um
+// usuário em Berlim tem outros portais e a mesma doença):
+//   1. recusa do portal (429/403/503) → para a rodada e recua 1 → 5 → 15 → 60 min,
+//      respeitando o Retry-After quando o próprio portal informa quanto esperar;
+//   2. falha comum (página sem descrição) → 3 tentativas e a URL descansa, senão ela
+//      sozinha sustenta 6 requisições por minuto até o navegador fechar.
+const _RECUO_MIN = [1, 5, 15, 60];
+const _FALHAS_ATE_DESISTIR = 3;
+function _hostDe(u) { try { return new URL(u).host; } catch { return ''; } }
+function _ehRecusaDePortal(status) { return status === 429 || status === 403 || status === 503; }
+async function _pausasGet() {
+  const s = await chrome.storage.session.get('senova_pausa_portal');
+  return s.senova_pausa_portal || {};
+}
+function _emPausa(pausas, url, agora) {
+  const p = pausas[_hostDe(url)];
+  return !!(p && p.ate > agora);
+}
+async function _pausaRegistrar(host, esperarSeg) {
+  const pausas = await _pausasGet();
+  const nivel = Math.min((pausas[host] ? pausas[host].nivel : 0) + 1, _RECUO_MIN.length);
+  const ms = Math.max((esperarSeg || 0) * 1000, _RECUO_MIN[nivel - 1] * 60000);
+  pausas[host] = { ate: Date.now() + ms, nivel };
+  await chrome.storage.session.set({ senova_pausa_portal: pausas });
+  return ms;
+}
+async function _pausaLimpar(host) {
+  const pausas = await _pausasGet();
+  if (!pausas[host]) return;
+  delete pausas[host];
+  await chrome.storage.session.set({ senova_pausa_portal: pausas });
+}
+// Conta falhas comuns por URL. Separada de `tentadas` de propósito: `tentadas` diz
+// "não volte mais", esta diz "ainda dou mais uma chance".
+async function _falhaContar(url) {
+  const s = await chrome.storage.session.get('senova_enriq_falhas');
+  const m = s.senova_enriq_falhas || {};
+  m[url] = (m[url] || 0) + 1;
+  await chrome.storage.session.set({ senova_enriq_falhas: m });
+  return m[url];
+}
+
 // Lê APENAS a existência do cookie de sessão do LinkedIn (li_at) para saber se o
 // usuário está logado. Nunca lê o valor do cookie, nunca o transmite — princípio
 // ético do Senova. Serve só para não abrir abas inúteis quando não há sessão.
@@ -738,15 +787,25 @@ async function enriquecerPendentes() {
   await _notificarLogin(senovaTab.id, false, 0);
 
   const tentadas = await _tentadasGet();
-  const alvos = linkedinPend.filter(u => !tentadas.has(u)).slice(0, 6);
+  const pausas = await _pausasGet();
+  const agora = Date.now();
+  const alvos = linkedinPend.filter(u => !tentadas.has(u) && !_emPausa(pausas, u, agora)).slice(0, 6);
   if (!alvos.length) return;
 
   _enriquecendo = true;
   await _notificarProcessando(senovaTab.id, true);
   try {
     for (const url of alvos) {
-      const ok = await _enriquecerUma(url, senovaTab.id);
-      if (ok) await _tentadasAdd(tentadas, url); // só "queima" a tentativa se deu certo → falhas reprocessam
+      let ok = false;
+      try { ok = await _enriquecerUma(url, senovaTab.id); }
+      catch (e) {
+        // O portal pediu para parar: abandona a rodada INTEIRA, não só esta URL. Insistir
+        // nas outras cinco é insistir no mesmo host que acabou de recusar.
+        if (e && e.portalRecusou) { await _pausaRegistrar(_hostDe(url), e.esperarSeg); break; }
+        ok = false;
+      }
+      if (ok) { await _tentadasAdd(tentadas, url); await _pausaLimpar(_hostDe(url)); }
+      else if (await _falhaContar(url) >= _FALHAS_ATE_DESISTIR) await _tentadasAdd(tentadas, url);
       await new Promise(r => setTimeout(r, 1500)); // throttle leve entre buscas (anti rate-limit)
     }
   } finally { _enriquecendo = false; await _notificarProcessando(senovaTab.id, false); }
@@ -829,7 +888,17 @@ async function _buscarDescricaoGuest(url) {
   const id = (url.match(/\/jobs\/view\/(\d+)/) || [])[1];
   if (!id) return null;
   const r = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, { credentials: 'omit' });
-  if (!r.ok) return null;
+  if (!r.ok) {
+    // Recusa do portal não é "sem descrição": tem de subir com nome, senão vira repetição.
+    if (_ehRecusaDePortal(r.status)) {
+      const e = new Error('portal recusou (HTTP ' + r.status + ')');
+      e.portalRecusou = true;
+      const ra = parseInt(r.headers.get('Retry-After') || '', 10);
+      e.esperarSeg = (Number.isFinite(ra) && ra > 0) ? Math.min(ra, 3600) : 0;
+      throw e;
+    }
+    return null;
+  }
   const html = await r.text();
   // Ancorar no botão "ver mais" (fim real da descrição) evita truncar num </div>
   // interno. Fallbacks: </div> simples e description__text.
@@ -855,7 +924,7 @@ async function _buscarDescricaoGuest(url) {
 async function _enriquecerUma(url, senovaTabId) {
   let dados = null;
   try { dados = await _buscarDescricaoGuest(url); }
-  catch { return false; }
+  catch (e) { if (e && e.portalRecusou) throw e; return false; } // recusa sobe; o resto é falha comum
   const desc = (dados && dados.descricao) || '';
   if (desc.length <= 120) return false; // limiar único com o app
   try {
