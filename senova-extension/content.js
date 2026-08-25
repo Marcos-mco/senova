@@ -1622,7 +1622,10 @@
       const okTxt = formato === 'pdf' ? '✓ PDF baixado' : '✓ .docx baixado';
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.background = '#EAF7EF'; btn.style.borderColor = '#1A6840'; btn.style.color = '#1A6840'; btn.textContent = okTxt; }
     } else {
-      const m = (res && res.erro === 'pdf_falhou') ? 'Recarregue o app'
+      // O app recusou entregar um CV meio traduzido (S52). Não é falha de conexão: mandar
+      // recarregar aqui seria conselho errado — o caminho é gerar o CV de novo no Senova.
+      const m = (res && res.erro === 'traducao_incompleta') ? 'Parte ficou em português — gere o CV de novo'
+              : (res && res.erro === 'pdf_falhou') ? 'Recarregue o app'
               : (res && res.motivo === 'sem_cv') ? 'Gere o CV no Senova'
               // Mesmo piso do card: CV de descrição curta sai genérico. Melhor dizer isto do
               // que entregar um documento fraco ao recrutador.

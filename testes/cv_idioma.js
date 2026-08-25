@@ -161,7 +161,14 @@ p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
   idioma: 'ES',
   exp: { consigliere: { cargo: '', bullets: ['x'] } },
 }))]);
-t('cargo vazio derruba a tradução inteira (não sobrou item bom)', p === null);
+// Até a S52 esta chamada devolvia null — e null é a ausência de informação: o documento saía
+// inteiro em português com o rótulo "ES" e ninguém sabia por quê. Agora o descarte total continua
+// não aproveitando NADA, mas devolve o laudo de quem caiu e por quê, que é o que permite ao PDF
+// se recusar a sair misto.
+t('cargo vazio não aproveita nada da tradução', p && Object.keys(p.exp).length === 0);
+t('mas o laudo do descarte sobrevive, com sujeito e motivo',
+  p && p.recusados.length === 1 && p.recusados[0].id === 'consigliere' && p.recusados[0].motivo === 'sem_cargo',
+  JSON.stringify(p && p.recusados));
 
 p = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
   idioma: 'ES',
@@ -206,20 +213,48 @@ t('competências em espanhol', /Desarrollo de Negocio/.test(r.competencias));
 t('período em espanhol (mês + "actualidad")', /actualidad/.test(r.experiencias[0].periodo), r.experiencias[0].periodo);
 t('cargo traduzido pelo id', r.experiencias[0].cargo === 'Consultor Sénior', r.experiencias[0].cargo);
 t('formação traduzida', /Máster/.test(r.formacao[0].titulo), r.formacao[0].titulo);
-t('instituição NÃO se traduz (nome próprio)', /Universitat de Barcelona/.test(r.formacao[0].instituicao));
+t('sem "instituicoes" no bloco, a linha da instituição cai no perfil (é o fallback, não a regra)', /Universitat de Barcelona/.test(r.formacao[0].instituicao));
 t('idiomas traduzidos', /Portugués/.test(r.idiomas), r.idiomas);
 t('empresa continua igual (nome próprio)', /Consigliere/.test(r.experiencias[0].empresa));
 
-console.log('\n=== fallback: sem tradução, o PDF não sai quebrado ===');
+console.log('\n=== documento MISTO: até a S52 isto era tratado como comportamento correto ===');
+// As três asserções que viviam aqui diziam, com todas as letras, que um CV em espanhol com blocos
+// em português é "documento coerente, não vazio" e que "os outros itens não somem do PDF". Elas
+// eram a documentação do defeito — e por isso a suíte ficou VERDE enquanto o CV do Jobgether saía
+// meio em inglês, meio em português (25/ago/2026). O fallback por bloco continua existindo (é ele
+// que impede invenção), mas agora é DECLARADO: quem monta o documento sabe o que ficou para trás.
 r = exec(s, '_cvParaPDF(' + JSON.stringify(VAGA_ES) + ',' + JSON.stringify(CV_ES) + ',"Jefe de Ventas","ES",null)');
-t('sem trad, cargo cai no fato em português (documento coerente, não vazio)', !!r.experiencias[0].cargo);
-t('sem trad, idiomas caem no perfil em português', /Português/.test(r.idiomas));
+t('sem trad, o cargo ainda cai no fato do perfil (nunca inventa)', !!r.experiencias[0].cargo);
+t('mas o documento NÃO se dá por pronto: acusa o que ficou em português', r._emPortugues.length > 0, JSON.stringify(r._emPortugues));
+t('e o laudo tem sujeito — nomeia a experiência, não diz só "deu erro"',
+  r._emPortugues.some(x => /Consigliere/.test(x)), JSON.stringify(r._emPortugues));
+t('a formação e os idiomas entram no laudo pelo mesmo motivo',
+  r._emPortugues.some(x => /Formação/.test(x)) && r._emPortugues.some(x => /idiomas/i.test(x)), JSON.stringify(r._emPortugues));
 t('mas os rótulos de data seguem em espanhol', /actualidad/.test(r.experiencias[0].periodo));
 
 const tradParcial = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({ idioma: 'ES', exp: { consigliere: { cargo: 'Consultor Sénior', bullets: ['Asesoría.'] } } }))]);
 r = exec(s, '_cvParaPDF(' + JSON.stringify(VAGA_ES) + ',' + JSON.stringify(CV_ES) + ',"Jefe de Ventas","ES",' + JSON.stringify(tradParcial) + ')');
 t('tradução parcial: item traduzido usa o espanhol', r.experiencias[0].cargo === 'Consultor Sénior');
-t('tradução parcial: os outros itens não somem do PDF', r.experiencias.length > 1 && !!r.experiencias[1].cargo);
+t('tradução parcial: os outros itens continuam no objeto (não se apaga carreira)', r.experiencias.length > 1 && !!r.experiencias[1].cargo);
+// +2 = os títulos da formação e a lista de idiomas. A linha da INSTITUIÇÃO não entra: ela é nome
+// próprio ("Universitat de Barcelona"), e acusá-la de ter ficado em português seria acusação falsa
+// — travaria um CV bom por um detalhe cosmético. O censo bloqueia PROSA na língua errada, não nome.
+t('e cada um deles é acusado nominalmente como não traduzido',
+  r._emPortugues.length === r.experiencias.length - 1 + 2, JSON.stringify(r._emPortugues));
+
+console.log('\n=== traduzido por inteiro: o laudo fica vazio, e só então o PDF pode sair ===');
+const tradTotal = chamar(s, '_extrairPerfilTraduzido', [RESP(JSON.stringify({
+  idioma: 'ES',
+  exp: Object.fromEntries(exec(s, 'filtrarExperienciasRelevantes(' + JSON.stringify(VAGA_ES) + ',"").slice(0,CV_MAX_EXPS)')
+    .map(e => [e.id, { cargo: 'Cargo ES', empresa: e.empresa, bullets: (e.bullets || []).map(() => 'Bullet en español.') }])),
+  formacao: exec(s, 'formacaoDoCV()').map(() => 'Título ES'),
+  instituicoes: exec(s, 'formacaoDoCV()').map(f => f.instituicao + ' (España)'),
+  idiomas: ['Portugués (nativo)', 'Inglés (avanzado)', 'Español (avanzado)'],
+}))]);
+r = exec(s, '_cvParaPDF(' + JSON.stringify(VAGA_ES) + ',' + JSON.stringify(CV_ES) + ',"Jefe de Ventas","ES",' + JSON.stringify(tradTotal) + ')');
+t('nada sobrou em português', r._emPortugues.length === 0, JSON.stringify(r._emPortugues));
+t('a linha da instituição agora acompanha o documento', /España/.test(r.formacao[0].instituicao), r.formacao[0].instituicao);
+t('e o nome próprio dentro dela continua verbatim', /Universitat de Barcelona/.test(r.formacao[0].instituicao), r.formacao[0].instituicao);
 
 console.log('\n=== o PDF em português continua igual ao aprovado (nada regrediu) ===');
 r = exec(s, '_cvParaPDF("Gerente Comercial","MARCOS FRANCO\\nExecutivo Comercial\\n\\nRESUMO EXECUTIVO\\nx","Gerente Comercial","PT",null)');

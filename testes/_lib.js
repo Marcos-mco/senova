@@ -49,7 +49,16 @@ const NUCLEO = [
   // Guarda de veracidade dos bullets reescritos por vaga (S48): desde que a IA adapta o texto dos
   // fatos, e não só o traduz, é este par que impede número novo de entrar no CV.
   // _extrairPerfilTraduzido depende dos dois — entram no núcleo pela razão do topo do arquivo.
+  // A guarda compara QUANTIDADE, não dígito solto (S52): "120 mil" e "120,000" são o mesmo número,
+  // e ler os pedaços "120" e "000" foi o que recusou a tradução e entregou CV meio em português.
+  // A tabela de escalas é camada de idioma, como _PDF_LABELS — entra junto pela razão do topo.
+  'const _ESCALAS_NUM = {',
+  'function _quantidadesDe(',
+  // A irmã da guarda de números, aplicada a NOME: nome próprio de empresa e de instituição não se
+  // traduz (S49, "vale o que está nas fotos"). Dependência de _extrairPerfilTraduzido.
+  'function _nomeProprioSobrevive(',
   'function _numerosDe(',
+  'function _numerosNovosDe(',
   'function _bulletsFieisAosFatos(',
   'function _extrairPerfilTraduzido(',
   // Ponto único de gravação de localizacao/modelo/regime/jornada/salario (S47, auditoria de

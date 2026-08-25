@@ -148,8 +148,15 @@ t('a extensão passa o cargo ao portão',
   /montarPedidoCV\(\{descricao:desc,[^}]*cargo:v\.cargo\|\|''[,}]/.test(html));
 t('o fallback de subtítulo do PDF NÃO é mais C-level chumbado',
   !/if\(!subtitulo\) subtitulo='Executivo de Marketing & Crescimento \| CMO · CSO · CEO/.test(html));
+// O bloco virou multi-linha na S52 (o fallback em português deixou de valer para documento em
+// outra língua), mas a régua que este teste guarda é a mesma: o subtítulo se posiciona pelo cargo
+// DA VAGA, nunca por um nível chumbado no código.
 t('o fallback de subtítulo do PDF posiciona pela vaga (cargoVaga)',
-  /if\(!subtitulo\) subtitulo=\(cargoVaga&&String\(cargoVaga\)\.trim\(\)\)/.test(html));
+  /if\(!subtitulo\)\{\s*const _base=\(cargoVaga&&String\(cargoVaga\)\.trim\(\)\)\?String\(cargoVaga\)\.trim\(\)/.test(html));
+// E o "· Curitiba, PR" colado no subtítulo é rede do documento em português: num CV em inglês ele
+// pingava cidade brasileira dentro de linha traduzida.
+t('a cauda em português do subtítulo só vale quando o documento é em português',
+  /else subtitulo=_base\?_base\+' · /.test(html));
 
 console.log('\n──────────────────────────────');
 console.log(fail === 0 ? `CV_NIVEL_CALIBRA: ${ok}/${ok} ✓` : `${ok} passaram · ${fail} FALHARAM`);
