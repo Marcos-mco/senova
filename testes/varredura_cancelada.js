@@ -109,7 +109,10 @@ t('as sub-origens estão no catálogo fechado (o que não estiver nele cai em "a
   ['esteira_home', 'card_aberto', 'extensao'].every(o =>
     new RegExp(`const ORIGENS_CUSTO = new Set\\(\\[[\\s\\S]{0,300}'${o}'`).test(worker)));
 t('a rota /api/analisar-vaga repassa a origem que o app mandou',
-  /const \{[^}]*\borigem\b[^}]*\} = await request\.json\(\);\s*\n\s*return json\(await analisarVaga\([\s\S]{0,220}, origem\)\)/.test(worker));
+  // Entre a destruturação e a chamada passou a existir o porteiro do teto (v7.46). O que
+  // este teste guarda é que a origem que o app mandou CHEGA à análise — não que as duas
+  // linhas sejam vizinhas.
+  /const \{[^}]*\borigem\b[^}]*\} = await request\.json\(\);[\s\S]{0,700}?return json\(await analisarVaga\([\s\S]{0,220}, origem\)\)/.test(worker));
 t('a esteira da Home se identifica como esteira_home', /origem:'esteira_home'/.test(html));
 t('o card aberto se identifica como card_aberto (2 chamadas: cálculo automático e recálculo)',
   (html.match(/origem:'card_aberto'/g) || []).length === 2);

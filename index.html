@@ -1314,6 +1314,37 @@ select option { background: var(--bg2); }
         </div>
       </div>
 
+      <!-- Orçamento de IA -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Orçamento de IA</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Quanto o Senova pode gastar com inteligência artificial por mês. Chegando ao teto, ele para de analisar — e volta sozinho no dia 1º. Nada do que você já tem é perdido.</div>
+
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px;">
+          <div id="orcamento-linha" style="font-size:15px;color:var(--text);font-weight:600;">Lendo o consumo deste mês…</div>
+          <div style="height:8px;background:var(--bg4);border-radius:4px;margin-top:12px;overflow:hidden;">
+            <div id="orcamento-barra" style="height:100%;width:0%;background:var(--action);border-radius:4px;transition:width .3s;"></div>
+          </div>
+          <div id="orcamento-detalhe" style="font-size:12.5px;color:var(--text3);margin-top:10px;"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-row" style="margin:0;flex:1;min-width:150px;">
+            <label class="field-label">Teto por mês</label>
+            <input type="number" min="1" step="1" id="orcamento-teto" placeholder="200">
+          </div>
+          <div class="form-row" style="margin:0;width:110px;">
+            <label class="field-label">Moeda</label>
+            <input type="text" maxlength="3" autocomplete="off" id="orcamento-moeda" placeholder="BRL" style="text-transform:uppercase;">
+          </div>
+          <div class="form-row" style="margin:0;flex:1;min-width:170px;">
+            <label class="field-label">Quanto vale 1 dólar</label>
+            <input type="number" min="0.01" step="0.01" id="orcamento-cambio" placeholder="5.40">
+          </div>
+          <button class="btn btn-primary" onclick="salvarOrcamento()" style="font-size:13px;padding:9px 20px;min-height:44px;">Salvar orçamento</button>
+        </div>
+        <div style="font-size:12.5px;color:var(--text3);margin-top:10px;">A conta da inteligência artificial chega em dólar. O câmbio é o que o seu cartão cobra — coloque o que você paga, não a cotação do dia.</div>
+      </div>
+
     </div><!-- /panel-4 -->
 
     <!-- ── TAB 5: PREFERÊNCIAS ── -->
@@ -2784,6 +2815,22 @@ select option { background: var(--bg2); }
 </div>
 
 <!-- ══ MINI-MODAL: ARQUIVAR PROCESSO (arquivado/aceito) ══ -->
+<!-- Teto de gasto atingido. Modal, e não toast: a mensagem tem uma decisão dentro. Um toast
+     some antes de ser lido e deixa a pessoa achando que o app quebrou. -->
+<div class="modal-overlay" id="modal-teto" style="display:none;" onclick="if(event.target===this)fecharModalTeto()">
+  <div class="modal">
+    <div class="modal-title">Limite do mês atingido</div>
+    <div class="modal-body">
+      <div id="modal-teto-texto" style="font-size:15px;line-height:1.65;color:var(--text2);white-space:pre-line;"></div>
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="fecharModalTeto()">Entendi</button>
+      <button class="btn btn-primary" onclick="abrirOrcamento()">Ajustar orçamento</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-arquivar" style="display:none;" onclick="if(event.target===this)arquivarSkip()">
   <div class="modal" style="width:min(420px,92vw);">
     <div style="padding:22px 22px 0;">
@@ -2838,9 +2885,102 @@ select option { background: var(--bg2); }
         }
       }
     }catch(e){}
-    return _fetch(input, init);
+    // O teto de gasto (Worker v7.46) recusa com 402 e o campo `teto_atingido`. Sem tratar
+    // aqui, cada uma das ~60 chamadas mostraria só o seu próprio "erro ao analisar" — e alguém
+    // desempregado, vendo o app parar sem explicação, conclui que ele quebrou. O aviso vive no
+    // interceptador pelo mesmo motivo que a chave: é o ponto único por onde tudo passa. A
+    // resposta segue intacta para quem chamou — isto AVISA, não engole.
+    return _fetch(input, init).then(res => {
+      try {
+        if (res.status === 402) {
+          res.clone().json().then(d => { if (d && d.teto_atingido) mostrarTetoAtingido(d); }).catch(()=>{});
+        }
+      } catch(e){}
+      return res;
+    });
   };
 })();
+
+// ─── Orçamento de IA ──────────────────────────────
+// Quanto o Senova pode gastar com IA por mês. O número vive no Worker (KV), não aqui: é o
+// Worker que recusa a chamada, e um teto guardado no aparelho não protegeria nada.
+function _orcMoeda(valor, moeda){
+  try { return new Intl.NumberFormat('pt-BR', { style:'currency', currency: moeda }).format(valor); }
+  catch(e){ return moeda + ' ' + Number(valor).toFixed(2); }
+}
+function _orcZeraEm(){
+  const d = new Date(); d.setMonth(d.getMonth()+1, 1);
+  return d.toLocaleDateString('pt-BR');
+}
+async function carregarOrcamento(){
+  const linha = document.getElementById('orcamento-linha');
+  if (!linha) return;
+  const barra = document.getElementById('orcamento-barra');
+  const det = document.getElementById('orcamento-detalhe');
+  try {
+    const r = await fetch(WORKER_URL + '/api/orcamento');
+    if (!r.ok) throw new Error('http ' + r.status);
+    const e = await r.json();
+    const o = e.orcamento || {};
+    const teto = Number(o.teto) || 0, gasto = Number(e.gasto) || 0;
+    document.getElementById('orcamento-teto').value = teto || '';
+    document.getElementById('orcamento-moeda').value = o.moeda || '';
+    document.getElementById('orcamento-cambio').value = o.cambio_por_usd || '';
+    if (!e.medido){
+      linha.textContent = 'Teto de ' + _orcMoeda(teto, o.moeda) + ' por mês';
+      barra.style.width = '0%';
+      det.textContent = 'Ainda não deu para medir o consumo deste mês. O teto continua valendo.';
+      return;
+    }
+    const pct = teto > 0 ? Math.min(100, (gasto / teto) * 100) : 0;
+    barra.style.width = pct.toFixed(0) + '%';
+    barra.style.background = e.bloqueado ? 'var(--red)' : (pct >= 80 ? 'var(--gold)' : 'var(--action)');
+    linha.textContent = _orcMoeda(gasto, o.moeda) + ' de ' + _orcMoeda(teto, o.moeda) + ' usados este mês';
+    det.textContent = e.bloqueado
+      ? 'Teto atingido — o Senova parou de usar IA de propósito. O contador zera em ' + _orcZeraEm() + '.'
+      : 'Restam ' + _orcMoeda(e.restante, o.moeda) + ' · o contador zera em ' + _orcZeraEm() + '.'
+        + (o.padrao ? ' Este ainda é o valor padrão — você nunca escolheu o seu.' : '');
+  } catch(err){
+    linha.textContent = 'Não deu para ler o orçamento agora';
+    det.textContent = 'O teto continua valendo no servidor. Tente abrir esta aba de novo em instantes.';
+  }
+}
+async function salvarOrcamento(){
+  const teto = parseFloat(document.getElementById('orcamento-teto').value);
+  const moeda = (document.getElementById('orcamento-moeda').value || '').trim().toUpperCase() || 'BRL';
+  const cambio = parseFloat(document.getElementById('orcamento-cambio').value);
+  if (!(teto > 0)) return showToast('Informe um teto maior que zero — é quanto o Senova pode gastar com IA por mês.');
+  if (!(cambio > 0)) return showToast('Informe quanto vale 1 dólar na sua moeda: a conta da IA chega em dólar.');
+  try {
+    const r = await fetch(WORKER_URL + '/api/orcamento', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ teto, moeda, cambio_por_usd: cambio })
+    });
+    const d = await r.json();
+    if (!r.ok) return showToast(d.error || 'Não deu para salvar o orçamento agora.');
+    showToast('Orçamento salvo: até ' + _orcMoeda(teto, moeda) + ' por mês');
+    carregarOrcamento();
+  } catch(err){ showToast('Não deu para salvar o orçamento agora. Verifique a conexão.'); }
+}
+function mostrarTetoAtingido(d){
+  const el = document.getElementById('modal-teto');
+  const txt = document.getElementById('modal-teto-texto');
+  if (!el || !txt) return;
+  if (el.style.display === 'flex') return; // um aviso — e não um por chamada do lote
+  txt.textContent = d.error || 'O Senova atingiu o limite de gasto com IA deste mês.';
+  el.style.display = 'flex';
+}
+function fecharModalTeto(){
+  const el = document.getElementById('modal-teto');
+  if (el) el.style.display = 'none';
+}
+function abrirOrcamento(){
+  fecharModalTeto();
+  showPage('linkedin');
+  const btns = document.querySelectorAll('.perfil-tab-btn');
+  perfilTab(4, btns[3]);
+  setTimeout(()=>{ const c = document.getElementById('orcamento-linha'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); }, 120);
+}
 function salvarChaveAcesso(){
   const inp = document.getElementById('perfil-app-key');
   if (!inp) return;
@@ -3585,6 +3725,7 @@ function perfilTab(n, btn){
     const panel=document.getElementById('perfil-panel-'+i);
     if(panel) panel.classList.toggle('active', i===n);
   });
+  if(n===4) carregarOrcamento();
   if(n===5) renderAutoBackups();
   if(n===6) ctxRenderizar();
   document.querySelectorAll('.perfil-tab-btn').forEach(b=>b.classList.remove('active'));

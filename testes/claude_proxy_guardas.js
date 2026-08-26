@@ -108,7 +108,12 @@ t('a rota registra custo com origem',
   /_registrarCustoIA\(env, dados\.usage, origem[,)]/.test(rota));
 t('só registra quando a chamada deu certo (nunca inventa número)',
   /if \(resp\.ok && ctx\) ctx\.waitUntil\(/.test(rota) &&
-  /donoSeguro\(request, env\)\.then\(dono => _registrarCustoIA/.test(rota));
+  // v7.46: o dono já foi resolvido ANTES da chamada, porque o teto de gasto precisa dele
+  // para decidir. O registro reusa o mesmo valor em vez de perguntar duas vezes.
+  /ctx\.waitUntil\(\s*\n?\s*_registrarCustoIA\(env, dados\.usage, origem, donoDoPedido[,)]/.test(rota));
+// A rota mais quente do app é também a mais fácil de esquecer numa trava nova.
+t('e o teto do mês é consultado ANTES de a Anthropic ser chamada',
+  /bloqueadoPorTeto\(env, donoDoPedido\)[\s\S]{0,500}?api\.anthropic\.com/.test(rota));
 t('o campo `origem` é nosso e sai do corpo antes de ir para a Anthropic',
   /delete body\.origem/.test(rota) &&
   rota.indexOf('delete body.origem') < rota.indexOf('api.anthropic.com'));

@@ -83,23 +83,44 @@ t('a tabela tem dono na chave primária — três usuários nunca viram um total
   /PRIMARY KEY \(dia, user_id, origem\)/.test(
     fs.readFileSync(path.join(__dirname, '..', 'migrations', '004_custo_ia_por_usuario.sql'), 'utf8')));
 t('_registrarCustoIA recebe o dono e o grava',
-  /async function _registrarCustoIA\(env, usage, origem, dono\)/.test(worker) &&
+  // Termina em [,)]: guarda a POSIÇÃO do dono, não o tamanho da lista — a v7.46 acrescentou
+  // `modelo` no fim, e fixar a assinatura inteira faria este teste cair sem nada ter
+  // quebrado ([[feedback_teste_guarda_posicao_nao_lista_s50]]).
+  /async function _registrarCustoIA\(env, usage, origem, dono[,)]/.test(worker) &&
   /\.bind\(\s*\n?\s*hoje,\s*\n?\s*deQuem,/.test(worker));
 t('dono não conferido vira "nao_atribuido" — nunca a conta de outra pessoa',
   /const CUSTO_SEM_DONO = 'nao_atribuido'/.test(worker) &&
   /const deQuem = \(typeof dono === 'string' && dono\.trim\(\)\) \? dono : CUSTO_SEM_DONO;/.test(worker));
 t('as CINCO chamadas medidas passam o dono adiante (nenhuma cai no balde anônimo por esquecimento)',
-  /_registrarCustoIA\(env, data\.usage, 'email', dono\)/.test(worker) &&
-  /_registrarCustoIA\(env, data\.usage, 'sofia', dono\)/.test(worker) &&
-  /_registrarCustoIA\(env, data\.usage, 'mercado', dono\)/.test(worker) &&
-  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar', dono\)/.test(worker) &&
-  /_registrarCustoIA\(env, dados\.usage, origem, dono\)/.test(worker));
+  /_registrarCustoIA\(env, data\.usage, 'email', dono[,)]/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, 'sofia', dono[,)]/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, 'mercado', dono[,)]/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar', dono[,)]/.test(worker) &&
+  /_registrarCustoIA\(env, dados\.usage, origem, donoDoPedido[,)]/.test(worker));
+// v7.46 (S53): token só vira dinheiro quando se sabe QUAL modelo rodou — entrada de Haiku
+// custa 1/3 da de Sonnet, saída de Opus custa 5x. Uma chamada registrada sem modelo é um
+// gasto que o teto tem de precificar por cima, e o histórico volta a ser "número sem
+// sujeito" — a mesma doença da 003 e da 004, um andar acima.
+t('e todas dizem TAMBÉM qual modelo rodou (sem isto, o dinheiro é chute)',
+  (worker.match(/_registrarCustoIA\(env, data\.usage, [^)]*, dono, 'claude-[a-z0-9-]+'\)/g) || []).length === 4 &&
+  /_registrarCustoIA\(env, dados\.usage, origem, donoDoPedido, body && body\.model\)/.test(worker));
 t('quem não tinha dono na assinatura passou a receber — classificarEmails e os sinais de mercado',
   /async function classificarEmails\(emails, whitelist, env, ctx, dono\)/.test(worker) &&
   /async function buscarSinaisMercado\(env, ctx, dono\)/.test(worker) &&
   /async function analisarSinaisMercado\(itens, env, ctx, dono\)/.test(worker));
-t('/api/claude descobre o dono DEPOIS de responder (a contabilidade não cobra latência do usuário)',
-  /ctx\.waitUntil\(\s*\n?\s*donoSeguro\(request, env\)\.then\(dono => _registrarCustoIA\(env, dados\.usage, origem, dono\)\)/.test(worker));
+// A v7.46 (S53) INVERTEU esta regra, e a inversão é a razão de o teste mudar em vez de sumir.
+// Até aqui /api/claude descobria o dono DENTRO do waitUntil, depois de responder: a rota é a
+// mais quente do app e uma ida ao D1 antes da resposta cobraria latência de todo mundo para
+// servir a contabilidade. Com o teto de gasto isso deixou de ser possível — o porteiro
+// precisa saber DE QUEM é a conta ANTES de autorizar a chamada. A latência foi respondida por
+// outro caminho: `donoParaTeto` guarda o dono por 60s no isolate, chaveado pelo HASH da
+// credencial (segredo não mora em estrutura de vida longa). É isso que o teste guarda agora.
+t('/api/claude resolve o dono ANTES de gastar, e sem ir ao D1 a cada chamada',
+  /const donoDoPedido = await donoParaTeto\(request, env\);[\s\S]{0,300}?bloqueadoPorTeto\(env, donoDoPedido\)/.test(worker) &&
+  /async function donoParaTeto[\s\S]{0,800}?_cacheDono\.get\(chave\)/.test(worker));
+t('e o cache do dono é chaveado pelo hash da credencial, nunca pela credencial crua',
+  /const chave = await _sha256hex\(cred\);/.test(worker) &&
+  !/_cacheDono\.(get|set)\(cred[,)]/.test(worker));
 
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');
 t('GET /api/radar-custo existe e lê custo_ia_v2 do D1',
@@ -108,15 +129,27 @@ t('a rota respeita o teto de 30 DIAS distintos (não 30 linhas)',
   /SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN \(\$\{vagas\}\) ORDER BY dia DESC LIMIT 30/.test(worker));
 t('o formato antigo (por_dia com a soma do dia) continua servido — ninguém quebra',
   /const por_dia = \{\}, por_origem = \{\}, por_usuario = \{\}/.test(worker) &&
-  /return json\(\{ por_dia, por_origem, por_usuario \}\)/.test(worker));
+  /return json\(\{ por_dia, por_origem, por_usuario, orcamento \}\)/.test(worker));
+// v7.46 (S53): o painel deixou de servir só token. O teto trabalha em dinheiro, e uma tela
+// que mostra token enquanto a trava conta dinheiro é uma tela que vai discordar da trava.
+t('e agora serve DINHEIRO junto do token (é em dinheiro que o teto decide)',
+  /custo_usd, modelo FROM custo_ia_v2/.test(worker) &&
+  /a\.custo_usd\s*\+= \(r\.custo_usd \|\| 0\)/.test(worker));
+t('o estado do orçamento vem do MESMO cálculo do porteiro, não de uma segunda soma',
+  /const orcamento = await estadoDoOrcamento\(env, dono\);/.test(worker));
 // [[project_vazamento_vagas_lead_s41]] — a rota que servia o que só fazia sentido com um
 // usuário. O filtro entra antes de haver o que vazar, não depois.
 t('o painel mostra o gasto de QUEM PERGUNTA, não a soma do mundo',
   /path === '\/api\/radar-custo'[\s\S]{0,900}const dono = await donoSeguro\(request, env\)/.test(worker) &&
   /WHERE user_id IN \(\$\{vagas\}\)/.test(worker));
+// v7.46 (S53): o cálculo saiu de dentro da rota e virou `donosDaConta`, porque o TETO de
+// gasto precisa somar exatamente as mesmas linhas que este painel mostra. Enquanto fossem
+// dois trechos, seriam duas respostas — uma tela mostrando R$ 265 ao lado de uma trava que
+// só conhece R$ 21. A regra é a mesma; o que mudou é que agora ela mora num lugar só.
 t('o histórico não atribuído só é herdado por quem é dele (mesmo mecanismo do Perfil)',
-  /path === '\/api\/radar-custo'[\s\S]{0,1200}donoLegado === dono/.test(worker) &&
-  /path === '\/api\/radar-custo'[\s\S]{0,1600}COUNT\(\*\) AS n FROM usuarios WHERE ativo=1/.test(worker));
+  /async function donosDaConta[\s\S]{0,600}donoLegado === dono/.test(worker) &&
+  /async function donosDaConta[\s\S]{0,900}COUNT\(\*\) AS n FROM usuarios WHERE ativo=1/.test(worker) &&
+  /path === '\/api\/radar-custo'[\s\S]{0,1200}const meus = await donosDaConta\(env, dono\);/.test(worker));
 
 console.log('\n=== a rota nova segue o padrão fail-closed (exige x-senova-key) ===');
 const i = worker.indexOf('const ROTAS_SEM_SEGREDO');

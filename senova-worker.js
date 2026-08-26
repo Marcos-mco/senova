@@ -1,6 +1,32 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.45
+//  SENOVA PROXY — Worker v7.46
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.46 (26/ago/2026) — TETO DE GASTO. O app passa a poder dizer não a si mesmo.
+//  Marcos abriu a fatura do cartão: "estou desempregado e não posso gastar tanto assim.
+//  Vamos mudar o processo de trabalho e colocar como regra não poder passar dos 200 reais
+//  mensais." Medido no D1 antes de qualquer linha de código: R$ 263,56 em 13 dias com
+//  registro — 83% num clique só ("Importar vagas", R$ 0,081 por vaga, 2.696 análises) —,
+//  ritmo de R$ 430/mês. O que faltava não era medição: era FREIO. Nenhuma linha do Worker
+//  consultava o quanto já se gastou antes de gastar de novo, e o app nunca leu
+//  /api/radar-custo, então o número existia no banco e nunca chegou a uma tela.
+//  1. DINHEIRO VIRA COLUNA (migração 005). `custo_ia_v2` ganha `custo_usd` e `modelo`:
+//     token só vira dinheiro quando se sabe qual modelo rodou. O histórico entra rotulado
+//     `nao_registrado` e precificado por cima (tabela do Sonnet 4.6) — estimativa declarada,
+//     nunca atribuição fingida, a mesma disciplina do backfill de dono da 004.
+//  2. UM PORTEIRO ANTES DE CADA CHAMADA DE IA. /api/claude, /api/analisar-vaga,
+//     /api/sofia-parecer, /api/sinais-mercado e o lote de classificação de e-mail somam o
+//     gasto do mês e recusam com HTTP 402 quando o teto chega. A recusa diz o quê, por quê e
+//     o que fazer agora — [[feedback_repetir_pedido_e_defeito_meu_s52]].
+//  3. O TETO É DADO DO USUÁRIO, NUNCA CONSTANTE. Mora no KV por pessoa
+//     (`orcamento:<user_id>`) com moeda e câmbio, e GET/POST /api/orcamento o lê e define.
+//     "R$ 200" é a decisão do Marcos; virar constante seria a sexta vez que a medição de UM
+//     usuário vira lei para todos (crivo de universalidade, S51).
+//  4. O NÚMERO PASSA A PODER SER VISTO. /api/radar-custo devolve custo em dinheiro por dia e
+//     por origem, e o estado do orçamento — o MESMO cálculo do porteiro, para a tela nunca
+//     discordar da trava.
+//  Falhar medindo não fecha a torneira: se o D1 não responde, o porteiro segue aberto e
+//  registra o erro. App parado por falha nossa seria cobrar do usuário um limite que é nosso.
 //
 //  NOVIDADES v7.45 (25/ago/2026) — "cuidado em não sermos bloqueados" (Marcos, S52). Duas
 //  mudanças, ambas medidas pelo senova-auditor:
@@ -1282,6 +1308,15 @@ async function classificarEmails(emails, whitelist, env, ctx, dono) {
 
   const resultados = [...preClassificados];
   for (let i = 0; i < paraIA.length; i += 10) {
+    // Teto do mês: para no lote em que estourou e devolve o que já classificou. Os e-mails
+    // que sobraram ficam de fora de "resultados" e, por isso, fora de "vistos" — reaparecem
+    // como novos na próxima busca, exatamente como no catch abaixo. Nenhum e-mail se perde
+    // porque o dinheiro acabou; eles esperam.
+    const freio = await bloqueadoPorTeto(env, dono);
+    if (freio) {
+      console.warn(`[teto] colheita de e-mail interrompida: ${paraIA.length - i} e-mails ficam para depois`);
+      break;
+    }
     const lote = paraIA.slice(i, i + 10);
     const listaEmails = lote.map((e, idx) =>
       `[${idx}] De: ${e.from_name||e.from} | Assunto: ${e.subject} | Conteúdo: ${(e.conteudo_vaga||e.preview||'').slice(0, 400)}`
@@ -1324,7 +1359,7 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
       });
       if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0,300)}`);
       const data = await res.json();
-      if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email', dono));
+      if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email', dono, 'claude-sonnet-4-6'));
       const texto = data.content?.[0]?.text || '';
       const parsed = JSON.parse(texto.replace(/```json|```/g,'').trim());
       parsed.resultados.forEach(r => {
@@ -1370,7 +1405,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.45',
+        status: 'ok', worker: 'senova-proxy', versao: '7.46',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1399,6 +1434,12 @@ export default {
       const recusa = recusarPedidoClaude(body, bruto.length);
       if (recusa) return json({ error: recusa }, 400);
 
+      // Teto do mês, antes de gastar. Vem depois das guardas de formato de propósito: um
+      // pedido malformado continua sendo 400, não "acabou seu limite".
+      const donoDoPedido = await donoParaTeto(request, env);
+      const freio = await bloqueadoPorTeto(env, donoDoPedido);
+      if (freio) return respostaDeTeto(freio);
+
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'x-api-key':env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' },
@@ -1411,7 +1452,7 @@ export default {
       // app, e uma consulta ao D1 antes de devolver a resposta cobraria latência de todo
       // mundo para servir a contabilidade. Depois da resposta, ela não custa nada a ninguém.
       if (resp.ok && ctx) ctx.waitUntil(
-        donoSeguro(request, env).then(dono => _registrarCustoIA(env, dados.usage, origem, dono))
+        _registrarCustoIA(env, dados.usage, origem, donoDoPedido, body && body.model)
       );
       return json(dados, resp.status);
     }
@@ -1420,7 +1461,10 @@ export default {
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem } = await request.json();
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, await donoSeguro(request, env), origem));
+      const donoAnalise = await donoParaTeto(request, env);
+      const freioAnalise = await bloqueadoPorTeto(env, donoAnalise);
+      if (freioAnalise) return respostaDeTeto(freioAnalise);
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, donoAnalise, origem));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -1430,7 +1474,10 @@ export default {
     if (path === '/api/sofia-parecer' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const body = await request.json();
-      return json(await parecerSofia(body, env, body.perfilCandidato, ctx, await donoSeguro(request, env)));
+      const donoSofia = await donoParaTeto(request, env);
+      const freioSofia = await bloqueadoPorTeto(env, donoSofia);
+      if (freioSofia) return respostaDeTeto(freioSofia);
+      return json(await parecerSofia(body, env, body.perfilCandidato, ctx, donoSofia));
     }
 
     // ── O anúncio ainda existe? ──────────────────────────────────────
@@ -1641,7 +1688,6 @@ export default {
     if (path === '/api/radar-custo' && request.method === 'GET') {
       if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {}, por_usuario: {} });
       const dono = await donoSeguro(request, env);
-      const donoLegado = await env.SENOVA_KV.get(CHAVE_DONO_LEGADO);
       // Sem dono (D1 indisponível na hora da consulta), a única conta que dá para mostrar com
       // honestidade é a não atribuída — inventar um dono para poder somar seria pior que vazio.
       //
@@ -1649,27 +1695,21 @@ export default {
       // reivindicou. Ele então pertence a quem pergunta APENAS enquanto existir uma pessoa
       // cadastrada — condição que se fecha sozinha no minuto em que a segunda entrar, e que
       // não depende de saber quem a primeira é.
-      const meus = [];
-      if (dono) meus.push(dono);
-      let herdaLegado = !dono || donoLegado === dono;
-      if (!herdaLegado && dono && !donoLegado) {
-        const quantos = await env.SENOVA_DB.prepare('SELECT COUNT(*) AS n FROM usuarios WHERE ativo=1').first();
-        herdaLegado = (quantos?.n || 0) <= 1;
-      }
-      if (herdaLegado) meus.push(CUSTO_SEM_DONO);
+      const meus = await donosDaConta(env, dono);
       const vagas = meus.map(() => '?').join(',');
       const { results } = await env.SENOVA_DB.prepare(
-        `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura FROM custo_ia_v2 ` +
+        `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo FROM custo_ia_v2 ` +
         `WHERE user_id IN (${vagas}) AND dia IN (SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN (${vagas}) ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC`
       ).bind(...meus, ...meus).all();
       const por_dia = {}, por_origem = {}, por_usuario = {};
       const soma = (alvo, chave, r) => {
-        const a = alvo[chave] || (alvo[chave] = { chamadas:0, tokens_entrada:0, tokens_saida:0, cache_escrita:0, cache_leitura:0 });
+        const a = alvo[chave] || (alvo[chave] = { chamadas:0, tokens_entrada:0, tokens_saida:0, cache_escrita:0, cache_leitura:0, custo_usd:0 });
         a.chamadas       += r.chamadas;
         a.tokens_entrada += r.tokens_entrada;
         a.tokens_saida   += r.tokens_saida;
         a.cache_escrita  += r.cache_escrita;
         a.cache_leitura  += r.cache_leitura;
+        a.custo_usd      += (r.custo_usd || 0);
       };
       for (const r of results) {
         soma(por_dia, r.dia, r);
@@ -1678,7 +1718,42 @@ export default {
         por_dia[r.dia].origens = por_dia[r.dia].origens || {};
         soma(por_dia[r.dia].origens, r.origem, r);
       }
-      return json({ por_dia, por_origem, por_usuario });
+      // O estado do teto vai junto para a tela NUNCA discordar da trava: é o mesmo cálculo
+      // que o porteiro usa, não uma segunda soma feita aqui.
+      //
+      // Uma diferença que é honestidade, não bug: o teto cobra só o que está atribuído a
+      // esta pessoa; o histórico 'nao_atribuido' aparece no painel (é gasto real, dela) e
+      // não entra na trava, porque é anterior à 004 e ninguém pode provar de quem era.
+      const orcamento = await estadoDoOrcamento(env, dono);
+      return json({ por_dia, por_origem, por_usuario, orcamento });
+    }
+
+    // ── Orçamento — o teto é DADO DE QUEM USA, não constante do código ───────────
+    //
+    // Rota protegida por omissão (não está em ROTAS_SEM_SEGREDO): quem define quanto o app
+    // pode gastar em nome de alguém tem de provar que é essa pessoa.
+    //
+    // Três campos e nenhum a mais: quanto (`teto`), em que moeda a pessoa pensa (`moeda`) e
+    // quanto vale um dólar nessa moeda (`cambio_por_usd`). A conta chega da Anthropic em
+    // dólar; o câmbio é informado por quem usa porque cotação de terceiro seria mais uma
+    // dependência para o app ficar devendo — e porque quem paga em cartão sabe o câmbio que
+    // o banco dele cobrou melhor do que qualquer API saberia.
+    if (path === '/api/orcamento' && (request.method === 'GET' || request.method === 'POST')) {
+      const donoOrc = await donoParaTeto(request, env);
+      if (request.method === 'POST') {
+        const corpo = await request.json().catch(() => ({}));
+        const teto   = Number(corpo.teto);
+        const cambio = Number(corpo.cambio_por_usd);
+        // Recusa que diz o que fazer, em vez de gravar lixo e travar o app depois.
+        if (!(teto > 0))   return json({ error: 'Informe um teto maior que zero — é quanto o Senova pode gastar com IA por mês.' }, 400);
+        if (!(cambio > 0)) return json({ error: 'Informe quanto vale 1 dólar na sua moeda (a conta da IA chega em dólar).' }, 400);
+        const moeda = String(corpo.moeda || ORCAMENTO_PADRAO.moeda).trim().slice(0, 8).toUpperCase();
+        await env.SENOVA_KV.put(chaveOrcamento(donoOrc), JSON.stringify({ teto, moeda, cambio_por_usd: cambio }));
+        // O semáforo guarda o GASTO, não o teto — mas guarda por até 30s, e quem acabou de
+        // subir o teto para voltar a trabalhar não pode esperar meio minuto pela permissão.
+        _cacheGasto.delete(donoOrc);
+      }
+      return json(await estadoDoOrcamento(env, donoOrc));
     }
 
     // ── Auth Outlook — iniciar OAuth ─────────────────────────────────
@@ -2128,7 +2203,12 @@ export default {
           if (parsed.status !== 'rss_indisponivel') return json(parsed);
         }
       }
-      const resultado = await buscarSinaisMercado(env, ctx, await donoSeguro(request, env));
+      // O teto entra aqui e não no topo: o cache de 4h não gasta um token, e recusar uma
+      // resposta que já está pronta seria punir sem economizar nada.
+      const donoMercado = await donoParaTeto(request, env);
+      const freioMercado = await bloqueadoPorTeto(env, donoMercado);
+      if (freioMercado) return respostaDeTeto(freioMercado);
+      const resultado = await buscarSinaisMercado(env, ctx, donoMercado);
       if (resultado.status === 'ok') {
         await env.SENOVA_KV.put(cacheKey, JSON.stringify(resultado), { expirationTtl: 4 * 60 * 60 });
       }
@@ -3454,19 +3534,27 @@ const ORIGENS_CUSTO = new Set([
 // conveniência. É o mesmo rótulo do histórico anterior a esta migração, e diz a verdade
 // literal sobre as duas coisas: ninguém conferiu de quem eram.
 const CUSTO_SEM_DONO = 'nao_atribuido';
-async function _registrarCustoIA(env, usage, origem, dono) {
+// v7.46 (S53) — `modelo` entra na assinatura porque token só vira dinheiro quando se sabe
+// qual modelo rodou (saída de Opus custa 5x a de Haiku). Quem não disser o modelo grava
+// 'nao_registrado' e paga pela tabela mais cara: o teto erra para o lado de gastar menos.
+async function _registrarCustoIA(env, usage, origem, dono, modelo) {
   if (!usage || !env.SENOVA_DB) return;
   const quem = ORIGENS_CUSTO.has(origem) ? origem : 'app';
   // String vazia é tão "não sei" quanto null — e viraria uma linha órfã que nenhum painel
   // sabe ler depois.
   const deQuem = (typeof dono === 'string' && dono.trim()) ? dono : CUSTO_SEM_DONO;
+  const qual = (typeof modelo === 'string' && modelo.trim()) ? modelo.trim() : MODELO_NAO_REGISTRADO;
+  const usd = custoEmUSD(usage, qual);
+  // O porteiro do teto lê um cache de 30s; sem esta soma, seis análises disparadas em
+  // paralelo dentro da mesma janela passariam todas pelo número velho.
+  _somarNoCacheDeGasto(deQuem, usd);
   try {
     const hoje = new Date().toISOString().slice(0, 10);
     await env.SENOVA_DB.prepare(
-      'INSERT INTO custo_ia_v2 (dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura) VALUES (?, ?, ?, 1, ?, ?, ?, ?) ' +
+      'INSERT INTO custo_ia_v2 (dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?) ' +
       'ON CONFLICT(dia, user_id, origem) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
       'tokens_saida = tokens_saida + excluded.tokens_saida, cache_escrita = cache_escrita + excluded.cache_escrita, ' +
-      'cache_leitura = cache_leitura + excluded.cache_leitura'
+      'cache_leitura = cache_leitura + excluded.cache_leitura, custo_usd = custo_usd + excluded.custo_usd, modelo = excluded.modelo'
     ).bind(
       hoje,
       deQuem,
@@ -3474,11 +3562,244 @@ async function _registrarCustoIA(env, usage, origem, dono) {
       usage.input_tokens || 0,
       usage.output_tokens || 0,
       usage.cache_creation_input_tokens || 0,
-      usage.cache_read_input_tokens || 0
+      usage.cache_read_input_tokens || 0,
+      usd,
+      qual
     ).run();
   } catch (err) {
     console.error('_registrarCustoIA falhou:', err.message);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TETO DE GASTO — o app recusa gastar além do que o dono autorizou (v7.46, S53)
+// ═══════════════════════════════════════════════════════════════════
+//
+// POR QUE ISTO EXISTE, e por que não existia antes. Em 26/ago/2026 Marcos abriu a fatura do
+// cartão: "estou desempregado e não posso gastar tanto assim. Vamos mudar o processo de
+// trabalho e colocar como regra não poder passar dos 200 reais mensais."
+//
+// A medição já existia desde a v7.29 e mostrava R$ 263,56 em 13 dias medidos — 83% num
+// clique só ("Importar vagas", R$ 0,081 por vaga analisada, 2.696 análises). O que NÃO
+// existia era freio: nenhuma linha do Worker consultava o quanto já se gastou antes de
+// gastar de novo. E o app nunca leu /api/radar-custo, então o número existia no banco e
+// nunca chegou a uma tela. Medir sem mostrar e sem frear é o pior dos três mundos: paga-se
+// o custo de saber e não se colhe nada dele.
+//
+// O TETO É DADO DO USUÁRIO, NUNCA CONSTANTE DO CÓDIGO. "R$ 200" é a decisão do Marcos, e
+// [[feedback_senova_para_qualquer_um_s51]] diz o que aconteceria se ela virasse constante:
+// seria a sexta vez que a medição de UM usuário vira lei para todos. Quem usa o Senova em
+// Berlim tem outra moeda, outra renda e outro limite. Então o teto mora no KV, por pessoa,
+// junto com a moeda em que ela pensa e o câmbio que ela informou — e o código só sabe
+// comparar dois números.
+//
+// A UNIDADE INTERNA É O DÓLAR porque é nela que a conta chega da Anthropic. Converter na
+// exibição (e na comparação com o teto) mantém uma única verdade contábil e deixa a moeda
+// ser preferência, não estrutura.
+const MODELO_NAO_REGISTRADO = 'nao_registrado';
+// USD por milhão de tokens — tabela pública da Anthropic, conferida em 26/ago/2026.
+// Escrita de cache é 1,25x a entrada; leitura de cache é 0,10x.
+const PRECO_USD_POR_MILHAO = {
+  'claude-opus-4-8':           { entrada: 5.00, saida: 25.00, cache_escrita: 6.25, cache_leitura: 0.50 },
+  'claude-sonnet-4-6':         { entrada: 3.00, saida: 15.00, cache_escrita: 3.75, cache_leitura: 0.30 },
+  'claude-haiku-4-5':          { entrada: 1.00, saida:  5.00, cache_escrita: 1.25, cache_leitura: 0.10 },
+  'claude-haiku-4-5-20251001': { entrada: 1.00, saida:  5.00, cache_escrita: 1.25, cache_leitura: 0.10 },
+};
+// Modelo que não está na tabela paga pelo mais caro que as rotas podem usar. Um preço
+// desconhecido subestimado viraria teto furado em silêncio; superestimado, no pior caso,
+// freia cedo demais — e avisa.
+const PRECO_DESCONHECIDO = PRECO_USD_POR_MILHAO['claude-opus-4-8'];
+
+function custoEmUSD(usage, modelo) {
+  if (!usage) return 0;
+  const p = PRECO_USD_POR_MILHAO[modelo] || PRECO_DESCONHECIDO;
+  return ((usage.input_tokens || 0)                * p.entrada
+        + (usage.output_tokens || 0)               * p.saida
+        + (usage.cache_creation_input_tokens || 0) * p.cache_escrita
+        + (usage.cache_read_input_tokens || 0)     * p.cache_leitura) / 1000000;
+}
+
+const CHAVE_ORCAMENTO = 'orcamento';
+function chaveOrcamento(userId) {
+  return userId ? `${CHAVE_ORCAMENTO}:${userId}` : CHAVE_ORCAMENTO;
+}
+
+// Padrão de segurança para quem ainda não escolheu. Não é o número de ninguém: é o menor
+// teto que ainda deixa o app ser útil por um mês, e existe só para que NINGUÉM fique sem
+// freio enquanto não configura. Quem abre o painel vê que é padrão e muda em um campo.
+const ORCAMENTO_PADRAO = { teto: 25, moeda: 'USD', cambio_por_usd: 1 };
+
+async function lerOrcamento(env, dono) {
+  try {
+    const raw = await env.SENOVA_KV.get(chaveOrcamento(dono));
+    if (!raw) return { ...ORCAMENTO_PADRAO, padrao: true };
+    const o = JSON.parse(raw);
+    const teto   = Number(o.teto);
+    const cambio = Number(o.cambio_por_usd);
+    // Teto zero ou negativo travaria o app para sempre sem o dono ter pedido isso; câmbio
+    // inválido faria a comparação mentir. Nos dois casos vale o padrão, não o lixo.
+    if (!(teto > 0) || !(cambio > 0)) return { ...ORCAMENTO_PADRAO, padrao: true };
+    return {
+      teto,
+      moeda: String(o.moeda || ORCAMENTO_PADRAO.moeda).trim().slice(0, 8).toUpperCase(),
+      cambio_por_usd: cambio,
+      padrao: false,
+    };
+  } catch {
+    return { ...ORCAMENTO_PADRAO, padrao: true };
+  }
+}
+
+// DE QUEM É ESTA CONTA — um cálculo só, para a tela e a trava nunca discordarem.
+//
+// O painel (GET /api/radar-custo) e o teto perguntam a mesma coisa: quais linhas de
+// `custo_ia_v2` são desta pessoa. Enquanto eram dois trechos, seriam duas respostas — e uma
+// tela que mostra R$ 265 ao lado de uma trava que só conta R$ 21 é uma tela que mente. A
+// S52 já custou caro por ter dois gravadores; isto é o mesmo defeito no lado da LEITURA
+// ([[project_destino_candidatura_leitor_unico_s52]]).
+//
+// O histórico 'nao_atribuido' é anterior à migração 004 e ninguém conferiu de quem era.
+// Herdá-lo é a mesma pergunta que o Perfil já responde, então usa a MESMA resposta —
+// `perfil_dono_legado`, o mecanismo aprovado na S50 —, lida sem adotar nada: adoção é ato do
+// Perfil, não de um painel de custo nem de uma trava.
+//
+// Sem reivindicação, o legado é de quem pergunta APENAS enquanto existir uma pessoa
+// cadastrada — condição que se fecha sozinha no minuto em que a segunda entrar, e que não
+// depende de saber quem a primeira é.
+async function donosDaConta(env, dono) {
+  const meus = [];
+  if (dono) meus.push(dono);
+  let herdaLegado = !dono;
+  if (dono) {
+    const donoLegado = await env.SENOVA_KV.get(CHAVE_DONO_LEGADO);
+    herdaLegado = donoLegado === dono;
+    if (!herdaLegado && !donoLegado) {
+      const quantos = await env.SENOVA_DB.prepare('SELECT COUNT(*) AS n FROM usuarios WHERE ativo=1').first();
+      herdaLegado = (quantos?.n || 0) <= 1;
+    }
+  }
+  if (herdaLegado) meus.push(CUSTO_SEM_DONO);
+  return meus;
+}
+
+// Cache por isolate, 30s. O porteiro roda ANTES de cada chamada de IA e não pode custar uma
+// varredura de D1 por vez — seria trocar dinheiro por latência em toda tela do app. A
+// verdade contábil continua no D1; isto é só o semáforo, e `_somarNoCacheDeGasto` o mantém
+// apertado dentro da janela (ver _registrarCustoIA).
+const _cacheGasto = new Map();
+const CACHE_GASTO_MS = 30000;
+
+function _somarNoCacheDeGasto(userId, usd) {
+  const c = _cacheGasto.get(userId);
+  if (c) c.gastoUSD += usd;
+}
+
+function _primeiroDiaDoMes(d = new Date()) {
+  return `${d.toISOString().slice(0, 7)}-01`;
+}
+
+async function _gastoDoMesUSD(env, dono) {
+  const agora = Date.now();
+  const c = _cacheGasto.get(dono);
+  if (c && c.ate > agora) return c.gastoUSD;
+  const meus = await donosDaConta(env, dono);
+  const vagas = meus.map(() => '?').join(',');
+  const row = await env.SENOVA_DB.prepare(
+    `SELECT COALESCE(SUM(custo_usd), 0) AS total FROM custo_ia_v2 WHERE user_id IN (${vagas}) AND dia >= ?`
+  ).bind(...meus, _primeiroDiaDoMes()).first();
+  const gastoUSD = Number(row?.total || 0);
+  _cacheGasto.set(dono, { gastoUSD, ate: agora + CACHE_GASTO_MS });
+  return gastoUSD;
+}
+
+function _dinheiro(valor, moeda) {
+  try {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: moeda }).format(valor);
+  } catch {
+    // Moeda que o Intl não conhece (o campo é livre, e tem de ser): mostra o código cru em
+    // vez de quebrar a mensagem que explica o bloqueio.
+    return `${moeda} ${valor.toFixed(2)}`;
+  }
+}
+
+// O estado do orçamento de uma pessoa, na moeda dela. É o que o porteiro decide e o que o
+// painel mostra — um só cálculo, para a tela nunca discordar da trava.
+async function estadoDoOrcamento(env, dono) {
+  const orcamento = await lerOrcamento(env, dono);
+  // Sem banco ou sem dono não dá para somar o gasto DE ALGUÉM. Bloquear aqui puniria a
+  // pessoa por uma falha nossa; atribuir a conta a um dono inventado é pior ainda. Segue
+  // aberto e diz por quê — é o mesmo desenho da S50: banco fora do ar não vira "o Senova
+  // esqueceu quem você é".
+  if (!env.SENOVA_DB || !dono) {
+    return { medido: false, bloqueado: false, orcamento, gasto: 0, restante: orcamento.teto };
+  }
+  const gastoUSD = await _gastoDoMesUSD(env, dono);
+  const gasto = gastoUSD * orcamento.cambio_por_usd;
+  const restante = orcamento.teto - gasto;
+  return { medido: true, bloqueado: restante <= 0, orcamento, gastoUSD, gasto, restante };
+}
+
+// Recusa que diz O QUÊ, POR QUÊ e O QUE FAZER AGORA — [[feedback_repetir_pedido_e_defeito_meu_s52]].
+// "Limite atingido" sozinho manda a pessoa adivinhar; e quem está sem emprego e vê o app
+// parar sem explicação conclui que ele quebrou.
+function _mensagemDeTetoAtingido(estado) {
+  const { orcamento, gasto } = estado;
+  const vira = new Date();
+  vira.setUTCMonth(vira.getUTCMonth() + 1, 1);
+  const quando = vira.toISOString().slice(0, 10).split('-').reverse().join('/');
+  return `Limite do mês atingido — o Senova parou de usar IA de propósito.\n\n`
+       + `Você definiu um teto de ${_dinheiro(orcamento.teto, orcamento.moeda)} por mês`
+       + `${orcamento.padrao ? ' (ainda é o valor padrão, você nunca escolheu)' : ''}`
+       + ` e já usou ${_dinheiro(gasto, orcamento.moeda)} desde o dia 1º.\n\n`
+       + `O contador zera em ${quando}. Para voltar a analisar hoje, aumente o teto em `
+       + `Perfil › Integrações › Orçamento de IA — nada do que você já tem foi perdido.`;
+}
+
+// Quem é o dono, para efeito de teto, sem cobrar uma ida ao D1 por chamada. /api/claude é a
+// rota mais quente do app e descobria o dono DEPOIS de responder, dentro do waitUntil, de
+// propósito — o teto precisa dele ANTES, e sem este cache a contabilidade voltaria a cobrar
+// latência de todo mundo. Chaveado pelo hash da credencial, nunca pela credencial crua:
+// segredo não mora em estrutura de vida longa. 60s, por isolate.
+const _cacheDono = new Map();
+const CACHE_DONO_MS = 60000;
+
+async function donoParaTeto(request, env) {
+  try {
+    if (!env.SENOVA_DB) return null;
+    const cred = request.headers.get('x-senova-key') || '';
+    if (!cred) return null;
+    const chave = await _sha256hex(cred);
+    const agora = Date.now();
+    const c = _cacheDono.get(chave);
+    if (c && c.ate > agora) return c.dono;
+    const dono = await donoSeguro(request, env);
+    _cacheDono.set(chave, { dono, ate: agora + CACHE_DONO_MS });
+    return dono;
+  } catch {
+    return null;
+  }
+}
+
+// O porteiro. Devolve null quando pode gastar, ou o estado do bloqueio.
+// Nunca lança: uma falha aqui não pode virar app parado — se não deu para medir, não dá para
+// afirmar que estourou, e afirmar que estourou é o erro que cala o app sem motivo.
+async function bloqueadoPorTeto(env, dono) {
+  try {
+    const estado = await estadoDoOrcamento(env, dono);
+    if (!estado.bloqueado) return null;
+    return { ...estado, mensagem: _mensagemDeTetoAtingido(estado) };
+  } catch (err) {
+    console.error('bloqueadoPorTeto falhou, seguindo aberto:', err && err.message);
+    return null;
+  }
+}
+
+// A recusa em formato HTTP. 402 Payment Required é o único código que diz exatamente isto:
+// o pedido está correto, o serviço existe, e o que falta é dinheiro autorizado. 429 seria
+// mentira (não é excesso de velocidade) e 403 seria pior ainda (não é falta de permissão).
+// O app distingue pelo campo `teto_atingido`, não pelo texto — texto é para gente ler.
+function respostaDeTeto(freio) {
+  return json({ error: freio.mensagem, teto_atingido: true, orcamento: freio.orcamento, gasto: freio.gasto }, 402);
 }
 
 async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto) {
@@ -3573,7 +3894,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // abriu para se candidatar era contada como "radar" junto com a esteira automática — e
     // "cortar o radar" cortaria o que ele mais usa. Chamada que não se identifica continua
     // 'radar': o rótulo do histórico, nunca um rótulo inventado que suma da medição.
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono, 'claude-sonnet-4-6'));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
@@ -3729,7 +4050,7 @@ Complete sempre os três, e termine a última frase — texto cortado no meio va
     });
     if (!resp.ok) return { erro:true, texto:'' };
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'sofia', dono));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'sofia', dono, 'claude-sonnet-4-6'));
     const bruto = (data.content || []).find(b => b.type === 'text')?.text || '';
     // O card joga este texto na tela como está — markdown que escapa do prompt chega ao
     // usuário como "**Parte 1**" literal. Instrução é pedido; isto é garantia.
@@ -3993,7 +4314,7 @@ async function analisarSinaisMercado(itens, env, ctx, dono) {
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await resp.json();
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado', dono));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado', dono, 'claude-sonnet-4-6'));
     const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
     return (parsed.sinais || []).map(s => ({
       ...itens[s.indice],
