@@ -101,8 +101,28 @@ t('as CINCO chamadas medidas passam o dono adiante (nenhuma cai no balde anônim
 // custa 1/3 da de Sonnet, saída de Opus custa 5x. Uma chamada registrada sem modelo é um
 // gasto que o teto tem de precificar por cima, e o histórico volta a ser "número sem
 // sujeito" — a mesma doença da 003 e da 004, um andar acima.
+// O que se guarda é o INVARIANTE — nenhuma gravação de custo sem dizer qual modelo rodou —,
+// não a forma do argumento. Contar literais 'claude-…' era guardar a FORMA: em 26/ago/2026 a
+// pontuação passou a escolher o modelo (sonnet ou haiku) e o literal virou variável na análise
+// de vaga, sem que nada tenha regredido. A regra que sobrevive a isso é: toda chamada a
+// _registrarCustoIA passa CINCO argumentos, e o quinto é o modelo que de fato rodou.
+const _chamadasCusto = worker.match(/_registrarCustoIA\([^;]*?\)\)?;/g) || [];
+const _semModelo = _chamadasCusto.filter(c => (c.match(/,/g) || []).length < 4);
 t('e todas dizem TAMBÉM qual modelo rodou (sem isto, o dinheiro é chute)',
-  (worker.match(/_registrarCustoIA\(env, data\.usage, [^)]*, dono, 'claude-[a-z0-9-]+'\)/g) || []).length === 4 &&
+  _chamadasCusto.length >= 5 && _semModelo.length === 0,
+  'chamada de custo sem modelo: ' + _semModelo.join(' | '));
+// E o modelo GRAVADO é o mesmo que foi PEDIDO. Dois nomes escritos à mão em linhas distantes é
+// exatamente como o defeito renasceria: trocar o modelo da chamada e esquecer o do registro
+// faria a conta do mês cobrar preço de um modelo que não rodou.
+t('e o modelo gravado na análise de vaga é a mesma variável que foi pedida à Anthropic',
+  /model:modelo,/.test(worker) &&
+  /_registrarCustoIA\(env, data\.usage, origemCusto \|\| 'radar', dono, modelo\)/.test(worker));
+// Quem escolhe o modelo da pontuação é o cliente. Sem lista fechada, o browser poderia pedir o
+// modelo mais caro do catálogo para uma tarefa de triagem e triplicar a conta sem aprovação.
+t('e o cliente não escolhe modelo caro para a triagem — a lista da pontuação é fechada',
+  /const MODELOS_TRIAGEM = new Set\(\['claude-sonnet-4-6', 'claude-haiku-4-5'\]\);/.test(worker) &&
+  /MODELOS_TRIAGEM\.has\(modeloPedido\) \? modeloPedido : 'claude-sonnet-4-6'/.test(worker));
+t('o proxy genérico continua gravando o modelo que o corpo pediu',
   /_registrarCustoIA\(env, dados\.usage, origem, donoDoPedido, body && body\.model\)/.test(worker));
 t('quem não tinha dono na assinatura passou a receber — classificarEmails e os sinais de mercado',
   /async function classificarEmails\(emails, whitelist, env, ctx, dono\)/.test(worker) &&

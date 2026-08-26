@@ -108,7 +108,10 @@ t('"Buscar agora" (POST /api/varredura-manual) continua existindo',
 
 console.log('\n=== toda análise diz de QUAL esteira veio ===');
 t('a origem viaja do pedido até a gravação do custo',
-  /async function analisarVaga\([^)]*\borigemCusto\b\s*\)/.test(worker) &&
+  // Termina em [,)] pelo mesmo motivo dito duas linhas abaixo: em 26/ago/2026 entrou
+  // `modeloPedido` DEPOIS de origemCusto, e prender o fecho de parêntese derrubaria
+  // esta asserção sem nada ter regredido.
+  /async function analisarVaga\([^)]*\borigemCusto\b\s*[,)]/.test(worker) &&
   // Termina em [,)] e não em ')': a v7.43 acrescentou o dono DEPOIS da origem, e fixar o
   // fecho de parêntese faria esta asserção cair sem nada ter regredido
   // ([[feedback_teste_guarda_posicao_nao_lista_s50]]).
@@ -122,7 +125,8 @@ t('a rota /api/analisar-vaga repassa a origem que o app mandou',
   // Entre a destruturação e a chamada passou a existir o porteiro do teto (v7.46). O que
   // este teste guarda é que a origem que o app mandou CHEGA à análise — não que as duas
   // linhas sejam vizinhas.
-  /const \{[^}]*\borigem\b[^}]*\} = await request\.json\(\);[\s\S]{0,700}?return json\(await analisarVaga\([\s\S]{0,220}, origem\)\)/.test(worker));
+  // Mesma regra do fecho: a origem é o argumento que importa, não o último da lista.
+  /const \{[^}]*\borigem\b[^}]*\} = await request\.json\(\);[\s\S]{0,700}?return json\(await analisarVaga\([\s\S]{0,220}, origem[,)]/.test(worker));
 t('a esteira da Home se identifica como esteira_home', /origem:'esteira_home'/.test(html));
 t('o card aberto se identifica como card_aberto (2 chamadas: cálculo automático e recálculo)',
   (html.match(/origem:'card_aberto'/g) || []).length === 2);

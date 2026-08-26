@@ -1,5 +1,18 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.48
+//  SENOVA PROXY — Worker v7.49
+//
+//  NOVIDADES v7.49 (26/ago/2026) — O MODELO DA TRIAGEM DEIXA DE SER CHUMBADO.
+//  A pontuação de vaga sempre rodou em Sonnet, escrito à mão em DOIS lugares distantes: a
+//  chamada e o registro de custo. Trocar de modelo exigia lembrar dos dois, e esquecer o
+//  segundo faria a conta do mês mentir sobre o preço do que foi gasto.
+//
+//  Agora `/api/analisar-vaga` aceita `modelo`, e as duas pontas leem a MESMA variável. A
+//  lista permitida aqui é mais estreita que a do proxy (só sonnet-4-6 e haiku-4-5) porque
+//  quem escolhe é o cliente: sem a trava, o browser poderia pedir o modelo mais caro do
+//  catálogo para uma tarefa de triagem. Fora da lista, cai no padrão — nunca recusa.
+//
+//  Isto é o mecanismo, não a decisão: o padrão continua Sonnet. A troca só acontece depois
+//  da medição lado a lado que Marcos exigiu ("só com prova").
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
 //  NOVIDADES v7.48 (26/ago/2026) — O MÊS DE QUEM PAGA NÃO É O MÊS DO CALENDÁRIO.
@@ -1478,11 +1491,11 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem } = await request.json();
+      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem, modelo } = await request.json();
       const donoAnalise = await donoParaTeto(request, env);
       const freioAnalise = await bloqueadoPorTeto(env, donoAnalise);
       if (freioAnalise) return respostaDeTeto(freioAnalise);
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, donoAnalise, origem));
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, donoAnalise, origem, modelo));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -3920,7 +3933,17 @@ function respostaDeTeto(freio) {
   return json({ error: freio.mensagem, teto_atingido: true, orcamento: freio.orcamento, gasto: freio.gasto }, 402);
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto, modeloPedido) {
+  // MODELO DA TRIAGEM (S53, 26/ago/2026). Até aqui a pontuação era sempre Sonnet, chumbado
+  // em duas linhas distantes uma da outra (a chamada e o registro de custo) — trocar o modelo
+  // exigia lembrar das duas, e esquecer a segunda faria a conta do mês mentir sobre o preço.
+  // Agora o modelo é UMA variável, lida das duas pontas.
+  //
+  // A lista é curta de propósito, e é MAIS ESTREITA que a do proxy: quem escolhe o modelo da
+  // pontuação é o cliente, e sem esta trava o browser poderia pedir o modelo mais caro do
+  // catálogo para uma tarefa de triagem — triplicando a conta sem ninguém aprovar.
+  const MODELOS_TRIAGEM = new Set(['claude-sonnet-4-6', 'claude-haiku-4-5']);
+  const modelo = MODELOS_TRIAGEM.has(modeloPedido) ? modeloPedido : 'claude-sonnet-4-6';
   // Identidade dinâmica (S46): lê o perfil do KV direto no Worker — ver
   // montarIdentidadeCandidato. perfilCandidato continua existindo como override
   // explícito (dry-run/testes); em produção nenhum call site manda, então isto
@@ -3996,7 +4019,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
         'anthropic-beta':'prompt-caching-2024-07-31'
       },
       body: JSON.stringify({
-        model:'claude-sonnet-4-6',
+        model:modelo,
         temperature:0,
         max_tokens:1100,
         system:[
@@ -4012,7 +4035,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // abriu para se candidatar era contada como "radar" junto com a esteira automática — e
     // "cortar o radar" cortaria o que ele mais usa. Chamada que não se identifica continua
     // 'radar': o rótulo do histórico, nunca um rótulo inventado que suma da medição.
-    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono, 'claude-sonnet-4-6'));
+    if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono, modelo));
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
