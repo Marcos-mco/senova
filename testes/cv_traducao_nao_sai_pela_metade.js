@@ -206,6 +206,24 @@ t('a guarda está ligada na linha da instituição (uma linha ruim descarta a li
   /instituicoes[\s\S]{0,400}?_nomeProprioSobrevive/.test(html));
 t('e na linha da empresa da experiência', /v\.empresa[\s\S]{0,120}?_nomeProprioSobrevive/.test(html));
 
+console.log('\n=== dígito colado em letra é NOME, não quantia (B2B, K-12, MP3) ===');
+// Marcos gerou o CV duas vezes e o mesmo bloco foi recusado nas duas. "B2B" e "K-12" são
+// vocabulário corrente de marketing e de educação — e a guarda lia o "2" de B2B como um fato
+// que a IA teria inventado. Acusava a IA de mentir justamente onde ela escrevia bem.
+t('"B2B2C" não introduz os números 2 e 2', chamar(s, '_numerosNovosDe', [ORIG('eadcon'), ['B2B2C network of 180 partners and 120,000 students.', 'R$ 20 million campaigns, 25 agencies.']]).length === 0);
+t('"K-12" não introduz o número 12', chamar(s, '_numerosNovosDe', [ORIG('eadcon'), ['K-12 network of 180 partners and 120,000 students.', 'R$ 20 million campaigns, 25 agencies.']]).length === 0);
+t('mas "Top 3" continua sendo uma AFIRMAÇÃO, e é barrada',
+  chamar(s, '_numerosNovosDe', [ORIG('eadcon'), ['Top 3 network: 180 partners, 120,000 students.', 'R$ 20 million campaigns, 25 agencies.']]).includes('3'));
+
+console.log('\n=== o laudo diz POR QUE, não só QUAL — senão "gere de novo" é tentar o mesmo ===');
+const _pq = (m, extra) => chamar(s, '_porQueNaoTraduziu', [{ recusados: [Object.assign({ id: 'eadcon', motivo: m }, extra || {})] }, 'eadcon']);
+t('número novo aparece com o número na cara', /número que não está na sua carreira \(7\)/.test(_pq('numero_novo', { novos: ['7'] })));
+t('contagem de linhas diz quantas vieram e quantas deviam vir', /voltaram 1 linha\(s\) onde a sua carreira tem 2/.test(_pq('bullets_1_de_2')));
+t('id que não bate é dito sem jargão', /não bateu com nenhuma experiência do seu Perfil/.test(_pq('id_desconhecido')));
+t('bloco sem laudo não inventa motivo', _pq('numero_novo') !== '' && chamar(s, '_porQueNaoTraduziu', [{ recusados: [] }, 'eadcon']) === '');
+t('e o censo do PDF carrega o motivo junto do nome do bloco',
+  /_emPortugues\.push\(`\$\{e\.cargo\} · \$\{e\.empresa\}\$\{_porQueNaoTraduziu\(trad,e\.id\)\}`\)/.test(html));
+
 console.log('\n=== a extensão não manda recarregar um app que está certo ===');
 t('a razão da recusa viaja para quem pediu de longe', /_pdfRecusa=\{motivo:'traducao_incompleta'/.test(html));
 t('e a ponte do copiloto repassa a razão no lugar de "pdf_falhou"',

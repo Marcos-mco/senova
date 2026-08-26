@@ -13542,6 +13542,18 @@ function _nivelAlvoPDF(cargoVaga){
 // Se alguém for mexer neste número, MEÇA DE NOVO com o jsPDF: é a terceira vez que um palpite
 // sobre esta régua produz um documento reprovado.
 const CV_MAX_EXPS = 11;
+// Por que ESTA experiência não foi traduzida, em português de gente. O laudo é gravado no card
+// (atsPerfilTrad.recusados) desde a S52; esta função é o leitor que faltava. Sem motivo, a única
+// saída oferecida ao usuário era "gere de novo" — que é tentar de novo a mesma coisa.
+function _porQueNaoTraduziu(trad,id){
+  const r=((trad&&trad.recusados)||[]).find(x=>x&&x.id===id);
+  if(!r) return '';
+  if(r.motivo==='numero_novo') return ` — a versão em outra língua trazia um número que não está na sua carreira${r.novos&&r.novos.length?' ('+r.novos.join(', ')+')':''}`;
+  if(/^bullets_(\d+)_de_(\d+)$/.test(r.motivo||'')){ const m=r.motivo.match(/^bullets_(\d+)_de_(\d+)$/); return ` — voltaram ${m[1]} linha(s) onde a sua carreira tem ${m[2]}`; }
+  if(r.motivo==='sem_cargo') return ' — o cargo não voltou traduzido';
+  if(r.motivo==='id_desconhecido') return ' — a resposta não bateu com nenhuma experiência do seu Perfil';
+  return ' — '+String(r.motivo||'motivo não registrado');
+}
 // trad = fatos traduzidos (bloco ---PERFIL---), casados por id da experiência. Quando falta a
 // tradução de um item, aquele item sai em português: verdade incompleta é melhor que invenção.
 // COMPETÊNCIAS é a seção que o robô do RH lê para casar o CV com o anúncio. Quando a IA não a
@@ -13604,7 +13616,10 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
   const T=(trad&&trad.exp)?trad.exp:{};
   const exps=expsFiltradas.map(e=>{
     const t=T[e.id];
-    if(_traduzindo&&!t) _emPortugues.push(`${e.cargo} · ${e.empresa}`);
+    // COM O MOTIVO. Sem ele a mensagem só nomeava o bloco, e gerar o CV de novo era tentar a mesma
+    // coisa esperando outro resultado — foi o que aconteceu com Marcos duas vezes seguidas
+    // (25/ago/2026). O laudo já vinha gravado no card desde a manhã; faltava alguém lê-lo.
+    if(_traduzindo&&!t) _emPortugues.push(`${e.cargo} · ${e.empresa}${_porQueNaoTraduziu(trad,e.id)}`);
     return {
       cargo:(t&&t.cargo)||e.cargo, empresa:(t&&t.empresa)||e.empresa, local:e.local||'',
       periodo:`${_mesLabelPDF(e.inicio,lang)} – ${_mesLabelPDF(e.fim,lang)}`,
@@ -14180,6 +14195,11 @@ function _quantidadesDe(txt){
   const canon=v=>String(Math.round(v*100)/100);
   let m;
   while((m=re.exec(s))){
+    // DÍGITO COLADO EM LETRA NÃO É QUANTIA, É NOME: "B2B", "B2B2C", "MP3", "K-12", "S/4HANA",
+    // "Web3". O "2" de B2B não afirma fato nenhum — e como é vocabulário corrente de marketing,
+    // a guarda acusava a IA de inventar número justamente onde ela estava escrevendo bem.
+    const _a1=m.index>0?s[m.index-1]:'', _a2=m.index>1?s[m.index-2]:'';
+    if(/[a-z]/.test(_a1)||(/[-\/]/.test(_a1)&&/[a-z]/.test(_a2))) continue;
     const cru=m[1], suf=m[2]||'';
     const esc=Object.prototype.hasOwnProperty.call(_ESCALAS_NUM,suf)?_ESCALAS_NUM[suf]:1;
     const bases=[];
