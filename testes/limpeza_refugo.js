@@ -37,6 +37,7 @@ function montar(listaVagas, revisao) {
     'const _TIMELINE_MAQUINA',
     'function _timelineHumana(',
     'function _temTrabalhoReal(',
+    'function _baixarCopiaDeSeguranca(',
     'function descartarTodasRejeitadas(',
     'function _montarCardVarredura(',
   ].map(extrai).join('\n;\n');
@@ -45,7 +46,22 @@ function montar(listaVagas, revisao) {
   if (revisao) ls.setItem('senova_revisao_pendente', JSON.stringify(revisao));
   const avisos = [];
   const toasts = [];
+  // O navegador de mentira que recebe o arquivo baixado. `baixados` é a rede de
+  // segurança vista de fora: o que ela guardou é o que dá para recuperar depois.
+  const baixados = [];
+  let downloadQuebrado = false;
   const sandbox = {
+    Blob: class { constructor(partes){ this.texto = partes.join(''); } },
+    URL: {
+      createObjectURL(b){
+        if (downloadQuebrado) throw new Error('o navegador recusou o download');
+        baixados.push(JSON.parse(b.texto));
+        return 'blob:copia';
+      },
+      revokeObjectURL() {},
+    },
+    document: { createElement: () => ({ click() {}, remove() {} }), body: { appendChild() {} } },
+    setTimeout: () => {},
     vagas: listaVagas || [], contatos: [],
     localStorage: ls,
     _LOGO_CACHE_KEY: 'senova_logo_cache_v5',
@@ -62,7 +78,8 @@ function montar(listaVagas, revisao) {
   vm.runInContext(fontes, sandbox);
   vm.runInContext('Store._frioCarregado=true', sandbox);
   return {
-    sandbox, ls, avisos, toasts,
+    sandbox, ls, avisos, toasts, baixados,
+    quebrarDownload: () => { downloadQuebrado = true; },
     rodar: e => vm.runInContext(e, sandbox),
     quentes: () => JSON.parse(ls.getItem('senova_vagas_v2') || '[]'),
     blocklist: () => JSON.parse(ls.getItem('senova_deleted_ids') || '[]'),
@@ -120,23 +137,39 @@ console.log('=== 1. o critério é POSITIVO: qualquer sinal de trabalho humano s
   t('o card real do radar é descartável', rodar('_temTrabalhoReal(' + JSON.stringify(cru) + ')') === false);
 }
 
-console.log('\n=== 2. a limpeza apaga o refugo e não encosta em mais nada ===');
+// A REGRA MUDOU EM 26/ago/2026, E ESTE BLOCO MUDOU COM ELA.
+//
+// Até aqui a limpeza pulava o que tivesse `_temTrabalhoReal`, e o guard afirmava isso
+// ("o card com anotação FICOU"). Na conta de Marcos, 69 de 123 cards de Para Considerar
+// caíam nessa proteção — porque vaga vinda de alerta por e-mail nasce com o conteúdo do
+// e-mail em `notas`, tags e emailDest preenchidos PELA MÁQUINA. O app protegia dele o
+// que ele nunca escreveu, e ele ficou sem saída: "Está muito confuso para apagar tudo.
+// Não consigo."
+//
+// A trava anti-perda continua de pé — mudou de mecanismo. Em vez de trancar em silêncio
+// (que é a própria falha que ela queria evitar, do outro lado), o Senova baixa um
+// arquivo com tudo o que vai sair, ANTES de sair. Sem esse arquivo, nada é apagado.
+console.log('\n=== 2. a limpeza esvazia a coluna, e não encosta em mais nada ===');
 {
   const lista = [
     refugo(1), refugo(2), refugo(3),
-    refugo(4, { notas: 'gostei desta' }),                        // protegido
+    refugo(4, { notas: 'gostei desta' }),                        // vai junto, mas dentro da cópia
     { id: 'v_lead', status: 'lead', empresa: 'Viva', timeline: [] },
     { id: 'v_aplic', status: 'aplicado', empresa: 'Enviada', timeline: [] },
     { id: 'v_entrev', status: 'entrevista', empresa: 'Marcada', timeline: [] },
     { id: 'v_arq', status: 'arquivado', empresa: 'Encerrada', timeline: [] },
   ];
-  const { rodar, quentes, blocklist, toasts } = montar(lista);
+  const { rodar, quentes, blocklist, toasts, baixados } = montar(lista);
   rodar('descartarTodasRejeitadas()');
 
   const ids = rodar('vagas.map(v=>v.id)');
   t('os 3 cards de refugo foram apagados',
     !ids.includes('vaga_1') && !ids.includes('vaga_2') && !ids.includes('vaga_3'));
-  t('o card com anotação FICOU', ids.includes('vaga_4'));
+  t('o card com anotação também saiu — a coluna esvazia inteira', !ids.includes('vaga_4'));
+  t('e ele está dentro da cópia baixada (nada é irrecuperável)',
+    baixados.length === 1 && baixados[0].vagas.some(v => v.id === 'vaga_4' && v.notas === 'gostei desta'));
+  t('a cópia diz quantas eram e de onde vieram',
+    baixados[0].quantas === 4 && baixados[0].origem === 'para_considerar');
   t('Oportunidade não foi tocada', ids.includes('v_lead'));
   t('candidatura enviada não foi tocada', ids.includes('v_aplic'));
   t('entrevista não foi tocada', ids.includes('v_entrev'));
@@ -147,11 +180,10 @@ console.log('\n=== 2. a limpeza apaga o refugo e não encosta em mais nada ===')
   t('nenhum refugo virou arquivado', rodar('vagas.filter(v=>v.status==="arquivado").length') === 1);
 
   t('os ids apagados foram anotados na blocklist',
-    ['vaga_1', 'vaga_2', 'vaga_3'].every(id => blocklist().includes(id)));
-  t('o id protegido NÃO foi anotado', !blocklist().includes('vaga_4'));
+    ['vaga_1', 'vaga_2', 'vaga_3', 'vaga_4'].every(id => blocklist().includes(id)));
 
   t('o bloco gravado já está sem o refugo',
-    quentes().filter(v => String(v.id).startsWith('vaga_')).length === 1);
+    quentes().filter(v => String(v.id).startsWith('vaga_')).length === 0);
   t('o toast diz quantos e quanto liberou', /apagada/.test(toasts.join(' ')) && /MB/.test(toasts.join(' ')));
 }
 
@@ -191,12 +223,24 @@ console.log('\n=== 5. a fila de revisão entra na mesma limpeza ===');
     blocklist().includes('rev_1') && blocklist().includes('rev_2'));
 }
 
-console.log('\n=== 6. sem refugo, a limpeza não mente que fez algo ===');
+console.log('\n=== 6. coluna vazia: a limpeza não mente que fez algo ===');
 {
-  const { rodar, toasts } = montar([refugo(1, { atsCV: 'CV' }), { id: 'v_lead', status: 'lead', timeline: [] }]);
+  const { rodar, toasts } = montar([{ id: 'v_lead', status: 'lead', timeline: [] }]);
   rodar('descartarTodasRejeitadas()');
-  t('nada foi apagado', rodar('vagas.length') === 2);
+  t('nada foi apagado', rodar('vagas.length') === 1);
   t('e o Senova diz que não havia o que descartar', /Nada a descartar/.test(toasts.join(' ')));
+}
+
+console.log('\n=== 6b. sem a cópia de segurança, NADA é apagado ===');
+{
+  // A rede vem antes do gesto irreversível. Se o navegador recusar o download, apagar
+  // 123 vagas assim mesmo seria a perda silenciosa que esta trava existe para impedir.
+  const { rodar, toasts, blocklist, quebrarDownload } = montar([refugo(1), refugo(2)]);
+  quebrarDownload();
+  rodar('descartarTodasRejeitadas()');
+  t('a coluna continua inteira', rodar('vagas.filter(v=>v.status==="triagem").length') === 2);
+  t('nada foi anotado na blocklist', blocklist().length === 0);
+  t('e o Senova diz por que não apagou', /cópia de segurança/i.test(toasts.join(' ')));
 }
 
 console.log('\n=== 7. a ação precisa ser VISÍVEL — foi assim que 25 cards foram apagados a dedo ===');
@@ -220,12 +264,14 @@ console.log('\n=== 7. a ação precisa ser VISÍVEL — foi assim que 25 cards f
   // o que faz e quantos são.
   t('a ação de apagar em massa está na barra da lista', /linhaApagar/.test(render));
   t('e chama a limpeza de verdade', /onclick="descartarTodasRejeitadas\(\)"/.test(render));
-  t('o botão diz quantos vai apagar', /Apagar as \$\{apagaveis\}/.test(render));
+  t('o botão diz quantos vai apagar', /apagar as \$\{apagaveis\}/i.test(render));
   t('usa o estilo de ação destrutiva', /class="btn-danger"/.test(render));
 
-  // O número do botão é o REAL, não o da lista visível.
+  // O número do botão é o REAL: a coluna inteira, não a lista visível nem o subconjunto
+  // desprotegido. Em 26/ago/2026 ele dizia 54 numa coluna de 123 — Marcos: "Está muito
+  // confuso para apagar tudo. Não consigo. Exclua tudo de uma vez."
   t('o contador de apagáveis não depende do que está à mostra',
-    /const apagaveis = triagem\.filter\(v=>!_temTrabalhoReal\(v\)\)\.length \+ revisao\.length/.test(render));
+    /const apagaveis = triagem\.length \+ revisao\.length/.test(render));
   t('a barra avisa quantas nem aparecem na lista', /nem aparece/.test(render));
 
   // E a linha da Home não pode sumir enquanto houver peso guardado, mesmo que

@@ -7579,7 +7579,16 @@ function renderWidgetRevisao(){
   // peso: 744 dos 910 medidos em 11/ago não apareciam em lugar nenhum. Se a
   // linha da Home sumisse quando as visíveis acabam, esses ficariam ocupando o
   // armazenamento sem nenhum caminho até eles. Peso invisível não deixa de pesar.
-  const apagaveis = triagem.filter(v=>!_temTrabalhoReal(v)).length + revisao.length;
+  // 26/ago/2026, Marcos: "Está muito confuso para apagar tudo. Não consigo. Exclua tudo
+  // de uma vez." Este número era o das DESPROTEGIDAS — dizia 54 numa coluna de 123. As
+  // outras 69 estavam trancadas por `_temTrabalhoReal`, que conta `notas`, `tags` e
+  // `emailDest` como escrita dele; só que em vaga vinda de alerta por e-mail esses três
+  // campos são preenchidos pela MÁQUINA no nascimento do card (o conteúdo do e-mail vai
+  // para `notas`). Resultado: o app protegia dele o que ele nunca escreveu, e a única
+  // saída era apagar de uma em uma. Agora o número é a coluna inteira, e a proteção
+  // muda de papel: em vez de trancar em silêncio, ela AVISA no confirm e o arquivo
+  // baixado garante que nada é irrecuperável.
+  const apagaveis = triagem.length + revisao.length;
   const expandido = listaEl.dataset.expandido === '1';
   const ch=document.getElementById('sinal-vagas-chevron');
   if(ch) ch.style.transform=expandido?'rotate(90deg)':'';
@@ -7669,8 +7678,8 @@ function renderWidgetRevisao(){
   // o "Enviar para Processos" da linha de cima: dois botões empilhados no mesmo
   // ponto, um inofensivo e um irreversível, é acidente esperando a mão errada.
   const linhaApagar = apagaveis>0 ? `<div style="display:flex;align-items:center;gap:12px;padding:11px 10px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;">
-      <button onclick="descartarTodasRejeitadas()" class="btn-danger" style="font-weight:700;border-radius:7px;padding:10px 15px;cursor:pointer;font-family:var(--font);min-height:44px;white-space:nowrap;">Apagar as ${apagaveis}</button>
-      <span style="font-size:14px;color:var(--text3);line-height:1.45;flex:1;min-width:180px;">reprovada${apagaveis===1?'':'s'} pelo Critério, sem nada seu dentro${ocultas>0?` — ${ocultas} nem aparece${ocultas===1?'':'m'} nesta lista`:''}</span>
+      <button onclick="descartarTodasRejeitadas()" class="btn-danger" style="font-weight:700;border-radius:7px;padding:10px 15px;cursor:pointer;font-family:var(--font);min-height:44px;white-space:nowrap;">Esvaziar — apagar as ${apagaveis}</button>
+      <span style="font-size:14px;color:var(--text3);line-height:1.45;flex:1;min-width:180px;">é a coluna inteira${ocultas>0?`, inclusive as ${ocultas} que nem aparece${ocultas===1?'':'m'} nesta lista`:''}. O Senova baixa um arquivo com todas elas antes de apagar.</span>
     </div>` : '';
 
   const barra = barraSelecao + linhaApagar;
@@ -7835,33 +7844,79 @@ function _temTrabalhoReal(v){
 // duas cabe. Gravar os processos primeiro é o que devolve os ~6 MB; só depois
 // disso existe espaço para anotar os ids na blocklist. Na ordem inversa, as duas
 // falhavam e a limpeza não saía do lugar.
+// A cópia que precede o apagamento em massa. Devolve true só se o arquivo REALMENTE
+// saiu — quem chama usa isso para desistir da limpeza em vez de apagar sem rede.
+function _baixarCopiaDeSeguranca(itens, rotulo){
+  try{
+    if(!itens || !itens.length) return false;
+    const d=new Date();
+    const carimbo=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+    const blob=new Blob([JSON.stringify({
+      // O arquivo diz o que é e de onde veio: um JSON solto na pasta de downloads, daqui
+      // a seis meses, sem isto é um enigma.
+      senova:'copia de seguranca antes de apagar',
+      origem:rotulo, quando:d.toISOString(), quantas:itens.length, vagas:itens,
+    }, null, 2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`senova_${rotulo}_${carimbo}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    return true;
+  }catch(e){ return false; }
+}
+
+// ESVAZIAR "PARA CONSIDERAR" — a coluna inteira, num gesto só (26/ago/2026).
+//
+// O que estava errado. Este botão só apagava as vagas SEM `_temTrabalhoReal`, e essa
+// função conta `notas`, `tags` e `emailDest` como "escrita dele". Em card nascido de
+// alerta por e-mail, os três são preenchidos pela máquina no nascimento — o conteúdo do
+// e-mail é gravado em `notas`. O app passou a proteger dele o que ele nunca escreveu:
+// 69 de 123 vagas ficavam trancadas, e a única saída era apagar de uma em uma.
+//
+// A proteção não foi jogada fora — mudou de papel. Trancar em silêncio era o defeito;
+// agora ela CONTA no confirm quantas têm algo dentro, e a rede de segurança é outra, e
+// melhor: antes de apagar, o Senova baixa um arquivo com tudo o que vai sair. Nada aqui
+// é irrecuperável, e a decisão volta a ser dele — que é o que a trava anti-perda sempre
+// quis dizer ([[project_trava_delete_reforma_criacao]]).
+//
+// Por que apagar a coluna inteira é seguro: "Para Considerar" é a portaria. Vaga que
+// importa sai dali por "Enviar para Processos" no mesmo instante em que importa. O que
+// fica é o refugo da peneira ([[project_deposito_para_considerar_s44]]).
 function descartarTodasRejeitadas(){
   const triagem=vagas.filter(v=>v.status==='triagem');
   const protegidos=triagem.filter(_temTrabalhoReal);
-  const aApagar=triagem.filter(v=>!_temTrabalhoReal(v));
+  const aApagar=triagem;
   let revisao=[]; try{ revisao=JSON.parse(localStorage.getItem(_REVISAO_KEY)||'[]'); }catch{}
 
   if(!aApagar.length && !revisao.length){
-    showToast(protegidos.length
-      ? `Nada a descartar — as ${protegidos.length} de Para Considerar têm trabalho seu dentro`
-      : 'Nada a descartar em Para Considerar');
+    showToast('Nada a descartar em Para Considerar');
     return;
   }
 
   const mb=(JSON.stringify(aApagar).length*2/1048576).toFixed(1).replace('.',',');
   const n=aApagar.length+revisao.length;
-  let msg=`Apagar ${n} vaga${n===1?'':'s'} de "Para Considerar"?\n\n`
-    +`São as que a busca automática trouxe e o Critério reprovou. O Senova conferiu uma por uma: nenhuma tem CV, candidatura, anotação ou contato — nada seu dentro.\n\n`
-    +`Ocupam ${mb} MB, que é o que está impedindo o Senova de salvar.\n\n`;
+  let msg=`Esvaziar "Para Considerar" — apagar ${n} vaga${n===1?'':'s'}?\n\n`
+    +`É a coluna inteira, inclusive as que não aparecem na lista. São as que chegaram por busca e por alerta e não viraram processo.\n\n`
+    +`Ocupam ${mb} MB.\n\n`
+    +`Antes de apagar, o Senova baixa um arquivo com todas elas. Se alguma fizer falta, está lá dentro.\n\n`;
   if(protegidos.length){
-    msg+=`${protegidos.length} fica${protegidos.length===1?'':'m'} de fora: tem trabalho seu dentro.\n\n`;
+    msg+=`${protegidos.length} tem${protegidos.length===1?'':'m'} algo dentro (anotação, contato ou documento) e vai${protegidos.length===1?'':'o'} junto. Boa parte disso foi escrita pelo próprio Senova ao criar o card, não por você — mas confira o arquivo antes de fechar.\n\n`;
   }
   msg+=`Isto apaga de vez — não vão para Arquivados. E não voltam na próxima busca.`;
   if(!confirm(msg)) return;
 
+  // A REDE DE SEGURANÇA VEM ANTES DO GESTO IRREVERSÍVEL, não depois. Se o download
+  // falhar, a limpeza não acontece: apagar 123 vagas sem cópia seria exatamente a perda
+  // silenciosa que a trava existe para impedir.
+  if(!_baixarCopiaDeSeguranca([...aApagar, ...revisao.filter(Boolean)], 'para_considerar')){
+    showToast('Não consegui baixar a cópia de segurança — nada foi apagado');
+    return;
+  }
+
   const ids=[...aApagar.map(v=>v.id), ...revisao.map(v=>v&&v.id)];
   const antes=vagas;
-  vagas=vagas.filter(v=>!(v.status==='triagem'&&!_temTrabalhoReal(v)));
+  vagas=vagas.filter(v=>v.status!=='triagem');
 
   // Primeiro os processos: é esta gravação que devolve o espaço. Se ela não
   // passar, nada aconteceu — a lista volta inteira e o aviso de sempre explica.
@@ -7875,7 +7930,7 @@ function descartarTodasRejeitadas(){
   updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome();
   aplicarFiltros(); renderWidgetRevisao();
   showToast(anotou
-    ? `${n} vaga${n===1?'':'s'} apagada${n===1?'':'s'} — ${mb} MB liberados`
+    ? `${n} apagada${n===1?'':'s'} — ${mb} MB liberados · cópia salva nos seus downloads`
     : `${n} apagada${n===1?'':'s'}, mas não coube anotar: podem voltar na próxima busca`);
 }
 
