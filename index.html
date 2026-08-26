@@ -1324,10 +1324,10 @@ select option { background: var(--bg2); }
       <!-- Orçamento de IA -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Orçamento de IA</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Quanto o Senova pode gastar com inteligência artificial por mês. Chegando ao teto, ele para de analisar — e volta sozinho no dia 1º. Nada do que você já tem é perdido.</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">Quanto o Senova pode gastar com inteligência artificial em cada período. Chegando ao teto, ele para de analisar — e volta sozinho quando o período vira. Nada do que você já tem é perdido.</div>
 
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px;">
-          <div id="orcamento-linha" style="font-size:15px;color:var(--text);font-weight:600;">Lendo o consumo deste mês…</div>
+          <div id="orcamento-linha" style="font-size:15px;color:var(--text);font-weight:600;">Lendo o consumo do período…</div>
           <div style="height:8px;background:var(--bg4);border-radius:4px;margin-top:12px;overflow:hidden;">
             <div id="orcamento-barra" style="height:100%;width:0%;background:var(--action);border-radius:4px;transition:width .3s;"></div>
           </div>
@@ -1336,8 +1336,12 @@ select option { background: var(--bg2); }
 
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
           <div class="form-row" style="margin:0;flex:1;min-width:150px;">
-            <label class="field-label">Teto por mês</label>
+            <label class="field-label">Teto por período</label>
             <input type="number" min="1" step="1" id="orcamento-teto" placeholder="200">
+          </div>
+          <div class="form-row" style="margin:0;width:150px;">
+            <label class="field-label">Minha conta fecha no dia</label>
+            <input type="number" min="1" max="31" step="1" id="orcamento-fechamento" placeholder="vazio = dia 1º">
           </div>
           <div class="form-row" style="margin:0;width:110px;">
             <label class="field-label">Moeda</label>
@@ -1349,7 +1353,7 @@ select option { background: var(--bg2); }
           </div>
           <button class="btn btn-primary" onclick="salvarOrcamento()" style="font-size:13px;padding:9px 20px;min-height:44px;">Salvar orçamento</button>
         </div>
-        <div style="font-size:12.5px;color:var(--text3);margin-top:10px;">A conta da inteligência artificial chega em dólar. O câmbio é o que o seu cartão cobra — coloque o que você paga, não a cotação do dia.</div>
+        <div style="font-size:12.5px;color:var(--text3);margin-top:10px;">A conta da inteligência artificial chega em dólar. O câmbio é o que o seu cartão cobra — coloque o que você paga, não a cotação do dia. Se a sua fatura fecha num dia certo do mês, informe qual: o teto passa a valer de fatura a fatura, e não de 1º a 30.</div>
       </div>
 
     </div><!-- /panel-4 -->
@@ -2909,15 +2913,20 @@ select option { background: var(--bg2); }
 })();
 
 // ─── Orçamento de IA ──────────────────────────────
-// Quanto o Senova pode gastar com IA por mês. O número vive no Worker (KV), não aqui: é o
+// Quanto o Senova pode gastar com IA em cada período de cobrança. O número vive no Worker (KV), não aqui: é o
 // Worker que recusa a chamada, e um teto guardado no aparelho não protegeria nada.
 function _orcMoeda(valor, moeda){
   try { return new Intl.NumberFormat('pt-BR', { style:'currency', currency: moeda }).format(valor); }
   catch(e){ return moeda + ' ' + Number(valor).toFixed(2); }
 }
-function _orcZeraEm(){
-  const d = new Date(); d.setMonth(d.getMonth()+1, 1);
-  return d.toLocaleDateString('pt-BR');
+// A DATA VEM DO WORKER, NÃO DAQUI (S53). Antes esta função calculava "o dia 1º do mês que
+// vem" por conta própria — e no dia em que o período deixou de ser o mês do calendário, a
+// tela passaria a prometer uma data que a trava não cumpre. Quem decide o ciclo é quem
+// bloqueia; a tela só mostra o que ele disse.
+function _orcData(iso){
+  if (!iso) return '—';
+  const p = String(iso).slice(0,10).split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
 }
 async function carregarOrcamento(){
   const linha = document.getElementById('orcamento-linha');
@@ -2929,24 +2938,30 @@ async function carregarOrcamento(){
     if (!r.ok) throw new Error('http ' + r.status);
     const e = await r.json();
     const o = e.orcamento || {};
+    const c = e.ciclo || {};
     const teto = Number(o.teto) || 0, gasto = Number(e.gasto) || 0;
     document.getElementById('orcamento-teto').value = teto || '';
     document.getElementById('orcamento-moeda').value = o.moeda || '';
     document.getElementById('orcamento-cambio').value = o.cambio_por_usd || '';
+    const campoFech = document.getElementById('orcamento-fechamento');
+    if (campoFech) campoFech.value = o.dia_fechamento || '';
+    // A janela por extenso: é ela que prova, na tela, que o teto conta o período certo.
+    const janela = c.inicio ? 'Período de ' + _orcData(c.inicio) + ' a ' + _orcData(c.zera_em) + ' (o dia de virada não conta)' : '';
     if (!e.medido){
-      linha.textContent = 'Teto de ' + _orcMoeda(teto, o.moeda) + ' por mês';
+      linha.textContent = 'Teto de ' + _orcMoeda(teto, o.moeda) + ' por período';
       barra.style.width = '0%';
-      det.textContent = 'Ainda não deu para medir o consumo deste mês. O teto continua valendo.';
+      det.textContent = 'Ainda não deu para medir o consumo deste período. O teto continua valendo.' + (janela ? ' ' + janela + '.' : '');
       return;
     }
     const pct = teto > 0 ? Math.min(100, (gasto / teto) * 100) : 0;
     barra.style.width = pct.toFixed(0) + '%';
     barra.style.background = e.bloqueado ? 'var(--red)' : (pct >= 80 ? 'var(--gold)' : 'var(--action)');
-    linha.textContent = _orcMoeda(gasto, o.moeda) + ' de ' + _orcMoeda(teto, o.moeda) + ' usados este mês';
-    det.textContent = e.bloqueado
-      ? 'Teto atingido — o Senova parou de usar IA de propósito. O contador zera em ' + _orcZeraEm() + '.'
-      : 'Restam ' + _orcMoeda(e.restante, o.moeda) + ' · o contador zera em ' + _orcZeraEm() + '.'
-        + (o.padrao ? ' Este ainda é o valor padrão — você nunca escolheu o seu.' : '');
+    linha.textContent = _orcMoeda(gasto, o.moeda) + ' de ' + _orcMoeda(teto, o.moeda) + ' usados neste período';
+    det.textContent = (e.bloqueado
+      ? 'Teto atingido — o Senova parou de usar IA de propósito. O contador zera em ' + _orcData(c.zera_em) + '.'
+      : 'Restam ' + _orcMoeda(e.restante, o.moeda) + ' · o contador zera em ' + _orcData(c.zera_em) + '.'
+        + (o.padrao ? ' Este ainda é o valor padrão — você nunca escolheu o seu.' : ''))
+      + (janela ? ' ' + janela + '.' : '');
   } catch(err){
     linha.textContent = 'Não deu para ler o orçamento agora';
     det.textContent = 'O teto continua valendo no servidor. Tente abrir esta aba de novo em instantes.';
@@ -2956,16 +2971,19 @@ async function salvarOrcamento(){
   const teto = parseFloat(document.getElementById('orcamento-teto').value);
   const moeda = (document.getElementById('orcamento-moeda').value || '').trim().toUpperCase() || 'BRL';
   const cambio = parseFloat(document.getElementById('orcamento-cambio').value);
-  if (!(teto > 0)) return showToast('Informe um teto maior que zero — é quanto o Senova pode gastar com IA por mês.');
+  const fechBruto = (document.getElementById('orcamento-fechamento') || {}).value;
+  const fech = String(fechBruto || '').trim();
+  if (!(teto > 0)) return showToast('Informe um teto maior que zero — é quanto o Senova pode gastar com IA em cada período.');
   if (!(cambio > 0)) return showToast('Informe quanto vale 1 dólar na sua moeda: a conta da IA chega em dólar.');
+  if (fech && !(Number(fech) >= 1 && Number(fech) <= 31)) return showToast('O dia de fechamento vai de 1 a 31 — ou deixe vazio para contar por mês do calendário.');
   try {
     const r = await fetch(WORKER_URL + '/api/orcamento', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ teto, moeda, cambio_por_usd: cambio })
+      body: JSON.stringify({ teto, moeda, cambio_por_usd: cambio, dia_fechamento: fech === '' ? null : Number(fech) })
     });
     const d = await r.json();
     if (!r.ok) return showToast(d.error || 'Não deu para salvar o orçamento agora.');
-    showToast('Orçamento salvo: até ' + _orcMoeda(teto, moeda) + ' por mês');
+    showToast('Orçamento salvo: até ' + _orcMoeda(teto, moeda) + ' por período');
     carregarOrcamento();
   } catch(err){ showToast('Não deu para salvar o orçamento agora. Verifique a conexão.'); }
 }
@@ -2974,7 +2992,7 @@ function mostrarTetoAtingido(d){
   const txt = document.getElementById('modal-teto-texto');
   if (!el || !txt) return;
   if (el.style.display === 'flex') return; // um aviso — e não um por chamada do lote
-  txt.textContent = d.error || 'O Senova atingiu o limite de gasto com IA deste mês.';
+  txt.textContent = d.error || 'O Senova atingiu o limite de gasto com IA deste período.';
   el.style.display = 'flex';
 }
 function fecharModalTeto(){

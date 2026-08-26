@@ -222,7 +222,10 @@ async function main() {
     const s = novoSandbox({ gastoUSD: 50, orcamentoNoKV: { teto: 200, moeda: 'BRL', cambio_por_usd: 5.40 } });
     const freio = await rodar(s, 'bloqueadoPorTeto(env, "u1")');
     const m = freio.mensagem;
-    t('diz O QUÊ aconteceu, sem jargão de erro', /limite do mês/i.test(m), m.slice(0, 60));
+    // "mês" saiu da frase em 26/ago/2026: o teto passou a valer no ciclo de quem paga (a
+    // fatura do cartão), e prender a asserção à palavra seria guardar a redação, não a regra.
+    // O que a recusa tem de dizer é que EXISTE um limite e que ele foi ATINGIDO, em português.
+    t('diz O QUÊ aconteceu, sem jargão de erro', /limite d[oe] (mês|período|ciclo) atingido/i.test(m), m.slice(0, 60));
     t('diz POR QUÊ, citando o teto que a própria pessoa definiu', /200/.test(m), m);
     t('diz QUANTO já foi usado (número, não "muito")', /270/.test(m), m);
     t('diz O QUE FAZER AGORA', /aumente o teto/i.test(m), m);

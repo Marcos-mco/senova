@@ -1,6 +1,15 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.47
+//  SENOVA PROXY — Worker v7.48
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
+//
+//  NOVIDADES v7.48 (26/ago/2026) — O MÊS DE QUEM PAGA NÃO É O MÊS DO CALENDÁRIO.
+//  Marcos: "o limite é 200 a partir do dia 20 passado até 19 do próximo mês. É quando fecha
+//  a fatura do cartão." O teto contava de 1º a 30 — e no dia 26/ago o calendário dizia R$ 268
+//  gastos enquanto a fatura que vai chegar dizia R$ 117. Frear pelo número errado é frear na
+//  hora errada: cedo demais num caso, tarde demais no outro. Agora o período é o ciclo de
+//  quem paga (`dia_fechamento` no orçamento, dado dela como o teto e a moeda), a soma e a
+//  recusa usam o MESMO ciclo, e quem não declarou fechamento continua no mês do calendário.
+//  Bordas (fev com fechamento 31, virada de ano) em `testes/ciclo_de_fatura.js`.
 //
 //  NOVIDADES v7.47 (26/ago/2026) — QUANTO CUSTA UMA ANÁLISE, MEDIDO NA CONTA DELE.
 //  Com a trava no ar, medi de onde o dinheiro sai DE VERDADE. Até 23/ago mandava a origem
@@ -1414,7 +1423,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.47',
+        status: 'ok', worker: 'senova-proxy', versao: '7.48',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1757,7 +1766,14 @@ export default {
         if (!(teto > 0))   return json({ error: 'Informe um teto maior que zero — é quanto o Senova pode gastar com IA por mês.' }, 400);
         if (!(cambio > 0)) return json({ error: 'Informe quanto vale 1 dólar na sua moeda (a conta da IA chega em dólar).' }, 400);
         const moeda = String(corpo.moeda || ORCAMENTO_PADRAO.moeda).trim().slice(0, 8).toUpperCase();
-        await env.SENOVA_KV.put(chaveOrcamento(donoOrc), JSON.stringify({ teto, moeda, cambio_por_usd: cambio }));
+        // Quarto campo: em que dia a conta de quem paga fecha. Vazio significa mês do
+        // calendário — quem não tem fatura não precisa saber que este campo existe.
+        const fechamento = corpo.dia_fechamento === '' || corpo.dia_fechamento === null || corpo.dia_fechamento === undefined
+          ? null : diaDeFechamentoValido(corpo.dia_fechamento);
+        if (fechamento === null && corpo.dia_fechamento !== '' && corpo.dia_fechamento !== null && corpo.dia_fechamento !== undefined) {
+          return json({ error: 'O dia de fechamento vai de 1 a 31 — ou deixe vazio para contar por mês do calendário.' }, 400);
+        }
+        await env.SENOVA_KV.put(chaveOrcamento(donoOrc), JSON.stringify({ teto, moeda, cambio_por_usd: cambio, dia_fechamento: fechamento }));
         // O semáforo guarda o GASTO, não o teto — mas guarda por até 30s, e quem acabou de
         // subir o teto para voltar a trabalhar não pode esperar meio minuto pela permissão.
         _cacheGasto.delete(donoOrc);
@@ -3636,7 +3652,7 @@ function chaveOrcamento(userId) {
 // Padrão de segurança para quem ainda não escolheu. Não é o número de ninguém: é o menor
 // teto que ainda deixa o app ser útil por um mês, e existe só para que NINGUÉM fique sem
 // freio enquanto não configura. Quem abre o painel vê que é padrão e muda em um campo.
-const ORCAMENTO_PADRAO = { teto: 25, moeda: 'USD', cambio_por_usd: 1 };
+const ORCAMENTO_PADRAO = { teto: 25, moeda: 'USD', cambio_por_usd: 1, dia_fechamento: null };
 
 async function lerOrcamento(env, dono) {
   try {
@@ -3652,11 +3668,71 @@ async function lerOrcamento(env, dono) {
       teto,
       moeda: String(o.moeda || ORCAMENTO_PADRAO.moeda).trim().slice(0, 8).toUpperCase(),
       cambio_por_usd: cambio,
+      dia_fechamento: diaDeFechamentoValido(o.dia_fechamento),
       padrao: false,
     };
   } catch {
     return { ...ORCAMENTO_PADRAO, padrao: true };
   }
+}
+
+// O MÊS DE QUEM PAGA NÃO É O MÊS DO CALENDÁRIO (S53, 26/ago/2026).
+//
+// Marcos: "o limite de gasto é 200 a partir do dia 20 passado até 19 do próximo mês. É quando
+// fecha a fatura do cartão." Faz todo o sentido, e mostra um defeito da primeira versão desta
+// trava: ela somava `dia >= primeiro dia do mês`, uma janela que não corresponde a nenhuma
+// conta que alguém recebe. No dia 26/ago o calendário dizia R$ 268 gastos; a fatura que vai
+// chegar dizia R$ 117. Frear pelo número errado é frear na hora errada — cedo demais num
+// caso, tarde demais no outro.
+//
+// O dia do fechamento é DADO DE QUEM PAGA, como o teto e a moeda: cada cartão fecha num dia,
+// e há quem não use cartão nenhum. Sem fechamento declarado, o ciclo continua sendo o mês do
+// calendário — o comportamento de antes, que é o que uma pessoa sem fatura espera.
+function diaDeFechamentoValido(v) {
+  const d = Number(v);
+  return Number.isInteger(d) && d >= 1 && d <= 31 ? d : null;
+}
+
+function _ultimoDiaDoMes(ano, mes) {
+  return new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+}
+
+// Data em que a fatura fecha num dado mês. Fechamento além do fim do mês (dia 31 em fevereiro)
+// fecha no último dia dele: a fatura chega, o mês é que é curto.
+function _fechamentoDoMes(ano, mes, f) {
+  return new Date(Date.UTC(ano, mes, Math.min(f, _ultimoDiaDoMes(ano, mes))));
+}
+
+function _diaSeguinte(d) {
+  return new Date(d.getTime() + 86400000);
+}
+
+// Ciclo corrente = (fechamento anterior, fechamento seguinte]. Tudo aqui é derivado dessas
+// duas datas e do "dia seguinte" — nunca de somar 1 ao número do dia, que é onde a aritmética
+// ingênua quebra: com fechamento 28 em fevereiro, "29 de fevereiro" não existe e o ciclo
+// passaria a ter um buraco ou uma sobreposição de um dia. Testado em `testes/ciclo_de_fatura.js`,
+// que varre 8 fechamentos × 5 meses e exige que o zeramento de um ciclo SEJA o início do outro.
+function inicioDoCiclo(diaFechamento, hoje = new Date()) {
+  const f = diaDeFechamentoValido(diaFechamento);
+  if (f === null) return `${hoje.toISOString().slice(0, 7)}-01`;
+  const ano = hoje.getUTCFullYear(), mes = hoje.getUTCMonth(), dia = hoje.getUTCDate();
+  const fecha = _fechamentoDoMes(ano, mes, f);
+  const anterior = dia > fecha.getUTCDate() ? fecha : _fechamentoDoMes(ano, mes - 1, f);
+  return _diaSeguinte(anterior).toISOString().slice(0, 10);
+}
+
+// O dia em que o contador zera: o primeiro dia do PRÓXIMO ciclo. É o que a recusa promete a
+// quem foi barrado, e promessa de data errada é a recusa sem porquê da S52 com outra roupa.
+function zeramentoDoCiclo(diaFechamento, hoje = new Date()) {
+  const f = diaDeFechamentoValido(diaFechamento);
+  if (f === null) {
+    const d = new Date(hoje); d.setUTCMonth(d.getUTCMonth() + 1, 1);
+    return d.toISOString().slice(0, 10);
+  }
+  const ano = hoje.getUTCFullYear(), mes = hoje.getUTCMonth(), dia = hoje.getUTCDate();
+  const fecha = _fechamentoDoMes(ano, mes, f);
+  const seguinte = dia > fecha.getUTCDate() ? _fechamentoDoMes(ano, mes + 1, f) : fecha;
+  return _diaSeguinte(seguinte).toISOString().slice(0, 10);
 }
 
 // DE QUEM É ESTA CONTA — um cálculo só, para a tela e a trava nunca discordarem.
@@ -3703,11 +3779,7 @@ function _somarNoCacheDeGasto(userId, usd) {
   if (c) c.gastoUSD += usd;
 }
 
-function _primeiroDiaDoMes(d = new Date()) {
-  return `${d.toISOString().slice(0, 7)}-01`;
-}
-
-async function _gastoDoMesUSD(env, dono) {
+async function _gastoDoCicloUSD(env, dono, inicio) {
   const agora = Date.now();
   const c = _cacheGasto.get(dono);
   if (c && c.ate > agora) return c.gastoUSD;
@@ -3715,7 +3787,7 @@ async function _gastoDoMesUSD(env, dono) {
   const vagas = meus.map(() => '?').join(',');
   const row = await env.SENOVA_DB.prepare(
     `SELECT COALESCE(SUM(custo_usd), 0) AS total FROM custo_ia_v2 WHERE user_id IN (${vagas}) AND dia >= ?`
-  ).bind(...meus, _primeiroDiaDoMes()).first();
+  ).bind(...meus, inicio).first();
   const gastoUSD = Number(row?.total || 0);
   _cacheGasto.set(dono, { gastoUSD, ate: agora + CACHE_GASTO_MS });
   return gastoUSD;
@@ -3767,31 +3839,36 @@ async function estadoDoOrcamento(env, dono) {
   // pessoa por uma falha nossa; atribuir a conta a um dono inventado é pior ainda. Segue
   // aberto e diz por quê — é o mesmo desenho da S50: banco fora do ar não vira "o Senova
   // esqueceu quem você é".
+  const ciclo = { inicio: inicioDoCiclo(orcamento.dia_fechamento), zera_em: zeramentoDoCiclo(orcamento.dia_fechamento) };
   if (!env.SENOVA_DB || !dono) {
-    return { medido: false, bloqueado: false, orcamento, gasto: 0, restante: orcamento.teto, custo_analise: null };
+    return { medido: false, bloqueado: false, orcamento, ciclo, gasto: 0, restante: orcamento.teto, custo_analise: null };
   }
-  const gastoUSD = await _gastoDoMesUSD(env, dono);
+  const gastoUSD = await _gastoDoCicloUSD(env, dono, ciclo.inicio);
   const gasto = gastoUSD * orcamento.cambio_por_usd;
   const restante = orcamento.teto - gasto;
   // O preço de UMA análise, na moeda dele, para a tela poder dizer quanto custa o gesto
   // ANTES de ele fazer o gesto. null quando ainda não há histórico: não se inventa preço.
   const medioUSD = await custoMedioDeUmaAnalise(env, dono);
   const custo_analise = medioUSD === null ? null : medioUSD * orcamento.cambio_por_usd;
-  return { medido: true, bloqueado: restante <= 0, orcamento, gastoUSD, gasto, restante, custo_analise };
+  return { medido: true, bloqueado: restante <= 0, orcamento, ciclo, gastoUSD, gasto, restante, custo_analise };
 }
 
 // Recusa que diz O QUÊ, POR QUÊ e O QUE FAZER AGORA — [[feedback_repetir_pedido_e_defeito_meu_s52]].
 // "Limite atingido" sozinho manda a pessoa adivinhar; e quem está sem emprego e vê o app
 // parar sem explicação conclui que ele quebrou.
+function _dataCurta(iso) {
+  const [a, m, d] = String(iso).slice(0, 10).split('-');
+  return `${d}/${m}/${a}`;
+}
+
 function _mensagemDeTetoAtingido(estado) {
   const { orcamento, gasto } = estado;
-  const vira = new Date();
-  vira.setUTCMonth(vira.getUTCMonth() + 1, 1);
-  const quando = vira.toISOString().slice(0, 10).split('-').reverse().join('/');
-  return `Limite do mês atingido — o Senova parou de usar IA de propósito.\n\n`
-       + `Você definiu um teto de ${_dinheiro(orcamento.teto, orcamento.moeda)} por mês`
+  const ciclo = estado.ciclo || { inicio: inicioDoCiclo(orcamento.dia_fechamento), zera_em: zeramentoDoCiclo(orcamento.dia_fechamento) };
+  const quando = _dataCurta(ciclo.zera_em);
+  return `Limite do período atingido — o Senova parou de usar IA de propósito.\n\n`
+       + `Você definiu um teto de ${_dinheiro(orcamento.teto, orcamento.moeda)} por período`
        + `${orcamento.padrao ? ' (ainda é o valor padrão, você nunca escolheu)' : ''}`
-       + ` e já usou ${_dinheiro(gasto, orcamento.moeda)} desde o dia 1º.\n\n`
+       + ` e já usou ${_dinheiro(gasto, orcamento.moeda)} desde ${_dataCurta(ciclo.inicio)}.\n\n`
        + `O contador zera em ${quando}. Para voltar a analisar hoje, aumente o teto em `
        + `Perfil › Integrações › Orçamento de IA — nada do que você já tem foi perdido.`;
 }
