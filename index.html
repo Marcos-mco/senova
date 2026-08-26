@@ -532,6 +532,13 @@ select option { background: var(--bg2); }
       </svg>
     </div>
 
+    <!-- Esteira de análise: aparece só enquanto está gastando, some quando termina.
+         Estado vazio não se anuncia (skill_design_senova). -->
+    <div id="esteira-aviso" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;">
+      <span id="esteira-aviso-txt" style="flex:1;min-width:200px;font-size:13px;color:var(--text2);"></span>
+      <button onclick="pararEsteira()" style="flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--action);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-decoration:underline;">Parar</button>
+    </div>
+
     <!-- 2 colunas principais: Para Hoje | O que há de novo -->
     <div class="sh-home-2col">
 
@@ -7016,13 +7023,26 @@ async function salvarConfigVarredura(){
 }
 
 async function dispararVarreduraManual(){
-  // O custo é dito ANTES do clique, e é o custo de verdade. Buscar não custa nada —
-  // Adzuna e Jobicy são chamadas HTTP grátis. O que custa é a análise de cada vaga
+  // O custo é dito ANTES do clique, e é o custo de verdade. Buscar não custa nada — as
+  // fontes automáticas são chamadas HTTP grátis. O que custa é a análise de cada vaga
   // trazida, e é por isso que a rodada inteira tem preço.
+  //
+  // O preço saía daqui escrito à mão ("cerca de R$ 0,08 por vaga", "cerca de R$ 6,40 a
+  // rodada"). Número escrito à mão envelhece calado — quando o prompt cresce, quando o
+  // modelo muda de preço — e nunca foi verdade para quem usa o Senova com outro perfil e
+  // outra moeda. Agora sai da conta DELE, medida no Worker. Sem histórico, a frase
+  // simplesmente não cita preço: melhor não saber do que inventar.
+  const _e = await _lerOrcamentoLeve();
+  const _m = (_e && _e.orcamento && _e.orcamento.moeda) || '';
+  const _porVaga = (_e && typeof _e.custo_analise === 'number') ? _e.custo_analise : null;
+  const _preco = _porVaga === null
+    ? 'A busca é gratuita; o que custa é a análise de cada vaga trazida. Uma rodada traz até 80 vagas.'
+    : 'A busca é gratuita, mas cada vaga trazida custa cerca de ' + _orcMoeda(_porVaga, _m) + ' para ser '
+      + 'analisada. Uma rodada traz até 80 vagas — cerca de ' + _orcMoeda(_porVaga * 80, _m) + '.';
+  const _resta = (_e && _e.medido && typeof _e.restante === 'number')
+    ? '\n\nRestam ' + _orcMoeda(_e.restante, _m) + ' do seu teto deste mês.' : '';
   if(!confirm(
-    'Buscar agora nas fontes automáticas (Adzuna e Jobicy)?\n\n'+
-    'A busca é gratuita, mas cada vaga trazida custa cerca de R$ 0,08 para ser analisada. '+
-    'Uma rodada traz até 80 vagas — cerca de R$ 6,40.\n\n'+
+    'Buscar agora nas fontes automáticas?\n\n'+ _preco + _resta + '\n\n'+
     'Em 10 dias de medição, a busca automática rendeu 2 processos e nenhum currículo '+
     'enviado; os alertas por e-mail renderam 211 processos e 6 currículos. Por isso ela '+
     'está desligada no automático desde 23/ago/2026.'
@@ -11959,6 +11979,8 @@ function _elegivelParaAnalise(v){
 // aquecer: a "primeira" chamada é sempre uma vaga de verdade da fila.
 let _cacheQuenteAte=0;
 async function analisarLoteBackground(){
+  // O gesto de parar vale em qualquer porta de entrada do lote, não só no laço da Home.
+  if(_esteiraParada) return;
   const semScore=vagas.filter(_elegivelParaAnalise).slice(0,5);
   if(!semScore.length) return;
   semScore.forEach(v=>_loteEmAnalise.add(String(v.id)));
@@ -12027,6 +12049,69 @@ async function analisarLoteBackground(){
   // vaga para redescobrir o que já se sabia.
   _gravarNotasNoRadar(paraRadar);
 }
+// ─── A esteira diz o que está fazendo, quanto custa, e pode ser parada ───────────
+// Medido em 26/ago/2026: de 24/ago em diante a esteira automática da Home respondeu por ~70%
+// do gasto diário com IA (US$ 0,90–2,43/dia). Ela não tem clique: roda sozinha ao abrir a
+// Home. "O preço antes do clique" que Marcos pediu não podia mirar num botão — o dinheiro
+// estava saindo de um laço que ninguém aperta.
+//
+// Nada aqui decide por ele. A esteira continua fazendo o que fazia; passa a dizer quantas
+// vagas vai analisar, quanto isso custa NA CONTA DELE (média medida no Worker, não número
+// escrito à mão) e quanto sobra do teto — e oferece o gesto de parar. Parar não perde nada:
+// a vaga fica na fila e volta a ser elegível na próxima vez.
+let _esteiraParada = false;
+let _orcEstado = null;          // último estado do orçamento visto (teto, gasto, preço da análise)
+let _orcEstadoQuando = 0;
+
+async function _lerOrcamentoLeve(){
+  // 5 minutos: o suficiente para a frase não mentir, sem transformar a esteira numa
+  // segunda fonte de tráfego. Falhar aqui nunca impede a esteira — só a deixa mais calada.
+  if (_orcEstado && Date.now() - _orcEstadoQuando < 5*60*1000) return _orcEstado;
+  try{
+    const r = await fetch(WORKER_URL + '/api/orcamento');
+    if (!r.ok) return _orcEstado;
+    _orcEstado = await r.json();
+    _orcEstadoQuando = Date.now();
+  }catch(e){}
+  return _orcEstado;
+}
+
+function _esteiraFrase(quantas, e){
+  const vagas = quantas + (quantas === 1 ? ' vaga nova' : ' vagas novas');
+  if (!e || !e.medido) return 'Analisando ' + vagas;
+  const m = (e.orcamento && e.orcamento.moeda) || '';
+  const partes = ['Analisando ' + vagas];
+  // Preço só aparece quando foi MEDIDO na conta dele. Sem histórico, o app cala a boca em
+  // vez de arriscar um número que soaria tão confiável quanto os outros.
+  if (typeof e.custo_analise === 'number') partes.push('cerca de ' + _orcMoeda(e.custo_analise * quantas, m));
+  if (typeof e.restante === 'number') partes.push('restam ' + _orcMoeda(e.restante, m) + ' do seu teto');
+  return partes.join(' · ');
+}
+
+async function _esteiraMostrar(quantas){
+  const bar = document.getElementById('esteira-aviso');
+  const txt = document.getElementById('esteira-aviso-txt');
+  if (!bar || !txt) return;
+  if (quantas <= 0) { bar.style.display = 'none'; return; }
+  txt.textContent = _esteiraFrase(quantas, _orcEstado);
+  bar.style.display = 'flex';
+  const e = await _lerOrcamentoLeve();
+  if (bar.style.display === 'flex') txt.textContent = _esteiraFrase(quantas, e);
+}
+function _esteiraEsconder(){
+  const bar = document.getElementById('esteira-aviso');
+  if (bar) bar.style.display = 'none';
+}
+function pararEsteira(){
+  _esteiraParada = true;
+  _esteiraEsconder();
+  showToast('Análise automática parada. Nenhuma vaga foi perdida — elas continuam na fila.');
+}
+function retomarEsteira(){
+  _esteiraParada = false;
+  _recalcLeadsReset();
+}
+
 // Recalcula TODOS os leads sem score (lote processa 5 por vez; aqui repetimos até zerar).
 let _recalcRodando=false;
 async function _recalcLeadsReset(){
@@ -12040,10 +12125,14 @@ async function _recalcLeadsReset(){
     // achando que sobrou). 60 rodadas × 5 = 300 vagas, folga sobre o radar.
     let guard=0;
     while(guard++<60){
-      if(!vagas.some(_elegivelParaAnalise)) break;
+      // Parar é gesto DELE e vale para a rodada inteira, não só para o lote da vez.
+      if(_esteiraParada) break;
+      const fila=vagas.filter(_elegivelParaAnalise).length;
+      if(!fila) break;
+      _esteiraMostrar(fila);
       await analisarLoteBackground();
     }
-  } finally { _recalcRodando=false; }
+  } finally { _recalcRodando=false; _esteiraEsconder(); }
 }
 function toggleOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');

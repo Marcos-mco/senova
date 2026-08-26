@@ -58,9 +58,14 @@ t('a esteira registra a falha PELA função, não mexendo no Set na mão',
 console.log('\n=== a 4ª tentativa não acontece: o teto entra no MESMO predicado que escolhe o lote ===');
 t('_elegivelParaAnalise reprova vaga no teto',
   /function _elegivelParaAnalise\(v\)\{[\s\S]{0,900}&& !_analiseNoTeto\(v\)/.test(app));
+// O que se guarda é o PREDICADO, não a forma de perguntar. Em 26/ago/2026 o laço deixou de
+// perguntar "sobrou alguém?" (`.some`) e passou a contar a fila (`.filter().length`), porque a
+// barra da Home precisa dizer QUANTAS vagas ainda vai analisar. Contar é o mesmo crivo; o risco
+// que este teste existe para pegar continua sendo o outro — o laço perguntar por um critério e o
+// lote escolher por outro, e girar 60 rodadas em falso.
 t('a esteira e o "ainda falta alguém?" usam o mesmo predicado (senão o loop roda em falso)',
   /const semScore=vagas\.filter\(_elegivelParaAnalise\)/.test(app) &&
-  /if\(!vagas\.some\(_elegivelParaAnalise\)\) break;/.test(app));
+  /const fila=vagas\.filter\(_elegivelParaAnalise\)\.length;[\s\S]{0,120}?if\(!fila\) break;/.test(app));
 
 console.log('\n=== a tela diz a verdade, e devolve a decisão a ele ===');
 t('a redação é a que Marcos ditou, verbatim',

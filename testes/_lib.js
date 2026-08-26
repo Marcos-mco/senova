@@ -126,6 +126,12 @@ function carregarApp(extras = [], mocks = {}) {
   const fontes = [...new Set([...NUCLEO, ...extras])].map(extrai).join('\n;\n');
   const sandbox = Object.assign({
     vagas: [], filtroAtivo: null,
+    // Gesto de parar a esteira (S53): analisarLoteBackground consulta esta bandeira na primeira
+    // linha, e o laço da Home anuncia/esconde a barra a cada rodada. Entram como estado mínimo do
+    // sandbox pela razão do topo do arquivo — sem eles, todo teste que extrai o lote morre com
+    // ReferenceError sem ter nada a ver com a esteira. Parada = false: o padrão é a esteira rodar.
+    _esteiraParada: false,
+    _esteiraMostrar() {}, _esteiraEsconder() {},
     saveVagas() {}, renderCRM() {}, aplicarFiltros() {}, showToast() {},
     setTimeout: () => 0, clearTimeout() {},
     document: { getElementById: () => null },

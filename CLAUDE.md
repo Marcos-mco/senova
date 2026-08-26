@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Modelo IA no Worker:** `claude-sonnet-4-6` (nunca usar 4-5, está obsoleto)
 - **Modelo Bruno para análise:** `claude-opus-4-8` · **Para código:** `claude-sonnet-4-6`
 
-O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.46) e é gerenciado pelo `wrangler.toml`.
+O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.47) e é gerenciado pelo `wrangler.toml`.
 
 ## Deploy
 
@@ -68,7 +68,7 @@ Antes de qualquer commit do `index.html`, verificar:
 
 Público-alvo 40+: mínimo 16px no corpo, alto contraste.
 
-## Worker — rotas disponíveis (`senova-worker.js` v7.46)
+## Worker — rotas disponíveis (`senova-worker.js` v7.47)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|

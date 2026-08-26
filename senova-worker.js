@@ -1,8 +1,17 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.46
+//  SENOVA PROXY — Worker v7.47
 //  Cloudflare Workers · senova-proxy.marcos-mco.workers.dev
 //
-//  NOVIDADES v7.46 (26/ago/2026) — TETO DE GASTO. O app passa a poder dizer não a si mesmo.
+//  NOVIDADES v7.47 (26/ago/2026) — QUANTO CUSTA UMA ANÁLISE, MEDIDO NA CONTA DELE.
+//  Com a trava no ar, medi de onde o dinheiro sai DE VERDADE. Até 23/ago mandava a origem
+//  `radar` (83% do mês). De 24/ago em diante, com a varredura automática desligada, quem
+//  passou a mandar foi `esteira_home`: ~70% do gasto diário, US$ 0,90–2,43/dia. E a esteira
+//  NÃO TEM CLIQUE — roda sozinha ao abrir a Home. Por isso `custoMedioDeUmaAnalise` entra em
+//  /api/orcamento: o preço de uma análise sai do histórico de quem paga (janela de 30 dias,
+//  na moeda dela), nunca de um número escrito à mão. Sem histórico devolve null, e o app
+//  cala a boca em vez de inventar.
+//
+//  v7.46 (26/ago/2026) — TETO DE GASTO. O app passa a poder dizer não a si mesmo.
 //  Marcos abriu a fatura do cartão: "estou desempregado e não posso gastar tanto assim.
 //  Vamos mudar o processo de trabalho e colocar como regra não poder passar dos 200 reais
 //  mensais." Medido no D1 antes de qualquer linha de código: R$ 263,56 em 13 dias com
@@ -1405,7 +1414,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.46',
+        status: 'ok', worker: 'senova-proxy', versao: '7.47',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -3724,6 +3733,34 @@ function _dinheiro(valor, moeda) {
 
 // O estado do orçamento de uma pessoa, na moeda dela. É o que o porteiro decide e o que o
 // painel mostra — um só cálculo, para a tela nunca discordar da trava.
+// QUANTO CUSTA UMA ANÁLISE — medido na conta DELE, nunca estimado por nós (S53).
+//
+// Marcos pediu o preço antes do clique, e o app já dizia um: "cerca de R$ 0,08 por vaga".
+// Era um número escrito à mão numa medição de agosto/2026 — a sexta encarnação do modo de
+// falha que o crivo nomeia ([[feedback_senova_para_qualquer_um_s51]]). Envelhece em silêncio
+// quando o prompt cresce, quando o modelo muda de preço, e é simplesmente falso para quem usa
+// o Senova com outro perfil, outro idioma e outra moeda.
+//
+// A média sai do histórico da própria pessoa. Sem histórico devolve null — e o app diz que
+// ainda não sabe, em vez de inventar um número que soaria igualmente confiável.
+const ORIGENS_ANALISE_VAGA = ['radar', 'esteira_home', 'card_aberto', 'extensao'];
+async function custoMedioDeUmaAnalise(env, dono) {
+  if (!env.SENOVA_DB) return null;
+  const meus = await donosDaConta(env, dono);
+  if (!meus.length) return null;
+  const quem = meus.map(() => '?').join(',');
+  const quais = ORIGENS_ANALISE_VAGA.map(() => '?').join(',');
+  // Janela de 30 dias: o preço de hoje, não a média de toda a história. Prompt e modelo mudam.
+  const desde = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const row = await env.SENOVA_DB.prepare(
+    `SELECT COALESCE(SUM(custo_usd), 0) AS usd, COALESCE(SUM(chamadas), 0) AS n
+       FROM custo_ia_v2
+      WHERE user_id IN (${quem}) AND origem IN (${quais}) AND dia >= ?`
+  ).bind(...meus, ...ORIGENS_ANALISE_VAGA, desde).first();
+  const n = Number(row?.n) || 0;
+  return n > 0 ? (Number(row.usd) || 0) / n : null;
+}
+
 async function estadoDoOrcamento(env, dono) {
   const orcamento = await lerOrcamento(env, dono);
   // Sem banco ou sem dono não dá para somar o gasto DE ALGUÉM. Bloquear aqui puniria a
@@ -3731,12 +3768,16 @@ async function estadoDoOrcamento(env, dono) {
   // aberto e diz por quê — é o mesmo desenho da S50: banco fora do ar não vira "o Senova
   // esqueceu quem você é".
   if (!env.SENOVA_DB || !dono) {
-    return { medido: false, bloqueado: false, orcamento, gasto: 0, restante: orcamento.teto };
+    return { medido: false, bloqueado: false, orcamento, gasto: 0, restante: orcamento.teto, custo_analise: null };
   }
   const gastoUSD = await _gastoDoMesUSD(env, dono);
   const gasto = gastoUSD * orcamento.cambio_por_usd;
   const restante = orcamento.teto - gasto;
-  return { medido: true, bloqueado: restante <= 0, orcamento, gastoUSD, gasto, restante };
+  // O preço de UMA análise, na moeda dele, para a tela poder dizer quanto custa o gesto
+  // ANTES de ele fazer o gesto. null quando ainda não há histórico: não se inventa preço.
+  const medioUSD = await custoMedioDeUmaAnalise(env, dono);
+  const custo_analise = medioUSD === null ? null : medioUSD * orcamento.cambio_por_usd;
+  return { medido: true, bloqueado: restante <= 0, orcamento, gastoUSD, gasto, restante, custo_analise };
 }
 
 // Recusa que diz O QUÊ, POR QUÊ e O QUE FAZER AGORA — [[feedback_repetir_pedido_e_defeito_meu_s52]].

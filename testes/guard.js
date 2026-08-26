@@ -93,7 +93,11 @@ console.log('\n=== GUARD: a identidade de quem é aconselhado mora no Worker, n�
 // usuário DIZENDO quem é — é para lá que a identidade deve migrar (passo 3), não de lá que ela
 // deve sair. A régua proibida é a afirmada por nós dentro de um prompt, que é sempre prosa.
 const REGUA_NO_PROMPT = [
-  { nome: 'cargo-alvo como objetivo', re: /(busca|cargo-alvo|objetivo)[^\n]{0,60}(c-level|c‑level|cmo|cso|diretor)/i },
+  // As siglas exigem fronteira de palavra. Sem \b, "cmo" (case-insensitive) casava DENTRO de
+  // identificadores: _orcMoeda derrubou este guard em 26/ago/2026 com a frase do preço da busca,
+  // que não fala de cargo nenhum. Régua afirmada por nós é sempre prosa, e prosa tem fronteira —
+  // nome de variável, não.
+  { nome: 'cargo-alvo como objetivo', re: /(busca|cargo-alvo|objetivo)[^\n]{0,60}\b(c-level|c‑level|cmo|cso|diretor)\b/i },
   { nome: 'faixa/piso salarial como régua', re: /(pretens[ãa]o|fecha a partir de|m[íi]nimo de sobreviv[êe]ncia|piso de dignidade)/i },
 ];
 {

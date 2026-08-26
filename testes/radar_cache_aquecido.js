@@ -60,6 +60,8 @@ function montarSandbox(vagas, fetchMock, cacheQuenteAte) {
     _criterioParaVaga: () => 0,
     setStatus: () => {}, classificacaoDoScore: () => ({ titulo: 'x' }),
     _cardIntocadoDaBusca: () => false,
+    // Estado da esteira (S53): analisarLoteBackground checa a bandeira de parar na 1a linha.
+    _esteiraParada: false, _esteiraMostrar() {}, _esteiraEsconder() {},
     saveVagas: () => {}, renderCRM: () => {}, renderParaConsiderar: () => {},
     _gravarNotasNoRadar: async () => {},
     setTimeout: (f, ms) => setTimeout(f, ms),

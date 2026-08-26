@@ -289,9 +289,13 @@ async function main() {
       !/5\.4/.test(fonteSemComentario));
     t('o teto é lido do KV, por pessoa', /SENOVA_KV\.get\(chaveOrcamento\(/.test(worker));
     // Um ponto único de LEITURA de quem é a conta — o painel e a trava chamam o mesmo.
+    // Contar chamadas seria guardar o número de leitores — e leitor novo é bem-vindo (o preço
+    // médio da análise virou o terceiro em 26/ago/2026). O que não pode nascer duas vezes é a
+    // REGRA: quem herda o gasto antigo. Ela mora dentro de donosDaConta e em lugar nenhum mais.
     t('painel e trava perguntam "de quem é esta conta" no mesmo lugar',
-      (worker.match(/await donosDaConta\(env, dono\)/g) || []).length === 2 &&
-      (worker.match(/async function donosDaConta\(/g) || []).length === 1);
+      (worker.match(/await donosDaConta\(env, dono\)/g) || []).length >= 2 &&
+      (worker.match(/async function donosDaConta\(/g) || []).length === 1 &&
+      (worker.match(/push\(CUSTO_SEM_DONO\)/g) || []).length === 1);
     t('e a chave é por user_id', /\$\{CHAVE_ORCAMENTO\}:\$\{userId\}/.test(worker));
     t('existe rota para a pessoa definir o próprio teto', /path === '\/api\/orcamento'/.test(worker));
     t('e ela recusa teto inválido dizendo o que fazer, em vez de gravar lixo',
