@@ -25,7 +25,7 @@ const worker = fs.readFileSync(path.join(raiz, 'senova-worker.js'), 'utf8');
 const wrangler = fs.readFileSync(path.join(raiz, 'wrangler.toml'), 'utf8');
 
 const app = carregarApp(
-  ['function _fonteVarredura(', 'function _elegivelParaAnalise(', 'function _analiseNoTeto(', 'function _promoverTriagem('],
+  ['function _fonteVarredura(', 'function _analisavel(', 'function _elegivelParaAnalise(', 'function _analiseNoTeto(', 'function _promoverTriagem('],
   {
     // `const _analiseFalhou=new Set()` não tem corpo em chaves para o extrator balancear —
     // entra como mock. Vazio é o estado real de um app recém-aberto.
@@ -41,20 +41,28 @@ const { _elegivelParaAnalise, _promoverTriagem } = app;
 const DESC = 'x'.repeat(400); // acima do piso de 120 caracteres que a esteira exige
 const vaga = (extra) => Object.assign({ id: 1, status: 'triagem', descricao: DESC }, extra);
 
-console.log('=== o que funciona continua funcionando ===');
-t('vaga vinda de alerta por e-mail é analisada (211 processos, 6 currículos — é o canal que produz)',
-  _elegivelParaAnalise(vaga({ fonte: 'email_alerta' })) === true);
-t('vaga vinda da extensão é analisada', _elegivelParaAnalise(vaga({ fonte: 'extensao_chrome' })) === true);
-t('vaga criada à mão (sem fonte) é analisada', _elegivelParaAnalise(vaga({ fonte: '' })) === true);
-t('vaga vinda de e-mail direto é analisada', _elegivelParaAnalise(vaga({ fonte: 'email' })) === true);
+// A REGRA MUDOU DE ESCOPO EM 26/ago/2026, E ESTE BLOCO MUDOU COM ELA.
+// Até aqui a permissão era exigida só de quem viesse da varredura; o e-mail, a extensão e o
+// que ele criava à mão eram analisados sozinhos. A medição da S53 mostrou que era ali que o
+// dinheiro saía: 55 a 83 análises por dia na Home, nenhuma pedida. Agora NADA é analisado sem
+// gesto — e a diferença por fonte sumiu da camada que decide (guard em
+// `testes/nada_gasta_sem_gesto.js`). O que este bloco continua guardando é o que sempre
+// guardou: o corte não pode COMER o canal que produz. Com o gesto, tudo analisa igual.
+console.log('=== o que funciona continua funcionando: nenhuma fonte é bloqueada ===');
+t('vaga vinda de alerta por e-mail analisa com o gesto (211 processos, 6 currículos — é o canal que produz)',
+  _elegivelParaAnalise(vaga({ fonte: 'email_alerta', analisePedida: true })) === true);
+t('vaga vinda da extensão analisa com o gesto', _elegivelParaAnalise(vaga({ fonte: 'extensao_chrome', analisePedida: true })) === true);
+t('vaga criada à mão (sem fonte) analisa com o gesto', _elegivelParaAnalise(vaga({ fonte: '', analisePedida: true })) === true);
+t('vaga vinda de e-mail direto analisa com o gesto', _elegivelParaAnalise(vaga({ fonte: 'email', analisePedida: true })) === true);
 
-console.log('\n=== a varredura não gasta mais sozinha ===');
+console.log('\n=== nenhuma fonte gasta sozinha — nem a que produz ===');
 t('vaga da Adzuna não é analisada por conta própria', _elegivelParaAnalise(vaga({ fonte: 'Adzuna' })) === false);
 t('vaga do Jobicy não é analisada por conta própria', _elegivelParaAnalise(vaga({ fonte: 'Jobicy' })) === false);
-t('a fonte é comparada sem depender de maiúsculas (o radar grava "Adzuna", o card pode gravar "adzuna")',
-  _elegivelParaAnalise(vaga({ fonte: 'adzuna' })) === false);
+t('vaga de e-mail também não: era daqui que saíam 55–83 análises por dia',
+  _elegivelParaAnalise(vaga({ fonte: 'email_alerta' })) === false);
+t('e vaga sem fonte nenhuma também não', _elegivelParaAnalise(vaga({ fonte: '' })) === false);
 
-console.log('\n=== mas o gesto dele destrava, e a permissão é do CARD (não um modo global) ===');
+console.log('\n=== o gesto destrava, e a permissão é do CARD (não um modo global) ===');
 t('vaga da varredura com analisePedida É analisada',
   _elegivelParaAnalise(vaga({ fonte: 'Adzuna', analisePedida: true })) === true);
 t('"Enviar para Processos" marca o pedido de análise no próprio card', (() => {
@@ -66,7 +74,7 @@ t('"Enviar para Processos" marca o pedido de análise no próprio card', (() => 
 t('a autorização de "Buscar agora" nasce falsa a cada carga do app',
   /let _varreduraPedida=false;/.test(html));
 t('e é gasta na colheita seguinte — não fica pendurada autorizando as próximas visitas à Home',
-  /_varreduraPedida=false;\s*\n\s*\/\/ FORA do if de propósito\./.test(html));
+  /_varreduraPedida=false;\s*\n\s*\/\/ AQUI ERA O GASTO/.test(html));
 
 console.log('\n=== nada desaparece: o que não entra fica na piscina do radar, com caminho de volta ===');
 t('a filtragem acontece na ENTRADA do Kanban, não por apagamento',
@@ -76,8 +84,10 @@ t('a extensão abrindo a página da vaga também vale como pedido de análise',
   /\/\/ Abrir a página da vaga com a extensão é gesto dele[\s\S]{0,220}vagas\[idx\]\.analisePedida=true;/.test(html));
 
 console.log('\n=== a tela não promete o que não vai acontecer ===');
-t('vaga da varredura sem análise diz "Sem análise · busca automática desligada", não "Avaliando…"',
-  /_fonteVarredura\(v\)&&v\.analisePedida!==true[\s\S]{0,600}Sem análise · busca automática desligada/.test(html));
+// A redação mudou junto com a regra: não é mais "a busca automática está desligada" (isso
+// era sobre UMA fonte), é "ninguém pediu ainda" — e a tela oferece o gesto ali mesmo.
+t('vaga sem análise diz que não foi analisada e oferece o gesto, em vez de "Avaliando…"',
+  /v\.analisePedida!==true[\s\S]{0,900}Sem análise ainda[\s\S]{0,600}analisar esta/.test(html));
 t('"Buscar agora" diz o custo ANTES de disparar a busca', (() => {
   const i = html.indexOf('async function dispararVarreduraManual(');
   const j = html.indexOf("'/api/varredura-manual'", i);

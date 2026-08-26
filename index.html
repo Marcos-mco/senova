@@ -532,11 +532,12 @@ select option { background: var(--bg2); }
       </svg>
     </div>
 
-    <!-- Esteira de análise: aparece só enquanto está gastando, some quando termina.
+    <!-- Fila de análise: dois estados no mesmo lugar. Parada, ela OFERECE ("N vagas
+         esperando · custa cerca de X · Analisar"); rodando, ela informa e deixa parar.
          Estado vazio não se anuncia (skill_design_senova). -->
     <div id="esteira-aviso" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;">
       <span id="esteira-aviso-txt" style="flex:1;min-width:200px;font-size:13px;color:var(--text2);"></span>
-      <button onclick="pararEsteira()" style="flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--action);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-decoration:underline;">Parar</button>
+      <button id="esteira-aviso-acao" style="flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--action);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-decoration:underline;"></button>
     </div>
 
     <!-- 2 colunas principais: Para Hoje | O que há de novo -->
@@ -6912,7 +6913,9 @@ function loadCRM(){
         ? {...v, atsScore:'', atsCvScore:'', score:null, compatFortes:[], compatAtencao:[]}
         : v);
       localStorage.setItem('senova_migration_score_reset_v2','1');
-      setTimeout(()=>{ try{ _recalcLeadsReset(); }catch{} }, 2500);
+      // Uma migração zera notas; ela não tem autoridade para gastar o dinheiro dele
+      // recalculando tudo sozinha (S53). Oferece — o gesto é dele.
+      setTimeout(()=>{ try{ _esteiraOferecer(); }catch{} }, 2500);
     }
     if(!localStorage.getItem('senova_migration_remover_lixo_sem_vaga_v1')){
       // Remove "vagas" que são ruído de e-mail (boas-vindas/notificações) e não têm
@@ -7626,11 +7629,13 @@ function renderWidgetRevisao(){
                 // ela parou. Dizer "Avaliando…" seria mentira sobre um gasto que o Senova
                 // decidiu não fazer mais.
                 ? _seloAnaliseParada(v)
-                : _fonteVarredura(v)&&v.analisePedida!==true
-                // "Avaliando…" seria mentira: com a busca automática desligada, ninguém
-                // vai avaliar esta vaga sozinho. O card fica, o link fica, e "Enviar para
-                // Processos" abre-a — é lá que a análise é pedida, por ato dele.
-                ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Sem análise · busca automática desligada</span>`
+                : v.analisePedida!==true
+                // "Avaliando…" seria mentira: desde a S53 nada é analisado sem gesto, e
+                // ninguém vai avaliar esta vaga sozinho. Então a pílula diz a verdade e
+                // oferece o gesto ali mesmo, para uma vaga só — quem quer esta e não as
+                // outras não precisa liberar a fila inteira.
+                ? `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Sem análise ainda</span>
+                   <button onclick="event.stopPropagation();analisarAssimMesmo('${escHtml(String(v.id))}')" style="font-size:12px;font-weight:600;color:var(--action);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-decoration:underline;">analisar esta</button>`
                 : `<span style="font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:10px;">Avaliando…</span>`)
             : `<span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:10px;color:${cls.cor};background:${bgDoScore(nota)};">${nota} · ${cls.titulo}</span>`}
         </div>
@@ -11874,17 +11879,15 @@ async function verificarVagasVarredura(){
     // trouxe nada. Sem isto, um "Buscar agora" de hoje continuaria autorizando a entrada
     // (e a conta) em toda visita à Home até o app ser recarregado.
     _varreduraPedida=false;
-    // FORA do if de propósito. Antes só rodava quando chegava vaga nova, então
-    // os cards mudos que JÁ estavam no Kanban nunca eram analisados — e é
-    // exatamente esse o estoque de hoje. E é _recalcLeadsReset, não
-    // analisarLoteBackground: aquela processa um lote de 5 e para, e como
-    // ninguém a rechamava, das 152 vagas apenas 5 ganhavam nota.
-    // Sai na hora se não houver nenhuma sem nota, e a trava de reentrância
-    // impede duas esteiras sobre a mesma fila.
-    _recalcLeadsReset();
+    // AQUI ERA O GASTO (S53). Esta linha chamava _recalcLeadsReset() — até 60 rodadas de
+    // 5 vagas —, e verificarVagasVarredura roda a cada visita à Home. Era 55 a 83 análises
+    // por dia que ninguém pediu, 55–75% da conta diária de IA. Agora a Home só OFERECE:
+    // conta a fila, mostra o preço e espera o gesto. Nada é perdido — o estoque de cards
+    // mudos continua na fila, visível, esperando ele decidir.
+    try{ _esteiraOferecer(); }catch{}
     atualizarSinalVarredura();
     try{ renderParaConsiderar(); }catch{}
-  }catch{ atualizarSinalVarredura(); }
+  }catch{ atualizarSinalVarredura(); try{ _esteiraOferecer(); }catch{} }
 }
 function atualizarSinalOportunidades(){
   const txt=document.getElementById('sinal-oportunidades-txt');
@@ -11953,17 +11956,21 @@ async function analisarAssimMesmo(id){
   const chave=String(id);
   const idx=vagas.findIndex(x=>String(x.id)===chave);
   if(idx<0) return;
+  // "De novo" só quando houve uma vez antes — desde a S53 esta função também é a porta de
+  // quem nunca foi analisada ("analisar esta"), e dizer "de novo" ali seria confuso.
+  const jaTentou=(vagas[idx].analiseTentativas||0)>0;
   vagas[idx].analiseTentativas=0;
   delete vagas[idx].analiseUltimaFalha;
-  // Vaga da busca automática precisa da permissão do card para ser analisada; pedir a
-  // análise à mão É essa permissão.
+  // Nenhuma vaga é analisada sem gesto; pedir a análise à mão É esse gesto.
   vagas[idx].analisePedida=true;
   _analiseFalhou.delete(chave);
   saveVagas();
   renderCRM();
   try{ renderParaConsiderar(); }catch{}
-  showToast('Analisando esta vaga de novo…');
+  showToast(jaTentou?'Analisando esta vaga de novo…':'Analisando esta vaga…');
+  _esteiraParada=false;
   await analisarLoteBackground();
+  try{ _esteiraOferecer(); }catch{}
 }
 // 23/ago/2026 — a varredura automática está CANCELADA (decisão de Marcos). Estas são as
 // fontes dela. O e-mail (`email_alerta`, `email`), a extensão (`extensao_chrome`) e o que
@@ -11976,16 +11983,36 @@ function _fonteVarredura(v){
   const f=String(v?.fonte||'').toLowerCase();
   return f==='adzuna'||f==='jobicy';
 }
-function _elegivelParaAnalise(v){
-  // `analisePedida` é o gesto dele: vaga trazida por "Buscar agora" carrega a permissão
-  // no próprio card. Permissão por card, não modo global — assim uma rodada pedida hoje
-  // não autoriza silenciosamente todas as de amanhã.
+// DÁ PARA ANALISAR ESTA VAGA? — só as condições materiais, sem permissão nenhuma.
+// Separado de propósito: a fila que o app OFERECE e a fila que ele ANALISA têm de ser a
+// mesma conta, mudando só na permissão. Quando essas duas contas divergem, a esteira para
+// achando que acabou (ou roda em falso achando que sobrou) — foi assim que 152 vagas
+// ficaram mudas no Kanban.
+function _analisavel(v){
   return (v.status==='lead'||v.status==='triagem')
-    && (!_fonteVarredura(v) || v.analisePedida===true)
     && ((v.jobDescription||v.descricao||'').trim().length>120)
     && typeof v.score!=='number' && !v.atsScore
     && !_analiseNoTeto(v)
     && !_analiseFalhou.has(String(v.id));
+}
+// NENHUMA VAGA É ANALISADA SEM UM GESTO (S53, 26/ago/2026).
+//
+// Marcos: "não estou preocupado com estes avisos, é perda de tempo. O que precisamos é fazer
+// ações para diminuir consumo." Medido no D1: a análise automática da Home era 55–75% do
+// gasto de cada dia — 55 a 83 análises diárias, nenhuma pedida por ninguém. E o rendimento
+// dessa esteira é conhecido: de 88 vagas pontuadas e arquivadas, 20 passaram de 70. Três em
+// cada quatro análises pagas devolviam "não".
+//
+// A permissão viaja no card (`analisePedida`), nunca num modo global: uma rodada liberada
+// hoje não autoriza em silêncio as de amanhã. Antes a regra perguntava DE QUAL SERVIÇO a
+// vaga veio (`_fonteVarredura`) — o modo de falha que o crivo nomeia: o app decidindo por
+// nome de fornecedor. Agora a pergunta é única e vale em Berlim: alguém pediu?
+function _elegivelParaAnalise(v){
+  return _analisavel(v) && v.analisePedida===true;
+}
+// A fila que espera a liberação dele — o que a barra da Home oferece analisar.
+function _filaEsperandoLiberacao(){
+  return vagas.filter(v=>_analisavel(v) && v.analisePedida!==true);
 }
 // Aquecimento de cache por janela de tempo (S45 — agente de viabilidade). O bloco de
 // sistema (PERFIL_MARCOS+PROJETO_DE_VIDA+instruções, ~3.000 tokens) é idêntico em toda
@@ -12094,11 +12121,12 @@ async function _lerOrcamentoLeve(){
   return _orcEstado;
 }
 
-function _esteiraFrase(quantas, e){
+function _esteiraFrase(quantas, e, verbo){
   const vagas = quantas + (quantas === 1 ? ' vaga nova' : ' vagas novas');
-  if (!e || !e.medido) return 'Analisando ' + vagas;
+  const abre = (verbo || 'Analisando') + ' ' + vagas;
+  if (!e || !e.medido) return abre;
   const m = (e.orcamento && e.orcamento.moeda) || '';
-  const partes = ['Analisando ' + vagas];
+  const partes = [abre];
   // Preço só aparece quando foi MEDIDO na conta dele. Sem histórico, o app cala a boca em
   // vez de arriscar um número que soaria tão confiável quanto os outros.
   if (typeof e.custo_analise === 'number') partes.push('cerca de ' + _orcMoeda(e.custo_analise * quantas, m));
@@ -12106,24 +12134,58 @@ function _esteiraFrase(quantas, e){
   return partes.join(' · ');
 }
 
-async function _esteiraMostrar(quantas){
+// Uma só função desenha a barra nos dois estados — texto, verbo e botão. Duas funções
+// desenhando a mesma barra é como ela ficar dizendo "Analisando" depois que parou.
+async function _esteiraPintar(quantas, verbo, rotulo, acao){
   const bar = document.getElementById('esteira-aviso');
   const txt = document.getElementById('esteira-aviso-txt');
-  if (!bar || !txt) return;
+  const btn = document.getElementById('esteira-aviso-acao');
+  if (!bar || !txt || !btn) return;
   if (quantas <= 0) { bar.style.display = 'none'; return; }
-  txt.textContent = _esteiraFrase(quantas, _orcEstado);
+  btn.textContent = rotulo;
+  btn.onclick = acao;
+  txt.textContent = _esteiraFrase(quantas, _orcEstado, verbo);
   bar.style.display = 'flex';
   const e = await _lerOrcamentoLeve();
-  if (bar.style.display === 'flex') txt.textContent = _esteiraFrase(quantas, e);
+  // Só reescreve se a barra ainda estiver no mesmo estado — o preço chega depois, e não
+  // pode voltar a dizer "Analisando" numa barra que virou convite (ou vice-versa).
+  if (bar.style.display === 'flex' && btn.textContent === rotulo) txt.textContent = _esteiraFrase(quantas, e, verbo);
+}
+async function _esteiraMostrar(quantas){
+  return _esteiraPintar(quantas, 'Analisando', 'Parar', pararEsteira);
+}
+// O CONVITE: a barra parada oferece a fila e o preço, e espera o gesto. É isto que
+// substitui a análise automática — o app continua sabendo o que fazer, e passa a perguntar.
+function _esteiraOferecer(){
+  if (_recalcRodando) return;             // rodando, quem manda na barra é _esteiraMostrar
+  const fila = _filaEsperandoLiberacao().length;
+  return _esteiraPintar(fila, 'Esperando sua liberação:', fila === 1 ? 'Analisar' : 'Analisar as ' + fila, liberarAnaliseDaFila);
 }
 function _esteiraEsconder(){
   const bar = document.getElementById('esteira-aviso');
   if (bar) bar.style.display = 'none';
 }
+// O gesto. Libera a fila INTEIRA que estava sendo oferecida — a mesma que o preço na barra
+// acabou de precificar, nunca uma lista recontada por outro critério.
+function liberarAnaliseDaFila(){
+  const fila = _filaEsperandoLiberacao();
+  if (!fila.length) { _esteiraEsconder(); return; }
+  fila.forEach(v => { v.analisePedida = true; });
+  saveVagas();
+  _esteiraParada = false;
+  _recalcLeadsReset();
+}
+// Parar devolve a fila ao estado de espera, em vez de deixá-la num limbo. Sem isto, as
+// vagas liberadas que ainda não foram analisadas ficariam com a permissão de pé e sem
+// ninguém para executá-la: some do convite (já tem permissão) e ninguém a analisa (nada
+// roda sozinho). Ficariam mudas para sempre — o defeito que estamos justamente tirando.
 function pararEsteira(){
   _esteiraParada = true;
+  const sobraram = vagas.filter(v => _analisavel(v) && v.analisePedida === true);
+  sobraram.forEach(v => { delete v.analisePedida; });
+  if (sobraram.length) saveVagas();
   _esteiraEsconder();
-  showToast('Análise automática parada. Nenhuma vaga foi perdida — elas continuam na fila.');
+  showToast('Análise parada. Nenhuma vaga foi perdida — elas voltam para a fila de espera.');
 }
 function retomarEsteira(){
   _esteiraParada = false;
@@ -12150,7 +12212,9 @@ async function _recalcLeadsReset(){
       _esteiraMostrar(fila);
       await analisarLoteBackground();
     }
-  } finally { _recalcRodando=false; _esteiraEsconder(); }
+    // A bandeira de parar vale para a RODADA, não para a sessão. Se ficasse de pé, o
+    // próximo "Analisar" dele não faria nada e o app pareceria quebrado.
+  } finally { _recalcRodando=false; _esteiraParada=false; try{ _esteiraOferecer(); }catch{} }
 }
 function toggleOportunidades(){
   const lista=document.getElementById('oportunidades-inline-lista');

@@ -56,8 +56,13 @@ t('a esteira registra a falha PELA função, não mexendo no Set na mão',
   /if\(!data \|\| typeof data\.score!=='number'\)\{ _registrarFalhaAnalise\(v\.id\); continue; \}/.test(app));
 
 console.log('\n=== a 4ª tentativa não acontece: o teto entra no MESMO predicado que escolhe o lote ===');
+// Em 26/ago/2026 o predicado foi partido em dois: `_analisavel` (as condições materiais) e
+// `_elegivelParaAnalise` (aquelas MAIS a permissão dele). O teto é condição material — vive
+// no primeiro —, e o que este teste guarda é que ele continua no caminho do segundo, seja
+// qual for o formato. Prender a asserção ao corpo de uma função só seria guardar o desenho.
 t('_elegivelParaAnalise reprova vaga no teto',
-  /function _elegivelParaAnalise\(v\)\{[\s\S]{0,900}&& !_analiseNoTeto\(v\)/.test(app));
+  /function _analisavel\(v\)\{[\s\S]{0,900}&& !_analiseNoTeto\(v\)/.test(app) &&
+  /function _elegivelParaAnalise\(v\)\{[\s\S]{0,200}_analisavel\(v\)/.test(app));
 // O que se guarda é o PREDICADO, não a forma de perguntar. Em 26/ago/2026 o laço deixou de
 // perguntar "sobrou alguém?" (`.some`) e passou a contar a fila (`.filter().length`), porque a
 // barra da Home precisa dizer QUANTAS vagas ainda vai analisar. Contar é o mesmo crivo; o risco

@@ -27,6 +27,7 @@ function fabricarVagas(n) {
   return Array.from({ length: n }, (_, i) => ({
     id: 'vaga_' + i,
     status: 'triagem',
+    analisePedida: true, // desde 26/ago/2026 nada é analisado sem o gesto dele
     jobDescription: 'Descrição longa o bastante para ser elegível para análise. '.repeat(3),
   }));
 }
@@ -69,7 +70,7 @@ function montarSandbox(vagas, fetchMock, cacheQuenteAte) {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  const fontes = [extrai('function _fonteVarredura('), extrai('function _elegivelParaAnalise('), extrai('function _analiseNoTeto('), extrai('function _registrarFalhaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
+  const fontes = [extrai('function _fonteVarredura('), extrai('function _analisavel('), extrai('function _elegivelParaAnalise('), extrai('function _analiseNoTeto('), extrai('function _registrarFalhaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
   vm.runInContext(fontes, sandbox);
   return sandbox;
 }

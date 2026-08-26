@@ -39,7 +39,7 @@ function montarSandbox(vaga, fetchMock) {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  const fontes = [extrai('function _fonteVarredura('), extrai('function _elegivelParaAnalise('), extrai('function _analiseNoTeto('), extrai('function _registrarFalhaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
+  const fontes = [extrai('function _fonteVarredura('), extrai('function _analisavel('), extrai('function _elegivelParaAnalise('), extrai('function _analiseNoTeto('), extrai('function _registrarFalhaAnalise('), extrai('async function analisarLoteBackground('), extrai('function _gravarMetaVaga('), extrai('function _aplicarSinaisWorker('), extrai('function _metaConhecidaVaga(')].join('\n;\n');
   vm.runInContext(fontes, sandbox);
   return sandbox;
 }
@@ -49,7 +49,7 @@ function montarSandbox(vaga, fetchMock) {
   {
     const descricaoResumoDigest = 'Vaga de Head de Desenvolvimento na ALS. '.repeat(4); // >120 chars, elegível
     const jobDescriptionReal = 'DESCRIÇÃO REAL DA VAGA — texto completo capturado pelo enriquecimento. '.repeat(5);
-    const vaga = { id: 'v1', status: 'triagem', descricao: descricaoResumoDigest, jobDescription: jobDescriptionReal };
+    const vaga = { id: 'v1', status: 'triagem', analisePedida: true, descricao: descricaoResumoDigest, jobDescription: jobDescriptionReal };
 
     let corpoEnviado = null;
     const fetchMock = async (url, opts) => {
@@ -71,7 +71,7 @@ function montarSandbox(vaga, fetchMock) {
   console.log('\n=== card só com descricao (ainda sem enriquecimento): usa o que tem ===');
   {
     const soDescricao = 'Vaga sem enriquecimento ainda, só o resumo do e-mail chegou até aqui. '.repeat(3);
-    const vaga = { id: 'v2', status: 'triagem', descricao: soDescricao };
+    const vaga = { id: 'v2', status: 'triagem', analisePedida: true, descricao: soDescricao };
 
     let corpoEnviado = null;
     const fetchMock = async (url, opts) => {

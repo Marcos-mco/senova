@@ -81,8 +81,13 @@ console.log('\n=== a esteira diz o que está fazendo enquanto gasta ===');
   t('o laço mostra a fila REAL a cada rodada, não o lote de 5',
     /const fila=vagas\.filter\(_elegivelParaAnalise\)\.length;[\s\S]{0,120}?_esteiraMostrar\(fila\)/.test(app));
   // Estado vazio não se anuncia: quando acaba, a barra some — não vira "nenhuma vaga".
+  // Desde 26/ago/2026 quem apaga a barra no fim da rodada é `_esteiraOferecer`: se sobrou
+  // fila esperando liberação ele oferece, e se não sobrou nada ele esconde (a barra some
+  // sozinha em `_esteiraPintar`, quando a conta dá zero). É a mesma regra — nunca anunciar
+  // vazio —, agora com o convite no lugar do sumiço mudo.
   t('e some quando termina, em vez de dizer "nenhuma"',
-    /finally \{ _recalcRodando=false; _esteiraEsconder\(\); \}/.test(app));
+    /finally \{ _recalcRodando=false; _esteiraParada=false; try\{ _esteiraOferecer\(\); \}catch\{\} \}/.test(app) &&
+    /if \(quantas <= 0\) \{ bar\.style\.display = 'none'; return; \}/.test(app));
   t('a frase diz quantas, quanto custa e quanto resta do teto',
     /partes\.push\('cerca de '[\s\S]{0,200}?partes\.push\('restam '/.test(app));
   t('a leitura do orçamento não vira uma segunda fonte de tráfego',
@@ -94,18 +99,30 @@ console.log('\n=== a esteira diz o que está fazendo enquanto gasta ===');
 // ════════════════════════════════════════════════════════════════════════════════════
 console.log('\n=== parar é gesto dele, e não custa uma vaga sequer ===');
 {
-  t('há um botão de parar na barra', /onclick="pararEsteira\(\)"/.test(app));
+  // O botão deixou de ser fixo no HTML em 26/ago/2026: a mesma barra serve os dois estados
+  // (analisando → "Parar"; parada → "Analisar as N"), e o rótulo e a ação são pintados
+  // juntos. O que se guarda é que o estado "analisando" continua oferecendo parar.
+  t('há um botão de parar na barra',
+    /<button id="esteira-aviso-acao"/.test(app) &&
+    /_esteiraPintar\(quantas, 'Analisando', 'Parar', pararEsteira\)/.test(app) &&
+    /btn\.onclick = acao;/.test(app));
   // Duas portas de entrada: o laço da Home e o lote chamado de fora (enriquecimento, etc).
   // Guardar só uma delas deixaria o gesto valendo pela metade.
   t('o laço obedece', /if\(_esteiraParada\) break;/.test(app));
   t('e o lote também obedece, porque é chamado de outros lugares',
     /async function analisarLoteBackground\(\)\{[\s\S]{0,200}?if\(_esteiraParada\) return;/.test(app));
   // Parar não pode ser uma forma disfarçada de perder trabalho.
-  t('parar não muda status, não arquiva e não apaga nada',
-    /function pararEsteira\(\)\{[\s\S]{0,300}?\}/.test(app) &&
-    !/function pararEsteira\(\)\{[\s\S]{0,300}?(status\s*=|splice|delete )/.test(app));
+  const parar = app.slice(app.indexOf('function pararEsteira()'), app.indexOf('function retomarEsteira()'));
+  t('parar não muda status, não arquiva e não apaga vaga nenhuma',
+    parar.length > 0 && !/status\s*=/.test(parar) && !/splice/.test(parar) && !/delete vagas\[/.test(parar));
+  // Desde 26/ago/2026 parar RETIRA a permissão de quem ainda não foi analisada — sem isso a
+  // vaga ficaria no limbo: some do convite (já tem permissão) e ninguém a analisa (nada roda
+  // sozinho). É apagar uma autorização, não uma vaga, e é o único apagamento permitido aqui.
+  t('o único "delete" é o da permissão — a vaga volta à fila em vez de ficar muda',
+    (parar.match(/delete /g) || []).length === 1 && /delete v\.analisePedida;/.test(parar) &&
+    /saveVagas\(\)/.test(parar));
   t('e a mensagem diz isso a quem parou',
-    /Nenhuma vaga foi perdida — elas continuam na fila/.test(app));
+    /Nenhuma vaga foi perdida — elas voltam para a fila de espera/.test(parar));
   t('existe caminho de volta (parar não é porta trancada)',
     /function retomarEsteira\(\)\{[\s\S]{0,120}?_recalcLeadsReset\(\)/.test(app));
 }
