@@ -7874,6 +7874,12 @@ async function _medirModeloTriagem(soHaiku){
   });
   const alvo=amostra.slice(0,30);
   const soma=d=>d?((d.area||0)+(d.nivel||0)+(d.idioma||0)+(d.remuneracao||0)+(d.projeto_vida||0)):null;
+  // O dinheiro medido, não estimado. O Worker guarda o custo por modelo desde a v7.46 e
+  // passou a somá-lo na v7.51; a diferença entre antes e depois da rodada É o preço desta
+  // medição, por modelo, sem contaminação de nada que tenha rodado antes.
+  const gastoPorModelo=async()=>{ try{ const r=await fetch(WORKER_URL+"/api/radar-custo");
+    if(!r.ok) return null; const d=await r.json(); return d.por_modelo||null; }catch(e){ return null; } };
+  const custoAntes=await gastoPorModelo();
   const linhas=[];
   for(let i=0;i<alvo.length;i++){
     const v=alvo[i];
@@ -7897,7 +7903,9 @@ async function _medirModeloTriagem(soHaiku){
     }
     linhas.push(linha);
   }
-  const blob=new Blob([JSON.stringify({quando:new Date().toISOString(),quantas:linhas.length,linhas},null,1)],{type:"application/json"});
+  const custoDepois=await gastoPorModelo();
+  const blob=new Blob([JSON.stringify({quando:new Date().toISOString(),quantas:linhas.length,
+    custo:{antes:custoAntes,depois:custoDepois},linhas},null,1)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download="senova_comparacao_modelos.json";
   document.body.appendChild(a);a.click();a.remove();

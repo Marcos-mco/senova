@@ -1,5 +1,19 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.50
+//  SENOVA PROXY — Worker v7.51
+//
+//  NOVIDADES v7.51 (27/ago/2026) — O TETO DE SAÍDA DEIXA DE REPROVAR O MODELO POR NÓS.
+//
+//  A v7.50 fez a falha falar, e o que ela disse mudou o veredito: das 23 vagas em que o
+//  Haiku falhou na medição, 22 foram `resposta cortada pelo teto de saida (max_tokens)`.
+//  O limite de 1100 tokens era NOSSO. O modelo estava respondendo; nós é que desligávamos
+//  o microfone no meio da frase e depois anotávamos que ele não soube responder.
+//
+//  Duas mudanças, ambas para que a comparação meça o modelo e não a nossa configuração:
+//   1. `max_tokens` da triagem: 1100 → 2400. É CAP, não alvo — o Sonnet fecha bem abaixo
+//      disso (60/60 nas duas medições) e não gasta um token a mais por causa desta linha.
+//   2. `/api/radar-custo` passa a somar `por_modelo`. O campo estava gravado desde a v7.46
+//      e ninguém o lia: a pergunta "quanto custou cada modelo" — a única que decide uma
+//      troca de modelo — não tinha resposta em dinheiro medido, só em estimativa.
 //
 //  NOVIDADES v7.50 (27/ago/2026) — A ANÁLISE QUE FALHA PASSA A DIZER POR QUÊ.
 //  `analisarVaga` devolvia `erro:true` e mais nada. O teto de 3 tentativas contava esses
@@ -1448,7 +1462,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.50',
+        status: 'ok', worker: 'senova-proxy', versao: '7.51',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1729,7 +1743,7 @@ export default {
     //   sem adotar nada (adoção é ato do Perfil, não de um painel de custo). Quem não é o dono
     //   do legado vê a própria conta começando do zero, que é a verdade.
     if (path === '/api/radar-custo' && request.method === 'GET') {
-      if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {}, por_usuario: {} });
+      if (!env.SENOVA_DB) return json({ por_dia: {}, por_origem: {}, por_usuario: {}, por_modelo: {} });
       const dono = await donoSeguro(request, env);
       // Sem dono (D1 indisponível na hora da consulta), a única conta que dá para mostrar com
       // honestidade é a não atribuída — inventar um dono para poder somar seria pior que vazio.
@@ -1744,7 +1758,10 @@ export default {
         `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo FROM custo_ia_v2 ` +
         `WHERE user_id IN (${vagas}) AND dia IN (SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN (${vagas}) ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC`
       ).bind(...meus, ...meus).all();
-      const por_dia = {}, por_origem = {}, por_usuario = {};
+      // v7.51: `modelo` entrou na tabela na v7.46 para que token virasse dinheiro, mas nada
+      // somava por ele — a pergunta "quanto custou cada modelo" não tinha resposta, e é a
+      // única que decide uma troca de modelo. Somar aqui é ler o que já estava gravado.
+      const por_dia = {}, por_origem = {}, por_usuario = {}, por_modelo = {};
       const soma = (alvo, chave, r) => {
         const a = alvo[chave] || (alvo[chave] = { chamadas:0, tokens_entrada:0, tokens_saida:0, cache_escrita:0, cache_leitura:0, custo_usd:0 });
         a.chamadas       += r.chamadas;
@@ -1758,6 +1775,7 @@ export default {
         soma(por_dia, r.dia, r);
         soma(por_origem, r.origem, r);
         soma(por_usuario, r.user_id, r);
+        soma(por_modelo, r.modelo || 'nao_registrado', r);
         por_dia[r.dia].origens = por_dia[r.dia].origens || {};
         soma(por_dia[r.dia].origens, r.origem, r);
       }
@@ -1768,7 +1786,7 @@ export default {
       // esta pessoa; o histórico 'nao_atribuido' aparece no painel (é gasto real, dela) e
       // não entra na trava, porque é anterior à 004 e ninguém pode provar de quem era.
       const orcamento = await estadoDoOrcamento(env, dono);
-      return json({ por_dia, por_origem, por_usuario, orcamento });
+      return json({ por_dia, por_origem, por_usuario, por_modelo, orcamento });
     }
 
     // ── Orçamento — o teto é DADO DE QUEM USA, não constante do código ───────────
@@ -4033,7 +4051,12 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
       body: JSON.stringify({
         model:modelo,
         temperature:0,
-        max_tokens:1100,
+        // 2400, não 1100. MEDIDO em 27/ago/2026: com 1100, o Haiku teve a resposta cortada em
+        // 22 de 30 vagas — e o JSON quebrado que sobrava era indistinguível de "o modelo não
+        // soube responder". O teto era nosso, e estava reprovando um modelo pelo nosso limite.
+        // É CAP, não alvo: o Sonnet fecha bem abaixo disto e não gasta um token a mais por
+        // causa desta linha. Quem escreve mais paga mais, e é isso que a comparação tem de ver.
+        max_tokens:2400,
         system:[
           { type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } },
           { type:'text', text:`CANDIDATO (perfil e projeto de vida — a rubrica acima se refere a este bloco): ${perfil}`, cache_control:{ type:'ephemeral' } },

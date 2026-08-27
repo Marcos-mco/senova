@@ -147,9 +147,28 @@ t('GET /api/radar-custo existe e lê custo_ia_v2 do D1',
   /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,1600}SENOVA_DB\.prepare\([\s\S]{0,300}FROM custo_ia_v2/.test(worker));
 t('a rota respeita o teto de 30 DIAS distintos (não 30 linhas)',
   /SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN \(\$\{vagas\}\) ORDER BY dia DESC LIMIT 30/.test(worker));
+// Este teste guardava a linha do `return` INTEIRA — e em 27/ago/2026 reprovou a entrada de
+// `por_modelo`, um campo NOVO que não tira nada de ninguém. Guardar a lista fechada é o
+// defeito que já mordeu duas vezes ([[feedback_teste_guarda_posicao_nao_lista_s50]]): o que
+// importa é que os três campos antigos continuem saindo, não que sejam os únicos.
+const _retorno = (worker.match(/return json\(\{ por_dia,[^\)]*\}\)/) || [''])[0];
 t('o formato antigo (por_dia com a soma do dia) continua servido — ninguém quebra',
   /const por_dia = \{\}, por_origem = \{\}, por_usuario = \{\}/.test(worker) &&
-  /return json\(\{ por_dia, por_origem, por_usuario, orcamento \}\)/.test(worker));
+  ['por_dia','por_origem','por_usuario','orcamento'].every(c => _retorno.includes(c)),
+  'o retorno deixou de servir algum campo antigo: ' + _retorno);
+// v7.51: `modelo` estava gravado desde a v7.46 e nada o somava. Sem esta soma, "trocar o
+// modelo da triagem sai mais barato?" só tinha resposta em estimativa — e estimativa foi
+// exatamente o que Marcos recusou: "só com prova".
+t('e o custo é somado TAMBÉM por modelo — é a conta que decide uma troca de modelo',
+  /const por_dia = \{\}, por_origem = \{\}, por_usuario = \{\}, por_modelo = \{\};/.test(worker) &&
+  /soma\(por_modelo, r.modelo \|\| 'nao_registrado', r\);/.test(worker) &&
+  _retorno.includes('por_modelo'));
+// O teto de saída da triagem é NOSSO, e em 27/ago ele reprovou um modelo por nós: com 1100
+// o Haiku teve a resposta cortada em 22 de 30 vagas, e o JSON pela metade era indistinguível
+// de "o modelo não soube responder". Cortar a resposta não economiza — os tokens de entrada
+// já foram pagos, e a vaga volta para a fila.
+t('o teto de saída da triagem cabe na resposta dos dois modelos (não reprova por corte)',
+  /max_tokens:2400,/.test(worker) && !/max_tokens:1100,/.test(worker));
 // v7.46 (S53): o painel deixou de servir só token. O teto trabalha em dinheiro, e uma tela
 // que mostra token enquanto a trava conta dinheiro é uma tela que vai discordar da trava.
 t('e agora serve DINHEIRO junto do token (é em dinheiro que o teto decide)',
