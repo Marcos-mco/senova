@@ -1,5 +1,22 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.51
+//  SENOVA PROXY — Worker v7.52
+//
+//  NOVIDADES v7.52 (27/ago/2026) — O PARSER DEIXA DE SER UMA APOSTA NO ESTILO DE UM MODELO.
+//
+//  Segunda camada do mesmo engano. Com o teto de saída corrigido, a medição rodou de novo e
+//  o modelo barato falhou 22 de 30 — só que agora com outro motivo: `Unexpected non-whitespace
+//  character after JSON at position ~1800` em 20 delas. O JSON estava lá, completo e VÁLIDO.
+//  O modelo escreveu uma frase depois dele ("Espero que ajude!"), e nós jogávamos os dois
+//  fora, cobrávamos a análise e mandávamos a vaga de volta para a fila.
+//
+//  Três lugares liam a resposta da IA do mesmo jeito frágil — tirar as cercas de crase e
+//  mandar o texto INTEIRO para o JSON.parse. Isso nunca foi um contrato: era uma aposta em
+//  que o modelo não diria mais nada, calibrada no estilo do único modelo que rodava.
+//
+//  `jsonDoModelo()` lê o objeto onde ele está — da primeira chave até a que a fecha, contando
+//  profundidade e ignorando chave dentro de texto entre aspas — e distingue "veio com sobra"
+//  de "veio pela metade". Vale para qualquer modelo, inclusive os que ainda não existem.
+//  Guardado por testes/json_do_modelo.js, que EXECUTA o parser em vez de descrevê-lo.
 //
 //  NOVIDADES v7.51 (27/ago/2026) — O TETO DE SAÍDA DEIXA DE REPROVAR O MODELO POR NÓS.
 //
@@ -994,6 +1011,44 @@ function json(data, status=200) {
   });
 }
 
+// ── Ler o JSON que um modelo escreveu (v7.52, S53) ───────────────────────────
+//
+// POR QUE ISTO EXISTE. Três lugares do Worker liam a resposta da IA do mesmo jeito frágil:
+// tirar as cercas de crase e mandar o texto INTEIRO para o JSON.parse. Isso só funciona
+// enquanto o modelo não diz mais nada — e é uma aposta no estilo do modelo, não no contrato.
+//
+// Medido em 27/ago/2026, com 30 vagas reais: depois que o teto de saída parou de cortar as
+// respostas, 20 das 22 falhas restantes do modelo barato foram `Unexpected non-whitespace
+// character after JSON at position ~1800`. Traduzindo: o JSON estava lá, completo e válido,
+// e o modelo escreveu uma frase depois dele. Nós jogávamos os dois fora e anotávamos que a
+// vaga não pôde ser analisada — cobrando a análise, e mandando a vaga de volta para a fila.
+//
+// A correção não é pedir ao modelo que se comporte (prompt não é contrato). É ler o objeto
+// onde ele está: da primeira chave até a que a fecha, contando profundidade e ignorando
+// chave dentro de texto entre aspas. Vale para qualquer modelo, inclusive os que ainda não
+// existem — que é o ponto: o parser deixa de ser uma aposta no estilo de um deles.
+function jsonDoModelo(texto) {
+  const limpo = String(texto || '').replace(/```json|```/g, '').trim();
+  if (!limpo) throw new Error('resposta vazia do modelo');
+  // Caminho feliz primeiro: quando o modelo respondeu só o objeto, nada aqui se mete.
+  try { return JSON.parse(limpo); } catch (e) {}
+  const ini = limpo.indexOf('{');
+  if (ini < 0) throw new Error('a resposta do modelo não tem objeto JSON: ' + limpo.slice(0, 120));
+  let d = 0, emTexto = false, escapado = false;
+  for (let i = ini; i < limpo.length; i++) {
+    const c = limpo[i];
+    if (escapado) { escapado = false; continue; }
+    if (c === '\\') { escapado = true; continue; }
+    if (c === '"') { emTexto = !emTexto; continue; }
+    if (emTexto) continue;
+    if (c === '{') d++;
+    else if (c === '}') { d--; if (d === 0) return JSON.parse(limpo.slice(ini, i + 1)); }
+  }
+  // Chegar aqui é o objeto nunca ter fechado — aí sim a resposta veio pela metade, e a
+  // mensagem precisa dizer isso em vez de repetir o erro cru do JSON.parse.
+  throw new Error('o JSON do modelo não fecha (resposta incompleta), ' + limpo.length + ' caracteres');
+}
+
 // Rate limit por IP — protege o proxy de IA contra abuso (a URL do Worker é pública).
 //
 // POR QUE ELE SAIU DO KV (v7.27). A versão anterior gravava no KV a CADA chamada permitida,
@@ -1418,7 +1473,7 @@ Responda APENAS em JSON: {"resultados":[{"indice":0,"categoria":"positivo","resu
       const data = await res.json();
       if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'email', dono, 'claude-sonnet-4-6'));
       const texto = data.content?.[0]?.text || '';
-      const parsed = JSON.parse(texto.replace(/```json|```/g,'').trim());
+      const parsed = jsonDoModelo(texto);
       parsed.resultados.forEach(r => {
         const email = lote[r.indice];
         if (!email) return;
@@ -1462,7 +1517,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.51',
+        status: 'ok', worker: 'senova-proxy', versao: '7.52',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -4075,7 +4130,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // que ela produz não pode ser lido como "o modelo não sabe responder". Distinguir os dois
     // é o que separa medir de chutar: o mesmo sintoma (JSON inválido) tem duas causas opostas.
     if (data.stop_reason === 'max_tokens') throw new Error('resposta cortada pelo teto de saida (max_tokens) — modelo: ' + modelo);
-    const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+    const r = jsonDoModelo(data.content?.[0]?.text);
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
     // Carimbo de honestidade (veto do senova-viabilidade): se a identidade usada mudou
@@ -4501,7 +4556,7 @@ async function analisarSinaisMercado(itens, env, ctx, dono) {
     });
     const data = await resp.json();
     if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, 'mercado', dono, 'claude-sonnet-4-6'));
-    const parsed = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
+    const parsed = jsonDoModelo(data.content?.[0]?.text);
     return (parsed.sinais || []).map(s => ({
       ...itens[s.indice],
       empresa: s.empresa || itens[s.indice]?.empresa || '',
