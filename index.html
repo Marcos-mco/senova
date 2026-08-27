@@ -7851,7 +7851,10 @@ function _temTrabalhoReal(v){
 // mais barato na triagem, só com prova". Roda apenas com ?medir=modelo na URL, não tem
 // botão, não muda nada no acervo, e sai do código assim que a resposta estiver medida.
 // Pontua as MESMAS vagas com os dois modelos e baixa o resultado lado a lado.
-async function _medirModeloTriagem(){
+async function _medirModeloTriagem(soHaiku){
+  // O Sonnet já respondeu 60 de 60 em 27/ago; repeti-lo seria pagar duas vezes pelo mesmo
+  // dado. `soHaiku` mede só o que ainda não se sabe.
+  const MODELOS = soHaiku ? ["claude-haiku-4-5"] : ["claude-sonnet-4-6","claude-haiku-4-5"];
   const painel=document.createElement("div");
   painel.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#1A3A5C;color:#fff;padding:14px 20px;font:16px Inter,sans-serif";
   painel.textContent="Preparando a medição…";
@@ -7876,7 +7879,7 @@ async function _medirModeloTriagem(){
     const v=alvo[i];
     painel.textContent="Medindo "+(i+1)+" de "+alvo.length+" — "+(v.cargo||"").slice(0,50);
     const linha={id:v.id,cargo:v.cargo,empresa:v.empresa,gabarito:v.score,classif_gabarito:v.classificacao||""};
-    for(const m of ["claude-sonnet-4-6","claude-haiku-4-5"]){
+    for(const m of MODELOS){
       const rot=m.indexOf("haiku")>=0?"haiku":"sonnet";
       try{
         const t0=Date.now();
@@ -7884,7 +7887,9 @@ async function _medirModeloTriagem(){
           body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc(v),contexto:ctxTextoAtivos(),
             origem:"app",modelo:m,metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
         const d=await res.json();
-        if(!res.ok||!d||!d.dimensoes){ linha[rot+"_erro"]=(d&&(d.erro||d.error))||("HTTP "+res.status); }
+        // O motivo importa mais que o fato: "não respondeu" não distingue modelo que erra de
+        // limite nosso que corta. `detalhe` chega do Worker desde a v7.50.
+        if(!res.ok||!d||!d.dimensoes){ linha[rot+"_erro"]=(d&&(d.detalhe||d.erro||d.error))||("HTTP "+res.status); }
         else{ linha[rot]=soma(d.dimensoes); linha[rot+"_dim"]=d.dimensoes; linha[rot+"_classif"]=d.classificacao;
               linha[rot+"_imped"]=(d.impedimentos||[]).length; linha[rot+"_ms"]=Date.now()-t0; }
       }catch(e){ linha[rot+"_erro"]=String(e&&e.message||e); }
@@ -14259,7 +14264,7 @@ Store.carregarFrio().then(function(){
       .then(function(){ return Store.baixarDescricoes(); })
       // Medição temporária de modelo de triagem: depois do acervo inteiro, porque as vagas
       // de nota baixa — as que a peneira precisa acertar em RECUSAR — moram no arquivo.
-      .then(function(){ if(new URLSearchParams(location.search).get("medir")==="modelo") return _medirModeloTriagem(); })
+      .then(function(){ const _m=new URLSearchParams(location.search).get("medir"); if(_m==="modelo"||_m==="haiku") return _medirModeloTriagem(_m==="haiku"); })
       .catch(function(){});
   },1500);
 });

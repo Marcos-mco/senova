@@ -1,5 +1,17 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.49
+//  SENOVA PROXY — Worker v7.50
+//
+//  NOVIDADES v7.50 (27/ago/2026) — A ANÁLISE QUE FALHA PASSA A DIZER POR QUÊ.
+//  `analisarVaga` devolvia `erro:true` e mais nada. O teto de 3 tentativas contava esses
+//  fracassos sem que ninguém pudesse saber se a vaga é impossível de analisar ou se fomos
+//  NÓS que apertamos um limite. Medido na comparação de modelos de 27/ago: o Haiku falhou
+//  em 70% das vagas e o motivo era invisível — culpar o modelo ali seria chutar.
+//
+//  Duas coisas mudam. `detalhe` carrega o motivo real (curto, técnico, para quem investiga).
+//  E resposta cortada pelo nosso próprio teto de saída (`stop_reason: max_tokens`) vira erro
+//  EXPLÍCITO em vez de virar JSON quebrado: o mesmo sintoma tinha duas causas opostas, e
+//  confundi-las é a diferença entre medir e adivinhar.
+//
 //
 //  NOVIDADES v7.49 (26/ago/2026) — O MODELO DA TRIAGEM DEIXA DE SER CHUMBADO.
 //  A pontuação de vaga sempre rodou em Sonnet, escrito à mão em DOIS lugares distantes: a
@@ -1436,7 +1448,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.48',
+        status: 'ok', worker: 'senova-proxy', versao: '7.50',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -4036,6 +4048,10 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // "cortar o radar" cortaria o que ele mais usa. Chamada que não se identifica continua
     // 'radar': o rótulo do histórico, nunca um rótulo inventado que suma da medição.
     if (ctx) ctx.waitUntil(_registrarCustoIA(env, data.usage, origemCusto || 'radar', dono, modelo));
+    // Resposta cortada no meio pelo nosso próprio teto de saída é falha NOSSA, e o JSON quebrado
+    // que ela produz não pode ser lido como "o modelo não sabe responder". Distinguir os dois
+    // é o que separa medir de chutar: o mesmo sintoma (JSON inválido) tem duas causas opostas.
+    if (data.stop_reason === 'max_tokens') throw new Error('resposta cortada pelo teto de saida (max_tokens) — modelo: ' + modelo);
     const r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
     r.perfil_v = perfilV;
     r.perfil_origem = perfilOrigem;
@@ -4085,7 +4101,13 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
     // Nunca fingir um resultado: score:null é honesto e cai nos guards que já existem no app
     // (mvAutoCompatCheck/mvReanalisarCompat/analisarLoteBackground/importar vagas), que tratam
     // "sem score" como falha real — avisam o usuário ou re-tentam, em vez de gravar nota falsa.
-    return { erro:true, score:null, classificacao:'', resumo:'', pontos_fortes:[], pontos_atencao:[], impedimentos:[], salario_compativel:null, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
+    //
+    // v7.50 (S53): a falha passa a dizer POR QUÊ. Até aqui `erro:true` era mudo, e o teto de 3
+    // tentativas contava fracassos sem que ninguém — nem o usuário, nem quem depura — pudesse
+    // saber se a vaga é impossível de analisar ou se fomos nós que apertamos um limite. É o
+    // mesmo defeito que Marcos apontou na S52: recusar sem dizer o motivo faz a pessoa repetir
+    // o pedido. `detalhe` é curto e técnico de propósito: quem o lê é quem investiga.
+    return { erro:true, detalhe:String(err && err.message || err).slice(0, 200), score:null, classificacao:'', resumo:'', pontos_fortes:[], pontos_atencao:[], impedimentos:[], salario_compativel:null, localizacao:'', modelo:'', regime:'', explicacao_queda:'' };
   }
 }
 
