@@ -7832,86 +7832,6 @@ function _temTrabalhoReal(v){
       || _timelineHumana(v).length>0;                              // qualquer gesto registrado
 }
 
-// A limpeza do refugo do radar (S45). "Para Considerar" era o depósito do que a
-// peneira reprovava — 910 cards, ~6 MB, dentro do mesmo bloco que o navegador
-// recusa a gravar. Não é volume: é peneira sem lixeira.
-//
-// Marcos decidiu em 11/ago: apagar, não arquivar. Arquivar mandaria o refugo
-// para o histórico dele no D1, junto dos processos que de fato aconteceram — e o
-// histórico de uma pessoa não é depósito de sobra de robô.
-//
-// A ORDEM DAS DUAS GRAVAÇÕES É DE PROPÓSITO. Com a cota estourada nenhuma das
-// duas cabe. Gravar os processos primeiro é o que devolve os ~6 MB; só depois
-// disso existe espaço para anotar os ids na blocklist. Na ordem inversa, as duas
-// falhavam e a limpeza não saía do lugar.
-// A cópia que precede o apagamento em massa. Devolve true só se o arquivo REALMENTE
-// saiu — quem chama usa isso para desistir da limpeza em vez de apagar sem rede.
-// ═══ MEDIÇÃO TEMPORÁRIA — comparação de modelo na triagem (S53, 26/ago/2026) ═══
-// Isto NÃO é feature: é um instrumento de uma vez só, para responder com prova a "modelo
-// mais barato na triagem, só com prova". Roda apenas com ?medir=modelo na URL, não tem
-// botão, não muda nada no acervo, e sai do código assim que a resposta estiver medida.
-// Pontua as MESMAS vagas com os dois modelos e baixa o resultado lado a lado.
-async function _medirModeloTriagem(soHaiku){
-  // O Sonnet já respondeu 60 de 60 em 27/ago; repeti-lo seria pagar duas vezes pelo mesmo
-  // dado. `soHaiku` mede só o que ainda não se sabe.
-  const MODELOS = soHaiku ? ["claude-haiku-4-5"] : ["claude-sonnet-4-6","claude-haiku-4-5"];
-  const painel=document.createElement("div");
-  painel.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#1A3A5C;color:#fff;padding:14px 20px;font:16px Inter,sans-serif";
-  painel.textContent="Preparando a medição…";
-  document.body.appendChild(painel);
-  const desc=v=>(v.jobDescription||v.descricao||"");
-  const bons=(vagas||[]).filter(v=>v&&typeof v.score==="number"&&desc(v).length>400);
-  if(bons.length<10){ painel.textContent="Poucas vagas com nota e descrição para medir ("+bons.length+")."; return; }
-  // Amostra estratificada por faixa de nota: a peneira tem de ser julgada nos dois extremos,
-  // não só nas vagas boas. Determinística (ordena por id) para poder ser repetida.
-  const porFaixa={};
-  bons.forEach(v=>{const f=Math.floor(v.score/10)*10;(porFaixa[f]=porFaixa[f]||[]).push(v);});
-  const amostra=[];
-  Object.keys(porFaixa).map(Number).sort((a,c)=>a-c).forEach(f=>{
-    const lista=porFaixa[f].sort((a,c)=>String(a.id).localeCompare(String(c.id)));
-    const quantas=Math.max(1,Math.round(lista.length/bons.length*30));
-    for(let i=0;i<quantas&&i<lista.length;i++) amostra.push(lista[Math.floor(i*lista.length/quantas)]);
-  });
-  const alvo=amostra.slice(0,30);
-  const soma=d=>d?((d.area||0)+(d.nivel||0)+(d.idioma||0)+(d.remuneracao||0)+(d.projeto_vida||0)):null;
-  // O dinheiro medido, não estimado. O Worker guarda o custo por modelo desde a v7.46 e
-  // passou a somá-lo na v7.51; a diferença entre antes e depois da rodada É o preço desta
-  // medição, por modelo, sem contaminação de nada que tenha rodado antes.
-  const gastoPorModelo=async()=>{ try{ const r=await fetch(WORKER_URL+"/api/radar-custo");
-    if(!r.ok) return null; const d=await r.json(); return d.por_modelo||null; }catch(e){ return null; } };
-  const custoAntes=await gastoPorModelo();
-  const linhas=[];
-  for(let i=0;i<alvo.length;i++){
-    const v=alvo[i];
-    painel.textContent="Medindo "+(i+1)+" de "+alvo.length+" — "+(v.cargo||"").slice(0,50);
-    const linha={id:v.id,cargo:v.cargo,empresa:v.empresa,gabarito:v.score,classif_gabarito:v.classificacao||""};
-    for(const m of MODELOS){
-      const rot=m.indexOf("haiku")>=0?"haiku":"sonnet";
-      try{
-        const t0=Date.now();
-        const res=await fetch(WORKER_URL+"/api/analisar-vaga",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc(v),contexto:ctxTextoAtivos(),
-            origem:"app",modelo:m,metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
-        const d=await res.json();
-        // O motivo importa mais que o fato: "não respondeu" não distingue modelo que erra de
-        // limite nosso que corta. `detalhe` chega do Worker desde a v7.50.
-        if(!res.ok||!d||!d.dimensoes){ linha[rot+"_erro"]=(d&&(d.detalhe||d.erro||d.error))||("HTTP "+res.status); }
-        else{ linha[rot]=soma(d.dimensoes); linha[rot+"_dim"]=d.dimensoes; linha[rot+"_classif"]=d.classificacao;
-              linha[rot+"_imped"]=(d.impedimentos||[]).length; linha[rot+"_ms"]=Date.now()-t0; }
-      }catch(e){ linha[rot+"_erro"]=String(e&&e.message||e); }
-      await new Promise(r=>setTimeout(r,900));
-    }
-    linhas.push(linha);
-  }
-  const custoDepois=await gastoPorModelo();
-  const blob=new Blob([JSON.stringify({quando:new Date().toISOString(),quantas:linhas.length,
-    custo:{antes:custoAntes,depois:custoDepois},linhas},null,1)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download="senova_comparacao_modelos.json";
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),2000);
-  painel.textContent="Medição concluída — o arquivo foi baixado. Pode fechar esta aba.";
-}
 function _baixarCopiaDeSeguranca(itens, rotulo){
   try{
     if(!itens || !itens.length) return false;
@@ -14270,9 +14190,6 @@ Store.carregarFrio().then(function(){
   setTimeout(function(){
     Store.mudarParaNuvem()
       .then(function(){ return Store.baixarDescricoes(); })
-      // Medição temporária de modelo de triagem: depois do acervo inteiro, porque as vagas
-      // de nota baixa — as que a peneira precisa acertar em RECUSAR — moram no arquivo.
-      .then(function(){ const _m=new URLSearchParams(location.search).get("medir"); if(_m==="modelo"||_m==="haiku") return _medirModeloTriagem(_m==="haiku"); })
       .catch(function(){});
   },1500);
 });
