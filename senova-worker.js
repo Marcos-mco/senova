@@ -1,5 +1,22 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.53
+//  SENOVA PROXY — Worker v7.54
+//
+//  NOVIDADES v7.54 (27/ago/2026) — O PISO DE DIGNIDADE SOBE PARA R$12k E PASSA A TER DONO.
+//
+//  Marcos: "o Senova está com piso 8 mil, mas o piso é 12 mil". O número estava escrito à mão
+//  em três lugares — a linha de remuneração do PERFIL_MARCOS, a do PROJETO_DE_VIDA, e uma
+//  terceira vez em base ANUAL (96000) no filtro da colheita. Três gravadores do mesmo fato:
+//  corrigir dois e esquecer o terceiro faria a nota dizer "impedimento abaixo de R$12k"
+//  enquanto a varredura continuava colhendo vagas de R$8k. É o padrão que já nos custou caro.
+//
+//  Agora o piso é PISO_DIGNIDADE_BRL = 12000, declarado uma vez, interpolado nos dois blocos
+//  de prompt e multiplicado por 12 no filtro. A próxima correção é de um dígito.
+//
+//  O QUE NÃO MUDOU, de propósito: o piso das frentes europeias (€18.000/ano em es/de/nrw_intl)
+//  continua onde estava. O próprio comentário daquela linha registra que o número é suposição
+//  minha à espera do número dele, e Marcos declarou um piso em REAIS — converter por câmbio
+//  seria inventar uma régua que ele não deu. Pendente de decisão dele.
+//
 //
 //  NOVIDADES v7.53 (27/ago/2026) — O MODELO SAI DE ETIQUETA E VIRA CHAVE (migração 006).
 //
@@ -635,6 +652,14 @@ const JOBICY_REGIOES = {
 
 const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 
+// O piso de dignidade mora AQUI e em nenhum outro lugar. Ele estava escrito por extenso em
+// dois blocos de prompt e uma terceira vez como valor anual no filtro da colheita — três
+// gravadores do mesmo fato, o padrão que já nos custou caro antes. Marcos corrigiu o piso de
+// R$8k para R$12k em 27/ago/2026; com o número numa constante, a próxima correção é de um
+// dígito e não de uma caçada.
+const PISO_DIGNIDADE_BRL = 12000;
+const _pisoK = `R$${PISO_DIGNIDADE_BRL / 1000}k`;
+
 const PERFIL_MARCOS = `
 Marcos Franco, 59 anos (nasceu em 15/07/1967), Curitiba/PR — Brasil.
 Executivo sênior com 30 anos de experiência em marketing, vendas/comercial e negócios.
@@ -646,7 +671,7 @@ Experiências:
 - Popper: Head de Expansão & Novos Negócios (2024–2025)
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
-Remuneração: IDEAL R$15–25k CLT; ACEITA a partir de R$8k para viver com dignidade — R$8k paga as contas dele e tira a filha do papel de sustentá-lo. R$8k é o PISO DE DIGNIDADE: abaixo disso, impedimento. Entre R$8k e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
+Remuneração: IDEAL R$15–25k CLT; ACEITA a partir de ${_pisoK} para viver com dignidade — ${_pisoK} paga as contas dele e tira a filha do papel de sustentá-lo. ${_pisoK} é o PISO DE DIGNIDADE: abaixo disso, impedimento. Entre ${_pisoK} e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
 Formação de pós-graduação feita na Europa: Universidade de Évora, Portugal (2002–2004) · Universitat de Barcelona, Espanha (2013/2014). Diplomas emitidos por instituições da União Europeia.
 Aberto a: Brasil, remoto (confirmado 14/ago — não considerar mais Espanha/Alemanha/Portugal presenciais)
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
@@ -664,7 +689,7 @@ PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
 - OBJETIVO DE VIDA na RAIZ (tudo abaixo é julgado por quanto serve a ele): deixar de depender financeiramente das filhas, fazer a ponte com trabalho DIGNO até os 65 anos (2032) e chegar a uma aposentadoria mínima tranquila (~R$5k/mês). O tipo de cargo (executivo ou não) NÃO é objetivo nem preocupação — uma vaga que garante dignidade e sustento já serve ao projeto, mesmo temporária e mesmo abaixo do porte. O que tem faixa ideal é a remuneração (ver abaixo), não a senioridade. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
 - Raiz em Curitiba/PR — vida, família e comunidade estão ali. No Brasil, aceita mudar para Santa Catarina; remoto e híbrido servem. Presencial obrigatório em outra praça brasileira o afasta do que quer.
 - Busca hoje é SÓ Brasil e remoto (confirmado por ele em 14/ago — ver também "Países/mercados abertos" no Perfil). Vaga presencial fora do Brasil é impedimento, mesmo em país cujo idioma ele fala.
-- Remuneração: IDEAL R$15–25k; ACEITA a partir de R$8k para viver com dignidade (R$8k paga as contas e tira a filha do sustento). R$8k é o PISO DE DIGNIDADE — abaixo disso, impedimento em QUALQUER nível. Entre R$8k e R$15k a vaga é VIÁVEL e serve ao projeto: registre no máximo uma nota leve de "abaixo do ideal" em pontos_atencao, NUNCA um demérito que afunde a nota. O nível/porte da vaga não é filtro salarial — o que decide é passar do piso de dignidade rumo ao ideal.
+- Remuneração: IDEAL R$15–25k; ACEITA a partir de ${_pisoK} para viver com dignidade (${_pisoK} paga as contas e tira a filha do sustento). ${_pisoK} é o PISO DE DIGNIDADE — abaixo disso, impedimento em QUALQUER nível. Entre ${_pisoK} e R$15k a vaga é VIÁVEL e serve ao projeto: registre no máximo uma nota leve de "abaixo do ideal" em pontos_atencao, NUNCA um demérito que afunde a nota. O nível/porte da vaga não é filtro salarial — o que decide é passar do piso de dignidade rumo ao ideal.
 - Cargo e senioridade NÃO são objetivo nem filtro. Liderar de novo, porte executivo, nível — nada disso é meta a atingir: o que decide é servir ao objetivo de vida (dignidade, sustento, ponte até os 65). Trabalho abaixo do porte executivo NUNCA é retrocesso nem impedimento por ser abaixo do porte — se garante o sustento ou viabiliza a vida agora, é caminho, e a análise deve dizer isso com todas as letras em vez de recusar. Quando a ÁREA e o conteúdo da vaga são a especialidade dele (marketing, produto, comercial, claramente a praia dele), a vaga é VIÁVEL mesmo num nível abaixo do pico — a sobrequalificação vira no máximo RESSALVA em pontos_atencao (pode ser visto como caro ou sobrequalificado; faixa de analista), nunca motivo para recusar nem para afundar a nota.
 - Trabalha por trabalho com sentido: honestidade, gente e construção de longo prazo. Não quer ambiente que exija agir contra a própria consciência.
 - 59 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
@@ -833,7 +858,7 @@ const CONFIG_PADRAO = {
     // viável em 10. A frente `remoto` já consulta esse mesmo feed — aqui era
     // consulta paga duas vezes pelo mesmo dado. O orçamento liberado é o que
     // paga a Espanha virar frente fixa (custo total da execução fica igual).
-    { id:'br',     label:'Brasil',   ativo:true, semJobicy:true, salarioMinAnual:96000 },
+    { id:'br',     label:'Brasil',   ativo:true, semJobicy:true, salarioMinAnual:PISO_DIGNIDADE_BRL * 12 },
     // Frente Rüthen — a filha de Marcos mora em Rüthen (Kreis Soest, NRW).
     // Âncora na própria Rüthen com raio de 40 km: alcança Lippstadt (21 km),
     // Soest (25 km), Paderborn (34 km) e Meschede sem puxar o cinturão do Ruhr
@@ -1533,7 +1558,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.53',
+        status: 'ok', worker: 'senova-proxy', versao: '7.54',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -3484,8 +3509,8 @@ async function buscarAdzuna(query, local, env) {
   // Aqui o corte é determinístico e auditável, e a regra é a de Marcos (22/jul):
   // "se não informar o salário não tem problema, mas eliminamos as que forem
   // abaixo". Ou seja: silêncio passa, declaração abaixo do piso não passa.
-  // Numa FAIXA declarada, o que vale é o TETO — uma vaga de R$60k a R$120k/ano
-  // pode chegar aos R$10k/mês, e recusá-la seria eliminar por causa do piso da
+  // Numa FAIXA declarada, o que vale é o TETO — uma vaga de R$90k a R$150k/ano
+  // pode chegar aos R$12,5k/mês, e recusá-la seria eliminar por causa do piso da
   // negociação, não do resultado dela.
   let cortadasPorSalario = 0;
   const out = brutas.filter(v => {
