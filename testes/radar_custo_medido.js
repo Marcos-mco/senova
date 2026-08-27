@@ -24,7 +24,7 @@
 //
 // v7.43 (S52, Passo D0): o mesmo defeito, um andar acima. `custo_ia` respondia "o que
 // gastou" e a PK (dia, origem) tornava "QUEM gastou" impossível de perguntar. A tabela agora
-// é `custo_ia_v2` com PK (dia, user_id, origem). Duas coisas dependem disso: o teto de gasto
+// é `custo_ia_v3` com PK (dia, user_id, origem, modelo). Duas coisas dependem disso: o teto
 // por pessoa (com balde comum, o primeiro a gastar fecharia a torneira dos outros dois) e os
 // três usuários de homologação, que virariam um total sem atribuição. E uma regra nova de
 // honestidade entra aqui: chamada cujo dono não foi conferido é carimbada 'nao_atribuido',
@@ -61,14 +61,23 @@ console.log('\n=== o contador é atômico — sem corrida entre chamadas paralel
 t('_registrarCustoIA usa D1 (env.SENOVA_DB), não KV',
   /async function _registrarCustoIA[\s\S]{0,900}env\.SENOVA_DB\.prepare/.test(worker) &&
   !/async function _registrarCustoIA[\s\S]{0,1400}env\.SENOVA_KV/.test(worker));
+// A CHAVE DE CONFLITO INCLUI O MODELO (v7.53, migração 006). Enquanto era (dia, user_id,
+// origem), dois modelos no mesmo dia e origem caíam na mesma linha: o dinheiro somava certo
+// e a etiqueta virava a do último a rodar. Somar POR essa etiqueta — que foi o que a v7.51
+// fez — produz um número com sujeito errado, e ele existia para decidir uma troca de modelo.
+// A 005 já avisava disso no próprio texto; guardar aqui é o que impede o aviso de virar
+// letra morta pela segunda vez ([[feedback_instrumentacao_precisa_de_sujeito]]).
 t('o upsert soma com o registro existente (ON CONFLICT ... DO UPDATE SET x = x + excluded.x)',
-  /ON CONFLICT\(dia, user_id, origem\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
+  /ON CONFLICT\(dia, user_id, origem, modelo\) DO UPDATE SET chamadas = chamadas \+ 1/.test(worker) &&
   /tokens_entrada = tokens_entrada \+ excluded\.tokens_entrada/.test(worker));
 
 console.log('\n=== o número tem SUJEITO: Radar e Plano de Vida nunca viram o mesmo total ===');
 // [[feedback_instrumentacao_precisa_de_sujeito]] — número sem dizer QUAL bloco é mentira.
-t('a gravação carimba a origem (coluna origem na tabela custo_ia_v2)',
-  /INSERT INTO custo_ia_v2 \(dia, user_id, origem,/.test(worker));
+t('a gravação carimba a origem E o modelo (as duas colunas que dão sujeito ao número)',
+  /INSERT INTO custo_ia_v3 \(dia, user_id, origem, modelo,/.test(worker));
+// Um leitor esquecido na tabela velha é pior que nenhum: some do painel sem sumir da conta.
+t('e nenhuma consulta ficou para trás na tabela antiga',
+  !/(FROM|INTO) custo_ia_v2/.test(worker), 'ainda há consulta em custo_ia_v2');
 t('a origem vem de um catálogo fechado, e o que não estiver nele cai em "app"',
   /const ORIGENS_CUSTO = new Set\(\[[^\]]*'radar'[^\]]*'plano_vida'[^\]]*\]\)/.test(worker) &&
   /ORIGENS_CUSTO\.has\(origem\) \? origem : 'app'/.test(worker));
@@ -143,10 +152,10 @@ t('e o cache do dono é chaveado pelo hash da credencial, nunca pela credencial 
   !/_cacheDono\.(get|set)\(cred[,)]/.test(worker));
 
 console.log('\n=== o número fica legível sem precisar de wrangler tail ===');
-t('GET /api/radar-custo existe e lê custo_ia_v2 do D1',
-  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,1600}SENOVA_DB\.prepare\([\s\S]{0,300}FROM custo_ia_v2/.test(worker));
+t('GET /api/radar-custo existe e lê custo_ia_v3 do D1',
+  /path === '\/api\/radar-custo' && request\.method === 'GET'[\s\S]{0,1800}SENOVA_DB\.prepare\([\s\S]{0,300}FROM custo_ia_v3/.test(worker));
 t('a rota respeita o teto de 30 DIAS distintos (não 30 linhas)',
-  /SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN \(\$\{vagas\}\) ORDER BY dia DESC LIMIT 30/.test(worker));
+  /SELECT DISTINCT dia FROM custo_ia_v3 WHERE user_id IN \(\$\{vagas\}\) ORDER BY dia DESC LIMIT 30/.test(worker));
 // Este teste guardava a linha do `return` INTEIRA — e em 27/ago/2026 reprovou a entrada de
 // `por_modelo`, um campo NOVO que não tira nada de ninguém. Guardar a lista fechada é o
 // defeito que já mordeu duas vezes ([[feedback_teste_guarda_posicao_nao_lista_s50]]): o que
@@ -172,7 +181,7 @@ t('o teto de saída da triagem cabe na resposta dos dois modelos (não reprova p
 // v7.46 (S53): o painel deixou de servir só token. O teto trabalha em dinheiro, e uma tela
 // que mostra token enquanto a trava conta dinheiro é uma tela que vai discordar da trava.
 t('e agora serve DINHEIRO junto do token (é em dinheiro que o teto decide)',
-  /custo_usd, modelo FROM custo_ia_v2/.test(worker) &&
+  /custo_usd, modelo FROM custo_ia_v3/.test(worker) &&
   /a\.custo_usd\s*\+= \(r\.custo_usd \|\| 0\)/.test(worker));
 t('o estado do orçamento vem do MESMO cálculo do porteiro, não de uma segunda soma',
   /const orcamento = await estadoDoOrcamento\(env, dono\);/.test(worker));

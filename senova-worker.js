@@ -1,5 +1,21 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.52
+//  SENOVA PROXY — Worker v7.53
+//
+//  NOVIDADES v7.53 (27/ago/2026) — O MODELO SAI DE ETIQUETA E VIRA CHAVE (migração 006).
+//
+//  Eu acrescentei `por_modelo` ao painel de custo na v7.51 somando por uma etiqueta que a
+//  própria migração 005 avisava não servir para isso: com PK (dia, user_id, origem), duas
+//  chamadas do mesmo dia e origem com modelos diferentes caem na MESMA linha, o dinheiro
+//  soma certo e `modelo` fica sendo o do ÚLTIMO que rodou. O número saía com sujeito errado
+//  — o gasto de todos creditado a um — e ia decidir uma troca de modelo.
+//
+//  Deu para ver acontecendo: nos arquivos da medição de 27/ago o mesmo bloco de dinheiro
+//  aparece sob 'claude-haiku-4-5' numa leitura e sob 'claude-opus-4-8' na seguinte.
+//
+//  A 006 cria `custo_ia_v3` com PK (dia, user_id, origem, MODELO) e copia tudo. Conferido
+//  antes de trocar o código: 47 linhas e US$ 56,671319 idênticos dos dois lados. O histórico
+//  entra como 'nao_registrado' — o dinheiro é exato, a etiqueta antiga é que não era dele —
+//  e se dissolve sozinho na janela de 30 dias do painel.
 //
 //  NOVIDADES v7.52 (27/ago/2026) — O PARSER DEIXA DE SER UMA APOSTA NO ESTILO DE UM MODELO.
 //
@@ -1517,7 +1533,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.52',
+        status: 'ok', worker: 'senova-proxy', versao: '7.53',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
@@ -1784,7 +1800,7 @@ export default {
     // anterior (soma do dia) para não quebrar quem já lê; `por_origem` é o recorte novo,
     // e é ele que impede Radar e Plano de Vida de virarem o mesmo número.
     //
-    // v7.43 (S52, D0): a tabela passa a ser `custo_ia_v2`, que tem dono. Duas decisões aqui:
+    // v7.43 (S52, D0): a tabela passa a ter dono. Duas decisões aqui (v7.53: `custo_ia_v3`):
     //
     //   O PAINEL MOSTRA O GASTO DE QUEM PERGUNTA, NÃO O DO MUNDO. Hoje há um segredo só, então
     //   "o meu" e "o total" são o mesmo número e nada muda na tela. Mas somar o gasto de todos
@@ -1810,8 +1826,8 @@ export default {
       const meus = await donosDaConta(env, dono);
       const vagas = meus.map(() => '?').join(',');
       const { results } = await env.SENOVA_DB.prepare(
-        `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo FROM custo_ia_v2 ` +
-        `WHERE user_id IN (${vagas}) AND dia IN (SELECT DISTINCT dia FROM custo_ia_v2 WHERE user_id IN (${vagas}) ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC`
+        `SELECT dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo FROM custo_ia_v3 ` +
+        `WHERE user_id IN (${vagas}) AND dia IN (SELECT DISTINCT dia FROM custo_ia_v3 WHERE user_id IN (${vagas}) ORDER BY dia DESC LIMIT 30) ORDER BY dia DESC`
       ).bind(...meus, ...meus).all();
       // v7.51: `modelo` entrou na tabela na v7.46 para que token virasse dinheiro, mas nada
       // somava por ele — a pergunta "quanto custou cada modelo" não tinha resposta, e é a
@@ -3674,20 +3690,24 @@ async function _registrarCustoIA(env, usage, origem, dono, modelo) {
   try {
     const hoje = new Date().toISOString().slice(0, 10);
     await env.SENOVA_DB.prepare(
-      'INSERT INTO custo_ia_v2 (dia, user_id, origem, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd, modelo) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?) ' +
-      'ON CONFLICT(dia, user_id, origem) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
+      // v7.53: a chave de conflito inclui o MODELO. Enquanto era (dia, user_id, origem), duas
+      // chamadas do mesmo dia e da mesma origem com modelos diferentes caíam na MESMA linha e a
+      // etiqueta virava a do último — o dinheiro somava certo e a atribuição mentia. A 005 já
+      // avisava disso no próprio texto; eu somei por essa etiqueta na v7.51 sem reler o aviso.
+      'INSERT INTO custo_ia_v3 (dia, user_id, origem, modelo, chamadas, tokens_entrada, tokens_saida, cache_escrita, cache_leitura, custo_usd) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?) ' +
+      'ON CONFLICT(dia, user_id, origem, modelo) DO UPDATE SET chamadas = chamadas + 1, tokens_entrada = tokens_entrada + excluded.tokens_entrada, ' +
       'tokens_saida = tokens_saida + excluded.tokens_saida, cache_escrita = cache_escrita + excluded.cache_escrita, ' +
-      'cache_leitura = cache_leitura + excluded.cache_leitura, custo_usd = custo_usd + excluded.custo_usd, modelo = excluded.modelo'
+      'cache_leitura = cache_leitura + excluded.cache_leitura, custo_usd = custo_usd + excluded.custo_usd'
     ).bind(
       hoje,
       deQuem,
       quem,
+      qual,
       usage.input_tokens || 0,
       usage.output_tokens || 0,
       usage.cache_creation_input_tokens || 0,
       usage.cache_read_input_tokens || 0,
-      usd,
-      qual
+      usd
     ).run();
   } catch (err) {
     console.error('_registrarCustoIA falhou:', err.message);
@@ -3836,7 +3856,7 @@ function zeramentoDoCiclo(diaFechamento, hoje = new Date()) {
 // DE QUEM É ESTA CONTA — um cálculo só, para a tela e a trava nunca discordarem.
 //
 // O painel (GET /api/radar-custo) e o teto perguntam a mesma coisa: quais linhas de
-// `custo_ia_v2` são desta pessoa. Enquanto eram dois trechos, seriam duas respostas — e uma
+// `custo_ia_v3` são desta pessoa. Enquanto eram dois trechos, seriam duas respostas — e uma
 // tela que mostra R$ 265 ao lado de uma trava que só conta R$ 21 é uma tela que mente. A
 // S52 já custou caro por ter dois gravadores; isto é o mesmo defeito no lado da LEITURA
 // ([[project_destino_candidatura_leitor_unico_s52]]).
@@ -3884,7 +3904,7 @@ async function _gastoDoCicloUSD(env, dono, inicio) {
   const meus = await donosDaConta(env, dono);
   const vagas = meus.map(() => '?').join(',');
   const row = await env.SENOVA_DB.prepare(
-    `SELECT COALESCE(SUM(custo_usd), 0) AS total FROM custo_ia_v2 WHERE user_id IN (${vagas}) AND dia >= ?`
+    `SELECT COALESCE(SUM(custo_usd), 0) AS total FROM custo_ia_v3 WHERE user_id IN (${vagas}) AND dia >= ?`
   ).bind(...meus, inicio).first();
   const gastoUSD = Number(row?.total || 0);
   _cacheGasto.set(dono, { gastoUSD, ate: agora + CACHE_GASTO_MS });
@@ -3924,7 +3944,7 @@ async function custoMedioDeUmaAnalise(env, dono) {
   const desde = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const row = await env.SENOVA_DB.prepare(
     `SELECT COALESCE(SUM(custo_usd), 0) AS usd, COALESCE(SUM(chamadas), 0) AS n
-       FROM custo_ia_v2
+       FROM custo_ia_v3
       WHERE user_id IN (${quem}) AND origem IN (${quais}) AND dia >= ?`
   ).bind(...meus, ...ORIGENS_ANALISE_VAGA, desde).first();
   const n = Number(row?.n) || 0;
