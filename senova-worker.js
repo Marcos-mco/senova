@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.54
+//  SENOVA PROXY — Worker v7.55
 //
 //  NOVIDADES v7.54 (27/ago/2026) — O PISO DE DIGNIDADE SOBE PARA R$12k E PASSA A TER DONO.
 //
@@ -9,13 +9,30 @@
 //  corrigir dois e esquecer o terceiro faria a nota dizer "impedimento abaixo de R$12k"
 //  enquanto a varredura continuava colhendo vagas de R$8k. É o padrão que já nos custou caro.
 //
-//  Agora o piso é PISO_DIGNIDADE_BRL = 12000, declarado uma vez, interpolado nos dois blocos
+//  Agora o piso são PISO_CASA_BRL/PISO_MUDANCA_BRL, declarados uma vez, interpolados nos blocos
 //  de prompt e multiplicado por 12 no filtro. A próxima correção é de um dígito.
+//
+//  v7.55 (28/ago) — E AÍ O PISO DEIXOU DE SER UM NÚMERO.
+//  Marcos, no mesmo dia: "salários em Curitiba mínimo 8000 e demais localidades, 12 mil."
+//  O piso único de 12k que eu tinha acabado de publicar passou a cortar da colheita toda vaga
+//  de Curitiba entre 8k e 12k — exatamente as que ele quer ver. Um fix correto de 24 horas
+//  virou um fix errado porque a regra que ele tinha na cabeça era mais rica que a pergunta
+//  que eu fiz: eu perguntei "qual é o piso" quando a pergunta certa era "de que o piso depende".
+//
+//  Agora são duas pernas da MESMA regra — quem não sai de casa não paga mudança, quem sai
+//  paga — e a colheita usa sempre a menor (PISO_COLHEITA_BRL), porque na hora de colher ainda
+//  não se sabe se a vaga exige mudança. Nunca se descarta cedo por um piso que talvez nem se
+//  aplique. Guard: testes/piso_fonte_unica.js (16 asserções, incluindo a assimetria).
 //
 //  O QUE NÃO MUDOU, de propósito: o piso das frentes europeias (€18.000/ano em es/de/nrw_intl)
 //  continua onde estava. O próprio comentário daquela linha registra que o número é suposição
 //  minha à espera do número dele, e Marcos declarou um piso em REAIS — converter por câmbio
-//  seria inventar uma régua que ele não deu. Pendente de decisão dele.
+//  seria inventar uma régua que ele não deu. Pendente de decisão dele, e agora com um dado
+//  novo em cima da mesa: ele desmarcou Espanha e Alemanha no Perfil ("não são mais focos
+//  presenciais"), mas config_varredura no KV mantém as duas ativas e a colheita obedece ao
+//  KV, não ao Perfil. 42 das 46 vagas colhidas com local conhecido vieram de ES/DE, todas
+//  pontuadas com IA, nota máxima 45 — abaixo do corte de 46. Nenhuma jamais apareceu para
+//  ele. Isso é gasto puro e está reportado a Marcos como decisão dele.
 //
 //
 //  NOVIDADES v7.53 (27/ago/2026) — O MODELO SAI DE ETIQUETA E VIRA CHAVE (migração 006).
@@ -654,11 +671,27 @@ const ROTACAO_PAISES = ['br','es','de','pt','remoto'];
 
 // O piso de dignidade mora AQUI e em nenhum outro lugar. Ele estava escrito por extenso em
 // dois blocos de prompt e uma terceira vez como valor anual no filtro da colheita — três
-// gravadores do mesmo fato, o padrão que já nos custou caro antes. Marcos corrigiu o piso de
-// R$8k para R$12k em 27/ago/2026; com o número numa constante, a próxima correção é de um
-// dígito e não de uma caçada.
-const PISO_DIGNIDADE_BRL = 12000;
-const _pisoK = `R$${PISO_DIGNIDADE_BRL / 1000}k`;
+// gravadores do mesmo fato, o padrão que já nos custou caro antes.
+//
+// ── 28/ago: o piso NÃO é um número, são dois ──────────────────────────────────────────────
+// Marcos: "salários em Curitiba mínimo 8000 e demais localidades, 12 mil."
+//
+// A razão é econômica e vale para qualquer pessoa, não só para ele: quem não precisa sair de
+// casa não paga mudança nem custo de vida de outra praça. Quem precisa, paga — e o piso sobe.
+// Por isso os dois números não são "o piso dele" e "uma exceção": são as duas pernas da MESMA
+// regra, e a regra é universal. O que é dele são os valores (8k, 12k) e a cidade (Curitiba);
+// isso é dado, e dado mora no Perfil. A CONDIÇÃO — "a vaga me obriga a mudar de cidade?" —
+// é o que fica no código, e ela sobrevive a um usuário em Berlim.
+//
+// Na colheita vale o piso MENOR, sempre. Na hora de colher ainda não se sabe se a vaga exige
+// mudança; cortar pelo piso maior joga fora a vaga de casa que pagava acima do piso de casa.
+// A eliminatória fina roda depois, quando a localização já é conhecida. Nunca se descarta
+// cedo por um piso que talvez nem se aplique.
+const PISO_CASA_BRL     = 8000;   // vaga que não obriga a sair da cidade onde a pessoa mora (inclui remoto)
+const PISO_MUDANCA_BRL  = 12000;  // vaga que obriga a mudar de cidade
+const PISO_COLHEITA_BRL = Math.min(PISO_CASA_BRL, PISO_MUDANCA_BRL);
+const _pisoCasaK    = `R$${PISO_CASA_BRL / 1000}k`;
+const _pisoMudancaK = `R$${PISO_MUDANCA_BRL / 1000}k`;
 
 const PERFIL_MARCOS = `
 Marcos Franco, 59 anos (nasceu em 15/07/1967), Curitiba/PR — Brasil.
@@ -671,7 +704,7 @@ Experiências:
 - Popper: Head de Expansão & Novos Negócios (2024–2025)
 - Consigliere: Consultor Sênior C-Level (dez/2025–atual)
 Cargos-alvo: CEO, CMO, CSO, Diretor Comercial, Diretor de Vendas, Diretor de Marketing, Head de Vendas, Head de Negócios, Gerente Sênior
-Remuneração: IDEAL R$15–25k CLT; ACEITA a partir de ${_pisoK} para viver com dignidade — ${_pisoK} paga as contas dele e tira a filha do papel de sustentá-lo. ${_pisoK} é o PISO DE DIGNIDADE: abaixo disso, impedimento. Entre ${_pisoK} e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
+Remuneração: IDEAL R$15–25k CLT. O PISO DE DIGNIDADE tem duas pernas, e qual delas vale depende da vaga: ${_pisoCasaK} se a vaga NÃO o obriga a sair da cidade onde ele mora (presencial ou híbrido ali, ou remoto de qualquer lugar), ${_pisoMudancaK} se a vaga exige mudar de cidade — mudar custa dinheiro, e o piso sobe junto. Abaixo do piso que se aplica àquela vaga: impedimento. Entre o piso e R$15k a vaga serve ao projeto de vida e NÃO é demérito. Aceita PJ · Aceita relocação SC
 Formação de pós-graduação feita na Europa: Universidade de Évora, Portugal (2002–2004) · Universitat de Barcelona, Espanha (2013/2014). Diplomas emitidos por instituições da União Europeia.
 Aberto a: Brasil, remoto (confirmado 14/ago — não considerar mais Espanha/Alemanha/Portugal presenciais)
 IMPORTANTE: "Sales" = "Vendas" = "Comercial" são sinônimos — tratar como equivalentes na análise.
@@ -689,7 +722,7 @@ PROJETO DE VIDA DO CANDIDATO (pesa na nota tanto quanto o currículo):
 - OBJETIVO DE VIDA na RAIZ (tudo abaixo é julgado por quanto serve a ele): deixar de depender financeiramente das filhas, fazer a ponte com trabalho DIGNO até os 65 anos (2032) e chegar a uma aposentadoria mínima tranquila (~R$5k/mês). O tipo de cargo (executivo ou não) NÃO é objetivo nem preocupação — uma vaga que garante dignidade e sustento já serve ao projeto, mesmo temporária e mesmo abaixo do porte. O que tem faixa ideal é a remuneração (ver abaixo), não a senioridade. Reserva financeira de 3–4 meses: estabilidade vale mais que salto arriscado.
 - Raiz em Curitiba/PR — vida, família e comunidade estão ali. No Brasil, aceita mudar para Santa Catarina; remoto e híbrido servem. Presencial obrigatório em outra praça brasileira o afasta do que quer.
 - Busca hoje é SÓ Brasil e remoto (confirmado por ele em 14/ago — ver também "Países/mercados abertos" no Perfil). Vaga presencial fora do Brasil é impedimento, mesmo em país cujo idioma ele fala.
-- Remuneração: IDEAL R$15–25k; ACEITA a partir de ${_pisoK} para viver com dignidade (${_pisoK} paga as contas e tira a filha do sustento). ${_pisoK} é o PISO DE DIGNIDADE — abaixo disso, impedimento em QUALQUER nível. Entre ${_pisoK} e R$15k a vaga é VIÁVEL e serve ao projeto: registre no máximo uma nota leve de "abaixo do ideal" em pontos_atencao, NUNCA um demérito que afunde a nota. O nível/porte da vaga não é filtro salarial — o que decide é passar do piso de dignidade rumo ao ideal.
+- Remuneração: IDEAL R$15–25k. O PISO DE DIGNIDADE tem duas pernas, e a vaga é que diz qual vale: ${_pisoCasaK} quando a vaga NÃO obriga a sair da cidade de residência declarada acima (presencial ou híbrido ali, ou remoto), ${_pisoMudancaK} quando a vaga exige mudar de cidade, porque mudar custa dinheiro. Salário declarado abaixo do piso que se aplica àquela vaga: impedimento em QUALQUER nível. Entre o piso aplicável e R$15k a vaga é VIÁVEL e serve ao projeto: registre no máximo uma nota leve de "abaixo do ideal" em pontos_atencao, NUNCA um demérito que afunde a nota. O nível/porte da vaga não é filtro salarial — o que decide é passar do piso aplicável rumo ao ideal.
 - Cargo e senioridade NÃO são objetivo nem filtro. Liderar de novo, porte executivo, nível — nada disso é meta a atingir: o que decide é servir ao objetivo de vida (dignidade, sustento, ponte até os 65). Trabalho abaixo do porte executivo NUNCA é retrocesso nem impedimento por ser abaixo do porte — se garante o sustento ou viabiliza a vida agora, é caminho, e a análise deve dizer isso com todas as letras em vez de recusar. Quando a ÁREA e o conteúdo da vaga são a especialidade dele (marketing, produto, comercial, claramente a praia dele), a vaga é VIÁVEL mesmo num nível abaixo do pico — a sobrequalificação vira no máximo RESSALVA em pontos_atencao (pode ser visto como caro ou sobrequalificado; faixa de analista), nunca motivo para recusar nem para afundar a nota.
 - Trabalha por trabalho com sentido: honestidade, gente e construção de longo prazo. Não quer ambiente que exija agir contra a própria consciência.
 - 59 anos: quer ser avaliado pela obra que fez, não gastar energia em processos onde a idade será barreira silenciosa.
@@ -858,7 +891,7 @@ const CONFIG_PADRAO = {
     // viável em 10. A frente `remoto` já consulta esse mesmo feed — aqui era
     // consulta paga duas vezes pelo mesmo dado. O orçamento liberado é o que
     // paga a Espanha virar frente fixa (custo total da execução fica igual).
-    { id:'br',     label:'Brasil',   ativo:true, semJobicy:true, salarioMinAnual:PISO_DIGNIDADE_BRL * 12 },
+    { id:'br',     label:'Brasil',   ativo:true, semJobicy:true, salarioMinAnual:PISO_COLHEITA_BRL * 12 },
     // Frente Rüthen — a filha de Marcos mora em Rüthen (Kreis Soest, NRW).
     // Âncora na própria Rüthen com raio de 40 km: alcança Lippstadt (21 km),
     // Soest (25 km), Paderborn (34 km) e Meschede sem puxar o cinturão do Ruhr
@@ -1558,7 +1591,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.54',
+        status: 'ok', worker: 'senova-proxy', versao: '7.55',
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
