@@ -1043,6 +1043,13 @@ const CONFIG_PADRAO = {
   ],
 };
 
+// A versão que o /health responde. Ela e o cabeçalho deste arquivo eram dois gravadores do
+// mesmo fato, e discordaram na primeira oportunidade: o /health dizia 7.55 com a v7.57 no ar.
+// É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
+// barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
+// trava os dois juntos.
+const VERSAO_WORKER = '7.57';
+
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -1668,7 +1675,7 @@ export default {
       // Higiene do radar à vista pelo mesmo motivo: nada pode sumir do radar em silêncio.
       const higiene = await env.SENOVA_KV.get('radar_higiene', 'json');
       return json({
-        status: 'ok', worker: 'senova-proxy', versao: '7.55',
+        status: 'ok', worker: 'senova-proxy', versao: VERSAO_WORKER,
         arquivo_nuvem: env.SENOVA_DB ? 'ligado' : 'desligado',
         outlook: token ? 'conectado' : 'desconectado',
         auth: env.SENOVA_APP_SECRET ? 'ativo' : 'inativo',
