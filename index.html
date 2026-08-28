@@ -5514,10 +5514,13 @@ async function salvarPerfil(){
     guardarFormacaoSalva(dados.formacao,true);
     _formDispensarEditadas();
     guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin},true);
-    const resConfig=await fetch(WORKER_URL+'/api/config-varredura');
-    const config=await resConfig.json();
-    config.score_minimo_por_regiao=smr;
-    await fetch(WORKER_URL+'/api/config-varredura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+    // Manda SÓ o que esta tela mudou. Antes daqui saía a config inteira de volta: lia-se o
+    // objeto todo, trocava-se a régua e devolvia-se tudo — de modo que salvar o Perfil
+    // carimbava no KV um retrato congelado das frentes de busca da versão do Worker daquele
+    // dia. Foi assim que Espanha e Alemanha continuaram sendo varridas depois de ele as ter
+    // desmarcado: ele desmarcava numa tela e o app, na mesma função, regravava o contrário.
+    // O Worker faz merge — campo que não vem aqui não é tocado lá.
+    await fetch(WORKER_URL+'/api/config-varredura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({score_minimo_por_regiao:smr})});
     const ok=document.getElementById('perfil-save-ok');
     if(ok){ok.style.display='block';setTimeout(()=>ok.style.display='none',3000);}
     showToast('✅ Perfil salvo');
@@ -7024,24 +7027,6 @@ async function carregarStatusVarredura(){
   }catch{}
 }
 
-async function salvarConfigVarredura(){
-  const smr = _lerCriterioUI();
-  const btn = document.querySelector('[onclick="salvarConfigVarredura()"]');
-  if(btn){btn.textContent='Salvando…';btn.disabled=true;}
-  try{
-    const resConfig = await fetch(WORKER_URL+'/api/config-varredura');
-    const config = await resConfig.json();
-    config.score_minimo_por_regiao = smr;
-    await fetch(WORKER_URL+'/api/config-varredura',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(config),
-    });
-    const ok = document.getElementById('varredura-save-ok');
-    if(ok){ ok.textContent='✅ Configuração salva'; ok.style.display='block'; setTimeout(()=>ok.style.display='none',3000); }
-  }catch{}
-  if(btn){btn.textContent='Salvar configuração';btn.disabled=false;}
-}
 
 async function dispararVarreduraManual(){
   // O custo é dito ANTES do clique, e é o custo de verdade. Buscar não custa nada — as

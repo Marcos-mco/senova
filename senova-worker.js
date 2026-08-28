@@ -1,5 +1,33 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.56
+//  SENOVA PROXY — Worker v7.57
+//
+//  NOVIDADES v7.57 (28/ago/2026) — O QUE ELE DESMARCOU NO PERFIL PARA DE SER VARRIDO.
+//
+//  Marcos: "Alemanha e Espanha não são mais focos presenciais" — e o Perfil dele já trazia
+//  ES, PT, DE e US desmarcados havia semanas. O app continuou varrendo os três. Medido no
+//  radar: de 46 vagas com local conhecido, 42 eram ES/DE, todas analisadas com IA, nota
+//  máxima 45 contra um corte de 46. Quarenta e duas análises pagas para produzir quarenta e
+//  dois descartes.
+//
+//  A causa não era um if errado; eram SEIS verdades sobre "onde procurar", e a do Perfil era
+//  a única sem leitor. E o campo ativo guardado no KV era um FÓSSIL se passando por escolha:
+//  nenhuma tela jamais gravou a lista de locais — o que gravava era um ECO. salvarPerfil lia
+//  a config inteira, trocava a régua de nota e devolvia o objeto todo, carimbando no KV um
+//  retrato congelado do CONFIG_PADRAO daquele dia. Ele desmarcava numa tela e o app, na
+//  mesma função, regravava o contrário.
+//
+//  Cinco mudanças: as frentes que ele desmarcou saem (ativo:false); o ativo do KV deixa de
+//  mandar nas frentes que o CÓDIGO define (frente extra do KV continua valendo); o POST da
+//  config vira merge e recusa a lista de locais; colheita sem frente nenhuma grava status em
+//  vez de emudecer; e a vaga passa a registrar de qual frente veio (frenteId).
+//
+//  Duas coisas que isto NÃO é. Não é a correção — a correção é o Perfil virar dono de onde
+//  se procura, e ela não cabe num ativo:false, porque o Perfil fala em PAÍS e a colheita fala
+//  em PRAÇA+RAIO (Rüthen e NRW internacional não têm país como nome). E não é o fim da frente
+//  da filha: Rüthen fica LIGADA de propósito. Ela nunca foi um mercado de trabalho alemão —
+//  é a única frente sem piso salarial, porque ali o que se busca não é remuneração. Uma
+//  palavra dele fecha; frenteId vai dizer quanto ela custa, para a decisão ser dele com
+//  número, não minha por inferência.
 //
 //  NOVIDADES v7.56 (28/ago/2026) — A ESTEIRA PARA DE ESCREVER O QUE NINGUÉM LÊ.
 //
@@ -933,6 +961,12 @@ const CONFIG_PADRAO = {
     // que Marcos foi buscar não é remuneração, é estar perto da filha. Aplicar
     // o piso executivo nesta frente cortaria exatamente o trabalho honesto que
     // ele disse aceitar — jardinagem, armazém, marcenaria — e mataria a frente.
+    // 28/ago: LIGADA de propósito, contra a leitura literal de "Alemanha não é mais foco".
+    // Esta frente nunca foi um mercado de trabalho alemão — o comentário acima já diz que
+    // aqui o que se busca não é remuneração, é estar perto da filha, e é a única frente sem
+    // piso salarial por causa disso. Desligá-la não seria ajustar uma busca, seria decidir
+    // a vida dele por inferência. Uma palavra dele fecha; e `frenteId` vai dizer, na próxima
+    // medição, quanto ela custa — para a decisão ser dele COM número, não sem.
     { id:'ruthen', label:'Rüthen e região (NRW)', ativo:true,
       adzunaPais:'de', where:'Rüthen', distanciaKm:40, diasMax:21,
       semFiltroCargo:true, semJobicy:true, maxPorTermo:4,
@@ -964,7 +998,7 @@ const CONFIG_PADRAO = {
     // sinais — o empregador internacional anuncia em inglês, não em alemão.
     // Filtro de cargo LIGADO (ao contrário de `ruthen`): aqui o critério volta a
     // ser a posição executiva/comercial, porque é disso que esse empregador precisa.
-    { id:'nrw_intl', label:'NRW internacional (empregador anglófono/ibérico)', ativo:true,
+    { id:'nrw_intl', label:'NRW internacional (empregador anglófono/ibérico)', ativo:false,
       adzunaPais:'de', where:'Düsseldorf', distanciaKm:60, diasMax:21,
       semJobicy:true, maxPorTermo:4, salarioMinAnual:18000,
       queries:[
@@ -982,13 +1016,28 @@ const CONFIG_PADRAO = {
     // e muito abaixo de qualquer cargo de direção, então corta estágio e
     // "comercial autónomo" sem fixo (que entupiram a colheita) sem arriscar uma
     // vaga real. Marcos manda trocar quando tiver o número dele.
-    { id:'es',     label:'Espanha',  ativo:true, semJobicy:true, salarioMinAnual:18000 },
+    // ── 28/ago/2026: TRÊS FRENTES DESLIGADAS PORQUE ELE JÁ TINHA DITO ISSO ─────────────
+    // Marcos: "Alemanha e Espanha não são mais focos presenciais" — e o Perfil dele já
+    // trazia ES, PT, DE e US desmarcados havia semanas. O app nunca ouviu: os países do
+    // Perfil alimentam só o TEXTO da identidade do candidato, e quem decide onde varrer é
+    // esta lista aqui. Medido no radar: de 46 vagas com local conhecido, 42 eram ES/DE,
+    // todas analisadas com IA, nota máxima 45 contra um corte de 46. Quarenta e duas
+    // análises pagas para produzir quarenta e dois descartes.
+    //
+    // Isto AQUI é o remendo, não a correção. A correção é o Perfil virar dono de onde se
+    // procura, e ela não cabe num `ativo:false`: o Perfil fala em PAÍS e a colheita fala em
+    // PRAÇA+RAIO (`ruthen`, `nrw_intl` não têm país como nome). Traduzir "Alemanha
+    // desmarcada" em "desligue as frentes alemãs" mataria justamente a frente da filha.
+    // Por isso `ruthen` fica LIGADA e é decisão dele, não inferência minha — ver o bloco
+    // dela abaixo. Enquanto isso, `frenteId` (montarCard) passa a registrar de qual frente
+    // cada vaga veio, que é o número que hoje não existe para essa decisão.
+    { id:'es',     label:'Espanha',  ativo:false, semJobicy:true, salarioMinAnual:18000 },
     // Piso salarial aqui também: a regra de Marcos ("eliminamos as que forem
     // abaixo") não é sobre Brasil e Espanha, é sobre ele. Vale em toda frente
     // que busca posição executiva — EXCETO `ruthen`, e só ali, porque naquela
     // frente o que ele foi buscar não é remuneração, é estar perto da filha.
-    { id:'de',     label:'Alemanha', ativo:true, salarioMinAnual:18000 },
-    { id:'pt',     label:'Portugal', ativo:true  },
+    { id:'de',     label:'Alemanha', ativo:false, salarioMinAnual:18000 },
+    { id:'pt',     label:'Portugal', ativo:false },
     { id:'us',     label:'EUA',      ativo:false },
     { id:'remoto', label:'Remoto',   ativo:true  },
   ],
@@ -1871,7 +1920,17 @@ export default {
         await gravarReguaNoPerfil(env, await donoSeguro(request, env), nova.score_minimo_por_regiao);
         delete nova.score_minimo_por_regiao;
       }
-      await env.SENOVA_KV.put('config_varredura', JSON.stringify(nova));
+      // Merge, nunca substituição. Quem manda um campo só está dizendo o que quer MUDAR, não
+      // o que o resto do mundo deve ser — e um app em cache mandando um objeto de meses atrás
+      // não pode reescrever o presente. `locais` sai do pedido e do que fica guardado: não há
+      // tela que o edite, e a única coisa que já o escreveu foi um eco acidental do próprio
+      // CONFIG_PADRAO (ver locaisEfetivos). Mesma recusa da régua: a segunda casa não renasce.
+      delete nova.locais;
+      const rawAtual = await env.SENOVA_KV.get('config_varredura');
+      const atual = rawAtual ? JSON.parse(rawAtual) : { ...CONFIG_PADRAO };
+      const merged = { ...atual, ...nova };
+      delete merged.locais;
+      await env.SENOVA_KV.put('config_varredura', JSON.stringify(merged));
       return json({ status: 'Configuração salva' });
     }
 
@@ -3263,12 +3322,23 @@ function cortarRadar(vagasLead) {
 // A DEFINIÇÃO das frentes mora no código; o KV guarda só o que Marcos liga e
 // desliga. Sem isso, uma frente nova (Rüthen) nunca rodaria: o `config_varredura`
 // salvo no KV traz uma lista antiga de locais e sobrescreveria o padrão inteiro.
+//
+// ── 28/ago/2026: o `ativo` do KV era um fóssil se passando por escolha ─────────────────
+// A frase acima descreve uma intenção que nunca foi implementada. NENHUMA tela do Senova
+// jamais gravou `locais`: o que gravava era um ECO. `salvarPerfil` lia a config inteira,
+// trocava a régua de nota e devolvia o objeto todo no POST — ou seja, ao salvar o Perfil o
+// app carimbava no KV um retrato congelado do CONFIG_PADRAO da versão do Worker daquele dia.
+// O ES/DE/PT ligados no KV não eram uma escolha de Marcos: eram o próprio código de meses
+// atrás voltando por reflexo. Ele desmarcou os países no Perfil e o app, na mesma função,
+// regravou o contrário.
+//
+// Enquanto não existir tela que ligue e desligue frente, o KV não pode ter voz sobre as
+// frentes que o código define — um `ativo` que ninguém pode editar não é controle, é ruído
+// com aparência de autoridade, e foi ele que manteve a Espanha varrendo todo dia depois de
+// desmarcada. Frente que o KV inventa (`extras`) continua valendo: ali o KV é a única fonte.
 function locaisEfetivos(config) {
   const salvos = Array.isArray(config?.locais) ? config.locais : [];
-  const base = CONFIG_PADRAO.locais.map(l => {
-    const s = salvos.find(x => x.id === l.id);
-    return s ? { ...l, ativo: s.ativo } : l; // só o liga/desliga vem do KV
-  });
+  const base = CONFIG_PADRAO.locais.map(l => l);   // o código é a autoridade sobre as suas próprias frentes
   const extras = salvos.filter(s => !CONFIG_PADRAO.locais.some(l => l.id === s.id));
   return [...base, ...extras];
 }
@@ -3286,7 +3356,13 @@ async function executarVarredura(env, isCron) {
   }
 
   const locaisAtivos = locaisEfetivos(config).filter(l => l.ativo);
-  if (locaisAtivos.length === 0) return;
+  // `return` seco era o pior desfecho possível: a colheita parava e a tela seguia exibindo a
+  // última execução antiga como se estivesse tudo bem. Falha que não fala é falha que ninguém
+  // procura — e esta ficaria escondida por dias.
+  if (locaisAtivos.length === 0) {
+    await salvarStatus(env, { ativa: true, msg: 'Nenhuma frente de busca ativa — nada foi varrido' });
+    return;
+  }
 
   // Frentes FIXAS, varridas toda execução: Brasil (mercado principal) e Rüthen
   // (prioridade declarada — estar perto da filha). As demais seguem em rodízio,
@@ -4523,7 +4599,12 @@ function montarCard(vaga, local, fonte) {
     // O app lê v.localizacao (index.html _montarCardVarredura) — "local" nunca
     // chegava ao card, mesmo quando Adzuna/Jobicy traziam localização real.
     // Achado pelo senova-auditor, S47, item 3/7.
-    localizacao: vaga.local || local.label, url: vaga.url, fonte,
+    localizacao: vaga.local || local.label,
+    // De qual FRENTE esta vaga veio. Sem isto, `Adzuna` era o rótulo de três frentes alemãs
+    // diferentes (país inteiro, Rüthen/40km, Düsseldorf/60km) e nenhuma pergunta do tipo
+    // "quanto me custa esta frente" tinha resposta. Decisão de desligar frente sem este
+    // campo é decisão sem número — foi exatamente o buraco de 28/ago.
+    frenteId: local.id || '', url: vaga.url, fonte,
     descricao: (vaga.descricao||'').slice(0,4000),
     score: null, classificacao: null, resumo: null,
     pontos_fortes: [], salario_compativel: null,
