@@ -1,5 +1,33 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.55
+//  SENOVA PROXY — Worker v7.56
+//
+//  NOVIDADES v7.56 (28/ago/2026) — A ESTEIRA PARA DE ESCREVER O QUE NINGUÉM LÊ.
+//
+//  A análise devolve quatro campos de texto. Dois deles — `resumo` (2 linhas em prosa) e
+//  `pontos_fortes` ("a favor") — só aparecem num lugar do app: o card aberto. E Marcos abre
+//  uma fração dos cards. A esteira, que analisa o acervo INTEIRO, pagava os dois em 100% das
+//  vagas. São ~100 dos ~250 tokens de saída de cada análise, e saída é o token caro.
+//
+//  Agora quem chama diz o que vai LER: `saidaCurta:true` (as duas esteiras) manda devolver
+//  esses dois campos vazios. O card aberto não manda — é ele que lê.
+//
+//  Três coisas que esta economia NÃO faz, e que os testes travam:
+//  · não adia má notícia. `pontos_atencao` e `impedimentos` vêm sempre, de todo mundo. O que
+//    se corta é o argumento de venda da vaga, jamais o motivo de recusa.
+//  · não corta o sentinela. `pontos_atencao` é também como o app distingue "nota boa" de
+//    "resto de gravação incompleta" (index.html). Cortá-lo faria TODA vaga ser reanalisada
+//    para sempre — o corte multiplicaria o custo em vez de reduzi-lo. Foi o que a leitura do
+//    código mostrou antes de eu escrever a primeira linha; a recomendação original era cortar
+//    os três campos.
+//  · não cria um segundo prompt de sistema. O bloco de sistema é cacheado; duas variantes
+//    seriam duas entradas de cache, e a rara pagaria ESCRITA de cache quase toda vez. A
+//    instrução mora na mensagem do usuário, que é barata: ~60 tokens de entrada contra ~100
+//    de saída economizados, e entrada custa ~5x menos que saída.
+//
+//  A contrapartida, sem a qual isto seria informação sonegada: ao ABRIR um card que tem nota
+//  e não tem prosa, o app refaz a análise completa sozinho, sem clique nenhum. É latência,
+//  não é um botão "pague para ver por quê". E o gasto passa a ser limitado pelos cliques
+//  dele, não pelo tamanho do acervo.
 //
 //  NOVIDADES v7.54 (27/ago/2026) — O PISO DE DIGNIDADE SOBE PARA R$12k E PASSA A TER DONO.
 //
@@ -1646,11 +1674,11 @@ export default {
     // ── Análise ATS ──────────────────────────────────────────────────
     if (path === '/api/analisar-vaga' && request.method === 'POST') {
       if (!(await rateLimit(request, env))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
-      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem, modelo } = await request.json();
+      const { titulo, empresa, descricao, contexto, perfilCandidato, scoreAnterior, perfilVAnterior, metaConhecida, origem, modelo, saidaCurta } = await request.json();
       const donoAnalise = await donoParaTeto(request, env);
       const freioAnalise = await bloqueadoPorTeto(env, donoAnalise);
       if (freioAnalise) return respostaDeTeto(freioAnalise);
-      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, donoAnalise, origem, modelo));
+      return json(await analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, donoAnalise, origem, modelo, saidaCurta));
     }
 
     // ── Parecer da Sofia ─────────────────────────────────────────────
@@ -4096,7 +4124,7 @@ function respostaDeTeto(freio) {
   return json({ error: freio.mensagem, teto_atingido: true, orcamento: freio.orcamento, gasto: freio.gasto }, 402);
 }
 
-async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto, modeloPedido) {
+async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCandidato, scoreAnterior, ctx, perfilVAnterior, metaConhecida, dono, origemCusto, modeloPedido, saidaCurta) {
   // MODELO DA TRIAGEM (S53, 26/ago/2026). Até aqui a pontuação era sempre Sonnet, chumbado
   // em duas linhas distantes uma da outra (a chamada e o registro de custo) — trocar o modelo
   // exigia lembrar das duas, e esquecer a segunda faria a conta do mês mentir sobre o preço.
@@ -4130,6 +4158,27 @@ async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCan
   // reprovou mandar salário como fato — o campo está contaminado com a pretensão salarial do
   // próprio candidato em cards antigos e a extensão não distingue declarado de estimado.
   if (_mc.jornada) _metaPartes.push(`jornada: ${_sanitizaMeta(_mc.jornada)}`);
+
+  // SAÍDA CURTA (v7.56, S53). Dois campos do JSON — o resumo em prosa e a lista "a favor" —
+  // só são LIDOS quando Marcos abre o card. A esteira analisa o acervo inteiro e mostra
+  // apenas nota, classificação e os pontos CONTRA; os outros dois eram escritos 100% das
+  // vezes e lidos numa fração. Escrever token que ninguém lê é a definição de desperdício.
+  //
+  // A instrução mora na mensagem do USUÁRIO, nunca num segundo prompt de sistema. O bloco
+  // de sistema é cacheado (dois blocos ephemeral logo abaixo): duas variantes seriam duas
+  // entradas de cache, e a variante rara pagaria escrita de cache quase toda vez — o
+  // remédio custaria mais que a doença. Aqui são ~60 tokens de entrada contra ~100 de saída
+  // economizados, e entrada é ~5x mais barata que saída.
+  //
+  // O que NUNCA entra nesta economia: pontos_atencao e impedimentos. A má notícia sobre uma
+  // vaga é imediata e sempre — o que se adia é o argumento de venda, jamais o motivo de
+  // recusa. E o card, ao ser aberto, refaz a análise completa sozinho: é latência, não é
+  // informação sonegada atrás de um clique.
+  const _blocoSaidaCurta = saidaCurta
+    ? `SAÍDA CURTA (vale só nesta chamada e sobrepõe o que a rubrica diz sobre estes dois campos): devolva "resumo":"" e "pontos_fortes":[] — vazios, sem texto nenhum. Quem pediu esta análise não vai ler os dois. TODO o resto do JSON continua obrigatório e com o mesmo rigor, em especial "pontos_atencao" e "impedimentos", que são o motivo de a nota ser o que é.
+
+`
+    : '';
   const _blocoMetaConhecida = _metaPartes.length ? `DADOS JÁ CONHECIDOS DA VAGA: ${_metaPartes.join(' | ')}\n\n` : '';
   // Rubrica primeiro, identidade por último: identidade agora pode mudar (Marcos edita
   // o Perfil) — se ficasse na frente, cada edição invalidava o cache do bloco inteiro.
@@ -4194,7 +4243,7 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
           { type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } },
           { type:'text', text:`CANDIDATO (perfil e projeto de vida — a rubrica acima se refere a este bloco): ${perfil}`, cache_control:{ type:'ephemeral' } },
         ],
-        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}${_blocoMetaConhecida}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
+        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}${_blocoSaidaCurta}${_blocoMetaConhecida}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
       }),
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);

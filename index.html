@@ -7093,7 +7093,7 @@ async function _pedirAnaliseVaga(titulo, empresa, descricao){
   const chamar = async ()=>{
     const res = await fetch(WORKER_URL+'/api/analisar-vaga',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({titulo:titulo||'',empresa:empresa||'',descricao:descricao||'',contexto:ctxTextoAtivos()}),
+      body:JSON.stringify({titulo:titulo||'',empresa:empresa||'',descricao:descricao||'',contexto:ctxTextoAtivos(),saidaCurta:true}),
       signal:AbortSignal.timeout(45000),
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
@@ -8912,11 +8912,23 @@ function openVagaModal(id){
   // Auto-análise: roda automaticamente ao abrir lead com descrição sem score
   if(editingVagaId&&editingVagaId!=='new'){
     const _vCheck=vagas.find(x=>String(x.id)===String(editingVagaId));
-    if(_vCheck&&_vCheck.status==='lead'){
+    if(_vCheck){
       const _hasDesc=!!(document.getElementById('mv-job-desc')?.value.trim());
       // Score salvo (app OU extensão/busca) é autoritativo — só recalcula se NÃO há score algum
       const _hasScore=!!((_vCheck.atsScore&&parseInt(_vCheck.atsScore)>0)||(typeof _vCheck.score==='number'&&_vCheck.score>0));
-      if(_hasDesc&&!_hasScore) setTimeout(()=>mvAutoCompatCheck(),500);
+      // PROSA SOB DEMANDA (S53). A esteira passou a pedir saída curta: ela traz a nota e os
+      // pontos CONTRA do acervo inteiro, e deixa de escrever o resumo e o "a favor", que só
+      // são lidos aqui, no card aberto. Quem abre um card pediu para entender — então a prosa
+      // que falta é buscada agora, sozinha, sem clique nenhum. É latência, não é informação
+      // escondida atrás de um botão.
+      // _prosaEm é o carimbo de "já tentei": sem ele, uma vaga cuja análise volta sem prosa
+      // (acontece) seria repaga a cada abertura. Com ele, no máximo uma vez por card, para
+      // sempre. Cards antigos, que já têm a prosa da esteira antiga, não disparam nada.
+      const _temProsa=!!String(_vCheck.resumo||'').trim()||(Array.isArray(_vCheck.compatFortes)&&_vCheck.compatFortes.length>0)||!!_vCheck._prosaEm;
+      // Sem nota nenhuma: só em Oportunidade, como sempre — não se paga análise do refugo.
+      // Com nota e sem prosa: em qualquer coluna, porque aqui quem escolheu gastar foi ele,
+      // abrindo o card. O gasto passa a ser limitado pelos cliques dele, não pelo acervo.
+      if(_hasDesc&&((!_hasScore&&_vCheck.status==='lead')||(_hasScore&&!_temProsa))) setTimeout(()=>mvAutoCompatCheck(),500);
     }
   }
 }
@@ -10862,6 +10874,7 @@ async function mvReanalisarCompat(){
     if(data.resumo) vagas[idx].resumo=String(data.resumo);   // campo canônico — ver mvAutoCompatCheck
     const _hasRichNow=/^\*{0,2}(Cargo real|Urgência|Red flags?|Empresa\/Cultura)/im.test(vagas[idx].atsAnalise||'');
     if(data.resumo&&!_hasRichNow) vagas[idx].atsAnalise='MATCH SCORE: '+score+'\nVEREDICTO: '+data.resumo;
+    vagas[idx]._prosaEm=Date.now();   // ver "PROSA SOB DEMANDA" em openVagaModal: carimba mesmo quando a prosa vier vazia
     vagas[idx].updatedAt=Date.now();
     saveVagas();
     mvUpdateScoreDisplay();
@@ -12074,7 +12087,7 @@ async function analisarLoteBackground(){
   const _analisarUma=async v=>{
     try{
       const desc=v.jobDescription||v.descricao||'';
-      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),origem:'esteira_home',metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
+      const res=await fetch(WORKER_URL+'/api/analisar-vaga',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v.cargo,empresa:v.empresa,descricao:desc,contexto:ctxTextoAtivos(),origem:'esteira_home',saidaCurta:true,metaConhecida:_metaConhecidaVaga(v.localizacao,v.modelo,v.regime,v.jornada,v.metaInferida)})});
       _loteEmAnalise.delete(String(v.id));
       // Qualquer resposta ok renova o TTL do cache do lado da Anthropic — a
       // esteira inteira fica quente com um único aquecimento por janela.
