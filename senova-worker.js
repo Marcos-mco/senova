@@ -1,5 +1,28 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.57
+//  SENOVA PROXY — Worker v7.58
+//
+//  NOVIDADES v7.58 (28/ago/2026) — O PERFIL COMPLEMENTAR PARA DE SER PAGO A CADA VAGA.
+//
+//  O perfil complementar é o candidato, não a vaga: é o mesmo texto em todas as vagas da
+//  mesma esteira. Mesmo assim viajava na mensagem do usuário, que muda a cada vaga e por
+//  isso nunca cacheia — cada análise pagava preço cheio por um texto idêntico ao da
+//  análise anterior. Agora é um bloco de sistema cacheado: escrito uma vez por janela,
+//  relido a 10% do preço nas demais.
+//
+//  É um TERCEIRO bloco, e não coisa emendada no bloco do candidato, porque o cache é por
+//  prefixo e a ordem tem de ir do mais estável para o menos: rubrica (nunca muda) →
+//  candidato (muda quando ele edita o Perfil) → complementar (muda quando ele liga ou
+//  desliga um complemento, o mais frequente dos três). Emendado, ligar um complemento
+//  faria o perfil inteiro ser reescrito junto.
+//
+//  O que esta mudança NÃO pode fazer é mexer na nota. O texto e a marcação são os mesmos
+//  que iam na mensagem, caractere por caractere — o modelo tem de ler exatamente o que lia
+//  ontem. Economia que altera pontuação não é economia, é outro produto, e ninguém aprovou
+//  outro produto. testes/contexto_no_cache.js guarda a redação, a marcação e a ordem.
+//
+//  Junto: a versão passa a ter UM gravador. O cabeçalho e o /health eram dois, e desde a
+//  v7.55 discordavam — o /health respondeu "7.55" durante dois releases. Agora ambos leem
+//  VERSAO_WORKER, e testes/versao_worker.js trava os dois juntos.
 //
 //  NOVIDADES v7.57 (28/ago/2026) — O QUE ELE DESMARCOU NO PERFIL PARA DE SER VARRIDO.
 //
@@ -1048,7 +1071,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.57';
+const VERSAO_WORKER = '7.58';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
@@ -4263,6 +4286,27 @@ async function analisarVaga(titulo, empresa, descricao, env, contexto, perfilCan
 `
     : '';
   const _blocoMetaConhecida = _metaPartes.length ? `DADOS JÁ CONHECIDOS DA VAGA: ${_metaPartes.join(' | ')}\n\n` : '';
+  // O PERFIL COMPLEMENTAR SAI DA MENSAGEM E ENTRA NO CACHE.
+  //
+  // Ele é o mesmo texto em todas as vagas da mesma esteira — é o candidato, não a vaga.
+  // Viajava na mensagem do usuário, que muda a cada vaga e por isso nunca cacheia: cada
+  // análise pagava o preço cheio por um texto idêntico ao da análise anterior. Como bloco
+  // de sistema ele é escrito uma vez por janela de cache e relido a 10% do preço nas
+  // demais.
+  //
+  // Por que é um TERCEIRO bloco, e não coisa emendada no bloco do candidato: o cache é por
+  // prefixo, então a ordem é do mais estável para o menos. A rubrica nunca muda; o perfil
+  // muda quando ele edita o Perfil; o complementar muda quando ele liga e desliga um
+  // complemento, que é o mais frequente dos três. Emendado no bloco do candidato, ligar um
+  // complemento faria o perfil inteiro ser reescrito junto. Separado, cai só o último.
+  //
+  // O que isto NÃO pode mudar: o conteúdo. O texto abaixo é o mesmo que ia na mensagem, com
+  // a mesma marcação — o modelo tem de ler a mesma coisa que lia ontem, senão a nota muda
+  // por causa de uma economia, e economia que mexe em nota não é economia, é outro produto.
+  const _ctx = Array.isArray(contexto) ? contexto.filter(x => String(x || "").trim()) : [];
+  const _blocoContexto = _ctx.length
+    ? 'PERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n' + _ctx.map(t => '• ' + t).join('\n')
+    : '';
   // Rubrica primeiro, identidade por último: identidade agora pode mudar (Marcos edita
   // o Perfil) — se ficasse na frente, cada edição invalidava o cache do bloco inteiro.
   // Com a rubrica (estável, nunca muda) como prefixo, só o bloco de identidade recacheia.
@@ -4322,11 +4366,15 @@ JSON: {"dimensoes":{"area":(0-30),"nivel":(0-20),"idioma":(0-20),"remuneracao":(
         // É CAP, não alvo: o Sonnet fecha bem abaixo disto e não gasta um token a mais por
         // causa desta linha. Quem escreve mais paga mais, e é isso que a comparação tem de ver.
         max_tokens:2400,
+        // Rubrica (nunca muda) → candidato (muda ao editar o Perfil) → complementar (muda ao
+        // ligar/desligar um complemento). Do mais estável para o menos: é o que faz uma
+        // edição derrubar só o fim do cache, e não o começo.
         system:[
           { type:'text', text:systemPrompt, cache_control:{ type:'ephemeral' } },
           { type:'text', text:`CANDIDATO (perfil e projeto de vida — a rubrica acima se refere a este bloco): ${perfil}`, cache_control:{ type:'ephemeral' } },
+          ...(_blocoContexto ? [{ type:'text', text:_blocoContexto, cache_control:{ type:'ephemeral' } }] : []),
         ],
-        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar abaixo, se houver): ${_scoreAnt}\n\n`:''}${_blocoSaidaCurta}${_blocoMetaConhecida}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}${Array.isArray(contexto)&&contexto.length?'\n\nPERFIL COMPLEMENTAR DO CANDIDATO (considere na avaliação de fit e score):\n'+contexto.map(t=>'• '+t).join('\n'):''}` }]
+        messages:[{ role:'user', content:`${_scoreAnt?`SCORE ANTERIOR desta vaga (antes do perfil complementar, se houver): ${_scoreAnt}\n\n`:''}${_blocoSaidaCurta}${_blocoMetaConhecida}VAGA: ${titulo} | ${empresa||''} | ${(descricao||'').slice(0,5000)}` }]
       }),
     });
     if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0,300)}`);
