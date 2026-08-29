@@ -1,5 +1,20 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.59
+//  SENOVA PROXY — Worker v7.60
+//
+//  NOVIDADES v7.60 (29/ago/2026) — PRESENCIAL FORA DO BRASIL SAI DA COLHEITA.
+//
+//  Ordem dele, em duas frases: "Desliga presencial fora do Brasil" e, para não sobrar dúvida
+//  sobre a única frente que a contrariava, "Desliga vagas em Rüthen". Essa frente era
+//  presencial na Alemanha e ficou ligada em 28/ago de propósito: ali o valor não é salário,
+//  é proximidade da filha, e desligá-la sem a palavra dele seria decidir a vida dele por
+//  inferência. A palavra veio, e a regra geral veio junto com o caso particular.
+//
+//  A incoerência que isso fecha: a régua JÁ tratava vaga presencial fora do Brasil como
+//  impedimento, com teto de nota 45. A colheita seguia pagando análise para produzir
+//  descarte — a mesma conta que já havia desligado Espanha, Alemanha, Portugal e EUA.
+//
+//  Remoto para empregador de qualquer país continua entrando pela frente `remoto`. O que
+//  saiu foi presença física fora do Brasil, não a Alemanha.
 //
 //  NOVIDADES v7.59 (28/ago/2026) — RÉGUA v4: O QUE O ANÚNCIO NÃO INFORMOU PARA DE VIRAR NOTA.
 //
@@ -1009,13 +1024,22 @@ const CONFIG_PADRAO = {
     // que Marcos foi buscar não é remuneração, é estar perto da filha. Aplicar
     // o piso executivo nesta frente cortaria exatamente o trabalho honesto que
     // ele disse aceitar — jardinagem, armazém, marcenaria — e mataria a frente.
-    // 28/ago: LIGADA de propósito, contra a leitura literal de "Alemanha não é mais foco".
-    // Esta frente nunca foi um mercado de trabalho alemão — o comentário acima já diz que
-    // aqui o que se busca não é remuneração, é estar perto da filha, e é a única frente sem
-    // piso salarial por causa disso. Desligá-la não seria ajustar uma busca, seria decidir
-    // a vida dele por inferência. Uma palavra dele fecha; e `frenteId` vai dizer, na próxima
-    // medição, quanto ela custa — para a decisão ser dele COM número, não sem.
-    { id:'ruthen', label:'Rüthen e região (NRW)', ativo:true,
+    // 29/ago/2026: DESLIGADA POR DECISÃO DELE, não por inferência. Em 28/ago a frente ficou
+    // ligada porque desligá-la sem a palavra dele seria decidir a vida dele por leitura de
+    // código; a palavra veio em duas frases, a regra geral e o caso particular: "Desliga
+    // presencial fora do Brasil" e "Desliga vagas em Rüthen".
+    //
+    // O que isso torna coerente: a régua JÁ tratava vaga presencial fora do Brasil como
+    // IMPEDIMENTO (teto de nota 45). Colher esta frente era pagar análise para produzir
+    // descarte — a mesma conta que desligou ES/DE/PT/US.
+    //
+    // Desligar não é apagar: a praça, o raio de 40 km, os termos, o `semFiltroCargo` e a
+    // ausência deliberada de piso salarial ficam todos aqui. Se a vida dele mudar, voltar
+    // é um `ativo`, não uma reconstrução.
+    //
+    // O que NÃO saiu: trabalho remoto para empregador de qualquer país continua entrando
+    // pela frente `remoto`. O que saiu foi presença física fora do Brasil.
+    { id:'ruthen', label:'Rüthen e região (NRW)', ativo:false,
       adzunaPais:'de', where:'Rüthen', distanciaKm:40, diasMax:21,
       semFiltroCargo:true, semJobicy:true, maxPorTermo:4,
       queries:[
@@ -1096,7 +1120,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.59';
+const VERSAO_WORKER = '7.60';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
