@@ -23,6 +23,17 @@ function extrai(assinatura) {
   return src.slice(i, j + 1);
 }
 
+// Função de primeiro nível cuja ASSINATURA já tem chave (`opcoes = {}`): balancear a partir
+// da primeira '{' fecharia no parâmetro padrão e devolveria um fragmento truncado. Aqui o fim é
+// a primeira '}' na coluna zero — mesma técnica de testes/saida_externa.js.
+function extraiTopo(assinatura) {
+  const i = src.indexOf(assinatura);
+  if (i < 0) throw new Error('não achei no senova-worker.js: ' + assinatura);
+  const f = src.indexOf('\n}\n', i);
+  if (f < 0) throw new Error('função sem fim na coluna zero: ' + assinatura);
+  return src.slice(i, f + 2);
+}
+
 let ok = 0, falhou = 0;
 const t = (nome, cond, extra) => {
   if (cond) { ok++; console.log('  PASS  ' + nome); }
@@ -47,13 +58,28 @@ const sandbox = {
       ok: resp.status >= 200 && resp.status < 300,
       text: async () => resp.html || '',
       url: resp.url || u,
+      // v7.61: com `redirect:'manual'` no ponto único, quem decide se houve salto é o header
+      // Location — não mais o `url` final que o fetch devolvia depois de seguir sozinho.
+      headers: { get: (k) => (resp.headers || {})[String(k).toLowerCase()] ?? null },
     };
   },
 };
 vm.createContext(sandbox);
+// Linha inteira, para constantes que não têm bloco balanceável (`new Set([...])` engana o
+// extrator: ele fecha no ']' e deixa o ');' de fora).
+function linhaConst(nome) {
+  const m = src.match(new RegExp('^const ' + nome + ' = .*$', 'm'));
+  if (!m) throw new Error('não achei a constante: ' + nome);
+  return m[0];
+}
 vm.runInContext([
   extrai('const SINAIS_DE_ENCERRAMENTO ='),
+  linhaConst('_PORTAS_EXTERNAS_OK'),
+  linhaConst('MAX_SALTOS_EXTERNO'),
+  linhaConst('TETO_CORPO_EXTERNO'),
   extrai('function _hostProibido('),
+  extrai('function _alvoExternoOk('),
+  extraiTopo('async function fetchExterno('),
   extrai('function _ehRecusaDePortal('),
   extrai('async function _verificarLinkedInGuest('),
   extrai('async function verificarLinkVaga('),
@@ -170,7 +196,7 @@ const URL_ADZUNA = 'https://www.adzuna.com.br/details/5199?utm_medium=api&utm_so
 
   console.log('\n=== o alvo é barrado antes do fetch (buscar URL arbitrária é poder de proxy) ===');
   for (const [nome, u] of [
-    ['localhost', 'http://localhost:8080/x'],
+    ['localhost', 'http://localhost/x'],
     ['loopback', 'http://127.0.0.1/x'],
     ['rede interna 192.168', 'http://192.168.0.10/x'],
     ['rede interna 10.x', 'http://10.1.2.3/x'],
@@ -181,6 +207,11 @@ const URL_ADZUNA = 'https://www.adzuna.com.br/details/5199?utm_medium=api&utm_so
     const res = await checar(u);
     t(nome + ' é barrado', res.estado === 'inconclusivo' && res.motivo === 'host_nao_permitido', JSON.stringify(res));
   }
+  // v7.61: a porta é checada ANTES do host. Sem esta linha, a asserção de cima passaria a
+  // medir a regra de porta achando que mede a de host — o alvo continuaria barrado e ninguém
+  // perceberia se a lista de hosts privados fosse esvaziada.
+  t('porta fora de 80/443 é barrada, em qualquer host',
+    (await checar('https://portal-legitimo.com:6379/vaga')).motivo === 'porta_nao_permitida');
   t('URL com credencial embutida é barrada', (await checar('https://u:p@site.com/vaga')).motivo === 'url_com_credencial');
   t('protocolo não-http é barrado', (await checar('file:///etc/passwd')).motivo === 'protocolo_nao_suportado');
   t('URL inválida não quebra', (await checar('nao é url')).estado === 'inconclusivo');

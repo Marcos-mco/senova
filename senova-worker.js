@@ -1,5 +1,29 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.60
+//  SENOVA PROXY — Worker v7.61
+//
+//  NOVIDADES v7.61 (29/ago/2026) — TODA SAÍDA EXTERNA PASSA POR UMA PORTA SÓ.
+//
+//  O Worker buscava páginas de fora por dois caminhos: `verificarLinkVaga`, que checava o
+//  endereço antes de sair, e `/api/fetch-descricao`, que nasceu antes dessa checagem e nunca
+//  a recebeu — host qualquer, porta qualquer, corpo lido sem teto. A proteção não era uma
+//  camada: era adorno de uma rota. É a mesma família de defeito da S47 ("N gravadores") e da
+//  S52 ("N leitores"), agora em saída de rede: N portas de saída, cada uma com a sua própria
+//  ideia de segurança.
+//
+//  Pior que isso: no único lugar onde a checagem existia, o `redirect: 'follow'` a anulava.
+//  Validava-se o primeiro endereço e o fetch seguia o 302 para onde o dono da página mandasse,
+//  sem nova checagem. Como o link chega pelo e-mail de alerta e a higiene do radar o busca
+//  sozinha, não havia humano no caminho para estranhar o destino.
+//
+//  Agora existe `fetchExterno`: ponto único, `redirect: 'manual'`, cada salto revalidado, teto
+//  de 5 saltos, corpo cortado em 200 mil caracteres, e recusa com vocabulário fechado — a
+//  mensagem de rede não volta ao chamador para não servir de sonda. A guarda de host cresceu
+//  para IPv6 em qualquer grafia, IP decimal, CGNAT e faixa de metadados de nuvem. A rota
+//  /api/fetch-descricao ganhou rateLimit (20/min).
+//
+//  Limite declarado, não disfarçado: nome que RESOLVE para endereço privado (127.0.0.1.nip.io,
+//  DNS rebinding) ainda passa. Fechar isso exigiria lista branca de portais, que quebraria
+//  portal desconhecido — que é justamente o caso de uso. Fica dito em testes/saida_externa.js.
 //
 //  NOVIDADES v7.60 (29/ago/2026) — PRESENCIAL FORA DO BRASIL SAI DA COLHEITA.
 //
@@ -1120,7 +1144,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.60';
+const VERSAO_WORKER = '7.61';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
@@ -1832,7 +1856,6 @@ export default {
       if (!(await rateLimit(request, env, 60, 60))) return json({ estado: 'inconclusivo', motivo: 'limite_de_uso' });
       const { url: alvo } = await request.json();
       const _res = await verificarLinkVaga(alvo);
-      console.log('[link-vivo/diag]', alvo, JSON.stringify(_res)); // TEMPORÁRIO — medir causa raiz do caso Cogny (14/ago), remover depois
       return json(_res);
     }
 
@@ -2368,7 +2391,7 @@ export default {
       }
       const { messageId, comentario } = await request.json();
       if (!messageId || !comentario) return json({ erro: 'messageId e comentario obrigatórios' }, 400);
-      const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}/reply`, {
+      const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/reply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: comentario }),
@@ -2579,6 +2602,10 @@ export default {
     }
 
     if (path === '/api/fetch-descricao' && request.method === 'POST') {
+      // Sem teto de chamadas, uma chave vazada vira máquina de bater em portal alheio com a
+      // NOSSA identidade — exatamente o que Marcos mandou evitar na S52 ("cuidado em não
+      // sermos bloqueados"). As rotas vizinhas já limitavam; esta era a única sem.
+      if (!(await rateLimit(request, env, 20, 60))) return json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante.' }, 429);
       const { url } = await request.json();
       if (!url || !url.startsWith('http')) return json({ error: 'URL inválida' }, 400);
       try {
@@ -2591,14 +2618,23 @@ export default {
           try { const u = new URL(fetchUrl); fetchUrl = u.origin + u.pathname; } catch(e) {}
         }
 
-        const pageRes = await fetch(fetchUrl, {
+        // Esta rota era a única saída externa do Worker sem NENHUMA guarda de alvo: host
+        // arbitrário, porta arbitrária, redirect seguido às cegas, corpo lido sem teto — e
+        // devolvia até 4.000 caracteres do que encontrasse. A guarda existia desde a S52 e
+        // protegia só a rota irmã. Agora a saída é uma só, e é esta chamada.
+        const _ext = await fetchExterno(fetchUrl, {
+          timeoutMs: 10000,
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
           },
-          signal: AbortSignal.timeout(10000),
         });
+        // A recusa fala com vocabulário FECHADO. Antes voltava `e.message` cru — mensagem de
+        // DNS e de timeout são oráculo de varredura de porta para quem está sondando, e não
+        // dizem nada de útil a quem só queria a descrição da vaga.
+        if (!_ext.ok) return json({ error: 'Não consegui abrir este endereço', motivo: _ext.motivo }, 502);
+        const pageRes = { status: _ext.status, ok: _ext.status >= 200 && _ext.status < 300, url: _ext.urlFinal };
         // 429 é o portal barrando o Worker por volume, não a vaga sendo inacessível — e é
         // um estado que já foi visto ao vivo em /api/link-vivo. Ele precisa se declarar:
         // confundido com "exige login", manda o usuário fazer algo que não resolve nada.
@@ -2607,7 +2643,7 @@ export default {
           portalBloqueou: pageRes.status === 429 || pageRes.status === 403,
           http: pageRes.status,
         }, 502);
-        const html = await pageRes.text();
+        const html = _ext.corpo;
 
         // Detecta LinkedIn authwall (login obrigatório)
         const _finalUrl = pageRes.url || '';
@@ -2781,7 +2817,11 @@ export default {
         if (stripped.length < 150 || _isPrivacyGarbage(stripped)) return json({ error: 'Conteúdo insuficiente' }, 422);
         return json({ descricao: stripped.slice(0, 4000) });
       } catch (e) {
-        return json({ error: 'Erro ao buscar URL: ' + (e.message||'timeout') }, 502);
+        // Vocabulário fechado, como no ponto único: a mensagem crua de rede/DNS é oráculo de
+        // sondagem para quem procura serviço interno, e não diz nada a quem só queria a vaga.
+        // Com fetchExterno no caminho, chegar aqui já é defeito nosso, não do portal.
+        console.error('fetch-descricao: falha inesperada —', e && e.message);
+        return json({ error: 'Não consegui ler esta página', motivo: 'falha_interna' }, 502);
       }
     }
 
@@ -3185,21 +3225,117 @@ const SINAIS_DE_ENCERRAMENTO = [
   /nicht mehr verf[üu]gbar/i,
   /(anzeige|stelle)[^.]{0,20}abgelaufen/i,
 ];
-// Buscar URL arbitrária a partir do Worker é poder de proxy: sem esta trava, um endereço
-// interno entraria pelo mesmo caminho. O gate de segredo já barra o estranho; isto barra o
-// alvo.
+// ═══════════════════════════════════════════════════════════════════
+//  SAÍDA EXTERNA — PONTO ÚNICO (v7.61, S54)
+// ═══════════════════════════════════════════════════════════════════
+// Buscar URL arbitrária a partir do Worker é poder de proxy. Esta trava existia desde a
+// S52 e protegia UMA rota: `_hostProibido` tinha um único chamador, `verificarLinkVaga`.
+// A rota irmã, `/api/fetch-descricao`, nasceu antes dela e nunca a recebeu — buscava host
+// arbitrário e devolvia até 4.000 caracteres do corpo de qualquer página alcançável.
+//
+// A guarda era adorno de uma rota, não camada. Por isso ela agora vive dentro de
+// `fetchExterno`, e toda saída externa com URL vinda de fora passa por lá — não por
+// disciplina de quem escreve a próxima rota, mas porque não há outro caminho.
+//
+// O QUE ISTO COBRE E O QUE NÃO COBRE, dito na cara: um nome de domínio que RESOLVE para
+// endereço privado (`127.0.0.1.nip.io`, rebinding de DNS) passa por aqui — só o texto do
+// host é examinado, e o Workers não expõe a resolução para conferir. Fechar isso exigiria
+// allowlist de portais, que quebraria o usuário que usa um portal que não conhecemos. Fica
+// declarado em vez de fingido, e o teto de corpo + o limite de saltos abaixo são o que
+// reduz o estrago se acontecer.
 function _hostProibido(h) {
-  const host = String(h || '').toLowerCase().replace(/^\[|\]$/g, '');
-  if (!host || host === 'localhost' || host === '::1') return true;
-  if (/(^|\.)(localhost|local|internal|home\.arpa)$/.test(host)) return true;
+  // Ponto final (FQDN absoluto): o parser de URL o remove de IP — `127.0.0.1.` vira
+  // `127.0.0.1` — mas NÃO de nome: `localhost.` chega aqui COM o ponto e escaparia de toda
+  // regra ancorada em `$`. Medido no próprio parser antes de publicar, não suposto.
+  const host = String(h || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!host || host === 'localhost') return true;
+  if (/(^|\.)(localhost|local|internal|intranet|home\.arpa)$/.test(host)) return true;
+  // IPv6 literal: recusado inteiro, de propósito. Nenhum portal de vaga do mundo se anuncia
+  // por IPv6 cru, e classificar faixa por faixa (::1, ::ffff:127.0.0.1, fc00::/7, fe80::/10,
+  // e as dez grafias equivalentes de cada uma) é onde uma guarda parcial vira falsa
+  // segurança. Recusar tudo custa zero uso real e fecha a família inteira.
+  if (host.includes(':')) return true;
+  // Host que é só dígitos (http://2130706433/) — o parser normaliza a maioria dos casos
+  // decimais/octais, mas depender de normalização de terceiro para uma trava de segurança
+  // é apostar. Aqui não há aposta: nome de domínio não é um número.
+  if (/^\d+$/.test(host)) return true;
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
-    const [a, b] = host.split('.').map(Number);
+    const [a, b, c] = host.split('.').map(Number);
     if (a === 0 || a === 10 || a === 127) return true;
     if (a === 192 && b === 168) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 169 && b === 254) return true;   // metadados de nuvem
+    if (a === 100 && b >= 64 && b <= 127) return true;   // CGNAT
+    if (a === 192 && b === 0 && c === 0) return true;    // IETF protocol assignments
+    if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking
+    if (a >= 224) return true;                            // multicast e reservado
   }
   return false;
+}
+
+// Só 80 e 443. Porta arbitrária não serve para ler um anúncio de vaga e serve muito bem
+// para varrer serviço interno — o custo de recusar é zero e o de aceitar não é.
+const _PORTAS_EXTERNAS_OK = new Set(['', '80', '443']);
+const MAX_SALTOS_EXTERNO = 5;
+const TETO_CORPO_EXTERNO = 200000;
+
+// Valida o alvo ANTES de qualquer requisição. Devolve motivo em vez de lançar: quem chama
+// precisa dizer ao usuário POR QUE não foi, e "erro" sem sujeito foi o defeito da S52.
+function _alvoExternoOk(alvo) {
+  let u;
+  try { u = new URL(String(alvo || '')); } catch { return { ok: false, motivo: 'url_invalida' }; }
+  if (!/^https?:$/.test(u.protocol))      return { ok: false, motivo: 'protocolo_nao_suportado' };
+  if (u.username || u.password)           return { ok: false, motivo: 'url_com_credencial' };
+  if (!_PORTAS_EXTERNAS_OK.has(u.port))   return { ok: false, motivo: 'porta_nao_permitida' };
+  if (_hostProibido(u.hostname))          return { ok: false, motivo: 'host_nao_permitido' };
+  return { ok: true, u };
+}
+
+// A saída externa inteira do Senova passa por aqui.
+//
+// O ACHADO QUE OBRIGOU O REDIRECT MANUAL: `redirect:'follow'` anulava a guarda de host por
+// completo. Validava-se o primeiro endereço e o `fetch` seguia o 302 para onde o dono da
+// página quisesse, sem nova checagem. E o alvo não é escolhido por quem tem a chave: o link
+// chega por e-mail de alerta e a higiene do radar o busca sozinha, sem humano no caminho.
+// Aqui cada salto é revalidado como se fosse o primeiro, porque é.
+//
+// Devolve sempre `urlFinal` (o último endereço realmente buscado) — `verificarLinkVaga`
+// depende dele para saber se ainda está na página da vaga pedida, e com salto manual o
+// `r.url` do fetch não conta mais essa história sozinho.
+async function fetchExterno(alvo, opcoes = {}) {
+  const { headers = {}, timeoutMs = 9000, tetoCorpo = TETO_CORPO_EXTERNO, lerCorpo = true } = opcoes;
+  const check = _alvoExternoOk(alvo);
+  if (!check.ok) return { ok: false, motivo: check.motivo };
+
+  let atual = check.u;
+  const ctrl = new AbortController();
+  const relogio = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    for (let salto = 0; salto <= MAX_SALTOS_EXTERNO; salto++) {
+      const r = await fetch(atual.toString(), {
+        method: 'GET', redirect: 'manual', signal: ctrl.signal, headers,
+      });
+      const ehRedirect = r.status >= 300 && r.status < 400 && r.headers.get('location');
+      if (!ehRedirect) {
+        // Corpo com teto. Sem isto, apontar a rota para um arquivo grande estoura a memória
+        // do isolate — e o irmão `verificarLinkVaga` já cortava em 200 KB desde a S52.
+        const corpo = (lerCorpo && r.ok) ? (await r.text()).slice(0, tetoCorpo) : '';
+        return { ok: true, status: r.status, urlFinal: atual.toString(), corpo, resposta: r };
+      }
+      if (salto === MAX_SALTOS_EXTERNO) return { ok: false, motivo: 'redirect_demais', status: r.status };
+      let proximo;
+      try { proximo = new URL(r.headers.get('location'), atual); }
+      catch { return { ok: false, motivo: 'redirect_invalido', status: r.status }; }
+      const okProx = _alvoExternoOk(proximo.toString());
+      // O salto recusado NÃO é erro de rede e não pode se disfarçar de um: o motivo diz que
+      // foi o destino do redirecionamento, não o endereço que o usuário pediu.
+      if (!okProx.ok) return { ok: false, motivo: 'redirect_' + okProx.motivo, status: r.status };
+      atual = okProx.u;
+    }
+    return { ok: false, motivo: 'redirect_demais' };
+  } catch (e) {
+    return { ok: false, motivo: (e && e.name === 'AbortError') ? 'demorou_demais' : 'nao_consegui_abrir' };
+  } finally { clearTimeout(relogio); }
 }
 // LinkedIn é SPA e o link mais comum nas Oportunidades de Marcos (nascido de e-mail) vem no
 // formato /comm/jobs/view/ID, que redireciona pro authwall TANTO se a vaga está viva quanto
@@ -3229,23 +3365,19 @@ async function _verificarLinkedInGuest(id) {
     });
     if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
     if (_ehRecusaDePortal(r.status)) return { estado: 'inconclusivo', motivo: 'portal_bloqueou', http: r.status };
-    if (!r.ok) { console.log('[link-vivo/diag] guest não-ok', id, r.status); return null; }
+    if (!r.ok) return null;
     const html = await r.text();
     if (/closed-job/i.test(html)) return { estado: 'morto', motivo: 'linkedin_closed_job', http: r.status };
     if (/top-card-layout__title|topcard__title/i.test(html)) return { estado: 'vivo', http: r.status };
-    console.log('[link-vivo/diag] guest ambíguo', id, r.status, html.length, html.slice(0, 300)); // TEMPORÁRIO
     return null; // resposta que não bate com nenhum padrão conhecido — não afirma nada
   } catch (e) {
-    console.log('[link-vivo/diag] guest erro', id, String(e)); // TEMPORÁRIO
     return null;
   } finally { clearTimeout(relogio); }
 }
 async function verificarLinkVaga(alvo) {
-  let u;
-  try { u = new URL(String(alvo || '')); } catch { return { estado: 'inconclusivo', motivo: 'url_invalida' }; }
-  if (!/^https?:$/.test(u.protocol))    return { estado: 'inconclusivo', motivo: 'protocolo_nao_suportado' };
-  if (u.username || u.password)         return { estado: 'inconclusivo', motivo: 'url_com_credencial' };
-  if (_hostProibido(u.hostname))        return { estado: 'inconclusivo', motivo: 'host_nao_permitido' };
+  const _check = _alvoExternoOk(alvo);
+  if (!_check.ok) return { estado: 'inconclusivo', motivo: _check.motivo };
+  const u = _check.u;
   if (/(^|\.)linkedin\.com$/i.test(u.hostname)) {
     const id = (u.pathname.match(/\/jobs\/view\/(\d+)/) || [])[1];
     if (id) {
@@ -3253,20 +3385,23 @@ async function verificarLinkVaga(alvo) {
       if (guest) return guest;
     }
   }
-  const ctrl = new AbortController();
-  const relogio = setTimeout(() => ctrl.abort(), 9000);
-  try {
+  {
     // A URL vai INTEIRA (o utm_source da Adzuna é a nossa credencial, não rastreador — mutilá-la
     // devolve 403 e faria o Senova chamar de morta uma vaga viva). Mesmo user-agent do browser:
     // portal que recusa robô devolve 403, que aqui é inconclusivo, não morte.
-    const r = await fetch(u.toString(), {
-      method: 'GET', redirect: 'follow', signal: ctrl.signal,
+    const _ext = await fetchExterno(u.toString(), {
+      timeoutMs: 9000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8,es;q=0.7',
       },
     });
+    // Recusa da guarda não é morte da vaga: é o Senova não tendo ido olhar. O motivo viaja
+    // inteiro (inclusive `redirect_host_nao_permitido`), porque um link que redireciona para
+    // endereço interno é coisa que alguém precisa poder ver no log sem adivinhar.
+    if (!_ext.ok) return { estado: 'inconclusivo', motivo: _ext.motivo };
+    const r = { status: _ext.status, ok: _ext.status >= 200 && _ext.status < 300, url: _ext.urlFinal, _corpo: _ext.corpo };
     // Prova de identidade da resposta (medido 14/ago): `redirect:'follow'` segue o 301 e some
     // com a pergunta original. Vaga expirada do LinkedIn redireciona para uma LISTAGEM de vagas
     // (path muda, ela mesma carimba `trk=expired_jd_redirect` na URL final); vaga que exige login
@@ -3287,7 +3422,7 @@ async function verificarLinkVaga(alvo) {
     if (r.status === 404 || r.status === 410) return { estado: 'morto', motivo: 'pagina_nao_existe', http: r.status };
     if (r.status === 403 || r.status === 429 || r.status >= 500) return { estado: 'inconclusivo', motivo: 'portal_bloqueou', http: r.status };
     if (!r.ok) return { estado: 'inconclusivo', motivo: 'resposta_inesperada', http: r.status };
-    const html = (await r.text()).slice(0, 200000);
+    const html = r._corpo;   // já veio com teto de 200 KB do ponto único
     const texto = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
                       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
                       .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ');
@@ -3300,9 +3435,7 @@ async function verificarLinkVaga(alvo) {
       };
     }
     return { estado: 'vivo', http: r.status };
-  } catch (e) {
-    return { estado: 'inconclusivo', motivo: (e && e.name === 'AbortError') ? 'demorou_demais' : 'nao_consegui_abrir' };
-  } finally { clearTimeout(relogio); }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
