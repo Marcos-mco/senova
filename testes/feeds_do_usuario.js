@@ -55,6 +55,7 @@ const caixa = new Function([
   pedaco('function extrairTag('),
   pedaco('function vagaRecente('),
   pedaco('function _desembrulharLink('),
+  pedaco('function _empresaDeFeed('),
   pedaco('function parsearFeed('),
   pedaco('function feedsDoPerfil('),
   pedaco('function gerarId('),
@@ -150,6 +151,23 @@ t('item sem endereço não vira card (card sem link é card que não leva a luga
 console.log('\n=== por que `empresa` fica vazia quando o feed não a traz ===');
 t('o parser nunca inventa empresa', caixa.parsearFeed(ATOM).every(v => v.empresa === ''),
   'voltou a preencher empresa com algo que o feed não disse');
+
+// Quando o feed DIZ quem anuncia, o card diz também — e aí o teto por anunciante passa a
+// fazer o trabalho para o qual foi escrito: uma agência que republica o mesmo anúncio vinte
+// vezes para de tomar a colheita inteira. A busca é pela FORMA da tag, com ou sem prefixo de
+// namespace, nunca pelo nome de um portal: o prefixo abaixo é inventado de propósito.
+const COM_EMPRESA = `<rss><channel><item><title>Diretor Comercial</title>
+  <link>https://p.exemplo/1</link><portal_qualquer:company><![CDATA[Acme S.A.]]></portal_qualquer:company></item>
+  <item><title>Gerente</title><link>https://p.exemplo/2</link><dc:creator>Beta Ltda</dc:creator></item>
+</channel></rss>`;
+t('o anunciante é lido de uma tag que o parser nunca viu, pela forma do nome',
+  caixa.parsearFeed(COM_EMPRESA).map(v => v.empresa).join('|') === 'Acme S.A.|Beta Ltda',
+  'o parser voltou a depender do nome da tag de um portal específico');
+const ATOM_AUTOR = `<feed><entry><title>Vaga</title><link href="https://p.exemplo/3"/>
+  <author><name>Gama Consultoria</name><email>x@exemplo</email></author></entry></feed>`;
+t('em Atom, o nome vem de dentro de <author>, não o bloco inteiro',
+  caixa.parsearFeed(ATOM_AUTOR)[0].empresa === 'Gama Consultoria',
+  'o card passaria a mostrar o e-mail do anunciante junto do nome');
 
 function colhe(itens) {
   const lead = [];

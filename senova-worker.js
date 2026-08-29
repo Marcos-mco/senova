@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.62
+//  SENOVA PROXY — Worker v7.63
 //
 //  NOVIDADES v7.62 (29/ago/2026) — O VOLUME DE VAGAS VOLTA, E DE GRAÇA.
 //
@@ -1161,7 +1161,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.62';
+const VERSAO_WORKER = '7.63';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
@@ -4102,6 +4102,22 @@ function _textoDeFeed(bruto) {
 // costuma sair em Atom (<entry>, destino no atributo href) e o feed de um portal de vagas em
 // RSS (<item>, destino no texto de <link>). Suportar um só significa que metade dos
 // endereços colados devolveria zero item — e sem dizer por quê, que é o pior dos dois.
+// Nome do anunciante, quando o feed o diz. Cada gerador batiza a sua tag e quase todos põem
+// um prefixo de namespace na frente, então a busca é pela FORMA — uma tag cujo nome termine
+// em company, creator ou author —, jamais pelo nome de um portal (crivo de universalidade).
+// Em Atom, <author> embrulha <name>. Quando o feed não diz, fica vazio: card com empresa
+// inventada é card que mente, e o rótulo do feed no lugar da empresa faria o teto por
+// anunciante cortar toda colheita em 3, em silêncio.
+function _empresaDeFeed(bloco) {
+  const nome = '(?:[a-z0-9_-]+:)?(?:company|creator|author)';
+  const m = bloco.match(new RegExp(`<${nome}(?:\\s[^>]*)?><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${nome}>`, 'i'))
+         || bloco.match(new RegExp(`<${nome}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${nome}>`, 'i'));
+  let bruto = m ? m[1] : '';
+  const dentro = bruto.match(/<name(?:\s[^>]*)?>([\s\S]*?)<\/name>/i);
+  if (dentro) bruto = dentro[1];
+  return _textoDeFeed(bruto).slice(0, 120);
+}
+
 function parsearFeed(xml, janelaDias = JANELA_FEED_DIAS, maxItens = ITENS_POR_FEED) {
   const blocos = (xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [])
     .concat(xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || []);
@@ -4124,7 +4140,7 @@ function parsearFeed(xml, janelaDias = JANELA_FEED_DIAS, maxItens = ITENS_POR_FE
     // feed ficaria mais bonito na tela e quebraria a colheita em silêncio: `processarVagas`
     // limita 3 cards por anunciante, e com todos os itens sob o mesmo nome só os 3 primeiros
     // entrariam. Card que não sabe a empresa deve dizer que não sabe.
-    vagas.push({ titulo, empresa: '', url, descricao, pubDate: quando, local: '' });
+    vagas.push({ titulo, empresa: _empresaDeFeed(bloco), url, descricao, pubDate: quando, local: '' });
   }
   return vagas;
 }
