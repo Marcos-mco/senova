@@ -7341,7 +7341,11 @@ const CRITERIO_MINIMO_VIAVEL=46;
 // S46: rubrica passa a ter a identidade DEPOIS (não antes) no system prompt, pra caching
 // sobreviver a edições do Perfil — reordenar+reescrever referências pode mudar a distribuição
 // de resposta da IA mesmo sem mudar as dimensões, então conta como mudança de régua.
-const RUBRICA_V=3;
+// v4 (28/ago/2026): dimensão sem dado sai da soma e o peso se redistribui; a nota passa a
+// declarar a cobertura. O acervo NÃO é repontuado — decisão dele, "o que está feito está
+// feito". Nota v3 e nota v4 convivem no mesmo Kanban, e podem porque o deslocamento medido
+// entre as duas escalas é de +2,3 pontos em média (28 vagas reais, 28/ago).
+const RUBRICA_V=4;
 // Critério (número) da região de uma vaga/card — aceita shape de card (origemUrl/localizacao) ou de lead (url/local).
 function _criterioParaVaga(cardOuVaga){
   const cfg=_configVarredura||{score_minimo_por_regiao:{}};
@@ -10482,10 +10486,28 @@ function mvUpdateScoreDisplay(vOpt){
     // Marcos desconfiou de notas "redondas" sem saber de onde vinham. Só existe em cards
     // analisados sob a rubrica atual (RUBRICA_V) — cards antigos não têm o dado.
     let dimsHtml='';
-    if(v?.rubricaV===RUBRICA_V&&v?.compatDimensoes&&typeof v.compatDimensoes==='object'){
+    // >=3, não ===RUBRICA_V: a v4 mudou a SOMA, não os nomes nem os tetos das dimensões, e o
+    // detalhamento de um card v3 continua verdadeiro sobre o card que o produziu. Preso à
+    // versão exata, cada mudança de régua apagaria o detalhamento do acervo inteiro — perder
+    // informação dele para marcar uma versão nossa.
+    if(v?.rubricaV>=3&&v?.compatDimensoes&&typeof v.compatDimensoes==='object'){
       const _dimLabels=[['area','Área',30],['nivel','Nível',20],['idioma','Idioma',20],['remuneracao','Remuneração',15],['projeto_vida','Projeto de vida',15]];
-      const _partes=_dimLabels.filter(([k])=>typeof v.compatDimensoes[k]==='number').map(([k,lbl,teto])=>`${lbl} <strong style="font-variant-numeric:tabular-nums;">${v.compatDimensoes[k]}/${teto}</strong>`);
-      if(_partes.length) dimsHtml=`<div style="font-size:12px;color:var(--text2);line-height:1.6;">${_partes.join(' · ')}</div>`;
+      // Dimensão sem dado NÃO some da linha. Sumir faria a soma parecer não fechar e deixaria
+      // a impressão de que o Senova esqueceu de julgar aquilo — quando o que houve foi o
+      // anúncio não informar. "não informado" é o dado; a ausência da linha seria a omissão.
+      const _partes=_dimLabels.map(([k,lbl,teto])=>{
+        const _n=v.compatDimensoes[k];
+        return typeof _n==='number'
+          ? `${lbl} <strong style="font-variant-numeric:tabular-nums;">${_n}/${teto}</strong>`
+          : `${lbl} <span style="opacity:.6;">não informado</span>`;
+      });
+      // A cobertura só aparece quando há o que dizer: 100% é o caso normal e um selo de
+      // "julguei tudo" em toda vaga vira ruído. Ela existe para que duas notas iguais parem
+      // de parecer iguais quando uma foi julgada inteira e a outra pela metade.
+      const _cob=(typeof v.compatCobertura==='number'&&v.compatCobertura>0&&v.compatCobertura<100)
+        ? ` · nota sobre <strong style="font-variant-numeric:tabular-nums;">${v.compatCobertura}%</strong> do que dava para saber`
+        : '';
+      if(_partes.length) dimsHtml=`<div style="font-size:12px;color:var(--text2);line-height:1.6;">${_partes.join(' · ')}${_cob}</div>`;
     }
     let html=dimsHtml+_grupo('A favor',fortes,'#1A7A4A','✓')+_grupo('Contra',atencao,'#B8670A','△');
     if(html&&!dimsHtml) html=html.replace('margin-top:9px','margin-top:0');   // o primeiro grupo encosta no topo do bloco (só quando não há breakdown acima)
@@ -10611,6 +10633,12 @@ function _aplicarSinaisWorker(alvo, data){
     }
   }
   if(data.documento_idioma_exigido) alvo.idiomaDocExigido=data.documento_idioma_exigido;
+  // Régua v4: quanto do total foi possível julgar, e o que ficou de fora. Gravados AQUI, e
+  // só aqui, porque as três esteiras (card aberto, card novo, lote da Home) já passam por
+  // esta função — rubricaV e compatDimensoes são escritos nas três à mão, e o projeto já
+  // pagou duas vezes pelo padrão de N gravadores do mesmo fato.
+  if(typeof data.cobertura==='number') alvo.compatCobertura=data.cobertura;
+  if(Array.isArray(data.dimensoes_sem_dado)) alvo.compatSemDado=data.dimensoes_sem_dado;
   // localizacao/modelo/regime vêm da IA como CHUTE, nunca fato — _gravarMetaVaga(fonte:'ia')
   // só preenche o que o card ainda não sabia e marca metaInferida.
   _gravarMetaVaga(alvo, {localizacao:data.localizacao, modelo:data.modelo, regime:data.regime}, 'ia');
