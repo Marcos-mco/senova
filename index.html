@@ -1102,15 +1102,15 @@ select option { background: var(--bg2); }
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Empresas que acompanho</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:12px;">Usadas para alertas de mercado e sinais de oportunidade</div>
-        <textarea id="perfil-empresas-alvo" rows="5" placeholder="Amazon&#10;Uber&#10;Nubank&#10;iFood&#10;Ambev" style="font-size:14px;resize:vertical;"></textarea>
+        <textarea id="perfil-empresas-alvo" rows="5" placeholder="Ex: Amazon&#10;Uber&#10;Nubank" style="font-size:14px;resize:vertical;"></textarea>
       </div>
 
       <!-- Meus alertas de vaga (feeds) -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Meus alertas de vaga</div>
         <div style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.55;">Você cria um alerta de <strong>vagas</strong> onde preferir — no buscador ou no portal que usa — e cola aqui o endereço do feed dele, um por linha. A cada três horas o Senova lê esses endereços e traz os anúncios novos para o Radar. Não custa nada: nenhuma análise de IA acontece nesta coleta. A nota continua saindo só quando você pedir, no card.</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.55;">Precisa ser um alerta de vagas, não de notícias: o Senova traz para o Radar tudo o que o seu alerta publicar, sem peneirar por cargo — quem escolheu o que buscar foi você. Um alerta de notícias encheria o Radar de reportagens.</div>
-        <textarea id="perfil-feeds" rows="4" placeholder="https://portal-de-vagas.com/busca/diretor-marketing/rss&#10;https://outro-site.com/vagas/feed.xml" style="font-size:14px;resize:vertical;"></textarea>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.55;">Precisa ser um alerta de vagas, não de notícias: o Senova traz para o Radar tudo o que o seu alerta publicar, sem peneirar por cargo — quem escolheu o que buscar foi você. Um alerta de notícias encheria o Radar de reportagens.<br>O endereço tem esta cara: <span style="font-family:ui-monospace,Menlo,Consolas,monospace;">https://algum-portal.com/vagas/feed.xml</span> — um por linha, sempre começando com https://</div>
+        <textarea id="perfil-feeds" rows="4" placeholder="Cole aqui um endereço por linha" style="font-size:14px;resize:vertical;"></textarea>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;">
           <button class="btn btn-ghost" onclick="colherFeedsAgora()" id="btn-colher-feeds" style="font-size:13px;padding:8px 18px;">Colher agora</button>
           <div id="perfil-feeds-status" style="font-size:13px;color:var(--text3);"></div>
