@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Modelo IA no Worker:** `claude-sonnet-4-6` (nunca usar 4-5, está obsoleto)
 - **Modelo Bruno para análise:** `claude-opus-4-8` · **Para código:** `claude-sonnet-4-6`
 
-O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.48) e é gerenciado pelo `wrangler.toml`.
+O app inteiro vive em `index.html`. Não há framework, bundler, package.json nem pipeline de CI. O Worker vive em `senova-worker.js` (v7.62) e é gerenciado pelo `wrangler.toml`.
 
 ## Deploy
 
@@ -68,7 +68,7 @@ Antes de qualquer commit do `index.html`, verificar:
 
 Público-alvo 40+: mínimo 16px no corpo, alto contraste.
 
-## Worker — rotas disponíveis (`senova-worker.js` v7.48)
+## Worker — rotas disponíveis (`senova-worker.js` v7.62)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -76,6 +76,8 @@ Público-alvo 40+: mínimo 16px no corpo, alto contraste.
 | POST | `/api/claude` | Proxy genérico para Anthropic API |
 | POST | `/api/analisar-vaga` | Análise CV — score ATS para o perfil de Marcos |
 | POST | `/api/varredura-manual` | Dispara varredura de vagas agora |
+| POST | `/api/feeds/colher` | Lê os feeds de vaga do Perfil e traz os anúncios novos (sem IA) |
+| GET | `/api/feeds/status` | Recibo da última colheita de feeds |
 | POST | `/api/varredura-pais` | Dispara varredura de país específico |
 | GET | `/api/vagas-lead` | Retorna vagas coletadas pelo cron |
 | POST | `/api/vagas-lead/clear` | Limpa vagas do KV |

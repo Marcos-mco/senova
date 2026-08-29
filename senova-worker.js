@@ -1,5 +1,22 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.61
+//  SENOVA PROXY — Worker v7.62
+//
+//  NOVIDADES v7.62 (29/ago/2026) — O VOLUME DE VAGAS VOLTA, E DE GRAÇA.
+//
+//  A varredura paga foi desligada em 23/ago porque custava e produzia pouco. Ficou o
+//  e-mail, que é o que produz — mas ele só traz o que os alertas já assinados mandam.
+//  Ideia de Marcos: a IA fica reservada para o que ele libera vaga a vaga, e o volume entra
+//  por um canal que não cobra nada.
+//
+//  Agora o Perfil tem um campo de endereços de feed. A pessoa cria o alerta de busca onde
+//  quiser, cola o endereço, e a cada três horas o Senova lê esses feeds e traz os anúncios
+//  novos como leads. Sem IA em nenhum ponto do caminho: nem para ler, nem para classificar,
+//  nem para pontuar. A nota continua saindo só quando ele pede, no card.
+//
+//  O que isso conserta de fundo: era o CÓDIGO que decidia o que buscar, e por isso 91% da
+//  última colheita veio de um país que ele tinha desmarcado (S53). Agora quem escreve a
+//  busca é quem vai ler o resultado — e a peneira de título do Senova, que é o vocabulário
+//  de uma carreira só, não se aplica ao que a própria pessoa pediu.
 //
 //  NOVIDADES v7.61 (29/ago/2026) — TODA SAÍDA EXTERNA PASSA POR UMA PORTA SÓ.
 //
@@ -1144,7 +1161,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.61';
+const VERSAO_WORKER = '7.62';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
@@ -1866,6 +1883,21 @@ export default {
       return json({ status: 'Varredura iniciada', timestamp: new Date().toISOString() });
     }
 
+    // ── Feeds do usuário: colher agora, e o recibo da última colheita ──
+    // Aqui o dono é real (existe requisição), ao contrário do cron. O rate limit é o mesmo
+    // raciocínio da S52: endereço de fora + gatilho sem humano é refletor de carga se solto.
+    if (path === '/api/feeds/colher' && request.method === 'POST') {
+      if (!(await rateLimit(request, env, 6, 60))) return json({ error: 'Muitas colheitas seguidas. Espere um minuto.' }, 429);
+      const dono = await donoSeguro(request, env);
+      const r = await colherFeedsDoUsuario(env, dono);
+      return json(r);
+    }
+
+    if (path === '/api/feeds/status' && request.method === 'GET') {
+      const raw = await env.SENOVA_KV.get('colheita_feeds_status');
+      return json(raw ? JSON.parse(raw) : { nunca_executada: true });
+    }
+
     // ── Varredura manual forçando país específico ───────────────────
     if (path === '/api/varredura-pais' && request.method === 'POST') {
       const { pais } = await request.json();
@@ -1945,7 +1977,7 @@ export default {
       const raw = await lerPerfilBruto(env, await donoSeguro(request, env));
       // projeto_vida_texto semeado com o hardcoded atual (S46): Marcos parte de algo
       // pronto pra reescrever na própria voz, em vez de campo vazio — ver montarIdentidadeCandidato.
-      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', dias_inativo:7, experiencias:[] };
+      const padrao = { nome:'', cargo_alvo:'', email:'', telefone:'', linkedin:'', idioma_preferido:'', cv_master:'', cargos_busca:'', salario_minimo:'', localizacoes:'', modelo_trabalho:'', paises:'', projeto_vida_texto:PROJETO_DE_VIDA, score_minimo_br:70, score_minimo_espt:55, score_minimo_de:50, score_minimo_remoto:60, score_minimo_us:65, empresas_alvo:'', feeds:'', dias_inativo:7, experiencias:[] };
       // Merge, não substituição: um Perfil já salvo (caso real de Marcos hoje) não tem a
       // chave nova projeto_vida_texto — sem o merge ela vinha undefined e a semeadura acima
       // nunca aparecia pra quem já usa o Perfil, só pra um KV vazio que não existe mais.
@@ -1996,6 +2028,19 @@ export default {
             return json({ erro: `"${(f.titulo||f.instituicao||'uma formação')}" tem um campo maior que o permitido. Resuma e tente de novo.` }, 400);
           }
         }
+      }
+      // Feeds: mesma política das experiências — recusa dizendo o quê e por quê. Cortar a
+      // lista em silêncio faria o Senova colher de menos sem ninguém saber que colheu.
+      if (typeof dados.feeds === 'string') {
+        const linhas = dados.feeds.split(/[\r\n]+/).map(x => x.trim()).filter(Boolean);
+        const fora = linhas.filter(x => !/^https?:\/\//i.test(x));
+        if (fora.length) {
+          return json({ erro: `Isto não parece um endereço de feed: "${fora[0].slice(0, 60)}". Cole o endereço completo, começando com https://` }, 400);
+        }
+        if (linhas.length > MAX_FEEDS_USUARIO) {
+          return json({ erro: `Máximo de ${MAX_FEEDS_USUARIO} endereços de feed — você colou ${linhas.length}. Remova alguns antes de salvar.` }, 400);
+        }
+        dados.feeds = linhas.join('\n');
       }
       await gravarPerfilBruto(env, await donoSeguro(request, env), JSON.stringify(dados));
       return json({ ok: true });
@@ -3028,7 +3073,7 @@ export default {
   // é o caminho de volta, e "Varrer agora" (POST /api/varredura-manual) continua vivo.
   async scheduled(event, env, ctx) {
     if (event.cron === '0 10 * * *') ctx.waitUntil(executarVarredura(env, true).then(() => higienizarRadar(env)));
-    else ctx.waitUntil(colherVagasDeEmail(env).then(() => higienizarRadar(env)));
+    else ctx.waitUntil(colherVagasDeEmail(env).then(() => colherFeedsDoUsuario(env)).then(() => higienizarRadar(env)));
   },
 };
 
@@ -4002,6 +4047,174 @@ function vagaRecente(d, janelaDias = 3) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  FEEDS DO USUÁRIO — colheita sem IA e sem API paga (v7.62, S54)
+// ═══════════════════════════════════════════════════════════════════
+// A ideia é de Marcos: a IA fica reservada para o que ele libera vaga a vaga, e o VOLUME
+// entra por um canal que não cobra nada — um endereço de feed que a própria pessoa cria no
+// buscador ou no portal que ela usa, e cola no Perfil.
+//
+// POR QUE O FEED É DO USUÁRIO, E NÃO NOSSO. Um alerta salvo é a busca que aquela pessoa
+// sabe fazer: na língua dela, na cidade dela, com as palavras da profissão dela. Nós não
+// temos como adivinhar isso — e a última vez que tentamos adivinhar, com frentes fixas no
+// código, 91% da colheita veio de um país que ele tinha desmarcado (S53). Aqui o Senova não
+// escolhe o que buscar: ele lê o que foi pedido. Sobrevive a alguém em Berlim que nunca
+// ouviu falar de nenhum dos serviços que este arquivo conhece.
+//
+// NADA DE IA NESTE CAMINHO. Nem para ler o feed, nem para classificar, nem para pontuar. O
+// card entra como lead sem nota, e a nota só sai se ele pedir no card — a regra do gesto.
+const MAX_FEEDS_USUARIO = 10;
+const ITENS_POR_FEED    = 20;
+const JANELA_FEED_DIAS  = 7;
+// Freio GLOBAL por rodada, além do freio por feed. A varredura paga tinha os dois
+// (NOVAS_POR_EXECUCAO e NOVAS_POR_FRENTE) e o motivo está escrito lá em cima: sem o global,
+// uma manhã traz centenas de cards de uma vez. Este caminho nasceu só com o por-feed, o que
+// dava um teto estrutural de 200 cards por rodada — 2,5x o volume da varredura que Marcos
+// desligou em 23/ago justamente por despejar demais. Achado pelo crivo de viabilidade antes
+// do commit. O que não entra não se perde: fica no feed e volta na rodada seguinte.
+const NOVAS_POR_COLHEITA_FEED = 40;
+
+// Feed que empacota o destino: o link do item aponta para o próprio agregador, com o
+// endereço real dentro da query. É prática comum de agregador e de boletim, não marca de um
+// serviço — por isso a regra olha a FORMA (um parâmetro cujo valor é uma URL absoluta de
+// outro host), nunca o nome de quem empacotou.
+function _desembrulharLink(bruto) {
+  try {
+    const u = new URL(String(bruto || ''));
+    for (const [, valor] of u.searchParams) {
+      if (!/^https?:\/\//i.test(valor)) continue;
+      const dentro = new URL(valor);
+      if (dentro.hostname && dentro.hostname !== u.hostname) return dentro.toString();
+    }
+  } catch { /* não é URL: devolve como veio e quem chama valida */ }
+  return String(bruto || '');
+}
+
+// Texto de feed vem escapado DUAS vezes, e medi isto no dado real antes de publicar: um
+// título Atom `type="html"` chega como `Diretor de &lt;b&gt;Marketing&lt;/b&gt;`. O
+// `limparHtml` sozinho tira a tag primeiro e desfaz a entidade depois — ou seja, devolve
+// `Diretor de <b>Marketing</b>` com a marcação à mostra no card. A segunda passada existe
+// para isso, e não para elegância: sem ela o Radar mostraria HTML cru na tela.
+function _textoDeFeed(bruto) {
+  return limparHtml(limparHtml(bruto));
+}
+
+// RSS 2.0 e Atom 1.0 no MESMO parser. Não é preciosismo: o alerta que se salva num buscador
+// costuma sair em Atom (<entry>, destino no atributo href) e o feed de um portal de vagas em
+// RSS (<item>, destino no texto de <link>). Suportar um só significa que metade dos
+// endereços colados devolveria zero item — e sem dizer por quê, que é o pior dos dois.
+function parsearFeed(xml, janelaDias = JANELA_FEED_DIAS, maxItens = ITENS_POR_FEED) {
+  const blocos = (xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [])
+    .concat(xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || []);
+  const vagas = [];
+  for (const bloco of blocos.slice(0, maxItens)) {
+    const titulo = _textoDeFeed(extrairTag(bloco, 'title') || '').slice(0, 200);
+    const mHref = bloco.match(/<link[^>]*\shref=["']([^"']+)["']/i);
+    const url = _desembrulharLink(decodeEntidades(
+      extrairTag(bloco, 'link') || (mHref ? mHref[1] : '') || extrairTag(bloco, 'guid') || ''
+    ));
+    const descricao = _textoDeFeed(
+      extrairTag(bloco, 'content:encoded') || extrairTag(bloco, 'description')
+      || extrairTag(bloco, 'summary') || extrairTag(bloco, 'content') || ''
+    ).slice(0, 4000);
+    const quando = extrairTag(bloco, 'pubDate') || extrairTag(bloco, 'published')
+                || extrairTag(bloco, 'updated') || '';
+    if (quando && !vagaRecente(quando, janelaDias)) continue;
+    if (!titulo || !/^https?:\/\//i.test(url)) continue;
+    // `empresa` fica VAZIA de propósito quando o feed não a traz. Preenchê-la com o rótulo do
+    // feed ficaria mais bonito na tela e quebraria a colheita em silêncio: `processarVagas`
+    // limita 3 cards por anunciante, e com todos os itens sob o mesmo nome só os 3 primeiros
+    // entrariam. Card que não sabe a empresa deve dizer que não sabe.
+    vagas.push({ titulo, empresa: '', url, descricao, pubDate: quando, local: '' });
+  }
+  return vagas;
+}
+
+// Um endereço por linha. Sem sintaxe para aprender: quem salva um alerta cola a URL que o
+// serviço deu, e nada mais. O rótulo não se pede — ele vem do título do próprio feed.
+function feedsDoPerfil(perfil) {
+  return String(perfil?.feeds || '')
+    .split(/[\r\n]+/).map(s => s.trim())
+    .filter(s => /^https?:\/\//i.test(s))
+    .slice(0, MAX_FEEDS_USUARIO);
+}
+
+// O LIMITE DECLARADO: `userId` null no cron. A colheita agendada não tem requisição e, por
+// isso, não tem dono — cai na chave antiga do Perfil, que hoje é a de Marcos. É a MESMA
+// lacuna que `executarVarredura` já tem e que bloqueia o segundo usuário; ela fica dita aqui
+// em vez de fingida, e some quando o cron aprender a percorrer os donos. Pela rota manual o
+// dono é real, porque ali existe requisição.
+async function colherFeedsDoUsuario(env, userId = null) {
+  const inicio = Date.now();
+  const porFeed = [];
+  try {
+    const raw = await lerPerfilBruto(env, userId);
+    const feeds = feedsDoPerfil(raw ? JSON.parse(raw) : null);
+    if (!feeds.length) {
+      await env.SENOVA_KV.put('colheita_feeds_status', JSON.stringify({
+        quando: new Date().toISOString(), status: 'sem_feeds',
+        detalhe: 'Nenhum endereço de feed no Perfil.',
+      }));
+      return { feeds: 0, novas: 0, por_feed: porFeed };
+    }
+    const rawLead = await env.SENOVA_KV.get('vagas_lead');
+    const vagasLead = rawLead ? JSON.parse(rawLead) : [];
+    const rawVistos = await env.SENOVA_KV.get('vagas_vistas_ids');
+    const vistosSet = new Set(rawVistos ? JSON.parse(rawVistos) : []);
+    let novas = 0;
+    for (let i = 0; i < feeds.length; i++) {
+      const endereco = feeds[i];
+      // O RECIBO NÃO GUARDA O ENDEREÇO. Um endereço de alerta é uma URL não-adivinhável com
+      // token embutido: quem a tem lê a busca daquela pessoa. `colheita_feeds_status` é chave
+      // global, então guardá-la ali entregaria a busca de um usuário a outro no MVP de três.
+      // A pessoa reconhece a linha pela POSIÇÃO na lista dela e pelo host — nenhum dos dois é
+      // segredo. Achado pelo crivo de viabilidade antes do commit.
+      let host = '';
+      try { host = new URL(endereco).hostname; } catch { host = ''; }
+      const quem = { linha: i + 1, host };
+      if (novas >= NOVAS_POR_COLHEITA_FEED) {
+        porFeed.push({ ...quem, adiado: true, itens: 0, novas: 0 });
+        continue;
+      }
+      // Endereço colado por gente é endereço vindo de fora: passa pela porta única como
+      // qualquer outro (v7.61), com revalidação de cada salto.
+      const r = await fetchExterno(endereco, { timeoutMs: 12000 });
+      if (!r.ok || !r.corpo) {
+        porFeed.push({ ...quem, erro: r.motivo || ('http_' + (r.status || '?')), itens: 0, novas: 0 });
+        continue;
+      }
+      // Rótulo do próprio feed, lido do cabeçalho do documento. É como a pessoa reconhece a
+      // busca que ela mesma criou, sem ter de nomeá-la duas vezes.
+      const rotulo = (_textoDeFeed(extrairTag(r.corpo.slice(0, 4000), 'title') || '') || 'Feed').slice(0, 60);
+      const itens = parsearFeed(r.corpo);
+      // `semFiltroCargo`: a peneira de título do Senova é o vocabulário de UMA carreira. Quem
+      // colou o endereço já escreveu a busca que queria — peneirar de novo pelo nosso
+      // vocabulário seria o app corrigindo a pessoa sobre o que ela procura.
+      const local = { id: 'feed:' + rotulo, label: '', canal: rotulo,
+                      maxPorTermo: Math.max(0, Math.min(ITENS_POR_FEED, NOVAS_POR_COLHEITA_FEED - novas)),
+                      semFiltroCargo: true };
+      const n = processarVagas(itens, vistosSet, vagasLead, local, 'feed');
+      novas += n;
+      porFeed.push({ ...quem, rotulo, itens: itens.length, novas: n });
+    }
+    if (novas > 0) {
+      await env.SENOVA_KV.put('vagas_lead', JSON.stringify(cortarRadar(vagasLead)));
+      await env.SENOVA_KV.put('vagas_vistas_ids', JSON.stringify([...vistosSet].slice(-5000)));
+    }
+    await env.SENOVA_KV.put('colheita_feeds_status', JSON.stringify({
+      quando: new Date().toISOString(), status: 'ok',
+      feeds: feeds.length, vagas_novas: novas, por_feed: porFeed,
+      duracao_ms: Date.now() - inicio,
+    }));
+    return { feeds: feeds.length, novas, por_feed: porFeed };
+  } catch (err) {
+    await env.SENOVA_KV.put('colheita_feeds_status', JSON.stringify({
+      quando: new Date().toISOString(), status: 'erro', erro: err && err.message, por_feed: porFeed,
+    }));
+    return { erro: err && err.message, por_feed: porFeed };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  ANÁLISE ATS via Claude
 // ═══════════════════════════════════════════════════════════════════
 // Instrumentação de custo real (S45 — ver reunião de viabilidade/margem). Antes
@@ -4879,7 +5092,7 @@ function montarCard(vaga, local, fonte) {
     // diferentes (país inteiro, Rüthen/40km, Düsseldorf/60km) e nenhuma pergunta do tipo
     // "quanto me custa esta frente" tinha resposta. Decisão de desligar frente sem este
     // campo é decisão sem número — foi exatamente o buraco de 28/ago.
-    frenteId: local.id || '', url: vaga.url, fonte,
+    frenteId: local.id || '', url: vaga.url, fonte, canal: local.canal || '',
     descricao: (vaga.descricao||'').slice(0,4000),
     score: null, classificacao: null, resumo: null,
     pontos_fortes: [], salario_compativel: null,

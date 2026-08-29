@@ -1105,6 +1105,18 @@ select option { background: var(--bg2); }
         <textarea id="perfil-empresas-alvo" rows="5" placeholder="Amazon&#10;Uber&#10;Nubank&#10;iFood&#10;Ambev" style="font-size:14px;resize:vertical;"></textarea>
       </div>
 
+      <!-- Meus alertas de vaga (feeds) -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--gold);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Meus alertas de vaga</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.55;">Você cria um alerta de <strong>vagas</strong> onde preferir — no buscador ou no portal que usa — e cola aqui o endereço do feed dele, um por linha. A cada três horas o Senova lê esses endereços e traz os anúncios novos para o Radar. Não custa nada: nenhuma análise de IA acontece nesta coleta. A nota continua saindo só quando você pedir, no card.</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.55;">Precisa ser um alerta de vagas, não de notícias: o Senova traz para o Radar tudo o que o seu alerta publicar, sem peneirar por cargo — quem escolheu o que buscar foi você. Um alerta de notícias encheria o Radar de reportagens.</div>
+        <textarea id="perfil-feeds" rows="4" placeholder="https://portal-de-vagas.com/busca/diretor-marketing/rss&#10;https://outro-site.com/vagas/feed.xml" style="font-size:14px;resize:vertical;"></textarea>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;">
+          <button class="btn btn-ghost" onclick="colherFeedsAgora()" id="btn-colher-feeds" style="font-size:13px;padding:8px 18px;">Colher agora</button>
+          <div id="perfil-feeds-status" style="font-size:13px;color:var(--text3);"></div>
+        </div>
+      </div>
+
       <!-- Frequência da busca automática -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Frequência da busca automática</div>
@@ -5402,6 +5414,7 @@ async function carregarPerfil(){
     _setCriterioUI(_smrPerfil);
     const pv=document.getElementById('perfil-projeto-vida'); if(pv){ pv.value=p.projeto_vida_texto||''; _onPerfilProjetoVidaInput(); }
     document.getElementById('perfil-empresas-alvo').value=p.empresas_alvo||'';
+    {const _f=document.getElementById('perfil-feeds'); if(_f) _f.value=p.feeds||'';}
     const _PLATS=['linkedin','gupy','indeed','catho','vagas','infojobs','xing','wellfound','stepstone'];
     const _plats=p.plataformas||{};
     _PLATS.forEach(k=>{ const cb=document.getElementById(`perfil-plat-${k}`); const dt=document.getElementById(`perfil-plat-${k}-data`); if(cb) cb.checked=_plats[k]?.cadastrado||false; if(dt) dt.value=_plats[k]?.data||''; });
@@ -5476,6 +5489,7 @@ async function salvarPerfil(){
     score_minimo_br:smr.br,score_minimo_espt:smr.espt,score_minimo_de:smr.de,score_minimo_remoto:smr.remoto,score_minimo_us:smr.us,
     pontos_termos:{otima:_ptO,valer:_ptV},
     empresas_alvo:document.getElementById('perfil-empresas-alvo').value.trim(),
+    feeds:document.getElementById('perfil-feeds')?.value.trim()||'',
     plataformas:(()=>{ const r={}; ['linkedin','gupy','indeed','catho','vagas','infojobs','xing','wellfound','stepstone'].forEach(k=>{ r[k]={cadastrado:document.getElementById(`perfil-plat-${k}`)?.checked||false,data:document.getElementById(`perfil-plat-${k}-data`)?.value.trim()||''}; }); return r; })(),
     hunters:document.getElementById('perfil-hunters').value.trim(),
     comunidades:document.getElementById('perfil-comunidades').value.trim(),
@@ -5529,6 +5543,36 @@ async function salvarPerfil(){
   if(btn){btn.disabled=false;btn.textContent='Salvar perfil';}
 }
 
+// ── Alertas de vaga (feeds do usuário) ────────────────────────────
+// Colher na hora, sem esperar as três horas do agendamento. O botão diz o que ACONTECEU —
+// quantos anúncios cada alerta trouxe e quantos eram novos —, nunca só "pronto": recibo sem
+// número é recibo falso, e já custou uma sessão inteira (S45).
+async function colherFeedsAgora(){
+  const btn=document.getElementById('btn-colher-feeds');
+  const alvo=document.getElementById('perfil-feeds-status');
+  const texto=(document.getElementById('perfil-feeds')?.value||'').trim();
+  if(!texto){ if(alvo) alvo.textContent='Cole ao menos um endereço de feed acima e salve o perfil antes de colher.'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='Colhendo...'; }
+  if(alvo) alvo.textContent='Lendo os seus alertas...';
+  try{
+    const r=await fetch(WORKER_URL+'/api/feeds/colher',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ if(alvo) alvo.textContent=d.error||'Não consegui colher agora. Tente daqui a pouco.'; return; }
+    if(d.erro){ if(alvo) alvo.textContent='Não consegui concluir: '+d.erro; return; }
+    if(!d.feeds){ if(alvo) alvo.textContent='Nenhum endereço salvo ainda — salve o perfil e tente de novo.'; return; }
+    // O recibo do Worker não devolve o endereço (um endereço de alerta carrega token). Cada
+    // linha se identifica pelo rótulo do próprio feed, ou pela posição na lista e pelo site.
+    const nome=f=>f.rotulo||(f.host?`linha ${f.linha} (${f.host})`:`linha ${f.linha}`);
+    const linhas=(d.por_feed||[]).map(f=>f.erro
+      ? `· ${nome(f)}: não consegui ler (${f.erro})`
+      : f.adiado
+        ? `· ${nome(f)}: fica para a próxima colheita — já vieram muitas de uma vez`
+        : `· ${nome(f)}: ${f.itens} anúncios lidos, ${f.novas} novos`);
+    if(alvo) alvo.innerHTML=`<div style="margin-bottom:4px;">${d.novas} ${d.novas===1?'vaga nova':'vagas novas'} no Radar.</div>`
+      + linhas.map(l=>`<div style="color:var(--text3);">${l.replace(/</g,'&lt;')}</div>`).join('');
+  }catch{ if(alvo) alvo.textContent='Não consegui falar com o servidor agora.'; }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='Colher agora'; } }
+}
 function salvarToggleMoverEmails(ativo){
   localStorage.setItem('senova_mover_emails', ativo?'1':'0');
   const track=document.getElementById('toggle-mover-track');
@@ -7409,7 +7453,11 @@ function _scoreMinParaVaga(v, config){
 function _montarCardVarredura(v, agora){
   return {
     id:v.id, empresa:v.empresa||'—', cargo:v.titulo||'—',
-    canal:v.fonte==='extensao_chrome'?'Extensão Chrome':'Busca automática', prioridade:'media', status:'lead', salario:'',
+    // O canal que o Worker gravou vem PRIMEIRO. Sem esta leitura, um card colhido de um
+    // alerta do próprio usuário aparecia rotulado "Busca automática" — a busca automática que
+    // está desligada desde 23/ago. Campo gravado sem leitor é o padrão de defeito da S49; aqui
+    // ele fazia o card afirmar na tela uma origem que não existe.
+    canal:v.canal||(v.fonte==='extensao_chrome'?'Extensão Chrome':'Busca automática'), prioridade:'media', status:'lead', salario:'',
     proxima:'', notas:'',
     data:new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'}),
     createdAt:agora, updatedAt:agora,
