@@ -63,11 +63,12 @@ t('o resumo-semente nomeia a RPC', /RPC/.test(RESUMO_SEMENTE), RESUMO_SEMENTE.sl
 t('o resumo-semente diz que é afiliada do Grupo Globo', /Grupo Globo/.test(RESUMO_SEMENTE));
 t('o resumo-semente traz número que prova escala', /R\$ ?\d/.test(RESUMO_SEMENTE));
 t('o resumo do documento (fallback sem IA) carrega a credencial', /RPC/.test(r.resumo) && /Grupo Globo/.test(r.resumo));
-// Tempo de casa: 2008-11 → 2019-04 são dez anos e cinco meses. O CV chumbado antigo dizia "quase
-// 12 anos" — inflar tempo de casa é mentira, e mentira não passa por aqui nem para vender melhor.
-t('nenhum lugar do app infla o tempo de RPC para 11 ou 12 anos',
-  !/\b(1[12]) anos\b[^.]{0,40}(RPC|Globo)|\b(RPC|Globo)\b[^.]{0,40}\b(1[12]) anos\b/i.test(html),
-  (html.match(/.{0,50}\b1[12] anos\b.{0,50}/i) || ['nenhum'])[0]);
+// Tempo de casa: 2008-08 → 2019-04 são dez anos e oito meses (data de entrada corrigida em
+// 07/set/2026 — Marcos confirmou que entrou em agosto, não novembro). Padrão desde então: "quase
+// onze anos". "Quase doze anos" segue proibido — foi a inflação que ele mesmo reprovou em 20/ago.
+t('nenhum lugar do app infla o tempo de RPC para doze anos ou mais',
+  !/\b1[2-9] anos\b[^.]{0,40}(RPC|Globo)|\b(RPC|Globo)\b[^.]{0,40}\b1[2-9] anos\b/i.test(html),
+  (html.match(/.{0,50}\b1[2-9] anos\b.{0,50}/i) || ['nenhum'])[0]);
 
 const RPC = exec(s, "PERFIL_MARCOS.experiencias.filter(e=>/^rpc-/.test(e.id))");
 t('as duas passagens pela RPC continuam no perfil', RPC.length === 2);
