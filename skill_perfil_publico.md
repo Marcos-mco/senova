@@ -81,22 +81,38 @@ aprovação explícita dele (regra padrão de permissão para "Changing account 
   guarda esse dado — resolver por julgamento coerente com a era/natureza da empresa. O campo
   de Resumo Profissional tem limite de 1000 caracteres (o texto padrão, 529 caracteres, cabe
   sem cortar).
-- Michael Page — auditado em 09/set/2026 (item 4, consistência de dados). O campo "Qual é o seu
-  salário mensal atual?" (`/mypage/personal-details`) foi alterado de BRL 19.000 para BRL 15.000
-  a pedido de Marcos ("Use 15 mil"), confirmado após reload independente — persistiu. **Achado
-  crítico de confiabilidade, NÃO resolvido:** o card "Gerente de Marketing" (RPC) em
-  `/mypage/job-match-detail` tem um bug real de persistência no backend — 4 tentativas de editar
-  a data de início (Nov/2008→Ago/2008 + término Mar/2012) e 1 tentativa de excluir o card inteiro
-  todas retornaram HTTP 200, sem erro no DOM, mostraram o valor correto na tela imediatamente
-  após salvar — e **reverteram para o estado original após reload independente**. Ou seja: nem
-  editar nem deletar esse card específico persiste, apesar de toda aparência de sucesso. Marcos
-  decidiu parar este item (não insistir com mais tentativas) e seguir a fila; achado registrado
-  para eventual report ao suporte da Michael Page. Reforça a lição já registrada na auditoria do
-  Gupy — **checkmark verde / HTTP 200 / DOM correto não são garantia de persistência real; só
-  reload independente prova.** **Achado lateral de UI:** um overlay "Survey Dialog" pode aparecer
-  sem aviso e interceptar cliques sobre o formulário de edição — fechar pelo botão "Close survey"
-  resolve. Demais itens do checklist (indexação, disponibilidade, URL, prova social, destaques,
-  idioma) não auditados nesta passada.
+- Michael Page — auditado em 09/set/2026, checklist completo (item 4 numa primeira passada; itens
+  1,2,3,5,6,7,8 numa segunda, depois de Marcos perguntar "e viu também as configurações?"). O
+  campo "Qual é o seu salário mensal atual?" (`/mypage/personal-details`) foi alterado de BRL
+  19.000 para BRL 15.000 a pedido de Marcos ("Use 15 mil"), confirmado após reload independente —
+  persistiu. **Achado crítico de confiabilidade, NÃO resolvido:** o card "Gerente de Marketing"
+  (RPC) em `/mypage/job-match-detail` tem um bug real de persistência no backend — 4 tentativas de
+  editar a data de início (Nov/2008→Ago/2008 + término Mar/2012) e 1 tentativa de excluir o card
+  inteiro todas retornaram HTTP 200, sem erro no DOM, mostraram o valor correto na tela
+  imediatamente após salvar — e **reverteram para o estado original após reload independente**.
+  Ou seja: nem editar nem deletar esse card específico persiste, apesar de toda aparência de
+  sucesso. Marcos decidiu parar este item (não insistir com mais tentativas) e seguir a fila;
+  achado registrado para eventual report ao suporte da Michael Page. Reforça a lição já registrada
+  na auditoria do Gupy — **checkmark verde / HTTP 200 / DOM correto não são garantia de
+  persistência real; só reload independente prova.**
+  **Checklist completo — itens 1,2,5,6,7 não se aplicam:** Michael Page é um banco de candidatos
+  privado de recrutadora (modelo de staffing agency), não um perfil social/público como o
+  LinkedIn — não existe URL pública de perfil, indexação em buscador, exposição pública de
+  contato, seção de recomendações/certificados nem conteúdo fixado. **Item 8** (idioma/adequação
+  regional) ok. **Item 3** (sinal de disponibilidade), mapeado para o campo "Quando você estaria
+  disponível para começar?" (não existe toggle tipo Open-to-Work neste portal): estava em
+  17/05/2026, já passada — corrigido para 09/09/2026 (aprovado, "Sim, para hoje/próximo mês"),
+  **confirmado após reload**.
+  **Achado extra, fora do checklist original — CV desatualizado, resolvido:** o CV anexado ao
+  perfil (`CV_Marcos_Franco_2026_v1.pdf`, 22/04/2026) era usado tanto para download por recrutador
+  (`/mypage/your-cv`) quanto para Candidatura em Um Clique (`/mypage/one-click-apply-settings`), e
+  antecedia as correções da RPC. Aprovado por Marcos ("Sim, enviar o CV atualizado"); o arquivo
+  certo (`cvs/CV_MF_2026_PT.pdf`, gerado em 07/set já com RPC Ago/2008–Abr/2012) foi enviado como
+  segunda versão em `/mypage/your-cv` (o portal aceita até 3) e marcado como padrão/Master —
+  **confirmado após reload independente**, inclusive refletido em `/mypage/one-click-apply-settings`
+  ("Seu CV padrão: CV_MF_2026_PT.pdf"). O CV antigo permanece como segunda versão, não deletado.
+  **Achado lateral de UI:** um overlay "Survey Dialog" pode aparecer sem aviso e interceptar
+  cliques sobre formulários — fechar pelo botão "Close survey" resolve.
 - Próximos portais: InfoJobs é o próximo da fila (aba `infojobs.com.br/Candidate/CV/insert2.aspx`
   já aberta, ainda não tocado). Depois, a definir com Marcos entre os demais candidatos (Robert
   Half, Page Personnel, LHH — ver fila em VIRGILIO.md).
