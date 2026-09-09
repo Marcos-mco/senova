@@ -81,6 +81,22 @@ aprovação explícita dele (regra padrão de permissão para "Changing account 
   guarda esse dado — resolver por julgamento coerente com a era/natureza da empresa. O campo
   de Resumo Profissional tem limite de 1000 caracteres (o texto padrão, 529 caracteres, cabe
   sem cortar).
+- Michael Page — auditado em 09/set/2026 (item 4, consistência de dados). O campo "Qual é o seu
+  salário mensal atual?" (`/mypage/personal-details`) foi alterado de BRL 19.000 para BRL 15.000
+  a pedido de Marcos ("Use 15 mil"), confirmado após reload independente — persistiu. **Achado
+  crítico de confiabilidade, NÃO resolvido:** o card "Gerente de Marketing" (RPC) em
+  `/mypage/job-match-detail` tem um bug real de persistência no backend — 4 tentativas de editar
+  a data de início (Nov/2008→Ago/2008 + término Mar/2012) e 1 tentativa de excluir o card inteiro
+  todas retornaram HTTP 200, sem erro no DOM, mostraram o valor correto na tela imediatamente
+  após salvar — e **reverteram para o estado original após reload independente**. Ou seja: nem
+  editar nem deletar esse card específico persiste, apesar de toda aparência de sucesso. Marcos
+  decidiu parar este item (não insistir com mais tentativas) e seguir a fila; achado registrado
+  para eventual report ao suporte da Michael Page. Reforça a lição já registrada na auditoria do
+  Gupy — **checkmark verde / HTTP 200 / DOM correto não são garantia de persistência real; só
+  reload independente prova.** **Achado lateral de UI:** um overlay "Survey Dialog" pode aparecer
+  sem aviso e interceptar cliques sobre o formulário de edição — fechar pelo botão "Close survey"
+  resolve. Demais itens do checklist (indexação, disponibilidade, URL, prova social, destaques,
+  idioma) não auditados nesta passada.
 - Próximos portais: InfoJobs é o próximo da fila (aba `infojobs.com.br/Candidate/CV/insert2.aspx`
   já aberta, ainda não tocado). Depois, a definir com Marcos entre os demais candidatos (Robert
   Half, Page Personnel, LHH — ver fila em VIRGILIO.md).
