@@ -5225,14 +5225,18 @@ function formRenderizar(){
     lista.innerHTML = _aviso + '<p style="font-size:13px;color:var(--text3);padding:4px 0 14px;">Nenhuma formação cadastrada ainda.</p>';
     return;
   }
-  lista.innerHTML = _aviso + _formDados.map(f => `
+  lista.innerHTML = _aviso + _formDados.map((f,i) => `
     <div class="form-item" id="form-${f.id}" style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--bg3);">
       <div style="margin-bottom:12px;"><label class="field-label">Curso ou título</label><input type="text" value="${_expEsc(f.titulo)}" maxlength="160" placeholder="ex: Mestre em Marketing" oninput="_formCampo('${f.id}','titulo',this.value)"></div>
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
         <div><label class="field-label">Instituição</label><input type="text" value="${_expEsc(f.instituicao)}" maxlength="160" placeholder="ex: Universidade de Évora, Portugal" oninput="_formCampo('${f.id}','instituicao',this.value)"></div>
         <div><label class="field-label">Período</label><input type="text" value="${_expEsc(f.periodo)}" maxlength="40" placeholder="ex: 2002-2004" oninput="_formCampo('${f.id}','periodo',this.value)"></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div style="display:flex;gap:6px;">
+          <button onclick="formMoverCima('${f.id}')" ${i===0?'disabled':''} title="Mover para cima" style="background:none;border:1px solid var(--border2);color:${i===0?'var(--border)':'var(--text2)'};border-radius:6px;width:30px;height:30px;font-size:14px;line-height:1;cursor:${i===0?'default':'pointer'};">↑</button>
+          <button onclick="formMoverBaixo('${f.id}')" ${i===_formDados.length-1?'disabled':''} title="Mover para baixo" style="background:none;border:1px solid var(--border2);color:${i===_formDados.length-1?'var(--border)':'var(--text2)'};border-radius:6px;width:30px;height:30px;font-size:14px;line-height:1;cursor:${i===_formDados.length-1?'default':'pointer'};">↓</button>
+        </div>
         <button onclick="formRemover('${f.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;">Remover</button>
       </div>
     </div>`).join('');
@@ -5245,6 +5249,18 @@ function formAdicionar(){
 }
 function formRemover(id){
   _formDados = _formDados.filter(f=>f.id!==id);
+  formRenderizar();
+}
+function formMoverCima(id){
+  const i = _formDados.findIndex(f=>f.id===id);
+  if(i<=0) return;
+  [_formDados[i-1],_formDados[i]] = [_formDados[i],_formDados[i-1]];
+  formRenderizar();
+}
+function formMoverBaixo(id){
+  const i = _formDados.findIndex(f=>f.id===id);
+  if(i<0 || i>=_formDados.length-1) return;
+  [_formDados[i+1],_formDados[i]] = [_formDados[i],_formDados[i+1]];
   formRenderizar();
 }
 // Sem nada salvo, abre com a formação que o CV usa hoje — pela mesma razão de _expCarregar:
