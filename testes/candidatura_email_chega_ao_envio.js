@@ -111,7 +111,7 @@ console.log('\n=== responder quem escreveu ≠ iniciar contato: a distinção n�
   // a conversa?". A marca de que alguém escreveu primeiro é `emailAssunto`/`fonte:email*` —
   // gravados SÓ por quem cria card a partir da caixa de entrada. É o que separa o card do
   // Marcos (ele digitou o destino) do card de um recrutador que escreveu para ele.
-  for (const marca of [{ emailAssunto: 'Vaga de Gerente' }, { fonte: 'email' }, { fonte: 'email_alerta' }]) {
+  for (const marca of [{ emailAssunto: 'Vaga de Gerente' }, { fonte: 'email' }]) {
     const { s, btn } = appComPill(Object.assign({ id: 9, canal: 'Email', emailDest: 'recrutadora@empresa.com' }, marca));
     exec(s, 'mvSyncEnvioDireto()');
     t(`card nascido de e-mail recebido (${JSON.stringify(marca)}) fica em modo RESPOSTA`,
@@ -119,6 +119,25 @@ console.log('\n=== responder quem escreveu ≠ iniciar contato: a distinção n�
     t('e o endereço de quem escreveu segue disponível para responder',
       exec(s, 'destinoCandidatura(vagas[0])') === 'recrutadora@empresa.com');
   }
+}
+
+console.log('\n=== alerta de vaga não é alguém escrevendo: o card do alerta ENVIA candidatura ===');
+{
+  // 28/set/2026, card FASUL: "o card não está enviando candidatura por email". O card nasceu de
+  // um alerta de vaga (`fonte:'email_alerta'`, com `emailAssunto` do aviso) e tinha destino
+  // real — mas a asserção antiga travava o alerta em modo RESPOSTA. Documentava o defeito.
+  // Aviso automático de portal não é conversa iniciada por ninguém.
+  const alerta = { id: 10, empresa: 'Instituição X', status: 'lead', fonte: 'email_alerta',
+    emailAssunto: 'A empresa Instituição X está contratando', emailDest: 'rh@instituicaox.edu.br' };
+  const { s, btn } = appComPill(alerta);
+  exec(s, 'mvSyncEnvioDireto()');
+  t('card nascido de ALERTA com destino real abre o envio de candidatura',
+    btn.dataset.modoEnvio === '1', btn.textContent);
+  t('e o destino chega a quem envia',
+    exec(s, 'destinoCandidatura(vagas[0])') === 'rh@instituicaox.edu.br');
+  const semDestino = appComPill(Object.assign({}, alerta, { emailDest: '' }), '');
+  exec(semDestino.s, 'mvSyncEnvioDireto()');
+  t('alerta sem destino segue sem prometer envio', semDestino.btn.dataset.modoEnvio !== '1');
 }
 
 console.log('\n=== não se manda currículo para caixa que não lê — e a regra vale para todos ===');

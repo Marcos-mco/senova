@@ -10241,7 +10241,11 @@ function mvSyncEnvioDireto(){
   const v=editingVagaId==='new'?_mvNovoCardAnalise:(editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null);
   // O que está digitado na tela conta antes de salvar — senão o pill mentiria até o "Salvar".
   const _digitado=document.getElementById('mv-email-dest')?.value||'';
-  const _ehResposta=!!(v&&(v.emailAssunto||/^email/.test(v.fonte||'')));
+  // 28/set/2026 — `fonte:'email_alerta'` é aviso automático de portal (o anúncio chegou por
+  // alerta), não uma pessoa escrevendo para ele: ninguém começou conversa, o destino que o card
+  // tiver é de candidatura. Tratar o alerta como resposta fechava a porta do envio (card FASUL).
+  const _ehAlerta=!!(v&&v.fonte==='email_alerta');
+  const _ehResposta=!!(v&&!_ehAlerta&&(v.emailAssunto||/^email/.test(v.fonte||'')));
   const _destino=destinoCandidatura(v,_digitado);
   if(_destino&&!_ehResposta){ btn.textContent='Enviar candidatura por e-mail →'; btn.dataset.modoEnvio='1'; }
   else { btn.textContent='Resposta por e-mail'; btn.dataset.modoEnvio=''; }
