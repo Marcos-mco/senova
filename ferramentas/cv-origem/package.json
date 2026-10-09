@@ -1,0 +1,9 @@
+{
+  "name": "senova-cv-origem",
+  "private": true,
+  "description": "Gera o CV-origem (PDF + DOCX) a partir do Perfil salvo no Senova. Ferramenta local, fora do app.",
+  "dependencies": {
+    "docx": "^9.5.1",
+    "pdfkit": "^0.17.2"
+  }
+}

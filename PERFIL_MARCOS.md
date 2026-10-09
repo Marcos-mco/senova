@@ -1,4 +1,7 @@
 # PERFIL — MARCOS FRANCO
+
+> **NÃO É FONTE de dado de carreira (09/out/2026).** Datas, cargos, empresas, formação e textos de CV vivem **só no Perfil do Senova** (tela Perfil → salvo no KV). O CV-origem (`cvs/CV_MF_2026_*`) é gerado a partir dele por `node ferramentas/cv-origem/gerar.js`. Este arquivo ficou para trás em set/2026 (ex.: RPC desde ago/2008, Consigliere "Consultor C-Level", startup de seguro-aluguel 2021–2023, Marcenaria Fina 2020) e é mantido só como histórico e contexto. Divergiu do Perfil? Vale o Perfil.
+
 *Extraído do VIRGILIO.md em 26/mai/2026 para economizar tokens na leitura de sessão*
 *Ler apenas quando necessário (CV, cartas, pesquisa executiva)*
 

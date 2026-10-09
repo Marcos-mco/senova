@@ -1,5 +1,7 @@
 # SKILL: CV — Adaptação por Vaga (Anti-ATS)
 
+> **Os DADOS de carreira deste arquivo NÃO são fonte (09/out/2026).** O método (anti-ATS, nomenclatura, regras de página) continua valendo. Mas datas, cargos, empresas, formação e o texto-base do CV vivem **só no Perfil do Senova**; o CV-origem (`cvs/CV_MF_2026_*`) é gerado dele por `node ferramentas/cv-origem/gerar.js`. Divergiu do Perfil? Vale o Perfil.
+
 ## Quando usar
 Sempre que Marcos precisar:
 - Adaptar CV para uma vaga específica
