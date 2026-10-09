@@ -123,8 +123,8 @@ function gerarPDF(cv, destino) {
         }
       } else if (tipo === 'linha') {
         const [cargo, ...resto] = b[0].split(' — ');
-        doc.font('b').fontSize(11).fillColor(COR.texto).text(cargo + '  ', L, undefined, { continued: true });
-        doc.font('r').fontSize(9.5).fillColor(COR.navy).text(resto.join(' — '));
+        doc.font('b').fontSize(11).fillColor(COR.texto).text(cargo, L, undefined, { continued: true });
+        doc.font('r').fontSize(11).fillColor(COR.navy).text(' — ' + resto.join(' — '));
         doc.font('r').fontSize(10.5).fillColor(COR.texto).text(b[1], L, undefined, { width: W });
       } else {
         doc.font('b').fontSize(11).fillColor(COR.texto).text(b[0], L, undefined, { width: W });
@@ -165,7 +165,7 @@ function gerarDOCX(cv, destino) {
         for (const bl of b.slice(3)) filhos.push(p([run(bl.replace(/^• /, ''))], { extra: { bullet: { level: 0 } } }));
       } else if (tipo === 'linha') {
         const [cargo, ...resto] = b[0].split(' — ');
-        filhos.push(p([run(cargo + '  ', { bold: true, size: 22 }), run(resto.join(' — '), { size: 19, color: COR.navy })], { before: 80 }));
+        filhos.push(p([run(cargo, { bold: true, size: 22 }), run(' — ' + resto.join(' — '), { size: 22, color: COR.navy })], { before: 80 }));
         filhos.push(p([run(b[1])]));
       } else {
         filhos.push(p([run(b[0], { bold: true, size: 22 })], { before: 80 }));
@@ -187,6 +187,7 @@ async function main() {
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const pastaAnterior = path.join(PASTA_CVS, `_anterior_${String(hoje.getDate()).padStart(2,'0')}${meses[hoje.getMonth()]}`);
 
+  const travados = [];
   for (const lang of IDIOMAS) {
     const texto = perfil[`cv_master_${lang}`] || (lang === 'pt' ? perfil.cv_master : '');
     if (!texto || !texto.trim()) { console.log(`${lang.toUpperCase()}: Perfil sem CV neste idioma — pulado.`); continue; }
@@ -194,6 +195,11 @@ async function main() {
     for (const ext of ['pdf', 'docx']) {
       const destino = path.join(PASTA_CVS, `${prefixo}_${lang.toUpperCase()}.${ext}`);
       if (fs.existsSync(destino)) {
+        // O Windows trava o arquivo aberto num leitor de PDF/Word: avisa e segue com os outros.
+        try { fs.closeSync(fs.openSync(destino, 'r+')); } catch (e) {
+          travados.push(path.relative(RAIZ, destino));
+          continue;
+        }
         fs.mkdirSync(pastaAnterior, { recursive: true });
         const copia = path.join(pastaAnterior, path.basename(destino));
         if (!fs.existsSync(copia)) fs.copyFileSync(destino, copia);
@@ -201,6 +207,10 @@ async function main() {
       if (ext === 'pdf') await gerarPDF(cv, destino); else await gerarDOCX(cv, destino);
       console.log('gerado:', path.relative(RAIZ, destino));
     }
+  }
+  if (travados.length) {
+    console.log('\nNÃO gerados — arquivo aberto em outro programa. Feche e rode de novo:\n  ' + travados.join('\n  '));
+    process.exitCode = 1;
   }
 }
 
