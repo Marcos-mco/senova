@@ -90,7 +90,9 @@ t('background repassa a ref inteira ao app', /func: \(r\) =>[\s\S]{0,120}__senov
 t('content pede o card com ref também fora do LinkedIn', /function _puxarCardDoApp\(\)/.test(ct));
 t('o pedido carrega a URL da página', /sendMessage\(\{ type: 'GET_ANALISE', ref \}\)/.test(ct));
 t('o caminho do popup puxa o card', /injetarCopiloto\(an\); \} catch \(_\) \{\}\s*\n\s*_puxarCardDoApp\(\);/.test(ct));
-t('o caminho do passe externo puxa o card', /injetarCopiloto\(\{[\s\S]{0,220}\}\);\s*\n\s*_puxarCardDoApp\(\);/.test(ct));
+// 13/out: o painel só abre pelo clique no ícone — o único chamador de fora do próprio painel é o
+// ATIVAR_COPILOTO do popup. Nenhuma abertura automática (LinkedIn ou passe externo).
+t('o copiloto só abre pelo clique (um único chamador externo)', (ct.match(/(?<!function )injetarCopiloto\((an|\{)/g) || []).length === 1);
 t('no LinkedIn continua exigindo nota para aparecer', /if \(!an \|\| !an\.score\) return;/.test(ct));
 t('o diagnóstico mostra se o card casou', /'card no app: ' \+ d\.card/.test(ct));
 

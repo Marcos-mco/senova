@@ -2190,9 +2190,10 @@
           // acorda o copiloto aqui (comportamento de sempre). A função do app agora devolve
           // o card mesmo sem nota — a decisão de exibir é de cada chamador, não dela.
           if (!an || !an.score) return;
+          // O painel só aparece quando você clica no ícone da extensão (pedido de Marcos, 13/out):
+          // aqui só deixamos a análise pronta e o passe — o clique no popup acorda o copiloto.
           an.jobId = _jid;
           window.__senovaAnalise = an;
-          injetarCopiloto(an);
           // Passe para quando você sair para o site da empresa (Loxo, Greenhouse, etc.)
           chrome.storage.local.set({ senova_passe: {
             jobId: _jid, score: an.score, compatFortes: an.compatFortes,
@@ -2203,24 +2204,11 @@
     }
   }
 
-  // COPILOTO NO SITE DE CANDIDATURA EXTERNO — o copiloto te acompanha do LinkedIn para o
-  // site da empresa, onde a candidatura realmente acontece. Só aparece se você veio de uma
-  // vaga do Senova (passe recente) e a página parece de candidatura — não invade navegação.
+  // SITE DE CANDIDATURA EXTERNO — o passe do LinkedIn fica registrado para enriquecer o copiloto,
+  // mas o painel NÃO abre sozinho: só aparece quando você clica no ícone da extensão (13/out).
   if (!host.includes('linkedin.com')) {
     chrome.storage.local.get('senova_passe').then(s => {
-      const passe = s.senova_passe;
-      _ultimoPasse = passe || null; // instrumentação: registra o que existe (mesmo velho)
-      if (!passe || (Date.now() - passe.ts) > 45 * 60 * 1000) return;
-      const pareceCandidatura = /apply|candidat|job|career|vaga|position|opening|recruit/i.test(url + ' ' + document.title);
-      const inject = () => {
-        if (!_acharContainerCandidatura() && !pareceCandidatura) return;
-        injetarCopiloto({
-          jobId: passe.jobId, score: passe.score, compatFortes: passe.compatFortes,
-          compatAtencao: passe.compatAtencao, cargo: passe.cargo, empresa: passe.empresa
-        });
-        _puxarCardDoApp();   // o passe é um retrato congelado; o card é a fonte de verdade
-      };
-      if (document.body) inject(); else window.addEventListener('DOMContentLoaded', inject);
+      _ultimoPasse = s.senova_passe || null; // instrumentação: registra o que existe (mesmo velho)
     }).catch(() => { _ultimoPasse = null; });
   }
 
