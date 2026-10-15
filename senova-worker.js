@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  SENOVA PROXY — Worker v7.63
+//  SENOVA PROXY — Worker v7.64
 //
 //  NOVIDADES v7.62 (29/ago/2026) — O VOLUME DE VAGAS VOLTA, E DE GRAÇA.
 //
@@ -1161,7 +1161,7 @@ const CONFIG_PADRAO = {
 // É o número que se usa para saber se o deploy pegou — mentir aqui é perder a única resposta
 // barata para "isto que está rodando é o que eu acabei de publicar?". testes/versao_worker.js
 // trava os dois juntos.
-const VERSAO_WORKER = '7.63';
+const VERSAO_WORKER = '7.64';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://marcos-mco.github.io',
@@ -2026,6 +2026,24 @@ export default {
         for (const f of dados.formacao) {
           if ((f.titulo||'').length > 160 || (f.instituicao||'').length > 160 || (f.periodo||'').length > 40) {
             return json({ erro: `"${(f.titulo||f.instituicao||'uma formação')}" tem um campo maior que o permitido. Resuma e tente de novo.` }, 400);
+          }
+        }
+      }
+      // Cursos complementares: mesma política. O conteúdo tem teto de 260 porque vira uma ou duas
+      // linhas no PDF; mais que isso empurra a carreira para fora das 2 páginas.
+      if (dados.cursos !== undefined) {
+        if (!Array.isArray(dados.cursos)) {
+          return json({ erro: 'Cursos complementares chegaram num formato inválido. Recarregue a página e tente de novo.' }, 400);
+        }
+        if (dados.cursos.length > 10) {
+          return json({ erro: `Máximo de 10 cursos complementares — você tem ${dados.cursos.length}. Remova um antes de salvar.` }, 400);
+        }
+        for (const c of dados.cursos) {
+          if ((c.titulo||'').length > 160 || (c.instituicao||'').length > 160 || (c.periodo||'').length > 40) {
+            return json({ erro: `O curso "${(c.titulo||c.instituicao||'sem nome')}" tem um campo maior que o permitido. Resuma e tente de novo.` }, 400);
+          }
+          if ((c.conteudo||'').length > 260) {
+            return json({ erro: `O conteúdo do curso "${(c.titulo||'sem nome')}" passou de 260 caracteres — no CV ele cabe em até duas linhas. Resuma e tente de novo.` }, 400);
           }
         }
       }

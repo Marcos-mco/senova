@@ -29,6 +29,11 @@ const s = carregarApp([
   'function formRenderizar(',
   'function _formCarregar(',
   'function _formParaPayload(',
+  'let _cursoDados =',
+  'function _cursoNovoId(',
+  'function cursoRenderizar(',
+  'function _cursoCarregar(',
+  'function _cursoParaPayload(',
 ]);
 
 const VAGA = 'Gerente Comercial em Curitiba, liderança de equipe de vendas e canais indiretos.';

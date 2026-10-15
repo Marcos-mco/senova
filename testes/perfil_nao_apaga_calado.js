@@ -45,6 +45,11 @@ function comResposta(resposta){
     'async function salvarPerfil(',
     'function _expParaPayload(',
     'function _formParaPayload(',
+    'let _cursoDados =',
+    'function _cursoNovoId(',
+    'function cursoRenderizar(',
+    'function _cursoCarregar(',
+    'function _cursoParaPayload(',
   ],{
     document:doc, WORKER_URL:'https://worker.teste',
     fetch:(url,init)=>{

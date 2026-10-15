@@ -924,6 +924,16 @@ select option { background: var(--bg2); }
         <button class="btn btn-ghost" onclick="formAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar formação</button>
       </div>
 
+      <!-- Cursos complementares (mesma regra da formação: é daqui que sai a seção do CV) -->
+      <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;">Cursos complementares</div>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:16px;">
+          Cursos livres, de extensão e de curta duração. Saem no CV numa seção própria, logo depois da formação acadêmica, na ordem em que estiverem aqui.
+        </div>
+        <div id="curso-lista"></div>
+        <button class="btn btn-ghost" onclick="cursoAdicionar()" style="width:100%;justify-content:center;border-style:dashed;">+ Adicionar curso</button>
+      </div>
+
       <!-- Dados para candidatura (sensíveis) — APENAS neste navegador -->
       <div class="card" style="margin-bottom:20px;border-top:3px solid var(--navy);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -3384,6 +3394,26 @@ function guardarFormacaoSalva(lista,atoDoUsuario){
 // Ponto único de leitura da formação.
 function formacaoDoCV(){ return formacaoSalva() || formacaoSemente(); }
 
+// Cursos complementares: sem semente. Quem não cadastrou nenhum não tem a seção no CV.
+function _perfilCursosKey(){ return 'senova_perfil_cursos'; }
+function cursosSalvos(){
+  let bruto=null;
+  try{ bruto=JSON.parse(localStorage.getItem(_perfilCursosKey())||'null'); }catch(_){ }
+  if(!Array.isArray(bruto)) return [];
+  const t=v=>String(v||'').trim();
+  return bruto.map(c=>({titulo:t(c&&c.titulo), instituicao:t(c&&c.instituicao), periodo:t(c&&c.periodo), conteudo:t(c&&c.conteudo)}))
+              .filter(c=>c.titulo);
+}
+// Mesma trava da formação: quem só lê nunca apaga.
+function guardarCursosSalvos(lista,atoDoUsuario){
+  try{
+    if(Array.isArray(lista)&&lista.length) localStorage.setItem(_perfilCursosKey(),JSON.stringify(lista));
+    else if(atoDoUsuario) localStorage.removeItem(_perfilCursosKey());
+  }catch(_){ }
+}
+// Ponto único de leitura dos cursos.
+function cursosDoCV(){ return cursosSalvos(); }
+
 // São DOIS os leitores do contato: o prompt da IA (perfilFormatadoPara) e o cabeçalho do documento
 // (_cvParaPDF). Até 21/ago/2026 os dois liam o bloco fixo, e o que a pessoa digitava no Perfil —
 // nome, telefone, e-mail, LinkedIn — era salvo no Worker e nunca chegava ao papel. Mesmo desenho
@@ -3451,7 +3481,7 @@ function _ehLinhaDoNome(linha, estrito){
 // propósito: sem rede, o CV sai com a semente, como saía antes.
 document.addEventListener('DOMContentLoaded', () => {
   fetch(WORKER_URL+'/api/perfil').then(r=>r.ok?r.json():null)
-    .then(p=>{ if(p){ guardarExperienciasSalvas(p.experiencias); guardarFormacaoSalva(p.formacao); } }).catch(()=>{});
+    .then(p=>{ if(p){ guardarExperienciasSalvas(p.experiencias); guardarFormacaoSalva(p.formacao); guardarCursosSalvos(p.cursos); } }).catch(()=>{});
 });
 
 // Filtro determinístico (sem IA) que decide QUAIS experiências de PERFIL_MARCOS entram no material
@@ -3498,6 +3528,15 @@ function formatarExperienciasPerfil(exps, comIds) {
 // Bloco único de perfil (contato + resumo + experiências já filtradas + formação + idiomas) — fonte
 // única para ATS_SYSTEM, CARTA_SYSTEM e EMAIL_ENVIO_SYSTEM. A lista de experiências já vem decidida
 // e ordenada por filtrarExperienciasRelevantes; a IA que receber este bloco só traduz/otimiza redação.
+// Bloco CURSOS COMPLEMENTARES do prompt: só existe quando há curso cadastrado (sem lista vazia, sem "nenhum").
+function _blocoCursosPrompt(){
+  const cs = cursosDoCV();
+  if(!cs.length) return '';
+  return `
+CURSOS COMPLEMENTARES (cursos livres; lista FINAL, na ordem dada — não acrescente nenhum):
+${cs.map(c => `- ${c.titulo}${c.instituicao?', '+c.instituicao:''}${c.periodo?' ('+c.periodo+')':''}${c.conteudo?' — '+c.conteudo:''}`).join('\n')}
+`;
+}
 function perfilFormatadoPara(textoVaga, nivelVaga, comIds) {
   const c = contatoDoCV();
   const exps = filtrarExperienciasRelevantes(textoVaga, nivelVaga);
@@ -3510,7 +3549,7 @@ ${formatarExperienciasPerfil(exps, comIds)}
 
 FORMAÇÃO:
 ${formacaoDoCV().map(f => `- ${f.titulo}, ${f.instituicao} (${f.periodo})`).join('\n')}
-
+${_blocoCursosPrompt()}
 IDIOMAS:
 ${PERFIL_MARCOS.idiomas.map(i => `- ${i.idioma}: ${i.nivel}`).join('\n')}`;
 }
@@ -3886,7 +3925,7 @@ OBSERVAÇÕES: [contexto relevante em 1 linha]
 
 ---PERFIL---
 Os FATOS do CV (cargos, bullets, formação, idiomas) são montados por código a partir do perfil, não do texto do ---CV--- acima. É por isso que este bloco existe, e é ele que decide o documento final. Devolva JSON e nada além do JSON:
-{"idioma":"${lang}","exp":{"<id da experiência, exatamente como veio em [id:...]>":{${traduzir ? '"cargo":"<cargo traduzido>","empresa":"<a linha da empresa: o nome próprio VERBATIM, traduzindo só palavra comum e qualificador entre parênteses>",' : ''}"bullets":["...","..."]}}${traduzir ? ',"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"instituicoes":["<a linha da instituição, na mesma ordem: nome próprio VERBATIM, traduzindo só o país e as palavras comuns>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]' : ''}}
+{"idioma":"${lang}","exp":{"<id da experiência, exatamente como veio em [id:...]>":{${traduzir ? '"cargo":"<cargo traduzido>","empresa":"<a linha da empresa: o nome próprio VERBATIM, traduzindo só palavra comum e qualificador entre parênteses>",' : ''}"bullets":["...","..."]}}${traduzir ? ',"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"instituicoes":["<a linha da instituição, na mesma ordem: nome próprio VERBATIM, traduzindo só o país e as palavras comuns>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]' + (cursosDoCV().length ? ',"cursos":[{"titulo":"<título traduzido>","conteudo":"<conteúdo traduzido, ou vazio se veio vazio>"} na mesma ordem da lista CURSOS COMPLEMENTARES]' : '') : ''}}
 Regras deste bloco:
 - UM bullet para cada bullet original, na MESMA ORDEM, sem juntar, sem cortar e sem acrescentar. Inclua TODAS as experiências que receberam [id:...].
 - Reescreva cada bullet mirando esta vaga${traduzir ? `, já em ${nomeIdioma}` : ''}, aplicando a ÊNFASE POR VAGA das regras acima: mesmo fato, ângulo que responde ao anúncio, vocabulário do anúncio.
@@ -5301,6 +5340,69 @@ function _formParaPayload(){
   })).filter(f => f.titulo || f.instituicao);
 }
 
+// ═══ CURSOS COMPLEMENTARES ═══
+// Mesma mecânica da formação, sem semente e sem reconciliação com diploma: curso livre é dado que
+// só a pessoa conhece. Lista vazia não aparece no CV (nem o título da seção). Ver cursosDoCV.
+let _cursoDados = [];
+function _cursoNovoId(){ return 'curso_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function _cursoCampo(id, campo, valor){
+  const c = _cursoDados.find(x=>x.id===id);
+  if(!c) return;
+  c[campo] = valor;
+}
+function cursoRenderizar(){
+  const lista = document.getElementById('curso-lista');
+  if(!lista) return;
+  lista.innerHTML = _cursoDados.map((c,i) => `
+    <div class="form-item" id="curso-${c.id}" style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--bg3);">
+      <div style="margin-bottom:12px;"><label class="field-label">Curso</label><input type="text" value="${_expEsc(c.titulo)}" maxlength="160" placeholder="ex: Gestão de Projetos" oninput="_cursoCampo('${c.id}','titulo',this.value)"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;">
+        <div><label class="field-label">Instituição</label><input type="text" value="${_expEsc(c.instituicao)}" maxlength="160" placeholder="ex: Fundação Getulio Vargas" oninput="_cursoCampo('${c.id}','instituicao',this.value)"></div>
+        <div><label class="field-label">Ano</label><input type="text" value="${_expEsc(c.periodo)}" maxlength="40" placeholder="ex: 2019" oninput="_cursoCampo('${c.id}','periodo',this.value)"></div>
+      </div>
+      <div><label class="field-label">Conteúdo (opcional, uma ou duas linhas)</label><textarea maxlength="260" rows="2" placeholder="Os temas principais do curso" oninput="_cursoCampo('${c.id}','conteudo',this.value)" style="width:100%;resize:vertical;">${_expEsc(c.conteudo)}</textarea></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div style="display:flex;gap:6px;">
+          <button onclick="cursoMover('${c.id}',-1)" ${i===0?'disabled':''} title="Mover para cima" style="background:none;border:1px solid var(--border2);color:${i===0?'var(--border)':'var(--text2)'};border-radius:6px;width:30px;height:30px;font-size:14px;line-height:1;cursor:${i===0?'default':'pointer'};">↑</button>
+          <button onclick="cursoMover('${c.id}',1)" ${i===_cursoDados.length-1?'disabled':''} title="Mover para baixo" style="background:none;border:1px solid var(--border2);color:${i===_cursoDados.length-1?'var(--border)':'var(--text2)'};border-radius:6px;width:30px;height:30px;font-size:14px;line-height:1;cursor:${i===_cursoDados.length-1?'default':'pointer'};">↓</button>
+        </div>
+        <button onclick="cursoRemover('${c.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;">Remover</button>
+      </div>
+    </div>`).join('');
+}
+function cursoAdicionar(){
+  const novo = {id:_cursoNovoId(), titulo:'', instituicao:'', periodo:'', conteudo:''};
+  _cursoDados.push(novo);
+  cursoRenderizar();
+  setTimeout(()=>{ const el=document.querySelector(`#curso-${novo.id} input`); if(el) el.focus(); }, 0);
+}
+function cursoRemover(id){
+  _cursoDados = _cursoDados.filter(c=>c.id!==id);
+  cursoRenderizar();
+}
+function cursoMover(id, passo){
+  const i = _cursoDados.findIndex(c=>c.id===id), j = i+passo;
+  if(i<0 || j<0 || j>=_cursoDados.length) return;
+  [_cursoDados[i],_cursoDados[j]] = [_cursoDados[j],_cursoDados[i]];
+  cursoRenderizar();
+}
+function _cursoCarregar(lista){
+  _cursoDados = (Array.isArray(lista)?lista:[]).map(c=>({
+    id: c.id || _cursoNovoId(),
+    titulo: c.titulo||'', instituicao: c.instituicao||'', periodo: c.periodo||'', conteudo: c.conteudo||''
+  }));
+  cursoRenderizar();
+}
+function _cursoParaPayload(){
+  return _cursoDados.map(c => ({
+    id: c.id,
+    titulo: (c.titulo||'').trim(),
+    instituicao: (c.instituicao||'').trim(),
+    periodo: (c.periodo||'').trim(),
+    conteudo: (c.conteudo||'').trim()
+  })).filter(c => c.titulo || c.instituicao);
+}
+
 function abrirImportLinkedIn(){
   const a=document.getElementById('import-li-area');
   if(a) a.style.display=a.style.display==='none'?'block':'none';
@@ -5415,6 +5517,8 @@ async function carregarPerfil(){
     _expCarregar(p.experiencias);
     guardarFormacaoSalva(p.formacao);
     _formCarregar(p.formacao);
+    guardarCursosSalvos(p.cursos);
+    _cursoCarregar(p.cursos);
     guardarContatoSalvo({nome:p.nome,telefone:p.telefone,email:p.email,linkedin:p.linkedin});
     document.getElementById('perfil-cargos-busca').value=p.cargos_busca||'';
     const sal=document.getElementById('perfil-salario-minimo'); if(sal) sal.value=p.salario_minimo||'';
@@ -5524,6 +5628,7 @@ async function salvarPerfil(){
     freq_varredura:document.querySelector('input[name="perfil-freq-varredura"]:checked')?.value||'diaria',
     experiencias:_expParaPayload(),
     formacao:_formParaPayload(),
+    cursos:_cursoParaPayload(),
   };
   // Espelha a régua de idioma no navegador na mesma hora: o card decide o idioma sem passar
   // por esta aba, e salvar aqui tem de valer no próximo card que se abrir.
@@ -5545,6 +5650,7 @@ async function salvarPerfil(){
     guardarExperienciasSalvas(dados.experiencias,true);
     guardarFormacaoSalva(dados.formacao,true);
     _formDispensarEditadas();
+    guardarCursosSalvos(dados.cursos,true);
     guardarContatoSalvo({nome:dados.nome,telefone:dados.telefone,email:dados.email,linkedin:dados.linkedin},true);
     // Manda SÓ o que esta tela mudou. Antes daqui saía a config inteira de volta: lia-se o
     // objeto todo, trocava-se a régua e devolvia-se tudo — de modo que salvar o Perfil
@@ -13908,11 +14014,11 @@ function _pdfCabecalhoCorpo(cvTexto){
 // PERFIL_MARCOS — não vêm da IA. Sem esta tabela, um CV em espanhol saía com "EXPERIÊNCIA
 // PROFISSIONAL" e "Página 1 de 2" em português no meio do documento.
 const _PDF_LABELS={
-  PT:{resumo:'Resumo Executivo',exp:'Experiência Profissional',form:'Formação Acadêmica',comp:'Competências & Idiomas',idiomas:'Idiomas: ',pagina:(i,n)=>`Página ${i} de ${n}`,atual:'presente',
+  PT:{resumo:'Resumo Executivo',exp:'Experiência Profissional',form:'Formação Acadêmica',cursos:'Cursos Complementares',comp:'Competências & Idiomas',idiomas:'Idiomas: ',pagina:(i,n)=>`Página ${i} de ${n}`,atual:'presente',
       meses:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']},
-  ES:{resumo:'Resumen Ejecutivo',exp:'Experiencia Profesional',form:'Formación Académica',comp:'Competencias e Idiomas',idiomas:'Idiomas: ',pagina:(i,n)=>`Página ${i} de ${n}`,atual:'actualidad',
+  ES:{resumo:'Resumen Ejecutivo',exp:'Experiencia Profesional',form:'Formación Académica',cursos:'Cursos Complementarios',comp:'Competencias e Idiomas',idiomas:'Idiomas: ',pagina:(i,n)=>`Página ${i} de ${n}`,atual:'actualidad',
       meses:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']},
-  EN:{resumo:'Executive Summary',exp:'Professional Experience',form:'Education',comp:'Skills & Languages',idiomas:'Languages: ',pagina:(i,n)=>`Page ${i} of ${n}`,atual:'Present',
+  EN:{resumo:'Executive Summary',exp:'Professional Experience',form:'Education',cursos:'Additional Courses',comp:'Skills & Languages',idiomas:'Languages: ',pagina:(i,n)=>`Page ${i} of ${n}`,atual:'Present',
       meses:['January','February','March','April','May','June','July','August','September','October','November','December']},
 };
 function _pdfLabels(lang){ return _PDF_LABELS[lang]||_PDF_LABELS.PT; }
@@ -14087,11 +14193,14 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
     // por um detalhe cosmético. O censo existe para bloquear PROSA na língua errada, não nome.
   }
   if(_traduzindo&&!(trad&&trad.idiomas)) _emPortugues.push('Lista de idiomas');
+  const _cursos=cursosDoCV();
+  if(_traduzindo&&_cursos.length&&!(trad&&trad.cursos)) _emPortugues.push('Cursos complementares');
   return {
     nome:c.nome, subtitulo, contato:_linhaContato(c,['telefone','email','linkedin']),
     resumo:_resumoIA||PERFIL_MARCOS.resumo_geral,
     experiencias:exps,
     formacao:_forms.map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:(trad&&trad.instituicoes&&trad.instituicoes[i])||f.instituicao,periodo:f.periodo})),
+    cursos:_cursos.map((c,i)=>{ const t=trad&&trad.cursos&&trad.cursos[i]; return {titulo:(t&&t.titulo)||c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:t?t.conteudo:c.conteudo}; }),
     competencias:_secaoDoCV(cv,/compet|skills/i)||_competenciasDoPerfil(expsFiltradas,textoVaga,lang),
     idiomas:(trad&&trad.idiomas)?trad.idiomas.join(' · '):PERFIL_MARCOS.idiomas.map(i=>`${i.idioma} (${i.nivel})`).join(' · '),
     _emPortugues
@@ -14221,6 +14330,30 @@ function _buildPDFExecDoc(){
     doc.text(f.periodo, margL, y); y+=6.2;
   });
   y+=1;
+
+  // ── CURSOS COMPLEMENTARES (só existe se houver curso no Perfil) ──
+  if(cv.cursos&&cv.cursos.length){
+    secao(L.cursos);
+    cv.cursos.forEach(c=>{
+      doc.setFontSize(8.8);
+      const contL=c.conteudo?doc.splitTextToSize(c.conteudo, larg):[];
+      const linhaInst=[c.instituicao,c.periodo].filter(Boolean).join(' · ');
+      const altura=4.2+(linhaInst?4:0)+contL.length*4+2.4;
+      if(altura<=(282-22) && y+altura>282){ doc.addPage(); y=22; } else quebraSe(12);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.6); cor(navy);
+      doc.text(c.titulo, margL, y); y+=4.2;
+      if(linhaInst){
+        doc.setFont('helvetica','italic'); doc.setFontSize(9); cor(action);
+        doc.text(linhaInst, margL, y); y+=4;
+      }
+      if(contL.length){
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.8); cor(ink2);
+        doc.text(contL, margL, y); y+=contL.length*4;
+      }
+      y+=2.4;
+    });
+    y+=1;
+  }
 
   // ── COMPETÊNCIAS & IDIOMAS ──
   secao(L.comp);
@@ -14724,7 +14857,7 @@ function _extrairPerfilTraduzido(texto){
   // `recusados` é a instrumentação que faltava: cada descarte diz QUEM caiu e POR QUÊ. Sem ela o
   // documento saía misto com a mesma confiança de um documento perfeito, e o próximo diagnóstico
   // voltaria a ser adivinhação.
-  const out={exp:{},formacao:null,instituicoes:null,idiomas:null,recusados:[]};
+  const out={exp:{},formacao:null,instituicoes:null,idiomas:null,cursos:null,recusados:[]};
   const porId={}; (experienciasDoCV()||[]).forEach(e=>{porId[e.id]=e;});
   for(const [id,v] of Object.entries(j.exp||{})){
     const orig=porId[id];
@@ -14765,6 +14898,14 @@ function _extrairPerfilTraduzido(texto){
   if(ins.length===_forms.length&&ins.every((s,i)=>_nomeProprioSobrevive(_forms[i].instituicao,s))) out.instituicoes=ins.map(s=>s.trim());
   const is=Array.isArray(j.idiomas)?j.idiomas.filter(s=>typeof s==='string'&&s.trim()):[];
   if(is.length===(PERFIL_MARCOS.idiomas||[]).length) out.idiomas=is.map(s=>s.trim());
+  // Cursos: só título e conteúdo são traduzidos; instituição e ano são fato e vêm do Perfil.
+  // Contagem diferente = lista inteira fica em português (vale a mesma regra da formação).
+  const _cursos=cursosDoCV();
+  if(_cursos.length){
+    const cs=Array.isArray(j.cursos)?j.cursos.filter(c=>c&&typeof c.titulo==='string'&&c.titulo.trim()):[];
+    if(cs.length===_cursos.length) out.cursos=cs.map((c,i)=>({titulo:c.titulo.trim(),conteudo:(typeof c.conteudo==='string'&&c.conteudo.trim())?c.conteudo.trim():(_cursos[i].conteudo?null:'')}));
+    if(out.cursos&&out.cursos.some(c=>c.conteudo===null)) out.cursos=null;
+  }
   // Mesmo quando NENHUMA experiência sobrevive, o diagnóstico tem de chegar ao documento: é esse
   // o caso extremo do CV meio traduzido (tudo recusado → tudo em português com o rótulo "EN").
   return (Object.keys(out.exp).length||out.recusados.length)?out:null;

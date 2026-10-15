@@ -59,7 +59,7 @@ function telaCheia() {
 console.log('=== salvar o Perfil não pode levar o cofre junto ===');
 {
   const enviados = [];
-  const app = carregarApp(['async function salvarPerfil(', 'function _expParaPayload(', 'function _formParaPayload('], {
+  const app = carregarApp(['async function salvarPerfil(', 'function _expParaPayload(', 'function _formParaPayload(', 'let _cursoDados =', 'function _cursoNovoId(', 'function cursoRenderizar(', 'function _cursoCarregar(', 'function _cursoParaPayload('], {
     document: telaCheia(),
     WORKER_URL: 'https://worker.teste',
     fetch: (url, init) => {

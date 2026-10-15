@@ -63,6 +63,12 @@ const fontes = [
   'function formacaoSalva(',
   'function guardarFormacaoSalva(',
   'function formacaoDoCV(',
+  // Cursos complementares: terceiro bloco da mesma família (prompt, documento, tradução).
+  'function _perfilCursosKey(',
+  'function cursosSalvos(',
+  'function guardarCursosSalvos(',
+  'function cursosDoCV(',
+  'function _blocoCursosPrompt(',
   // O contato entra pela mesma porta (perfilFormatadoPara) e tem o mesmo desenho.
   'function contatoSemente(',
   'function _perfilContatoKey(',

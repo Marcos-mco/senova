@@ -95,6 +95,12 @@ const NUCLEO = [
   'function formacaoSalva(',
   'function guardarFormacaoSalva(',
   'function formacaoDoCV(',
+  // Cursos complementares: terceiro bloco da mesma família (prompt, documento, tradução).
+  'function _perfilCursosKey(',
+  'function cursosSalvos(',
+  'function guardarCursosSalvos(',
+  'function cursosDoCV(',
+  'function _blocoCursosPrompt(',
   // O contato tem DOIS leitores (prompt e cabeçalho do documento) e ainda alimenta o
   // reconhecedor da linha do nome, usado por _pdfCabecalhoCorpo e _cvParaPDF — mesma razão do topo.
   'function contatoSemente(',
