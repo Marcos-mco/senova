@@ -3853,6 +3853,11 @@ function setLang(lang,btn) {
 const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
   const nomeIdioma = { PT: 'português do Brasil', EN: 'English', ES: 'español' }[lang] || 'português do Brasil';
   const traduzir = lang === 'EN' || lang === 'ES';
+  // As etiquetas [id:...] vão SEMPRE, em qualquer idioma (16/out/2026). O bloco ---PERFIL--- é
+  // pedido também em português e só casa com a experiência pela etiqueta; elas iam só quando o
+  // CV era traduzido, então a reescrita em português voltava sem dono e era descartada: 0 de 130
+  // CVs em português levavam a adaptação ao PDF. Foi o que pôs no PDF de uma vaga de clube social
+  // os números grandes que o CV na tela já tinha tirado.
   // Calibração de NÍVEL (raiz do "CV C-level para vaga de analista", S37): o enquadramento —
   // subtítulo e resumo — mira o nível DESTA vaga, nunca o ápice da carreira. Vender C-level numa
   // vaga de execução desqualifica por sobrequalificação. Os FATOS não mudam; muda só o DESTAQUE.
@@ -3869,7 +3874,7 @@ const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
 IDIOMA DE SAÍDA DO CV: ${nomeIdioma}. O CV inteiro sai neste idioma — títulos de seção, subtítulo, resumo, cargos, bullets, formação e competências. Nomes próprios (empresas, instituições, cidades) não se traduzem. A ANÁLISE e o CRM continuam em português, que é para leitura de Marcos.
 
 PERFIL DO CANDIDATO (já filtrado por relevância para esta vaga específica — ver REGRAS ABSOLUTAS):
-${perfilFormatadoPara(textoVaga, nivelVaga, traduzir)}
+${perfilFormatadoPara(textoVaga, nivelVaga, true)}
 
 NÍVEL-ALVO DESTA VAGA: ${nivelRotulo}.
 CALIBRAÇÃO DE ENQUADRAMENTO (regra decisiva de qualidade — não negociável):
@@ -14883,7 +14888,10 @@ function _extrairPerfilTraduzido(texto){
     if(traduzido&&typeof v.empresa==='string'&&v.empresa.trim()&&_nomeProprioSobrevive(orig.empresa,v.empresa)) item.empresa=v.empresa.trim();
     out.exp[id]=item;
   }
-  if(!traduzido) return Object.keys(out.exp).length?out:null;
+  // Em português, devolve o bloco também quando TUDO foi recusado: os `recusados` são o único
+  // registro de por que o PDF saiu com o texto do Perfil. Com exp vazio o PDF usa o Perfil, igual
+  // ao null; o que muda é que o motivo deixa de sumir.
+  if(!traduzido) return (Object.keys(out.exp).length||out.recusados.length)?out:null;
   const fs=Array.isArray(j.formacao)?j.formacao.filter(s=>typeof s==='string'&&s.trim()):[];
   if(fs.length===(formacaoDoCV()||[]).length) out.formacao=fs.map(s=>s.trim());
   // A linha da instituição sai do mesmo pedido: o nome próprio vai verbatim, o país e as palavras

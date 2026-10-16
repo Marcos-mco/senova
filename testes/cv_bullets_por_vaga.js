@@ -20,6 +20,10 @@ const s = carregarApp([
   'function _nivelAlvoPDF(',
   'const CV_MAX_EXPS =',
   'function _cvParaPDF(',
+  'function formatarExperienciasPerfil(',
+  'function perfilFormatadoPara(',
+  'function _blocoCursosPrompt(',
+  'const ATS_SYSTEM = (',
 ]);
 
 const ID = 'rpc-diretor';
@@ -78,6 +82,28 @@ trad = chamar(s, '_extrairPerfilTraduzido', ['---CV---\nx\n---PERFIL---\n' + JSO
 })]);
 t('a experiência limpa é aproveitada', trad && !!trad.exp.popper);
 t('e a suja, no mesmo bloco, é descartada sozinha', trad && !trad.exp[ID]);
+
+console.log('\n=== a etiqueta de cada experiência CHEGA à IA em português ===');
+// O teste acima põe a etiqueta à mão no bloco. Faltava conferir que ela chega ao pedido: em
+// português ela não ia, a reescrita voltava sem dono e era descartada — 0 de 130 CVs em português
+// levavam a adaptação ao PDF (16/out/2026). Medido no prompt REAL, não no texto do código.
+const exps = exec(s, "filtrarExperienciasRelevantes('Gerente geral de clube social','gerencial').map(e=>e.id)");
+for (const lang of ['PT', 'EN']) {
+  const p = exec(s, `ATS_SYSTEM('${lang}','Gerente geral de clube social','gerencial')`);
+  const faltam = exps.filter(id => !p.includes('[id:' + id + ']'));
+  t(`em ${lang}, toda experiência enviada vai com a sua etiqueta [id:...]`, exps.length > 0 && !faltam.length, faltam.join(', '));
+}
+// Recusa total não pode apagar o motivo: os recusados são o único registro de por que o PDF
+// saiu com o texto do Perfil.
+const tudoRecusado = chamar(s, '_extrairPerfilTraduzido', [bloco(['Carteira superior a R$ 800 milhões.', TV[1], TV[2]])]);
+t('em português, quando tudo é recusado, o motivo fica guardado',
+  !!tudoRecusado && Object.keys(tudoRecusado.exp).length === 0 && tudoRecusado.recusados.some(r => r.id === ID && r.motivo === 'numero_novo'));
+const semDono = chamar(s, '_extrairPerfilTraduzido', ['---CV---\nX\n\n---PERFIL---\n' + JSON.stringify({ idioma: 'PT', exp: { 'Diretor RPC': { bullets: TV } } })]);
+t('e a reescrita sem etiqueta conhecida fica registrada como id_desconhecido',
+  !!semDono && semDono.recusados.some(r => r.motivo === 'id_desconhecido'));
+pdf = chamar(s, '_cvParaPDF', ['Gerente geral', 'MARCOS FRANCO\n\nRESUMO EXECUTIVO\nx', 'Gerente geral', 'PT', tudoRecusado]);
+rpc = pdf.experiencias.find(e => /Diretor de Marketing/.test(e.cargo));
+t('e o PDF, nesse caso, usa o texto do Perfil — igual a antes', !!rpc && rpc.bullets[0] === ORIG.bullets[0]);
 
 console.log('\n=== teste de FONTE: o bloco não pode voltar a ser só de tradução ===');
 // Era um ternário `traduzir ? bloco : ''` no fim do ATS_SYSTEM. Enquanto for assim, todo CV em
