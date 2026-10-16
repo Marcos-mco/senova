@@ -104,6 +104,14 @@ t('e a reescrita sem etiqueta conhecida fica registrada como id_desconhecido',
 pdf = chamar(s, '_cvParaPDF', ['Gerente geral', 'MARCOS FRANCO\n\nRESUMO EXECUTIVO\nx', 'Gerente geral', 'PT', tudoRecusado]);
 rpc = pdf.experiencias.find(e => /Diretor de Marketing/.test(e.cargo));
 t('e o PDF, nesse caso, usa o texto do Perfil — igual a antes', !!rpc && rpc.bullets[0] === ORIG.bullets[0]);
+// A etiqueta chegar não basta: a resposta tem de CABER. Em PT o teto era 4000 e a resposta de uma
+// vaga com 10 experiências parou na 5ª, no meio de um bullet (medido em 16/out/2026). JSON cortado
+// não se lê. O bloco é pedido em todo idioma, então o teto não pode depender do idioma.
+const corpoCV = (html.match(/function montarPedidoCV\([\s\S]*?\r?\n\}/) || [''])[0];
+t('o teto de resposta do CV é o mesmo em todo idioma (o bloco ---PERFIL--- vem em todos)',
+  /max_tokens:\s*\d+\s*,/.test(corpoCV) && !/max_tokens:[^,\n]*\?/.test(corpoCV));
+t('e cabe o bloco de 10 experiências medido (pelo menos 6000)',
+  +((corpoCV.match(/max_tokens:\s*(\d+)/) || [])[1] || 0) >= 6000);
 
 console.log('\n=== teste de FONTE: o bloco não pode voltar a ser só de tradução ===');
 // Era um ternário `traduzir ? bloco : ''` no fim do ATS_SYSTEM. Enquanto for assim, todo CV em

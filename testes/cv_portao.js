@@ -73,7 +73,9 @@ t('a descrição de teste passa dos 4000 chars (senão o teste não prova nada)'
 console.log('\n=== O pedido do portão é o pedido bom (o do card) ===');
 const ped = run('montarPedidoCV(' + JSON.stringify({ descricao: DESC, localizacao: 'Curitiba, PR', modelo: 'Presencial', regime: 'CLT' }) + ')');
 t('modelo é o de análise (nunca o rápido)', ped.body.model === 'modelo-analise', ped.body.model);
-t('max_tokens 4000 — 2000 truncava o CV no meio', ped.body.max_tokens === 4000, String(ped.body.max_tokens));
+// 2000 truncava o CV no meio; 4000 truncava o bloco ---PERFIL--- na 5ª de 10 experiências
+// (16/out/2026: a resposta inteira mede 4650). O piso é 6000, o mesmo de todo idioma.
+t('max_tokens 6000 — 2000 truncava o CV e 4000 o bloco ---PERFIL---', ped.body.max_tokens === 6000, String(ped.body.max_tokens));
 t('descrição vai INTEIRA (não cortada em 4000 chars)', ped.body.messages[0].content.includes('MARCADOR_FINAL_DA_DESCRICAO'));
 t('metadados da vaga entram no texto', ped.vagaTexto.includes('Localização: Curitiba, PR') && ped.vagaTexto.includes('Modelo: Presencial') && ped.vagaTexto.includes('Regime: CLT'));
 t('PERFIL COMPLEMENTAR entra no pedido', ped.body.messages[0].content.includes('complemento relevante do Perfil'));

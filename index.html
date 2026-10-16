@@ -4151,13 +4151,16 @@ function montarPedidoCV(o){
   const idioma = _idiomaDoPedido(desc, o.idioma, o.vaga);
   // Fora do português, a resposta traz também os FATOS traduzidos (bloco ---PERFIL---): sem isso
   // o PDF sairia meio espanhol (resumo) e meio português (cargos, bullets, formação), porque
-  // esses campos vêm estruturados do PERFIL_MARCOS e não passam pela IA. Cabe nos 4000 tokens
-  // porque o CV encolhe na mesma proporção; PT não paga esse custo.
+  // esses campos vêm estruturados do PERFIL_MARCOS e não passam pela IA.
+  // Em português o bloco também vem (bullets reescritos para a vaga), e por isso o teto é o mesmo
+  // em todo idioma. Era 4000 em PT "porque PT não paga esse custo" — e pagava: medido em 16/out/2026,
+  // a resposta de uma vaga com 10 experiências parou na 5ª, no meio de um bullet. JSON cortado não
+  // se lê, e o PDF caía inteiro no texto do Perfil, sem aviso.
   return {
     vagaTexto, idioma,
     curta: desc.trim().length < CV_DESC_MINIMA,
     body: {
-      model: MODELOS.analise, max_tokens: idioma === 'PT' ? 4000 : 6000,
+      model: MODELOS.analise, max_tokens: 6000,
       system: ATS_SYSTEM(idioma, vagaTexto, nivelVaga),
       messages: [{ role: 'user', content: 'Analise esta vaga e gere o CV adaptado:\n\n' + vagaTexto + contextoFull + perfilComp }]
     }
