@@ -1,7 +1,33 @@
-// Service worker — Senova Extension v2.16
+// Service worker — Senova Extension v2.82
 
 const WORKER  = 'https://senova-proxy.marcos-mco.workers.dev';
 const APP_URL = 'https://marcos-mco.github.io/senova';
+
+// Ponto ÚNICO de escolha da aba do app. Antes, cada chamador fazia tabs.find(startsWith(APP_URL)):
+// pegava a PRIMEIRA aba do Senova na ordem das janelas, mesmo travada, congelada ou descartada
+// pelo Economizador de Memória — e a aba saudável aberta depois nunca era usada. O copiloto dizia
+// "Abra o Senova" com o Senova aberto (20/out/2026). Agora: só o app de verdade (não senova_v12.html
+// nem 404), pula descartada/congelada, prefere a ativa e a mais recente, e sonda com teto curto —
+// a primeira que RESPONDE é a escolhida.
+const _APP_RE = /^https:\/\/marcos-mco\.github\.io\/senova(\/(index\.html)?)?([?#]|$)/;
+function _comTeto(p, ms) {
+  return Promise.race([p, new Promise(r => setTimeout(() => r('__teto__'), ms))]);
+}
+async function _abaSenova() {
+  let abas = [];
+  try { abas = await chrome.tabs.query({}); } catch { return null; }
+  abas = abas.filter(t => t.url && _APP_RE.test(t.url) && !t.discarded && !t.frozen)
+             .sort((a, b) => (b.active - a.active) || ((b.lastAccessed || 0) - (a.lastAccessed || 0)));
+  for (const t of abas) {
+    try {
+      const out = await _comTeto(chrome.scripting.executeScript({
+        target: { tabId: t.id }, world: 'MAIN', func: () => true,
+      }), 1500);
+      if (out !== '__teto__' && out && out[0] && out[0].result === true) return t;
+    } catch { /* aba que não responde: tenta a próxima */ }
+  }
+  return null;
+}
 
 // ── MENSAGENS DO POPUP ───────────────────────────────────────────────
 
@@ -101,8 +127,7 @@ async function abrirAnalise(dados) {
   await chrome.storage.local.set({ senova_ext_pendente: dados });
 
   const extUrl = APP_URL + '/?ext=1&t=' + Date.now();
-  const allTabs = await chrome.tabs.query({});
-  const senovaTab = allTabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
 
   let targetTabId;
   if (senovaTab) {
@@ -184,8 +209,7 @@ async function _chaveApp({ forcar = false } = {}) {
   }
   // Não tem em cache (ou o Worker recusou a que tínhamos) → buscar na aba do app.
   try {
-    const tabs = await chrome.tabs.query({});
-    const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+    const senovaTab = await _abaSenova();
     if (!senovaTab) return _chaveMem || '';   // app fechado: vale a que já temos, se houver
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTab.id }, world: 'MAIN',
@@ -274,8 +298,7 @@ async function salvarVaga(payload) {
 
   // Se o app Senova estiver aberto, importa a vaga imediatamente sem esperar próxima abertura
   try {
-    const tabs = await chrome.tabs.query({});
-    const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+    const senovaTab = await _abaSenova();
     if (senovaTab) {
       await chrome.scripting.executeScript({
         target: { tabId: senovaTab.id },
@@ -291,8 +314,7 @@ async function salvarVaga(payload) {
 async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, modalidade, jornada }, senderTab) {
   if (!descricao || descricao.length <= 120) return; // limiar único com o app (__senovaAtualizarDesc)
 
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
 
   // "Ir para vaga" abre na mesma janela do Senova → não interrompe a navegação
   // LinkedIn em janela separada → traz Senova para frente
@@ -336,8 +358,7 @@ async function autoUpdateDesc({ url, descricao, empresa, cargo, local, salario, 
 async function buscarAnaliseDoApp(ref) {
   const d = (typeof ref === 'string' || typeof ref === 'number') ? { jobId: String(ref) } : (ref || {});
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return null;
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return null;
   try {
     const out = await chrome.scripting.executeScript({
@@ -354,8 +375,7 @@ async function buscarAnaliseDoApp(ref) {
 // { erro:'app_fechado' } quando o Senova não está aberto numa aba.
 async function copilotoResposta(pergunta, cargo, empresa) {
   if (!pergunta) return null;
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   let prompt = null;
   try {
@@ -382,8 +402,7 @@ async function copilotoResposta(pergunta, cargo, empresa) {
 // padrão de copilotoResposta: o app monta o prompt constrito, o background chama o Worker.
 async function copilotoHabilidades(skills, cargo, empresa, max) {
   if (!Array.isArray(skills) || !skills.length) return null;
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   let prompt = null;
   try {
@@ -413,8 +432,7 @@ async function copilotoHabilidades(skills, cargo, empresa, max) {
 async function copilotoCandidatei(dados) {
   const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   try {
     const out = await chrome.scripting.executeScript({
@@ -432,8 +450,7 @@ async function copilotoCandidatei(dados) {
 
 // Busca o "Cartão de candidatura" (dados fixos de Marcos) no app, para o autofill.
 async function copilotoCartao() {
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   try {
     const out = await chrome.scripting.executeScript({
@@ -451,8 +468,7 @@ async function copilotoCV(dados, formato) {
   const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
   formato = (formato === 'pdf') ? 'pdf' : 'docx';
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
 
   // Produz o artefato no formato pedido a partir do card (fonte de verdade). Ponto único de geração.
@@ -526,8 +542,7 @@ async function copilotoCV(dados, formato) {
 async function copilotoGarantirCard(dados) {
   const d = dados || {};
   if (!d.cargo && !d.empresa && !d.url) return { erro: 'sem_referencia' };
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   try {
     const out = await chrome.scripting.executeScript({
@@ -545,8 +560,7 @@ async function copilotoGarantirCard(dados) {
 async function copilotoCarta(dados) {
   const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
 
   const ponte = async () => {
@@ -609,8 +623,7 @@ async function copilotoCarta(dados) {
 async function copilotoDesfazer(dados) {
   const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return { erro: 'app_fechado' };
   try {
     const out = await chrome.scripting.executeScript({
@@ -758,8 +771,7 @@ async function _notificarProcessando(tabId, ativo) {
 
 async function enriquecerPendentes() {
   if (_enriquecendo) return;
-  const tabs = await chrome.tabs.query({});
-  const senovaTab = tabs.find(t => t.url && t.url.startsWith(APP_URL));
+  const senovaTab = await _abaSenova();
   if (!senovaTab) return;
 
   let pend = [];

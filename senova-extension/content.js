@@ -2003,7 +2003,10 @@
     if (pessoais.length || selecoes.length) {
       if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Preenchendo seus dados…'; }
       try { cartao = await chrome.runtime.sendMessage({ type: 'COPILOTO_CARTAO' }); } catch (_) {}
-      if (cartao && cartao.erro) erroMsg = _falha(cartao.erro);
+      // Extensão atualizada/recarregada com esta página já aberta: este painel ficou órfão e
+      // nenhuma mensagem chega ao background. Aqui recarregar o SENOVA não resolve — é ESTA página.
+      if (!(chrome.runtime && chrome.runtime.id)) erroMsg = 'A extensão foi atualizada — recarregue esta página (F5) e clique em Preencher de novo';
+      else if (cartao && cartao.erro) erroMsg = _falha(cartao.erro);
       // Resposta vazia (null): o app não respondeu. NÃO confundir com "preencheu nada" — avisa em
       // vez de silenciar (causa comum: aba do Senova fechada ou recém-recarregada).
       else if (!cartao) erroMsg = 'Abra o Senova numa aba e recarregue esta página (Ctrl+Shift+R)';

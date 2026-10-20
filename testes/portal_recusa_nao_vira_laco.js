@@ -75,6 +75,8 @@ function mundo({ respostas = [], pendentes = [], logado = true } = {}) {
       } },
     },
   };
+  // A escolha da aba viva (_abaSenova) tem teste próprio; aqui ela devolve a aba do mock, sem sondar.
+  sandbox._abaSenova = async () => (await sandbox.chrome.tabs.query({}))[0] || null;
   vm.createContext(sandbox);
   vm.runInContext(FUNCOES.map(extrai).join('\n;\n'), sandbox);
   return { sandbox, req, guardado, rodar: () => vm.runInContext('enriquecerPendentes()', sandbox) };

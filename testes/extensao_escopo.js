@@ -77,7 +77,7 @@ for (const alvo of ['inputs = Array.from(document.querySelectorAll(_CAMPO_SEL)).
 // minuto, o corpo era refeito e a resposta do botão ("Gerando carta…", "✓ Carta copiada", ou o
 // motivo da falha) sumia. O clique parecia não ter feito nada.
 console.log('\n=== o diagnóstico não muda sozinho com a passagem do tempo ===');
-const mPasse = src.match(/passe: _ultimoPasse === undefined[\s\S]{0,260}?,\n/);
+const mPasse = src.match(/passe: _ultimoPasse === undefined[\s\S]{0,260}?,\r?\n/);
 t('a linha do passe existe', !!mPasse);
 if (mPasse) {
   const expr = mPasse[0].replace(/^\s*passe:\s*/, '').replace(/,\s*$/, '');

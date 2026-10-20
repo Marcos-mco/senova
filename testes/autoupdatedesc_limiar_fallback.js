@@ -57,6 +57,8 @@ console.log('\n=== comportamental: descrição de 121 chars passa; 120 não pass
       salvarVaga: async (payload) => { calls.salvarVaga.push(payload); },
       calls,
     };
+    // A escolha da aba viva (_abaSenova) tem teste próprio; aqui ela devolve a aba do mock, sem sondar.
+    sandbox._abaSenova = async () => (await sandbox.chrome.tabs.query({}))[0] || null;
     sandbox.window = sandbox;
     vm.createContext(sandbox);
     return sandbox;
@@ -96,6 +98,7 @@ console.log('\n=== comportamental: app aberto mas não achou o card → cai no f
       calls,
     };
     sandbox.window = sandbox;
+    sandbox._abaSenova = async () => (await sandbox.chrome.tabs.query({}))[0] || null;
     vm.createContext(sandbox);
     return sandbox;
   }
