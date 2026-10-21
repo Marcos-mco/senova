@@ -136,7 +136,7 @@ console.log('\n=== a descrição da vaga entra e sai pelo portão único de cont
 // Mesma razão dos outros cinco campos: cada call site montando o contexto à mão é mais um lugar
 // onde esquecer um — foi assim que o PDF já saiu calibrado pelo cargo de outra vaga.
 t('_pdfCtxUsar guarda, escreve e restaura lastCVVaga (os três, não só dois)',
-  /prev=\{[^}]*vaga:lastCVVaga\}/.test(html) &&
+  /prev=\{[^}]*vaga:lastCVVaga[,}]/.test(html) &&
   /lastCVVaga=o\.vaga\|\|''/.test(html) &&
   /lastCVVaga=prev\.vaga/.test(html));
 t('_pdfCtxDoCard tira a vaga do card pela cadeia canônica (jobDescription||descricao)',

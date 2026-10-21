@@ -2299,6 +2299,14 @@ select option { background: var(--bg2); }
               <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">Entra no CV e na carta desta vaga. Não fica salvo — para valer em todas as vagas, use "Acrescentar algo sobre mim", no veredicto.</div>
             </div>
           </div>
+          <!-- Cursos que entram no CV DESTA vaga (Marcos, 21/out/2026: jardinagem no CV de Diretor de
+               Marketing). O Perfil guarda todos; o card guarda só o que fica de fora. Quem decide é a
+               pessoa — nenhuma regra automática tira curso do CV. Some quando não há curso no Perfil. -->
+          <div id="mv-cursos-cv" style="display:none;padding:12px 15px;border:1.5px solid var(--border);border-radius:var(--radius);">
+            <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">Cursos que entram neste CV</div>
+            <div style="font-size:12px;color:var(--text3);margin:3px 0 8px;">Vale só para esta vaga. O Perfil continua com todos.</div>
+            <div id="mv-cursos-cv-lista"></div>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius);">
             <div style="min-width:0;">
               <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--navy);line-height:1.15;">CV Executivo</div>
@@ -3413,6 +3421,12 @@ function guardarCursosSalvos(lista,atoDoUsuario){
 }
 // Ponto único de leitura dos cursos.
 function cursosDoCV(){ return cursosSalvos(); }
+// Identidade de um curso para a escolha por vaga: título + período, sem caixa nem acento. Curso não
+// tem id; se a pessoa renomear um curso no Perfil, ele volta a entrar nos CVs (o lado seguro).
+function _cursoChave(c){
+  const n=v=>String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  return n(c&&c.titulo)+'|'+n(c&&c.periodo);
+}
 
 // São DOIS os leitores do contato: o prompt da IA (perfilFormatadoPara) e o cabeçalho do documento
 // (_cvParaPDF). Até 21/ago/2026 os dois liam o bloco fixo, e o que a pessoa digitava no Perfil —
@@ -4360,7 +4374,7 @@ async function analyzeJob() {
     const data = await res.json();
     const text = data.content?.find(b=>b.type==='text')?.text||'';
     // Idioma e fatos traduzidos acompanham o CV até o PDF (ver lastCVLang/lastCVTrad).
-    lastCVLang=_pedidoATS.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=vaga;
+    lastCVLang=_pedidoATS.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=vaga; lastCVCursosFora=[];
     const parts = text.split('---CV---');
     const analise = parts[0].replace('---ANALISE---','').trim();
     const rest = parts[1]||'';
@@ -4388,26 +4402,30 @@ let lastCVLang='PT',lastCVTrad=null;
 // citou ficava de fora. Sexto campo do contexto de PDF; entra e sai pelo mesmo portão que os
 // outros cinco, pela razão escrita no comentário de _pdfCtxUsar.
 let lastCVVaga='';
+// Cursos que a pessoa tirou do CV DESTA vaga (chaves de _cursoChave). Sétimo campo do contexto de
+// PDF: o Perfil guarda todos os cursos; o card guarda só o que fica de fora dele.
+let lastCVCursosFora=[];
 // O PDF Executivo lê o CV de variáveis globais (herança da aba Análise CV). Todo caminho que gera
 // PDF a partir de um CARD precisa emprestar essas globais e devolvê-las — e agora são SEIS, não
 // duas. Cada site fazendo isso à mão é mais um lugar onde esquecer um campo: foi assim que o PDF
 // saiu calibrado pelo cargo de outra vaga. Um lugar só; usar() devolve a função que restaura.
 function _pdfCtxUsar(o){
-  const prev={cv:lastCV,fn:lastCVFilename,cargo:atsCargo,lang:lastCVLang,trad:lastCVTrad,vaga:lastCVVaga};
+  const prev={cv:lastCV,fn:lastCVFilename,cargo:atsCargo,lang:lastCVLang,trad:lastCVTrad,vaga:lastCVVaga,cursosFora:lastCVCursosFora};
   lastCV=o.cv||'';
   if(o.filename) lastCVFilename=o.filename;
   atsCargo=o.cargo||'';
   lastCVLang=o.lang||'PT';
   lastCVTrad=o.trad||null;
   lastCVVaga=o.vaga||'';
-  return ()=>{ lastCV=prev.cv; lastCVFilename=prev.fn; atsCargo=prev.cargo; lastCVLang=prev.lang; lastCVTrad=prev.trad; lastCVVaga=prev.vaga; };
+  lastCVCursosFora=Array.isArray(o.cursosFora)?o.cursosFora:[];
+  return ()=>{ lastCV=prev.cv; lastCVFilename=prev.fn; atsCargo=prev.cargo; lastCVLang=prev.lang; lastCVTrad=prev.trad; lastCVVaga=prev.vaga; lastCVCursosFora=prev.cursosFora; };
 }
 // Contexto de PDF a partir de um card — fonte única dos seis campos. A descrição da vaga sai daqui
 // pela mesma cadeia que o app inteiro usa (jobDescription||descricao, ver comentário na dedup).
 function _pdfCtxDoCard(v,cvTexto,filename){
   return _pdfCtxUsar({cv:(cvTexto!==undefined&&cvTexto!==null)?cvTexto:((v&&v.atsCV)||''), filename,
     cargo:(v&&v.cargo)||'', lang:(v&&v.atsCvIdioma)||'PT', trad:(v&&v.atsPerfilTrad)||null,
-    vaga:(v&&(v.jobDescription||v.descricao))||''});
+    vaga:(v&&(v.jobDescription||v.descricao))||'', cursosFora:(v&&v.cvCursosFora)||[]});
 }
 // Estado do modal de envio: CV do card (p/ anexar o MESMO PDF) + rótulo do arquivo.
 let _candCV='',_candCVFilename='CV_MF';
@@ -8987,7 +9005,7 @@ function openVagaModal(id){
         if(kwEl) kwEl.textContent=v.atsKeywords?'Keywords: '+v.atsKeywords:'';
         if(resultEl&&v.atsAnalise){const sv=v.atsAnalise.match(/VEREDICTO:\s*(.+)/)?.[1]?.trim()||'';const sc2=parseInt(v.atsCvScore||0);const c2=corDoScore(sc2);resultEl.style.display='';resultEl.innerHTML=`<div style="font-size:13px;font-weight:700;color:${c2};">${sv}</div>${v.atsKeywords?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${v.atsKeywords}</div>`:''}`;}
         // Restaurar lastCV para permitir downloads sem reanálise — com idioma e fatos traduzidos junto
-        lastCV=v.atsCV; lastCVLang=v.atsCvIdioma||'PT'; lastCVTrad=v.atsPerfilTrad||null; lastCVVaga=v.jobDescription||v.descricao||'';
+        lastCV=v.atsCV; lastCVLang=v.atsCvIdioma||'PT'; lastCVTrad=v.atsPerfilTrad||null; lastCVVaga=v.jobDescription||v.descricao||''; lastCVCursosFora=v.cvCursosFora||[];
         lastCVFilename=`CV_MF_${(v.empresa||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${(v.cargo||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`;
         _mvCVAcab='exec'; mvDocTab('ats');
       } else {
@@ -10365,7 +10383,38 @@ function mvSyncEnvioDireto(){
   else { btn.textContent='Resposta por e-mail'; btn.dataset.modoEnvio=''; }
 }
 // Sincroniza a área Documentos com o card: buffer do CV + view (Executivo por padrão).
+// Cursos fora do CV do card aberto. Card novo (ainda sem id) não tem escolha: entram todos.
+function _mvCursosForaDoCard(){
+  const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
+  return (v&&Array.isArray(v.cvCursosFora))?v.cvCursosFora:[];
+}
+function mvRenderCursosCV(){
+  const box=document.getElementById('mv-cursos-cv'), lista=document.getElementById('mv-cursos-cv-lista');
+  if(!box||!lista) return;
+  const temCard=editingVagaId&&editingVagaId!=='new';
+  const cs=cursosDoCV();
+  if(!temCard||!cs.length){ box.style.display='none'; lista.innerHTML=''; return; }
+  const fora=new Set(_mvCursosForaDoCard());
+  lista.innerHTML=cs.map(c=>{
+    const k=_cursoChave(c);
+    return `<label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--text);margin:6px 0;cursor:pointer;">
+      <input type="checkbox" ${fora.has(k)?'':'checked'} data-curso="${escHtml(k)}" onchange="mvMarcarCursoCV(this)" style="margin-top:3px;flex-shrink:0;">
+      <span>${escHtml(c.titulo)}${c.periodo?` <span style="color:var(--text3);">· ${escHtml(c.periodo)}</span>`:''}</span></label>`;
+  }).join('');
+  box.style.display='';
+}
+function mvMarcarCursoCV(el){
+  const idx=vagas.findIndex(v=>String(v.id)===String(editingVagaId));
+  if(idx<0) return;
+  const k=el.getAttribute('data-curso');
+  const fora=new Set(Array.isArray(vagas[idx].cvCursosFora)?vagas[idx].cvCursosFora:[]);
+  if(el.checked) fora.delete(k); else fora.add(k);
+  vagas[idx].cvCursosFora=[...fora];
+  if(String(editingVagaId)===String(vagas[idx].id)) lastCVCursosFora=vagas[idx].cvCursosFora;
+  saveVagas();
+}
 function mvSyncDocsCV(){
+  mvRenderCursosCV();
   const v=editingVagaId&&editingVagaId!=='new'?vagas.find(x=>String(x.id)===String(editingVagaId)):null;
   const has=!!(v&&v.atsCV);
   const buf=document.getElementById('mv-ats-cv-txt');
@@ -11350,7 +11399,7 @@ async function gerarCVInline(){
     const canalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
     const canalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
     lastCV=cv;
-    lastCVLang=_pedido.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=jobDesc||'';
+    lastCVLang=_pedido.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=jobDesc||''; lastCVCursosFora=_mvCursosForaDoCard();
     lastCVFilename=`CV_MF_${(empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
     atsEmpresa=empresa;atsCargo=cargo;
     if(!cv){
@@ -11451,7 +11500,7 @@ async function gerarDocModal(tipo){
     const _bruto=text;  // o card guarda os fatos traduzidos a partir do bruto; a tela mostra só o CV
     if(tipo==='ats'){
       text=_extrairSoCV(text); lastCV=text;
-      lastCVLang=_pedidoDoc.idioma; lastCVTrad=_extrairPerfilTraduzido(_bruto); lastCVVaga=jobDesc||'';
+      lastCVLang=_pedidoDoc.idioma; lastCVTrad=_extrairPerfilTraduzido(_bruto); lastCVVaga=jobDesc||''; lastCVCursosFora=_mvCursosForaDoCard();
     }
     if(outEl) outEl.value=text;
     if(editingVagaId&&editingVagaId!=='new'){
@@ -11492,7 +11541,7 @@ function downloadPDFExecFromModal(btn){
   // Idioma e fatos traduzidos vêm do card (o campo do modal é só texto). Cargo calibra 1 vs 2 páginas.
   const _vCard=vagas[vagas.findIndex(v=>String(v.id)===String(editingVagaId))]||null;
   const _restaurar=_pdfCtxUsar({cv, cargo, lang:(_vCard&&_vCard.atsCvIdioma)||'PT', trad:(_vCard&&_vCard.atsPerfilTrad)||null,
-    vaga:(_vCard&&(_vCard.jobDescription||_vCard.descricao))||'',
+    vaga:(_vCard&&(_vCard.jobDescription||_vCard.descricao))||'', cursosFora:(_vCard&&_vCard.cvCursosFora)||[],
     filename:`CV_MF_${empresa.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Vaga'}_${cargo.replace(/[^a-zA-Z0-9]/g,'').slice(0,20)||'Cargo'}_v1`});
   downloadPDFExecutivo();
   _restaurar();
@@ -14152,7 +14201,7 @@ function _competenciasDoPerfil(exps, textoVaga, lang){
   }
   return escolhidas.map(x => x.tag.charAt(0).toUpperCase() + x.tag.slice(1)).join(' · ');
 }
-function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
+function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad, cursosFora){
   const c=contatoDoCV();
   const cv=(typeof _extrairSoCV==='function')?_extrairSoCV(cvTexto||''):(cvTexto||'');
   const linhas=cv.split('\n').map(l=>l.trim()).filter(Boolean);
@@ -14201,14 +14250,18 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad){
     // por um detalhe cosmético. O censo existe para bloquear PROSA na língua errada, não nome.
   }
   if(_traduzindo&&!(trad&&trad.idiomas)) _emPortugues.push('Lista de idiomas');
-  const _cursos=cursosDoCV();
+  // A tradução (trad.cursos) é casada pelo índice da lista COMPLETA do Perfil; por isso o corte
+  // desta vaga acontece depois do casamento, nunca antes.
+  const _fora=new Set(Array.isArray(cursosFora)?cursosFora:[]);
+  const _cursos=cursosDoCV().map((c,i)=>{ const t=trad&&trad.cursos&&trad.cursos[i]; return {titulo:(t&&t.titulo)||c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:t?t.conteudo:c.conteudo,_chave:_cursoChave(c)}; })
+                            .filter(c=>!_fora.has(c._chave));
   if(_traduzindo&&_cursos.length&&!(trad&&trad.cursos)) _emPortugues.push('Cursos complementares');
   return {
     nome:c.nome, subtitulo, contato:_linhaContato(c,['telefone','email','linkedin']),
     resumo:_resumoIA||PERFIL_MARCOS.resumo_geral,
     experiencias:exps,
     formacao:_forms.map((f,i)=>({titulo:(trad&&trad.formacao&&trad.formacao[i])||f.titulo,instituicao:(trad&&trad.instituicoes&&trad.instituicoes[i])||f.instituicao,periodo:f.periodo})),
-    cursos:_cursos.map((c,i)=>{ const t=trad&&trad.cursos&&trad.cursos[i]; return {titulo:(t&&t.titulo)||c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:t?t.conteudo:c.conteudo}; }),
+    cursos:_cursos.map(c=>({titulo:c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:c.conteudo})),
     competencias:_secaoDoCV(cv,/compet|skills/i)||_competenciasDoPerfil(expsFiltradas,textoVaga,lang),
     idiomas:(trad&&trad.idiomas)?trad.idiomas.join(' · '):PERFIL_MARCOS.idiomas.map(i=>`${i.idioma} (${i.nivel})`).join(' · '),
     _emPortugues
@@ -14242,7 +14295,7 @@ function _buildPDFExecDoc(){
   const margL=18, margR=192, larg=192-18; // 174mm úteis
   const cor=(c)=>doc.setTextColor(c[0],c[1],c[2]);
   const L=_pdfLabels(lastCVLang);
-  const cv=_cvParaPDF(lastCVVaga, lastCV, atsCargo, lastCVLang, lastCVTrad); // fatos do perfil + adaptação da IA (limpa análise vazada); atsCargo calibra 1 vs 2 páginas
+  const cv=_cvParaPDF(lastCVVaga, lastCV, atsCargo, lastCVLang, lastCVTrad, lastCVCursosFora); // fatos do perfil + adaptação da IA (limpa análise vazada); atsCargo calibra 1 vs 2 páginas
   // TRAVA DO DOCUMENTO MISTO (S52, CV do Jobgether). Todo campo do CV tem fallback para o fato do
   // perfil, escrito em português — e o documento saía com três experiências em português no meio
   // do inglês, com a mesma confiança de um documento perfeito. Um CV meio traduzido é PIOR que um

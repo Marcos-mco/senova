@@ -19,6 +19,7 @@ const s = carregarApp([
   'function _mesLabelPDF(',
   'function _nivelAlvoPDF(',
   'function _cvParaPDF(',
+  'function _cursoChave(',
   'function _extrairPerfilTraduzido(',
   'function _nomeProprioSobrevive(',
   'function _numerosNovosDe(',
@@ -30,7 +31,7 @@ const s = carregarApp([
 ]);
 
 const VAGA = 'Gerente de operações, liderança de equipe.';
-const cvDoc = (lang, trad) => chamar(s, '_cvParaPDF', [VAGA, 'NOME\n\nRESUMO EXECUTIVO\nx', 'Gerente', lang || 'PT', trad || null]);
+const cvDoc = (lang, trad, fora) => chamar(s, '_cvParaPDF', [VAGA, 'NOME\n\nRESUMO EXECUTIVO\nx', 'Gerente', lang || 'PT', trad || null, fora || []]);
 
 const CURSOS = [
   { id: 'c1', titulo: 'Curso Alfa', instituicao: 'Escola Um', periodo: '2010', conteudo: 'Tema A; tema B.' },
@@ -77,6 +78,19 @@ t('lista com contagem diferente é recusada inteira', !(metade && metade.cursos)
 const semConteudo = exec(s, `_extrairPerfilTraduzido(${JSON.stringify(resp([{ titulo: 'Alpha Course', conteudo: '' }, { titulo: 'Beta Course', conteudo: '' }]))})`);
 t('conteúdo que existia e sumiu na tradução derruba a lista', !(semConteudo && semConteudo.cursos));
 t('e o documento avisa que ficou em português', (cvDoc('EN', metade)._emPortugues || []).includes('Cursos complementares'));
+
+console.log('\n=== a pessoa tira um curso do CV desta vaga (21/out/2026) ===');
+// Jardinagem no CV de Diretor de Marketing: o card guarda o que fica de fora; o Perfil, todos.
+const foraAlfa = [exec(s, `_cursoChave(${JSON.stringify(CURSOS[0])})`)];
+const docCorte = cvDoc('PT', null, foraAlfa);
+t('o curso tirado não sai no documento', docCorte.cursos.length === 1 && docCorte.cursos[0].titulo === 'Curso Beta');
+t('o Perfil continua com os dois', exec(s, 'cursosDoCV().length') === 2);
+const docCorteEN = cvDoc('EN', ok, foraAlfa);
+t('com tradução, o curso que fica leva a SUA tradução, não a do vizinho', docCorteEN.cursos.length === 1 && docCorteEN.cursos[0].titulo === 'Beta Course');
+const foraTodos = CURSOS.map(c => exec(s, `_cursoChave(${JSON.stringify(c)})`));
+t('tirados todos, o documento fica sem a seção', cvDoc('PT', null, foraTodos).cursos.length === 0);
+t('tirados todos num CV traduzido, nada é acusado de ficar em português', !(cvDoc('EN', metade, foraTodos)._emPortugues || []).includes('Cursos complementares'));
+t('a chave ignora caixa, acento e espaço', exec(s, `_cursoChave({titulo:' Manutenção  de JARDINS ',periodo:'2007'})`) === exec(s, `_cursoChave({titulo:'manutencao de jardins',periodo:'2007'})`));
 
 exec(s, 'guardarCursosSalvos([],true)');
 fim('CURSOS COMPLEMENTARES · seção própria, nunca vazia');
