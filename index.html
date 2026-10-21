@@ -3543,15 +3543,22 @@ function formatarExperienciasPerfil(exps, comIds) {
 // única para ATS_SYSTEM, CARTA_SYSTEM e EMAIL_ENVIO_SYSTEM. A lista de experiências já vem decidida
 // e ordenada por filtrarExperienciasRelevantes; a IA que receber este bloco só traduz/otimiza redação.
 // Bloco CURSOS COMPLEMENTARES do prompt: só existe quando há curso cadastrado (sem lista vazia, sem "nenhum").
-function _blocoCursosPrompt(){
-  const cs = cursosDoCV();
+// Os cursos que ESTA vaga leva: o Perfil guarda todos; o card guarda só o que fica de fora (chaves
+// de _cursoChave). Pedido à IA, tradução e PDF leem por aqui — jardinagem tirada do card não pode
+// voltar pelo texto que a IA escreve (21/out/2026).
+function cursosDaVaga(cursosFora){
+  const fora = new Set(Array.isArray(cursosFora) ? cursosFora : []);
+  return cursosDoCV().filter(c => !fora.has(_cursoChave(c)));
+}
+function _blocoCursosPrompt(cursosFora){
+  const cs = cursosDaVaga(cursosFora);
   if(!cs.length) return '';
   return `
 CURSOS COMPLEMENTARES (cursos livres; lista FINAL, na ordem dada — não acrescente nenhum):
 ${cs.map(c => `- ${c.titulo}${c.instituicao?', '+c.instituicao:''}${c.periodo?' ('+c.periodo+')':''}${c.conteudo?' — '+c.conteudo:''}`).join('\n')}
 `;
 }
-function perfilFormatadoPara(textoVaga, nivelVaga, comIds) {
+function perfilFormatadoPara(textoVaga, nivelVaga, comIds, cursosFora) {
   const c = contatoDoCV();
   const exps = filtrarExperienciasRelevantes(textoVaga, nivelVaga);
   return `${_linhaContato(c,['nome','telefone','email','linkedin','localizacao'])}
@@ -3563,7 +3570,7 @@ ${formatarExperienciasPerfil(exps, comIds)}
 
 FORMAÇÃO:
 ${formacaoDoCV().map(f => `- ${f.titulo}, ${f.instituicao} (${f.periodo})`).join('\n')}
-${_blocoCursosPrompt()}
+${_blocoCursosPrompt(cursosFora)}
 IDIOMAS:
 ${PERFIL_MARCOS.idiomas.map(i => `- ${i.idioma}: ${i.nivel}`).join('\n')}`;
 }
@@ -3864,7 +3871,7 @@ function setLang(lang,btn) {
 // mexia no CV. A única menção a idioma estava escondida dentro do bloco ---CV--- ("no idioma da
 // vaga"), fraca demais contra um system inteiro em português: numa vaga espanhola o CV saiu em
 // português (Mur&Partners, 23/jul/2026). Agora o idioma é instrução de topo.
-const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
+const ATS_SYSTEM = (lang, textoVaga, nivelVaga, cursosFora) => {
   const nomeIdioma = { PT: 'português do Brasil', EN: 'English', ES: 'español' }[lang] || 'português do Brasil';
   const traduzir = lang === 'EN' || lang === 'ES';
   // As etiquetas [id:...] vão SEMPRE, em qualquer idioma (16/out/2026). O bloco ---PERFIL--- é
@@ -3888,7 +3895,7 @@ const ATS_SYSTEM = (lang, textoVaga, nivelVaga) => {
 IDIOMA DE SAÍDA DO CV: ${nomeIdioma}. O CV inteiro sai neste idioma — títulos de seção, subtítulo, resumo, cargos, bullets, formação e competências. Nomes próprios (empresas, instituições, cidades) não se traduzem. A ANÁLISE e o CRM continuam em português, que é para leitura de Marcos.
 
 PERFIL DO CANDIDATO (já filtrado por relevância para esta vaga específica — ver REGRAS ABSOLUTAS):
-${perfilFormatadoPara(textoVaga, nivelVaga, true)}
+${perfilFormatadoPara(textoVaga, nivelVaga, true, cursosFora)}
 
 NÍVEL-ALVO DESTA VAGA: ${nivelRotulo}.
 CALIBRAÇÃO DE ENQUADRAMENTO (regra decisiva de qualidade — não negociável):
@@ -3944,7 +3951,7 @@ OBSERVAÇÕES: [contexto relevante em 1 linha]
 
 ---PERFIL---
 Os FATOS do CV (cargos, bullets, formação, idiomas) são montados por código a partir do perfil, não do texto do ---CV--- acima. É por isso que este bloco existe, e é ele que decide o documento final. Devolva JSON e nada além do JSON:
-{"idioma":"${lang}","exp":{"<id da experiência, exatamente como veio em [id:...]>":{${traduzir ? '"cargo":"<cargo traduzido>","empresa":"<a linha da empresa: o nome próprio VERBATIM, traduzindo só palavra comum e qualificador entre parênteses>",' : ''}"bullets":["...","..."]}}${traduzir ? ',"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"instituicoes":["<a linha da instituição, na mesma ordem: nome próprio VERBATIM, traduzindo só o país e as palavras comuns>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]' + (cursosDoCV().length ? ',"cursos":[{"titulo":"<título traduzido>","conteudo":"<conteúdo traduzido, ou vazio se veio vazio>"} na mesma ordem da lista CURSOS COMPLEMENTARES]' : '') : ''}}
+{"idioma":"${lang}","exp":{"<id da experiência, exatamente como veio em [id:...]>":{${traduzir ? '"cargo":"<cargo traduzido>","empresa":"<a linha da empresa: o nome próprio VERBATIM, traduzindo só palavra comum e qualificador entre parênteses>",' : ''}"bullets":["...","..."]}}${traduzir ? ',"formacao":["<título traduzido, na mesma ordem da lista FORMAÇÃO>"],"instituicoes":["<a linha da instituição, na mesma ordem: nome próprio VERBATIM, traduzindo só o país e as palavras comuns>"],"idiomas":["<idioma (nível), na mesma ordem da lista IDIOMAS>"]' + (cursosDaVaga(cursosFora).length ? ',"cursos":[{"titulo":"<título traduzido>","conteudo":"<conteúdo traduzido, ou vazio se veio vazio>"} na mesma ordem da lista CURSOS COMPLEMENTARES]' : '') : ''}}
 Regras deste bloco:
 - UM bullet para cada bullet original, na MESMA ORDEM, sem juntar, sem cortar e sem acrescentar. Inclua TODAS as experiências que receberam [id:...].
 - Reescreva cada bullet mirando esta vaga${traduzir ? `, já em ${nomeIdioma}` : ''}, aplicando a ÊNFASE POR VAGA das regras acima: mesmo fato, ângulo que responde ao anúncio, vocabulário do anúncio.
@@ -4163,6 +4170,7 @@ function montarPedidoCV(o){
   // extensão passam o cargo); senão, do título no topo da descrição; senão '' e a IA infere da JD.
   const nivelVaga = _nivelAlvoPDF(String(o.cargo || '')) || _nivelAlvoPDF((desc.split('\n').map(s => s.trim()).find(Boolean) || '').slice(0, 120)) || '';
   const idioma = _idiomaDoPedido(desc, o.idioma, o.vaga);
+  const cursosFora = (o.vaga && Array.isArray(o.vaga.cvCursosFora)) ? o.vaga.cvCursosFora : [];
   // Fora do português, a resposta traz também os FATOS traduzidos (bloco ---PERFIL---): sem isso
   // o PDF sairia meio espanhol (resumo) e meio português (cargos, bullets, formação), porque
   // esses campos vêm estruturados do PERFIL_MARCOS e não passam pela IA.
@@ -4175,7 +4183,7 @@ function montarPedidoCV(o){
     curta: desc.trim().length < CV_DESC_MINIMA,
     body: {
       model: MODELOS.analise, max_tokens: 6000,
-      system: ATS_SYSTEM(idioma, vagaTexto, nivelVaga),
+      system: ATS_SYSTEM(idioma, vagaTexto, nivelVaga, cursosFora),
       messages: [{ role: 'user', content: 'Analise esta vaga e gere o CV adaptado:\n\n' + vagaTexto + contextoFull + perfilComp }]
     }
   };
@@ -11399,7 +11407,7 @@ async function gerarCVInline(){
     const canalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
     const canalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
     lastCV=cv;
-    lastCVLang=_pedido.idioma; lastCVTrad=_extrairPerfilTraduzido(text); lastCVVaga=jobDesc||''; lastCVCursosFora=_mvCursosForaDoCard();
+    lastCVLang=_pedido.idioma; lastCVCursosFora=_mvCursosForaDoCard(); lastCVTrad=_extrairPerfilTraduzido(text,lastCVCursosFora); lastCVVaga=jobDesc||'';
     lastCVFilename=`CV_MF_${(empresa||'Vaga').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_${(cargo||'Cargo').replace(/[^a-zA-Z0-9]/g,'').slice(0,20)}_v1`;
     atsEmpresa=empresa;atsCargo=cargo;
     if(!cv){
@@ -11500,7 +11508,7 @@ async function gerarDocModal(tipo){
     const _bruto=text;  // o card guarda os fatos traduzidos a partir do bruto; a tela mostra só o CV
     if(tipo==='ats'){
       text=_extrairSoCV(text); lastCV=text;
-      lastCVLang=_pedidoDoc.idioma; lastCVTrad=_extrairPerfilTraduzido(_bruto); lastCVVaga=jobDesc||''; lastCVCursosFora=_mvCursosForaDoCard();
+      lastCVLang=_pedidoDoc.idioma; lastCVCursosFora=_mvCursosForaDoCard(); lastCVTrad=_extrairPerfilTraduzido(_bruto,lastCVCursosFora); lastCVVaga=jobDesc||'';
     }
     if(outEl) outEl.value=text;
     if(editingVagaId&&editingVagaId!=='new'){
@@ -14250,12 +14258,15 @@ function _cvParaPDF(textoVaga, cvTexto, cargoVaga, lang, trad, cursosFora){
     // por um detalhe cosmético. O censo existe para bloquear PROSA na língua errada, não nome.
   }
   if(_traduzindo&&!(trad&&trad.idiomas)) _emPortugues.push('Lista de idiomas');
-  // A tradução (trad.cursos) é casada pelo índice da lista COMPLETA do Perfil; por isso o corte
-  // desta vaga acontece depois do casamento, nunca antes.
+  // A tradução casa pela CHAVE do curso (trad.cursos[].chave). Tradução antiga, sem chave, foi
+  // feita sobre a lista COMPLETA do Perfil e casa pelo índice dela; por isso o corte desta vaga
+  // acontece depois do casamento, nunca antes. Curso sem tradução num CV traduzido é denunciado.
   const _fora=new Set(Array.isArray(cursosFora)?cursosFora:[]);
-  const _cursos=cursosDoCV().map((c,i)=>{ const t=trad&&trad.cursos&&trad.cursos[i]; return {titulo:(t&&t.titulo)||c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:t?t.conteudo:c.conteudo,_chave:_cursoChave(c)}; })
+  const _tc=(trad&&Array.isArray(trad.cursos))?trad.cursos:null;
+  const _porChave=_tc&&_tc.every(t=>t&&t.chave);
+  const _cursos=cursosDoCV().map((c,i)=>{ const k=_cursoChave(c); const t=_tc?(_porChave?_tc.find(x=>x.chave===k):_tc[i]):null; return {titulo:(t&&t.titulo)||c.titulo,instituicao:c.instituicao,periodo:c.periodo,conteudo:t?t.conteudo:c.conteudo,_chave:k,_trad:!!t}; })
                             .filter(c=>!_fora.has(c._chave));
-  if(_traduzindo&&_cursos.length&&!(trad&&trad.cursos)) _emPortugues.push('Cursos complementares');
+  if(_traduzindo&&_cursos.some(c=>!c._trad)) _emPortugues.push('Cursos complementares');
   return {
     nome:c.nome, subtitulo, contato:_linhaContato(c,['telefone','email','linkedin']),
     resumo:_resumoIA||PERFIL_MARCOS.resumo_geral,
@@ -14903,7 +14914,7 @@ function _numerosNovosDe(orig,adaptados){
 function _bulletsFieisAosFatos(orig,adaptados){
   return _numerosNovosDe(orig,adaptados).length===0;
 }
-function _extrairPerfilTraduzido(texto){
+function _extrairPerfilTraduzido(texto, cursosFora){
   const t=String(texto||'');
   if(!t.includes('---PERFIL---')) return null;
   const bruto=t.split('---PERFIL---').pop();
@@ -14964,10 +14975,12 @@ function _extrairPerfilTraduzido(texto){
   if(is.length===(PERFIL_MARCOS.idiomas||[]).length) out.idiomas=is.map(s=>s.trim());
   // Cursos: só título e conteúdo são traduzidos; instituição e ano são fato e vêm do Perfil.
   // Contagem diferente = lista inteira fica em português (vale a mesma regra da formação).
-  const _cursos=cursosDoCV();
+  // A IA recebeu só os cursos DESTA vaga (cursosDaVaga); a tradução guarda a chave de cada um,
+  // para o PDF casar por curso, e não pela posição numa lista que pode ter outro tamanho.
+  const _cursos=cursosDaVaga(cursosFora);
   if(_cursos.length){
     const cs=Array.isArray(j.cursos)?j.cursos.filter(c=>c&&typeof c.titulo==='string'&&c.titulo.trim()):[];
-    if(cs.length===_cursos.length) out.cursos=cs.map((c,i)=>({titulo:c.titulo.trim(),conteudo:(typeof c.conteudo==='string'&&c.conteudo.trim())?c.conteudo.trim():(_cursos[i].conteudo?null:'')}));
+    if(cs.length===_cursos.length) out.cursos=cs.map((c,i)=>({titulo:c.titulo.trim(),conteudo:(typeof c.conteudo==='string'&&c.conteudo.trim())?c.conteudo.trim():(_cursos[i].conteudo?null:''),chave:_cursoChave(_cursos[i])}));
     if(out.cursos&&out.cursos.some(c=>c.conteudo===null)) out.cursos=null;
   }
   // Mesmo quando NENHUMA experiência sobrevive, o diagnóstico tem de chegar ao documento: é esse
@@ -14990,7 +15003,7 @@ function setCV(vaga,texto){
   // decide se refaz. Só carimba resposta NOVA da IA (tem ---CV---) ou o primeiro CV: relimpar
   // um CV poluído é conserto, não geração, e não pode fazer um CV velho parecer recém-feito.
   if(vaga.atsCV&&vaga.atsCV!==_antes&&(raw.includes('---CV---')||!_antes)) vaga.atsCVEm=Date.now();
-  if(raw.includes('---PERFIL---')) vaga.atsPerfilTrad=_extrairPerfilTraduzido(raw)||null;
+  if(raw.includes('---PERFIL---')) vaga.atsPerfilTrad=_extrairPerfilTraduzido(raw,vaga.cvCursosFora)||null;
   else if(raw.includes('---CV---')) vaga.atsPerfilTrad=null;
 }
 window.__senovaCopilotoGerarCV=function(ref,formato){

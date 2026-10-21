@@ -68,6 +68,8 @@ const fontes = [
   'function cursosSalvos(',
   'function guardarCursosSalvos(',
   'function cursosDoCV(',
+  'function _cursoChave(',
+  'function cursosDaVaga(',
   'function _blocoCursosPrompt(',
   // O contato entra pela mesma porta (perfilFormatadoPara) e tem o mesmo desenho.
   'function contatoSemente(',
@@ -145,7 +147,7 @@ t('_nivelAlvoPDF classifica "CEO" como c-level',
 // ── FIAÇÃO no index.html: sem isto, a calibração acima nunca é acionada de verdade ──────────────
 console.log('\n=== FIAÇÃO: os pontos que fazem a calibração valer ===');
 t('montarPedidoCV passa o nivelVaga para ATS_SYSTEM (3º arg)',
-  /ATS_SYSTEM\(idioma, vagaTexto, nivelVaga\)/.test(html));
+  /ATS_SYSTEM\(idioma, vagaTexto, nivelVaga[,)]/.test(html));
 t('montarPedidoCV deriva nivelVaga do cargo/descrição via _nivelAlvoPDF',
   /const nivelVaga = _nivelAlvoPDF\(String\(o\.cargo/.test(html));
 t('o card (Análise) passa o cargo ao portão',

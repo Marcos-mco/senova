@@ -100,6 +100,9 @@ const NUCLEO = [
   'function cursosSalvos(',
   'function guardarCursosSalvos(',
   'function cursosDoCV(',
+  // O corte por vaga (21/out/2026): prompt, tradução e PDF leem os cursos DESTA vaga por aqui.
+  'function _cursoChave(',
+  'function cursosDaVaga(',
   'function _blocoCursosPrompt(',
   // O contato tem DOIS leitores (prompt e cabeçalho do documento) e ainda alimenta o
   // reconhecedor da linha do nome, usado por _pdfCabecalhoCorpo e _cvParaPDF — mesma razão do topo.

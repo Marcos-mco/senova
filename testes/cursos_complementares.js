@@ -19,7 +19,6 @@ const s = carregarApp([
   'function _mesLabelPDF(',
   'function _nivelAlvoPDF(',
   'function _cvParaPDF(',
-  'function _cursoChave(',
   'function _extrairPerfilTraduzido(',
   'function _nomeProprioSobrevive(',
   'function _numerosNovosDe(',
@@ -90,6 +89,18 @@ t('com tradução, o curso que fica leva a SUA tradução, não a do vizinho', d
 const foraTodos = CURSOS.map(c => exec(s, `_cursoChave(${JSON.stringify(c)})`));
 t('tirados todos, o documento fica sem a seção', cvDoc('PT', null, foraTodos).cursos.length === 0);
 t('tirados todos num CV traduzido, nada é acusado de ficar em português', !(cvDoc('EN', metade, foraTodos)._emPortugues || []).includes('Cursos complementares'));
+console.log('\n=== o curso tirado da vaga não chega à IA (21/out/2026) ===');
+// Sem isto, a jardinagem tirada do PDF voltava pelo texto que a IA escreve para a vaga.
+const blocoCorte = exec(s, `_blocoCursosPrompt(${JSON.stringify(foraAlfa)})`);
+t('o pedido à IA não leva o curso tirado', !blocoCorte.includes('Curso Alfa') && blocoCorte.includes('Curso Beta'));
+t('tirados todos, o pedido fica sem a seção', exec(s, `_blocoCursosPrompt(${JSON.stringify(foraTodos)})`) === '');
+t('sem corte, o pedido leva todos', exec(s, '_blocoCursosPrompt()').includes('Curso Alfa'));
+const trCorte = exec(s, `_extrairPerfilTraduzido(${JSON.stringify(resp([{ titulo: 'Beta Course', conteudo: '' }]))},${JSON.stringify(foraAlfa)})`);
+t('a tradução da lista cortada é aceita (conta os cursos DESTA vaga)', trCorte && trCorte.cursos && trCorte.cursos.length === 1);
+t('e casa pelo curso, não pela posição', cvDoc('EN', trCorte, foraAlfa).cursos[0].titulo === 'Beta Course');
+t('curso que volta ao CV depois, sem tradução, é denunciado', (cvDoc('EN', trCorte, []) ._emPortugues || []).includes('Cursos complementares'));
+t('e o que tinha tradução continua traduzido', cvDoc('EN', trCorte, []).cursos[1].titulo === 'Beta Course');
+t('tradução antiga (sem chave) segue casando pela lista completa', cvDoc('EN', { exp: {}, cursos: [{ titulo: 'Alpha Course', conteudo: 'Topic A.' }, { titulo: 'Beta Course', conteudo: '' }] }, foraAlfa).cursos[0].titulo === 'Beta Course');
 t('a chave ignora caixa, acento e espaço', exec(s, `_cursoChave({titulo:' Manutenção  de JARDINS ',periodo:'2007'})`) === exec(s, `_cursoChave({titulo:'manutencao de jardins',periodo:'2007'})`));
 
 exec(s, 'guardarCursosSalvos([],true)');

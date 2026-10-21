@@ -45,7 +45,7 @@ const fontes = [
 const sandbox = {
   vagas: [], saveVagas: () => { }, document: { getElementById: () => null },
   MODELOS: { analise: 'modelo-analise', rapido: 'modelo-rapido' },
-  ATS_SYSTEM: (lang, textoVaga) => 'SYS[' + lang + ']' + textoVaga,
+  ATS_SYSTEM: (lang, textoVaga, nivel, cursosFora) => 'SYS[' + lang + ']' + textoVaga + '|FORA:' + JSON.stringify(cursosFora || []),
   ctxBuscarRelevantes: () => [{ texto: 'complemento relevante do Perfil' }],
   CV_DESC_MINIMA, cvLang: 'PT', cvLangManual: false,
   // Os idiomas declarados importam: é deles que sai em que línguas o app pode escrever
@@ -90,6 +90,10 @@ t('o toggle global NÃO manda mais no pedido', run('montarPedidoCV({descricao:"x
 sandbox.cvLang = 'PT';
 t('a exceção da vaga manda', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{cvIdioma:"EN"}})').body.system.startsWith('SYS[EN]'));
 t('e uma vaga sem exceção volta ao padrão', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{}})').body.system.startsWith('SYS[PT]'));
+
+console.log('\n=== Os cursos tirados do card chegam ao pedido (21/out/2026) ===');
+t('o corte de cursos da vaga vai ao prompt', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{cvCursosFora:["jardinagem|2007"]}})').body.system.includes('FORA:["jardinagem|2007"]'));
+t('vaga sem corte manda lista vazia', run('montarPedidoCV({descricao:"x".repeat(500)})').body.system.includes('FORA:[]'));
 
 console.log('\n=== Piso de descrição: CV de snippet sai genérico ===');
 t('descrição curta é marcada como curta', run('montarPedidoCV({descricao:"vaga de vendas"})').curta === true);
