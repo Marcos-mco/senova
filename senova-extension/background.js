@@ -1,4 +1,4 @@
-// Service worker — Senova Extension v2.82
+// Service worker — Senova Extension v2.83
 
 const WORKER  = 'https://senova-proxy.marcos-mco.workers.dev';
 const APP_URL = 'https://marcos-mco.github.io/senova';
@@ -13,18 +13,35 @@ const _APP_RE = /^https:\/\/marcos-mco\.github\.io\/senova(\/(index\.html)?)?([?
 function _comTeto(p, ms) {
   return Promise.race([p, new Promise(r => setTimeout(() => r('__teto__'), ms))]);
 }
+async function _sondaSenova(t, ms) {
+  try {
+    const out = await _comTeto(chrome.scripting.executeScript({
+      target: { tabId: t.id }, world: 'MAIN',
+      func: () => document.readyState === 'complete' && typeof window.__senovaCartaoCandidatura === 'function',
+    }), ms);
+    return out !== '__teto__' && !!(out && out[0] && out[0].result === true);
+  } catch { return false; }
+}
 async function _abaSenova() {
-  let abas = [];
-  try { abas = await chrome.tabs.query({}); } catch { return null; }
-  abas = abas.filter(t => t.url && _APP_RE.test(t.url) && !t.discarded && !t.frozen)
-             .sort((a, b) => (b.active - a.active) || ((b.lastAccessed || 0) - (a.lastAccessed || 0)));
-  for (const t of abas) {
-    try {
-      const out = await _comTeto(chrome.scripting.executeScript({
-        target: { tabId: t.id }, world: 'MAIN', func: () => true,
-      }), 1500);
-      if (out !== '__teto__' && out && out[0] && out[0].result === true) return t;
-    } catch { /* aba que não responde: tenta a próxima */ }
+  let todas = [];
+  try { todas = await chrome.tabs.query({}); } catch { return null; }
+  todas = todas.filter(t => t.url && _APP_RE.test(t.url))
+               .sort((a, b) => (b.active - a.active) || ((b.lastAccessed || 0) - (a.lastAccessed || 0)));
+  for (const t of todas.filter(t => !t.discarded && !t.frozen)) {
+    if (await _sondaSenova(t, 1500)) return t;
+  }
+  // Nenhuma respondeu. 21/out/2026: o Chrome CONGELA abas em segundo plano para poupar memória —
+  // a aba do Senova estava aberta, saudável, e simplesmente parada; a extensão desistia e mandava
+  // "Abra o Senova". Acorda a mais recente recarregando-a (uma aba só: abrir outra criaria dois
+  // gravadores do mesmo acervo) e espera o app ficar pronto. O app grava a cada mudança, então
+  // recarregar não perde dado.
+  const alvo = todas[0];
+  if (!alvo) return null;
+  try { await chrome.tabs.reload(alvo.id); } catch { return null; }
+  const fim = Date.now() + 15000;
+  while (Date.now() < fim) {
+    await new Promise(r => setTimeout(r, 700));
+    if (await _sondaSenova(alvo, 1500)) return alvo;
   }
   return null;
 }
@@ -83,7 +100,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === 'COPILOTO_CV') {
     // O copiloto pede o CV da vaga para o usuário levar ao portal: 'pdf' (Executivo) ou 'docx' (ATS).
-    copilotoCV(msg.dados || { jobId: msg.jobId }, msg.formato).then(sendResponse).catch(() => sendResponse(null));
+    // anexar:true → devolve o arquivo ao copiloto para ir no campo de upload do formulário, sem baixar.
+    copilotoCV(msg.dados || { jobId: msg.jobId }, msg.formato, !!msg.anexar).then(sendResponse).catch(() => sendResponse(null));
     return true;
   }
   if (msg.type === 'COPILOTO_GARANTIR_CARD') {
@@ -464,7 +482,7 @@ async function copilotoCartao() {
 // CV da vaga: sem reprocessar. Se o card já tem CV → baixa direto.
 // Se não tem → gera via Worker (ATS_SYSTEM), salva no card, baixa.
 // Card e copiloto ficam sempre em sincronia — fonte de verdade única.
-async function copilotoCV(dados, formato) {
+async function copilotoCV(dados, formato, anexar) {
   const d = (typeof dados === 'object' && dados) ? dados : { jobId: dados };
   if (!d.jobId && !d.url && !(d.empresa && d.cargo)) return { erro: 'sem_referencia' };
   formato = (formato === 'pdf') ? 'pdf' : 'docx';
@@ -484,6 +502,14 @@ async function copilotoCV(dados, formato) {
   // Passo 1: tenta o CV existente no card (ou recebe o prompt para gerar)
   let r = null;
   try { r = await gerar(); } catch { return null; }
+
+  // Anexar ao formulário (21/out/2026): só entrega o CV que JÁ existe no card. Não cria card e não
+  // gera nada — preencher um formulário nunca pode virar gasto de IA escondido. Sem CV pronto, o
+  // copiloto diz isso e o usuário decide gerar.
+  if (anexar) {
+    if (r && r.ok && r.dataUrl) return { ok: true, dataUrl: r.dataUrl, filename: r.filename };
+    return { erro: (r && r.erro) || null, motivo: (r && r.motivo) || 'sem_cv' };
+  }
 
   // Caminho A: a vaga foi achada por fora e ainda não é card no Senova (análise transitória do
   // popup, nunca persistida) → 'sem_card'. Cria o card com a descrição da página (que veio em

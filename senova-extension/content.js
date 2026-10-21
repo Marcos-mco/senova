@@ -1,4 +1,4 @@
-// Content script — Senova Extension v2.79
+// Content script — Senova Extension v2.83
 // Copiloto: lê/preenche vaga, baixa CV, avisa envio + entrada "Por fora" (ativar pelo popup)
 
 (function () {
@@ -473,23 +473,50 @@
     return _decodeEntidades(document.querySelector('meta[property="' + prop + '"]')?.content || '');
   }
 
+  // Cargo e empregador como a PRÓPRIA página os publica no bloco estruturado de vaga (JobPosting).
+  // 20/out/2026: o genérico pegava o primeiro <h1> da página — num portal era o banner "Use a IA
+  // para avaliar a adequação do seu perfil" — e o og:site_name como empresa, que é quem HOSPEDA a
+  // página, não quem contrata. O card nasceu com esse cargo, e nada mais casava com ele.
+  function _vagaDoJsonLd() {
+    for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
+      let parsed;
+      try { parsed = JSON.parse(s.textContent || ''); } catch (_) { continue; }
+      const items = Array.isArray(parsed) ? parsed : (parsed && parsed['@graph'] ? parsed['@graph'] : [parsed]);
+      for (const item of items) {
+        if (!item || item['@type'] !== 'JobPosting') continue;
+        const org = Array.isArray(item.hiringOrganization) ? item.hiringOrganization[0] : item.hiringOrganization;
+        const cargo = _decodeEntidades(String(item.title || '').trim()).slice(0, 160);
+        const empresa = _decodeEntidades(String((org && (typeof org === 'string' ? org : org.name)) || '').trim()).slice(0, 120);
+        const descricao = _decodeEntidades(String(item.description || '').replace(/<\/(p|li|div|h\d)>|<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim().slice(0, 5000);
+        if (cargo) return { cargo, empresa, descricao };
+      }
+    }
+    return null;
+  }
+
   function extractGenerico() {
     const jl = _metaDaPagina();
+    const ld = _vagaDoJsonLd();
     const selecao   = window.getSelection()?.toString().trim().slice(0, 5000) || '';
     const metaTitle = meta('og:title') || document.title || '';
     const metaDesc  = meta('og:description');
-    const empresaOg = meta('og:site_name') || host;
+    const empresaOg = (ld && ld.empresa) || meta('og:site_name') || host;
 
     const isVagaUrl    = RX_URL_VAGA.test(url);
     const isVagaTitulo = RX_TITULO_VAGA.test(metaTitle);
 
-    if (isVagaUrl || isVagaTitulo) {
+    if (isVagaUrl || isVagaTitulo || ld) {
       const h1 = document.querySelector('h1')?.innerText?.trim() || '';
-      const desc = selecao || metaDesc || '';
+      const desc = selecao || (ld && ld.descricao) || metaDesc || '';
       // Filtra section headings em h1 E em metaTitle — ambos podem conter lixo no LinkedIn
       const h1Ok    = h1 && !_LI_SECTION_HEADINGS.test(h1) && !/^\d/.test(h1);
       const titleOk = metaTitle && !_LI_SECTION_HEADINGS.test(metaTitle) && !/^\d/.test(metaTitle);
-      const cargoFinal = h1Ok ? h1 : (titleOk ? metaTitle : '');
+      // O <h1> só manda quando conversa com o título da página (ou quando não há título bom):
+      // um h1 sem nenhuma palavra em comum com o título é banner/chamada, não o cargo.
+      const _pal = s => new Set(String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter(w => w.length >= 3));
+      const _ph = _pal(h1), _pt = _pal(metaTitle);
+      const h1Conversa = !titleOk || [..._ph].some(w => _pt.has(w));
+      const cargoFinal = (ld && ld.cargo) || (h1Ok && h1Conversa ? h1 : (titleOk ? metaTitle : (h1Ok ? h1 : '')));
       return {
         tipo: 'vaga',
         cargo: cargoFinal,
@@ -503,6 +530,18 @@
       };
     }
 
+    // Página sem identidade de vaga própria, mas com formulário de candidatura, no mesmo site onde
+    // a vaga acabou de ser vista: é o formulário DAQUELA vaga (ver _vagaVistaAqui).
+    if (_vagaVistaAqui && _acharContainerCandidatura()) {
+      const v = _vagaVistaAqui;
+      return {
+        tipo: 'vaga', cargo: v.cargo, empresa: v.empresa, local: v.local || '',
+        descricao: selecao || v.descricao || '',
+        forma_candidatura: 'Ver na vaga', canal: 'Empresa', url: v.url,
+        salario: v.salario || '', modalidade: v.modalidade || '', jornada: v.jornada || '',
+      };
+    }
+
     return {
       tipo: 'sinal',
       titulo: metaTitle,
@@ -511,6 +550,36 @@
       url,
     };
   }
+
+  // ── VAGA VISTA NESTE SITE ────────────────────────────────────────
+  // 21/out/2026: em muitos sites o formulário de candidatura é uma página ANÔNIMA — sem título de
+  // vaga, sem bloco JobPosting, com um código de vaga na URL diferente do da página do anúncio, e
+  // sem referrer. O copiloto chegava nela, não sabia de que vaga se tratava, não abria e não achava
+  // o CV já gerado. Quem sabe é a página do anúncio, aberta segundos antes no MESMO site: ela
+  // guarda aqui o que publicou, e o formulário sem identidade herda isso. Chave = o site (host);
+  // nenhuma regra por nome de serviço. Validade curta (2h) e só herda se houver formulário.
+  const _VISTA_KEY = 'senova_vaga_vista', _VISTA_VALIDADE = 2 * 3600 * 1000;
+  let _vagaVistaAqui = null;
+  function _lembrarVagaVista(d) {
+    if (!d || d.tipo !== 'vaga' || !d.cargo || !d.url) return;
+    try {
+      chrome.storage.local.get(_VISTA_KEY).then(st => {
+        const mapa = (st && st[_VISTA_KEY]) || {};
+        mapa[host] = { url: d.url, cargo: d.cargo, empresa: d.empresa || '', local: d.local || '',
+          descricao: String(d.descricao || '').slice(0, 3000), salario: d.salario || '',
+          modalidade: d.modalidade || '', jornada: d.jornada || '', ts: Date.now() };
+        const hosts = Object.keys(mapa).sort((a, b) => mapa[b].ts - mapa[a].ts);
+        for (const h of hosts.slice(30)) delete mapa[h];
+        chrome.storage.local.set({ [_VISTA_KEY]: mapa });
+      }).catch(() => {});
+    } catch (_) {}
+  }
+  try {
+    chrome.storage.local.get(_VISTA_KEY).then(st => {
+      const r = ((st && st[_VISTA_KEY]) || {})[host];
+      if (r && Date.now() - r.ts < _VISTA_VALIDADE && r.url !== url) _vagaVistaAqui = r;
+    }).catch(() => {});
+  } catch (_) {}
 
   // ── GREENHOUSE ───────────────────────────────────────────────────
   // URL: boards.greenhouse.io/COMPANY/jobs/ID
@@ -574,6 +643,9 @@
     if (host.includes('workable.com'))                             return extractWorkable();
     return extractGenerico();
   }
+
+  // A página do anúncio se registra assim que carrega (só se publicar um JobPosting).
+  try { if (_vagaDoJsonLd()) _lembrarVagaVista(extract()); } catch (_) {}
 
   // ── LISTENER ────────────────────────────────────────────────────
 
@@ -770,6 +842,7 @@
   let _selFeitas = [];        // autodeclarações (gênero/raça/orientação) que o copiloto marcou
   let _selPendentes = [];     // declaradas mas SEM opção equivalente no portal → você escolhe à mão
   let _pergPendentes = [];    // perguntas que a IA não conseguiu responder → você responde à mão
+  let _cvAnexo = null;        // { texto, ok } — o que aconteceu com o CV no campo de upload
   let _ultimoPasse = undefined; // estado do passe lido nesta página externa (instrumentação do diag)
   let _reinjetTs = 0;           // throttle de reinjeção do copiloto em SPA que apaga o painel
   let _copilotoFechadoManual = false; // você fechou no × → não reabrir sozinho
@@ -964,6 +1037,41 @@
       const a = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + _rotuloCampo(el)).toLowerCase();
       return !_ruidoRe.test(a);
     });
+  }
+
+  // Seções recolhidas (sanfona) escondem campos — e campo escondido não é coletado, logo não é
+  // preenchido. 20/out/2026 (formulário Pandapé): "Pretensão salarial (obrigatório)", "Perfil
+  // profissional (obrigatório)" e "Diversidade" vinham fechadas e o copiloto dizia ter terminado
+  // com metade do formulário vazio. Abre-se pelo gesto padrão do mercado — clicar no próprio
+  // controle da seção (data-toggle/data-bs-toggle collapse, aria-controls, <details>) —, só onde a
+  // seção fechada contém campo, e nunca em menu de navegação nem no painel do Senova.
+  async function _abrirSecoesRecolhidas() {
+    const alvoDe = a => {
+      const s = a.getAttribute('data-target') || a.getAttribute('data-bs-target') || a.getAttribute('aria-controls') || a.getAttribute('href') || '';
+      const id = s.replace(/^#/, '');
+      if (!id || /[\s\/:?=]/.test(id)) return null;
+      try { return document.getElementById(id); } catch (_) { return null; }
+    };
+    const fora = el => _daExtensao(el) || !!el.closest('nav,header,footer,[role=navigation],[role=banner]');
+    const temCampo = t => !!t.querySelector(_CAMPO_SEL + ',input[type=file]');
+    let abriu = 0;
+    for (let passe = 0; passe < 2; passe++) {
+      let nesta = 0;
+      for (const a of document.querySelectorAll('[data-toggle=collapse],[data-bs-toggle=collapse],[aria-expanded=false][aria-controls]')) {
+        if (fora(a) || !_visivel(a)) continue;
+        const t = alvoDe(a);
+        if (!t || t === a || t.contains(a) || fora(t) || _visivel(t) || !temCampo(t)) continue;
+        try { a.click(); nesta++; } catch (_) {}
+      }
+      for (const d of document.querySelectorAll('details:not([open])')) {
+        if (fora(d) || !temCampo(d)) continue;
+        d.open = true; nesta++;
+      }
+      if (!nesta) break;
+      abriu += nesta;
+      await new Promise(r => setTimeout(r, 450));   // transição da sanfona (~350ms no Bootstrap)
+    }
+    return abriu;
   }
 
   // Coleta os campos do formulário de candidatura COM referência ao elemento (para preencher).
@@ -1537,6 +1645,7 @@
         + (_selPend.length ? `Não achei a opção equivalente para <b>${_esc(_selPend.join(', '))}</b> aqui — escolha à mão. ` : '')
         + (_nPergPend ? `<b>${_nPergPend}</b> ${_nPergPend === 1 ? 'pergunta precisa' : 'perguntas precisam'} de você — deixei em branco. ` : '')
         + (_histVazio ? 'O histórico profissional desta etapa fica com você — está no seu CV. ' : '')
+        + (_cvAnexo ? (_cvAnexo.ok ? '<b style="color:#1A6840;">' + _esc(_cvAnexo.texto) + '</b> ' : _esc(_cvAnexo.texto) + ' ') : '')
         + 'Revise e envie.' + _habTxt
       : `${_esc(rodape)} <b style="color:#1A3A5C;">Você revisa e envia.</b>`;
 
@@ -1969,6 +2078,68 @@
       || /preciso de mais contexto|nao consigo responder|nao tenho (informacao|contexto)|poderia (compartilhar|informar|enviar)|pode compartilhar|qual (e|seria) a pergunta|nao ficou claro|nao especificou|compartilhar (o campo|a instrucao|o texto|a pergunta)/.test(t);
   }
 
+  // ── CV NO CAMPO DE UPLOAD ────────────────────────────────────────
+  // 21/out/2026: o copiloto preenchia tudo menos o CV — "o CV já foi gerado pelo Senova para esta
+  // vaga, mas parece que ele não está achando". O arquivo existe no card; faltava levá-lo ao campo.
+  // Um formulário pode ter vários campos de arquivo (foto, laudo, "importar dados de um arquivo"):
+  // escolhemos pelo que o próprio formulário escreve em volta do campo, e só quando há UM vencedor.
+  // O campo costuma estar escondido atrás de um link "Anexar" — por isso visibilidade não conta.
+  const _RE_CV_ARQ = /curr[ií]cul|\bcv\b|r[ée]sum[ée]|\bresume\b/i;
+  const _RE_NAO_CV = /importar|import\b|preencher autom|autofill|\bfoto\b|photo|imagem|image|avatar|logo|laudo|report|certificad|comprovante/i;
+  function _textoPerto(el) {
+    let p = el.parentElement, t = '';
+    for (let k = 0; k < 3 && p; k++, p = p.parentElement) {
+      const x = (p.innerText || p.textContent || '').replace(/\s+/g, ' ').trim();
+      if (x.length > 300) break;
+      t = x;
+    }
+    return t;
+  }
+  function _aceitaPdf(i) {
+    const acc = (i.getAttribute('accept') || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean);
+    return !acc.length || acc.some(a => a === '.pdf' || a === 'application/pdf' || a === '*/*' || a === 'application/*');
+  }
+  function _acharInputCV() {
+    const cand = [];
+    for (const i of document.querySelectorAll('input[type=file]')) {
+      if (i.disabled || _daExtensao(i) || !_aceitaPdf(i)) continue;
+      const proprio = [i.name, i.id, i.getAttribute('aria-label') || '', i.labels ? [...i.labels].map(l => l.innerText).join(' ') : ''].join(' ');
+      const perto = _textoPerto(i);
+      const tudo = proprio + ' ' + perto;
+      if (_RE_NAO_CV.test(tudo)) continue;
+      if (_RE_CV_ARQ.test(tudo)) cand.push(i);
+    }
+    return cand.length === 1 ? cand[0] : null;
+  }
+  async function _anexarCV(inp) {
+    let res = null;
+    try { res = await chrome.runtime.sendMessage({ type: 'COPILOTO_CV', dados: _dadosVagaCompletos(), formato: 'pdf', anexar: true }); } catch (_) {}
+    if (!res || !res.ok || !res.dataUrl) {
+      const m = (res && res.erro === 'app_fechado') ? 'Não anexei o CV: abra o Senova numa aba.'
+              : (res && res.erro === 'traducao_incompleta') ? 'Não anexei o CV: parte ficou em português — gere o CV de novo no Senova.'
+              : (res && res.motivo === 'sem_card') ? 'Não anexei o CV: não achei esta vaga no Senova.'
+              : 'Não anexei o CV: esta vaga ainda não tem CV gerado no Senova — gere pelo botão "PDF Executivo" e clique em Preencher de novo.';
+      return { ok: false, texto: m };
+    }
+    try {
+      const blob = await (await fetch(res.dataUrl)).blob();
+      const arq = new File([blob], res.filename || 'CV.pdf', { type: 'application/pdf', lastModified: Date.now() });
+      const dt = new DataTransfer();
+      dt.items.add(arq);
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 1200));
+      // Conferência: o arquivo está no campo, ou o formulário já o mostra pelo nome.
+      const viu = (inp.files && inp.files.length === 1 && inp.files[0].name === arq.name)
+               || (document.body.innerText || '').includes(arq.name);
+      return viu ? { ok: true, texto: '✓ Anexei o CV desta vaga (' + arq.name + ') — confira se o portal manteve um CV antigo junto.' }
+                 : { ok: false, texto: 'Tentei anexar o CV, mas o portal não aceitou — anexe à mão: ' + arq.name };
+    } catch (_) {
+      return { ok: false, texto: 'Não consegui anexar o CV aqui — use o botão "PDF Executivo" e anexe à mão.' };
+    }
+  }
+
   async function _preencher() {
     const btn = document.getElementById('snv-cop-preencher');
     // O rótulo original, para devolvê-lo no fim. O progresso ("Respondendo… 1/3", "Selecionando
@@ -1977,11 +2148,14 @@
     // habilidades…" para sempre (08/ago/2026, trampos.co), parecendo travado no meio do trabalho
     // quando a rodada já tinha terminado. Estado fora do render tem de ser desfeito à mão.
     const _rotuloBtn = btn ? btn.textContent : '';
+    try { await _abrirSecoesRecolhidas(); } catch (_) {}
     const campos = _coletarCampos();
     const pessoais = campos.filter(c => c.grupo === 'pessoal' && c.chave && c.el && !c.el.value.trim());
     const perguntas = campos.filter(c => c.grupo === 'pergunta' && c.el && !c.el.value.trim());
     const selecoes = campos.filter(c => c.grupo === 'selecao' && c.chave && c.el && _seleVazia(c.el));
-    if (!pessoais.length && !perguntas.length && !selecoes.length) {
+    let inpCV = null; try { inpCV = _acharInputCV(); } catch (_) {}
+    if (inpCV && inpCV.files && inpCV.files.length) inpCV = null; // já tem arquivo neste campo
+    if (!pessoais.length && !perguntas.length && !selecoes.length && !inpCV) {
       // Nunca falhar calado: o botão apareceu, mas no clique não há nada vazio a preencher.
       _avisoRodada = { texto: 'Não há nada vazio para eu preencher nesta etapa.', url: location.href, etapa: _assinaturaEtapa() };
       _atualizarCorpo();
@@ -1990,7 +2164,7 @@
     _preenchendo = true;
     _habilidadesSel = null;
     _avisoRodada = null;
-    _selFeitas = []; _selPendentes = []; _pergPendentes = [];
+    _selFeitas = []; _selPendentes = []; _pergPendentes = []; _cvAnexo = null;
     if (_copilotoObserver) _copilotoObserver.disconnect();
     const an = _copilotoAnalise || {};
     let algum = false, erroMsg = '';
@@ -2056,6 +2230,13 @@
       try { const h = await _selecionarHabilidades(); if (h && h.length) { algum = true; _habilidadesSel = h; } } catch (_) {}
     }
 
+    // 5) CV desta vaga no campo de upload — só o que já existe no card; nunca gera aqui.
+    if (!erroMsg && inpCV) {
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Anexando o CV…'; }
+      try { _cvAnexo = await _anexarCV(inpCV); } catch (_) {}
+      if (_cvAnexo && _cvAnexo.ok) algum = true;
+    }
+
     _preenchendo = false;
     // Todo desfecho é dito no CORPO do painel — nunca pendurado no rótulo do botão. Texto em botão
     // sobrevivia ao anti-pisca (o HTML do corpo não mudava, então o render não o desfazia): o botão
@@ -2069,7 +2250,7 @@
     } else if (!algum) {
       // Tentou e não preencheu NADA — jamais dizer "✓ Preenchido". Diz o motivo REAL: numa etapa de
       // histórico profissional não é falha nossa nem do usuário, é o que o copiloto não faz.
-      _avisoRodada = { texto: _campoHistoricoVazio() ? _TXT_HISTORICO
+      _avisoRodada = { texto: _cvAnexo ? _cvAnexo.texto : _campoHistoricoVazio() ? _TXT_HISTORICO
         : 'Nesta etapa não há campo meu. O que está vazio aqui só você informa — preencha à mão e siga.', ..._onde };
       _atualizarCorpo();
     } else {

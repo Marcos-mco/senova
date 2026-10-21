@@ -23,12 +23,15 @@ const ini = bg.indexOf('const _APP_RE');
 const fim = bg.indexOf('\n}\n', bg.indexOf('async function _abaSenova()')) + 3;
 const helper = bg.slice(ini, fim);
 
-function mundo(abas, vivas) {
-  const sondadas = [];
+function mundo(abas, vivas, acordaAoRecarregar) {
+  const sondadas = [], recarregadas = [];
+  let relogio = 0;                                   // relógio falso: a espera de 15 s roda em ms
   const sb = {
-    Promise, setTimeout,
+    Promise, setTimeout: (f, ms) => { relogio += ms; return setTimeout(f, 1); },
+    Date: { now: () => relogio },
     chrome: {
-      tabs: { query: async () => abas },
+      tabs: { query: async () => abas,
+              reload: async id => { recarregadas.push(id); if (acordaAoRecarregar) vivas.push(id); } },
       scripting: { executeScript: ({ target }) => {
         sondadas.push(target.tabId);
         if (vivas.includes(target.tabId)) return Promise.resolve([{ result: true }]);
@@ -39,7 +42,7 @@ function mundo(abas, vivas) {
   };
   vm.createContext(sb);
   vm.runInContext(helper + '\n;this._abaSenova=_abaSenova;', sb);
-  return { escolher: () => sb._abaSenova(), sondadas };
+  return { escolher: () => sb._abaSenova(), sondadas, recarregadas };
 }
 
 (async () => {
@@ -77,11 +80,29 @@ function mundo(abas, vivas) {
     t('a ativa vence', a && a.id === 8, a && a.id);
   }
 
-  console.log('\n=== nenhuma viva → null (vira "Abra o Senova") ===');
+  console.log('\n=== aba congelada pelo Chrome (21/out): recarrega a mais recente e espera ===');
   {
-    const m = mundo([{ id: 1, url: 'https://marcos-mco.github.io/senova/' }], []);
+    const m = mundo([
+      { id: 1, url: 'https://marcos-mco.github.io/senova/', frozen: true, lastAccessed: 900 },
+      { id: 2, url: 'https://marcos-mco.github.io/senova/', frozen: true, lastAccessed: 10 },
+    ], [], true);
     const a = await m.escolher();
-    t('devolve null em até ~1,5 s, sem pendurar', a === null);
+    t('acorda a aba mais recente (1) e a usa', a && a.id === 1, a && a.id);
+    t('recarrega UMA aba só (nunca abre outra: dois gravadores)', m.recarregadas.join() === '1', m.recarregadas.join());
+  }
+
+  console.log('\n=== recarregou e mesmo assim não respondeu → null (vira "Abra o Senova") ===');
+  {
+    const m = mundo([{ id: 1, url: 'https://marcos-mco.github.io/senova/' }], [], false);
+    const a = await m.escolher();
+    t('devolve null sem pendurar', a === null);
+  }
+
+  console.log('\n=== nenhuma aba do Senova → null, sem recarregar nada ===');
+  {
+    const m = mundo([{ id: 9, url: 'https://example.com/' }], [], true);
+    const a = await m.escolher();
+    t('null e nenhuma recarga', a === null && m.recarregadas.length === 0);
   }
 
   console.log('\n=== painel órfão (extensão atualizada) diz a verdade ===');
