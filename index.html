@@ -4558,7 +4558,7 @@ function renderATSResult(analise,cv,crm) {
   atsCanalDiretoDestino=canalDiretoAusente?'':(canalDiretoLinha.match(/destino:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]||'');
   atsCanalDiretoInstrucao=canalDiretoAusente?'':(canalDiretoLinha.match(/instru[çc][ãa]o:\s*"([^"]+)"/i)?.[1]||canalDiretoLinha.match(/código:\s*"([^"]+)"/i)?.[1]||'');
   if(atsOrigemVagaId!=null){const _vi=vagas.findIndex(v=>String(v.id)===String(atsOrigemVagaId));if(_vi>=0){
-    setCV(vagas[_vi],cv);vagas[_vi].atsCvScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;
+    setCV(vagas[_vi],cv,{trad:lastCVTrad,idioma:lastCVLang});vagas[_vi].atsCvScore=score?String(score):'';if(_descSalva)vagas[_vi].jobDescription=_descSalva;
     if(atsCanalDiretoTipo||atsCanalDiretoDestino||atsCanalDiretoInstrucao){
       vagas[_vi].canalDiretoTipo=atsCanalDiretoTipo;
       vagas[_vi].canalDiretoDestino=atsCanalDiretoDestino;
@@ -4836,7 +4836,7 @@ async function candidatarVagaATS(){
   vagas[savedIdx].atsCvScore=score;
   vagas[savedIdx].atsKeywords=keywords;
   vagas[savedIdx].atsAnalise=_atsAnalise;
-  setCV(vagas[savedIdx],lastCV);
+  setCV(vagas[savedIdx],lastCV,{trad:lastCVTrad,idioma:lastCVLang});
   vagas[savedIdx].atsCarta=carta;
   vagas[savedIdx].canalDiretoTipo=vagas[savedIdx].canalDiretoTipo||atsCanalDiretoTipo;
   vagas[savedIdx].canalDiretoDestino=vagas[savedIdx].canalDiretoDestino||atsCanalDiretoDestino;
@@ -9408,7 +9408,7 @@ async function candidatarDoModal(){
   const vagaIdx=vagas.findIndex(x=>String(x.id)===String(isNew?savedId:id));
   if(vagaIdx<0) return;
   // saveVaga() não copia lastCV para card novo — persiste aqui (card = fonte de verdade).
-  if(!vagas[vagaIdx].atsCV && lastCV){ setCV(vagas[vagaIdx],lastCV); saveVagas(); }
+  if(!vagas[vagaIdx].atsCV && lastCV){ setCV(vagas[vagaIdx],lastCV,{trad:lastCVTrad,idioma:lastCVLang}); saveVagas(); }
   const saved=vagas[vagaIdx];
   abrirModalCandidatura({empresa:saved.empresa,cargo:saved.cargo,emailDest:destinoCandidatura(saved),carta:saved.atsCarta||'',savedVagaIdx:vagaIdx,cv:saved.atsCV||lastCV||'',codigoDest:saved.canalDiretoInstrucao||saved.canalDiretoCodigo||''});
 }
@@ -15072,17 +15072,27 @@ function _extrairPerfilTraduzido(texto, cursosFora){
 // RESPOSTA da IA (tem ---CV---): regravar um CV já limpo não pode apagar a tradução do card, e uma
 // resposta nova sem ---PERFIL--- significa CV em português — aí a tradução antiga tem de sair,
 // senão o PDF mistura cargos em espanhol com um CV em português.
-function setCV(vaga,texto){
+//
+// fatos = {trad, idioma}: quem grava um CV JÁ LIMPO que acabou de nascer (a aba Análise, o envio)
+// entrega junto a tradução e o idioma DAQUELE CV. Sem isso o texto limpo não dizia nada sobre a
+// tradução, e o card mantinha a do CV anterior: o CV novo herdava cargos e cursos do velho
+// (auditoria de 22/out/2026). Regra: CV diferente nunca fica com os fatos de outro CV — ou chegam
+// os dele, ou nenhum. Só relimpar o MESMO CV conserva o que o card tinha.
+function setCV(vaga,texto,fatos){
   if(!vaga) return;
   const _antes=vaga.atsCV||'';
   vaga.atsCV=_extrairSoCV(texto);
   const raw=String(texto||'');
+  const mesmoCV=vaga.atsCV===_extrairSoCV(_antes);
   // Carimbo de quando este CV nasceu — o card diz "adaptado a esta vaga em 26/jul" e Marcos
-  // decide se refaz. Só carimba resposta NOVA da IA (tem ---CV---) ou o primeiro CV: relimpar
-  // um CV poluído é conserto, não geração, e não pode fazer um CV velho parecer recém-feito.
-  if(vaga.atsCV&&vaga.atsCV!==_antes&&(raw.includes('---CV---')||!_antes)) vaga.atsCVEm=Date.now();
+  // decide se refaz. Só carimba CV NOVO (resposta da IA com ---CV---, CV que chega com seus fatos,
+  // ou o primeiro): relimpar um CV poluído é conserto, não geração, e não pode fazer um CV velho
+  // parecer recém-feito.
+  if(vaga.atsCV&&!mesmoCV&&(raw.includes('---CV---')||fatos||!_antes)) vaga.atsCVEm=Date.now();
   if(raw.includes('---PERFIL---')) vaga.atsPerfilTrad=_extrairPerfilTraduzido(raw,vaga.cvCursosFora)||null;
-  else if(raw.includes('---CV---')) vaga.atsPerfilTrad=null;
+  else if(fatos) vaga.atsPerfilTrad=fatos.trad||null;
+  else if(!mesmoCV) vaga.atsPerfilTrad=null;
+  if(fatos&&fatos.idioma) vaga.atsCvIdioma=fatos.idioma;
 }
 // Este CV já traz a escolha de cursos pela vaga? (lista vazia também é escolha: nenhum entra)
 function _escolhaCursosVale(v){

@@ -86,7 +86,7 @@ console.log('\n=== o estado do CV é dito em palavras, com a data ===');
 t('o card diz se existe CV para ESTA vaga', /id="mv-cv-estado"/.test(html));
 t('vazio, diz o que o primeiro clique vai fazer', /Ainda sem CV para esta vaga — o primeiro download gera/.test(html));
 t('cheio, diz de quando é', /CV adaptado a esta vaga'\+\(v\.atsCVEm\?' em '\+_dataCurta\(v\.atsCVEm\)/.test(html));
-t('o carimbo da data mora no portão único de escrita do CV', /function setCV\(vaga,texto\)\{[\s\S]{0,600}vaga\.atsCVEm=Date\.now\(\)/.test(html));
+t('o carimbo da data mora no portão único de escrita do CV', /function setCV\(vaga,texto,fatos\)\{[\s\S]{0,1200}vaga\.atsCVEm=Date\.now\(\)/.test(html));
 t('CV sem carimbo (card antigo) não inventa data', /\(v\.atsCVEm\?' em '\+_dataCurta\(v\.atsCVEm\):''\)/.test(html));
 
 console.log('\n=== refazer o CV não apaga o anterior sem perguntar ===');
