@@ -30,7 +30,7 @@ const s = carregarApp([
 ]);
 
 const VAGA = 'Gerente de operações, liderança de equipe.';
-const cvDoc = (lang, trad, fora) => chamar(s, '_cvParaPDF', [VAGA, 'NOME\n\nRESUMO EXECUTIVO\nx', 'Gerente', lang || 'PT', trad || null, fora || []]);
+const cvDoc = (lang, trad, fora, dentro) => chamar(s, '_cvParaPDF', [VAGA, 'NOME\n\nRESUMO EXECUTIVO\nx', 'Gerente', lang || 'PT', trad || null, fora || [], dentro || []]);
 
 const CURSOS = [
   { id: 'c1', titulo: 'Curso Alfa', instituicao: 'Escola Um', periodo: '2010', conteudo: 'Tema A; tema B.' },
@@ -54,8 +54,8 @@ t('o que foi salvo é o que o CV lê', exec(s, 'cursosDoCV().map(c=>c.titulo).jo
 console.log('\n=== o prompt recebe os cursos ===');
 const bloco = exec(s, '_blocoCursosPrompt()');
 t('bloco tem o título da seção', bloco.includes('CURSOS COMPLEMENTARES'));
-t('com instituição, ano e conteúdo', bloco.includes('- Curso Alfa, Escola Um (2010) — Tema A; tema B.'));
-t('sem conteúdo, sem traço pendurado', bloco.includes('- Curso Beta, Escola Dois (2011)\n'));
+t('com número, instituição, ano e conteúdo', bloco.includes('- [c1] Curso Alfa, Escola Um (2010) — Tema A; tema B.'));
+t('sem conteúdo, sem traço pendurado', bloco.includes('- [c2] Curso Beta, Escola Dois (2011)\n'));
 
 console.log('\n=== o documento em português ===');
 const doc = cvDoc();
@@ -103,5 +103,47 @@ t('e o que tinha tradução continua traduzido', cvDoc('EN', trCorte, []).cursos
 t('tradução antiga (sem chave) segue casando pela lista completa', cvDoc('EN', { exp: {}, cursos: [{ titulo: 'Alpha Course', conteudo: 'Topic A.' }, { titulo: 'Beta Course', conteudo: '' }] }, foraAlfa).cursos[0].titulo === 'Beta Course');
 t('a chave ignora caixa, acento e espaço', exec(s, `_cursoChave({titulo:' Manutenção  de JARDINS ',periodo:'2007'})`) === exec(s, `_cursoChave({titulo:'manutencao de jardins',periodo:'2007'})`));
 
+console.log('\n=== quem escolhe os cursos de cada vaga é a IA, e o documento obedece (22/out/2026) ===');
+// Jardinagem no PDF de Diretor de Marketing: o texto da IA já a tinha tirado, o PDF relia o Perfil.
+const kA = foraAlfa[0], kB = exec(s, `_cursoChave(${JSON.stringify(CURSOS[1])})`);
+const respPT = (extra) => '---CV---\nx\n---PERFIL---\n' + JSON.stringify(Object.assign({ idioma: 'PT', exp: {} }, extra));
+const extrair = (texto, fora) => exec(s, `_extrairPerfilTraduzido(${JSON.stringify(texto)}${fora ? ',' + JSON.stringify(fora) : ''})`);
+const escolhaB = extrair(respPT({ cursos_no_cv: ['c2'] }));
+t('em português a escolha é guardada mesmo sem bullet reescrito', escolhaB && JSON.stringify(escolhaB.cursosEscolhidos) === JSON.stringify([kB]));
+t('o documento leva só o curso escolhido', cvDoc('PT', escolhaB).cursos.map(c => c.titulo).join('|') === 'Curso Beta');
+t('o Perfil continua com todos', exec(s, 'cursosDoCV().length') === 2);
+const nenhum = extrair(respPT({ cursos_no_cv: [] }));
+t('lista vazia = nenhum curso, e a seção some', nenhum && cvDoc('PT', nenhum).cursos.length === 0);
+const semEscolha = extrair(respPT({ exp: { inexistente: { bullets: [] } } }));
+t('sem a escolha, ela fica null (não é "nenhum")', semEscolha && semEscolha.cursosEscolhidos === null);
+t('e o documento leva todos — curso nunca some sem alguém escolher', cvDoc('PT', semEscolha).cursos.length === 2);
+const invent = extrair(respPT({ cursos_no_cv: ['c9', 'jardinagem', 'c1', 1] }));
+t('número que não existe é ignorado: a IA só tira, nunca acrescenta', JSON.stringify(invent.cursosEscolhidos) === JSON.stringify([kA]));
+t('a numeração é a da lista que a IA recebeu (com corte, c1 é o primeiro que sobrou)',
+  JSON.stringify(extrair(respPT({ cursos_no_cv: ['c1'] }), foraAlfa).cursosEscolhidos) === JSON.stringify([kB]));
+t('o pedido numera na mesma lista', exec(s, `_blocoCursosPrompt(${JSON.stringify(foraAlfa)})`).includes('- [c1] Curso Beta'));
+
+console.log('\n=== a marca da pessoa manda sobre a escolha da IA ===');
+t('a pessoa põe de volta o que a IA tirou', cvDoc('PT', escolhaB, [], [kA]).cursos.map(c => c.titulo).join('|') === 'Curso Alfa|Curso Beta');
+const ambos = extrair(respPT({ cursos_no_cv: ['c1', 'c2'] }));
+t('o que a pessoa tirou não volta, mesmo escolhido pela IA', cvDoc('PT', ambos, foraAlfa).cursos.map(c => c.titulo).join('|') === 'Curso Beta');
+t('o curso que a pessoa pôs de volta vai ao pedido como escolha dela', exec(s, `_blocoCursosPrompt([],${JSON.stringify([kA])})`).includes('Tema A; tema B. (a pessoa escolheu'));
+
+console.log('\n=== em outra língua: traduz todos, o documento leva os escolhidos ===');
+const en = extrair('---CV---\nx\n---PERFIL---\n' + JSON.stringify({ idioma: 'EN', cursos_no_cv: ['c2'], exp: { inexistente: { bullets: [] } }, cursos: [{ titulo: 'Alpha Course', conteudo: 'Topic A; topic B.' }, { titulo: 'Beta Course', conteudo: '' }] }));
+t('a escolha vem junto da tradução', en && en.cursos && en.cursos.length === 2 && JSON.stringify(en.cursosEscolhidos) === JSON.stringify([kB]));
+t('o documento leva o escolhido, traduzido', cvDoc('EN', en).cursos.map(c => c.titulo).join('|') === 'Beta Course');
+t('e o que a pessoa pôs de volta já tem tradução', cvDoc('EN', en, [], [kA]).cursos[0].titulo === 'Alpha Course');
+
+console.log('\n=== fiação: o pedido real pede a escolha, e todo caminho do PDF a leva ===');
+const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+t('o pedido à IA traz a chave cursos_no_cv', html.includes('"cursos_no_cv":['));
+t('a IA é instruída a escolher pela vaga, podendo não pôr nenhum', html.includes('CURSOS COMPLEMENTARES: escolha quais entram NESTE CV pelo que esta vaga pede') && html.includes('Pode não entrar nenhum'));
+t('o PDF lê os cursos pelo ponto único', html.includes('const _noDoc=new Set(cursosDoDocumento(trad,cursosFora,cursosDentro)'));
+t('o PDF recebe a marca da pessoa', /_cvParaPDF\(lastCVVaga, lastCV, atsCargo, lastCVLang, lastCVTrad, lastCVCursosFora, lastCVCursosDentro[,)]/.test(html));
+t('o PDF da extensão leva a marca da pessoa', /cursosDentro:\(v&&v\.cvCursosDentro\)\|\|\[\][,}]/.test(html));
+t('o card mostra a mesma seleção que o PDF', html.includes('cursosDoDocumento(v.atsPerfilTrad,v.cvCursosFora,v.cvCursosDentro)'));
+t('resposta cortada no teto avisa a pessoa nos dois caminhos do card', (html.match(/stop_reason==='max_tokens'\) showToast\(/g) || []).length === 2);
+
 exec(s, 'guardarCursosSalvos([],true)');
-fim('CURSOS COMPLEMENTARES · seção própria, nunca vazia');
+fim('CURSOS COMPLEMENTARES · seção própria, escolhida pela vaga, nunca vazia');

@@ -70,6 +70,7 @@ const fontes = [
   'function cursosDoCV(',
   'function _cursoChave(',
   'function cursosDaVaga(',
+  'function cursosDoDocumento(',
   'function _blocoCursosPrompt(',
   // O contato entra pela mesma porta (perfilFormatadoPara) e tem o mesmo desenho.
   'function contatoSemente(',

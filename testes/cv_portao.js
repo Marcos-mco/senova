@@ -45,7 +45,7 @@ const fontes = [
 const sandbox = {
   vagas: [], saveVagas: () => { }, document: { getElementById: () => null },
   MODELOS: { analise: 'modelo-analise', rapido: 'modelo-rapido' },
-  ATS_SYSTEM: (lang, textoVaga, nivel, cursosFora) => 'SYS[' + lang + ']' + textoVaga + '|FORA:' + JSON.stringify(cursosFora || []),
+  ATS_SYSTEM: (lang, textoVaga, nivel, cursosFora, cursosDentro) => 'SYS[' + lang + ']' + textoVaga + '|FORA:' + JSON.stringify(cursosFora || []) + '|DENTRO:' + JSON.stringify(cursosDentro || []),
   ctxBuscarRelevantes: () => [{ texto: 'complemento relevante do Perfil' }],
   CV_DESC_MINIMA, cvLang: 'PT', cvLangManual: false,
   // Os idiomas declarados importam: é deles que sai em que línguas o app pode escrever
@@ -55,7 +55,7 @@ const sandbox = {
   ] },
   // lastCVVaga (S48): 6º campo do contexto de PDF — a descrição da vaga que originou o CV.
   // _pdfCtxUsar lê e restaura os seis; sem ele aqui, a ponte da extensão quebra no sandbox.
-  lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null, lastCVVaga: '', lastCVCursosFora: [],
+  lastCV: '', lastCVFilename: '', atsCargo: '', lastCVLang: 'PT', lastCVTrad: null, lastCVVaga: '', lastCVCursosFora: [], lastCVCursosDentro: [],
   _pdfExecBase64: () => 'FAKEB64',
   btoa: s => Buffer.from(s, 'binary').toString('base64'),
   unescape: global.unescape || (s => decodeURIComponent(s)), encodeURIComponent, console,
@@ -94,6 +94,8 @@ t('e uma vaga sem exceção volta ao padrão', run('montarPedidoCV({descricao:"x
 console.log('\n=== Os cursos tirados do card chegam ao pedido (21/out/2026) ===');
 t('o corte de cursos da vaga vai ao prompt', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{cvCursosFora:["jardinagem|2007"]}})').body.system.includes('FORA:["jardinagem|2007"]'));
 t('vaga sem corte manda lista vazia', run('montarPedidoCV({descricao:"x".repeat(500)})').body.system.includes('FORA:[]'));
+// O curso que a pessoa pôs de volta depois de a IA tirar vai ao prompt como escolha dela (22/out/2026).
+t('o curso que a pessoa pôs de volta vai ao prompt', run('montarPedidoCV({descricao:"x".repeat(500),vaga:{cvCursosDentro:["marcenaria|2020"]}})').body.system.includes('DENTRO:["marcenaria|2020"]'));
 
 console.log('\n=== Piso de descrição: CV de snippet sai genérico ===');
 t('descrição curta é marcada como curta', run('montarPedidoCV({descricao:"vaga de vendas"})').curta === true);
