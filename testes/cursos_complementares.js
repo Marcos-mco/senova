@@ -138,7 +138,7 @@ t('e o que a pessoa pôs de volta já tem tradução', cvDoc('EN', en, [], [kA])
 console.log('\n=== fiação: o pedido real pede a escolha, e todo caminho do PDF a leva ===');
 const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 t('o pedido à IA traz a chave cursos_no_cv', html.includes('"cursos_no_cv":['));
-t('a IA é instruída a escolher pela vaga, podendo não pôr nenhum', html.includes('CURSOS COMPLEMENTARES: escolha quais entram NESTE CV pelo que esta vaga pede') && html.includes('Pode não entrar nenhum'));
+t('a IA é instruída a escolher pela vaga, podendo não pôr nenhum', html.includes('CURSOS COMPLEMENTARES: ${CRITERIO_CURSOS_CV}') && /const CRITERIO_CURSOS_CV = 'escolha quais entram NESTE CV pelo que esta vaga pede.[^']*Pode não entrar nenhum/.test(html));
 t('o PDF lê os cursos pelo ponto único', html.includes('const _noDoc=new Set(cursosDoDocumento(trad,cursosFora,cursosDentro)'));
 t('o PDF recebe a marca da pessoa', /_cvParaPDF\(lastCVVaga, lastCV, atsCargo, lastCVLang, lastCVTrad, lastCVCursosFora, lastCVCursosDentro[,)]/.test(html));
 t('o PDF da extensão leva a marca da pessoa', /cursosDentro:\(v&&v\.cvCursosDentro\)\|\|\[\][,}]/.test(html));

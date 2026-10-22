@@ -3555,10 +3555,24 @@ function cursosDaVaga(cursosFora){
 // Manda, nesta ordem: o que a pessoa tirou (fora) e o que ela pôs (dentro); depois a escolha que a
 // IA fez pela vaga (trad.cursosEscolhidos). CV sem essa escolha (feito antes dela, ou resposta que
 // não a trouxe) leva todos os cursos que a pessoa não tirou — nunca some curso sem alguém escolher.
+// Curso que a IA nem viu (cadastrado ou renomeado no Perfil depois da escolha) também entra: ninguém
+// o julgou para esta vaga (trad.cursosOfertados guarda o que foi oferecido).
 function cursosDoDocumento(trad, cursosFora, cursosDentro){
   const dentro = new Set(Array.isArray(cursosDentro) ? cursosDentro : []);
   const ia = (trad && Array.isArray(trad.cursosEscolhidos)) ? new Set(trad.cursosEscolhidos) : null;
-  return cursosDaVaga(cursosFora).filter(c => { const k = _cursoChave(c); return dentro.has(k) || !ia || ia.has(k); });
+  const ofertados = (ia && Array.isArray(trad.cursosOfertados)) ? new Set(trad.cursosOfertados) : null;
+  return cursosDaVaga(cursosFora).filter(c => { const k = _cursoChave(c); return dentro.has(k) || !ia || ia.has(k) || (ofertados && !ofertados.has(k)); });
+}
+// O critério da escolha, num lugar só: o pedido do CV inteiro e a escolha avulsa (CV feito antes
+// dela existir) julgam com as mesmas palavras.
+const CRITERIO_CURSOS_CV = 'escolha quais entram NESTE CV pelo que esta vaga pede. Entra o curso que reforça a candidatura aos olhos de quem contrata para este cargo; fica de fora o que não tem relação com a vaga ou que puxa o candidato para outra área. Pode não entrar nenhum. Os marcados como escolha da pessoa entram sempre. Nunca acrescente curso que não esteja na lista.';
+// Lê a resposta "cursos_no_cv" (números [cN] de _blocoCursosPrompt, mesma ordem de cursosDaVaga) e
+// devolve as chaves escolhidas. Número que não existe é ignorado — a IA só pode tirar curso, nunca
+// acrescentar. Sem lista legível devolve null: ninguém escolheu.
+function _cursosEscolhidosDe(lista, ofertados){
+  if(!Array.isArray(lista) || !Array.isArray(ofertados) || !ofertados.length) return null;
+  const nums = new Set(lista.map(x => { const m = String(x).trim().match(/^c?(\d+)$/i); return m ? parseInt(m[1],10) : 0; }));
+  return ofertados.filter((c,i) => nums.has(i+1)).map(_cursoChave);
 }
 // Quem escolhe os cursos de cada vaga é a IA, pelo que o anúncio pede (22/out/2026): cada curso vai
 // com um número [cN] e ela devolve os números escolhidos em "cursos_no_cv" (---PERFIL---). Só pode
@@ -3925,7 +3939,7 @@ REGRAS ABSOLUTAS:
 - CV deve ser ATS-clean: texto simples, bullets em hífens, seções em maiúsculas
 - A lista de EXPERIÊNCIA do perfil acima já foi filtrada por relevância por um processo determinístico, ANTES desta chamada. Você NUNCA decide o que é relevante. Você NUNCA pode omitir, cortar ou acrescentar uma experiência da lista, e NUNCA pode reordená-la — a ordem cronológica reversa já está correta. Sua única tarefa sobre esse conteúdo é reescrever a REDAÇÃO de cada bullet mirando ESTA vaga (e traduzir, se o idioma pedido não for português), sem alterar o que está incluído nem a ordem.
 - ÊNFASE POR VAGA (é isto que separa um CV bom de um genérico): dentro de cada bullet, traga para a FRENTE o ângulo que ESTA vaga pede, usando o vocabulário do anúncio. O mesmo fato tem vários ângulos verdadeiros — numa vaga de emissora de TV, "estratégia comercial das 8 afiliadas" é melhor dito como negociação de veiculação publicitária com agências e mercado anunciante; numa vaga de canais indiretos, o mesmo fato é gestão de rede de representantes. Não é inventar: é escolher, entre as verdades do fato, a que responde à vaga.
-${cursosDaVaga(cursosFora).length ? `- CURSOS COMPLEMENTARES: escolha quais entram NESTE CV pelo que esta vaga pede. Entra o curso que reforça a candidatura aos olhos de quem contrata para este cargo; fica de fora o que não tem relação com a vaga ou que puxa o candidato para outra área. Pode não entrar nenhum. Os marcados como escolha da pessoa entram sempre. Nunca acrescente curso que não esteja na lista. A seção de cursos do ---CV--- traz exatamente os escolhidos, e "cursos_no_cv" no bloco ---PERFIL--- traz os números deles.
+${cursosDaVaga(cursosFora).length ? `- CURSOS COMPLEMENTARES: ${CRITERIO_CURSOS_CV} A seção de cursos do ---CV--- traz exatamente os escolhidos, e "cursos_no_cv" no bloco ---PERFIL--- traz os números deles.
 ` : ''}- O QUE VOCÊ ESCREVE NO BLOCO ---PERFIL--- É O QUE VAI PARA O DOCUMENTO. Os bullets do documento final são montados por código a partir daquele bloco, não do texto do ---CV---. Um bullet fraco ali é um bullet fraco no CV entregue ao recrutador.
 
 Retorne EXATAMENTE neste formato com estes separadores:
@@ -10427,10 +10441,10 @@ function mvRenderCursosCV(){
   const cs=cursosDoCV();
   if(!v||!v.atsCV||!cs.length){ box.style.display='none'; lista.innerHTML=''; return; }
   const noDoc=new Set(cursosDoDocumento(v.atsPerfilTrad,v.cvCursosFora,v.cvCursosDentro).map(_cursoChave));
-  const escolheu=!!(v.atsPerfilTrad&&Array.isArray(v.atsPerfilTrad.cursosEscolhidos));
+  const escolheu=_escolhaCursosVale(v);
   if(nota) nota.textContent=escolheu
     ? 'O Senova escolheu pelo que esta vaga pede. Marque ou desmarque para mudar. O Perfil continua com todos.'
-    : 'Este CV não traz a escolha do Senova, por isso entraram todos. Gere o CV de novo para ele escolher pela vaga, ou marque aqui.';
+    : 'O Senova escolhe pelo que esta vaga pede quando você gerar o PDF. Até lá, valem as marcas daqui.';
   lista.innerHTML=cs.map(c=>{
     const k=_cursoChave(c);
     return `<label style="display:flex;gap:10px;align-items:center;min-height:44px;font-size:16px;line-height:1.4;color:var(--text);cursor:pointer;">
@@ -11583,8 +11597,13 @@ function downloadPDFFromModal(btn){
   });
 }
 function downloadPDFExecFromModal(btn){
-  _mvGarantirCV(btn).then(ok=>{
+  _mvGarantirCV(btn).then(async ok=>{
   if(!ok) return;
+  // CV feito antes da escolha de cursos pela vaga: o Senova escolhe agora, antes de montar o PDF.
+  const _lblPdf=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Preparando o PDF…'; }
+  try{ await garantirEscolhaCursos(editingVagaId); }catch(_){ }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=_lblPdf; } }
   const cv=document.getElementById('mv-ats-cv-txt')?.value;
   const empresa=document.getElementById('mv-empresa')?.value||'';
   const cargo=document.getElementById('mv-cargo')?.value||'';
@@ -13123,6 +13142,8 @@ function destinoCandidatura(v,...alternativas){
 }
 function abrirModalCandidatura({empresa,cargo,emailDest,carta,savedVagaIdx,cv,codigoDest}){
   _candidaturaVagaIdx=savedVagaIdx;
+  // Adianta a escolha de cursos do CV anexado (CV antigo), para o "ver anexo" já sair certo.
+  if(vagas[savedVagaIdx]) garantirEscolhaCursos(vagas[savedVagaIdx].id).catch(()=>{});
   document.getElementById('mcand-empresa-cargo').textContent=cargo+(empresa&&empresa!=='A definir'?' · '+empresa:'');
   document.getElementById('mcand-email').value=emailDest||'';
   document.getElementById('mcand-assunto').value=codigoDest||('Candidatura — '+cargo+' — Marcos Franco');
@@ -13210,9 +13231,17 @@ async function enviarCandidaturaOutlook(btn){
   // A montagem do PDF fica DENTRO do try: fora dele, um erro aqui escapava da função com o
   // botão ainda escrito "Enviar pelo Outlook" — clique morto, sem uma palavra na tela.
   let anexos=[];
+  // A escolha de cursos sai antes do anexo; depois da espera, o card é achado pelo id.
+  const _idCand=vagas[_candidaturaVagaIdx]?vagas[_candidaturaVagaIdx].id:null;
+  if(_candCV.trim()&&_idCand!=null){
+    const _lblEnv=btn?btn.textContent:'';
+    if(btn){ btn.disabled=true; btn.textContent='Preparando o anexo…'; }
+    try{ await garantirEscolhaCursos(_idCand); }catch(_){ }
+    if(btn){ btn.disabled=false; btn.textContent=_lblEnv; }
+  }
   try{
     if(_candCV.trim()){
-      const _restaurar=_pdfCtxDoCard(vagas[_candidaturaVagaIdx],_candCV,_candCVFilename);
+      const _restaurar=_pdfCtxDoCard(vagas.find(x=>_idCand!=null&&String(x.id)===String(_idCand))||vagas[_candidaturaVagaIdx],_candCV,_candCVFilename);
       let b64='';
       try{ b64=_pdfExecBase64(); } finally { _restaurar(); }
       if(b64) anexos=[{nome:_candCVFilename+'_executivo.pdf',conteudoBase64:b64,tipo:'application/pdf'}];
@@ -14977,10 +15006,8 @@ function _extrairPerfilTraduzido(texto, cursosFora){
   // que não existe é ignorado — a IA só pode tirar curso, nunca acrescentar. Sem a lista, ou com
   // ela ilegível, fica null: o documento leva todos e o card diz que a escolha não veio.
   const _cursosOfertados=cursosDaVaga(cursosFora);
-  if(_cursosOfertados.length&&Array.isArray(j.cursos_no_cv)){
-    const nums=new Set(j.cursos_no_cv.map(x=>{ const m=String(x).trim().match(/^c?(\d+)$/i); return m?parseInt(m[1],10):0; }));
-    out.cursosEscolhidos=_cursosOfertados.filter((c,i)=>nums.has(i+1)).map(_cursoChave);
-  }
+  out.cursosEscolhidos=_cursosEscolhidosDe(j.cursos_no_cv,_cursosOfertados);
+  if(out.cursosEscolhidos) out.cursosOfertados=_cursosOfertados.map(_cursoChave);
   const porId={}; (experienciasDoCV()||[]).forEach(e=>{porId[e.id]=e;});
   for(const [id,v] of Object.entries(j.exp||{})){
     const orig=porId[id];
@@ -15056,6 +15083,70 @@ function setCV(vaga,texto){
   if(vaga.atsCV&&vaga.atsCV!==_antes&&(raw.includes('---CV---')||!_antes)) vaga.atsCVEm=Date.now();
   if(raw.includes('---PERFIL---')) vaga.atsPerfilTrad=_extrairPerfilTraduzido(raw,vaga.cvCursosFora)||null;
   else if(raw.includes('---CV---')) vaga.atsPerfilTrad=null;
+}
+// Este CV já traz a escolha de cursos pela vaga? (lista vazia também é escolha: nenhum entra)
+function _escolhaCursosVale(v){
+  const t=v&&v.atsPerfilTrad;
+  return !!(t&&Array.isArray(t.cursosEscolhidos));
+}
+// CV feito antes de a IA escolher os cursos pela vaga levava todos — jardinagem num CV de diretor
+// de marketing (22/out/2026). Antes de gerar o documento, o Senova faz a escolha que faltou: uma
+// chamada pequena, só com a vaga e a lista numerada dos cursos, que NÃO reescreve o CV nem mexe
+// nas marcas da pessoa (o que ela tirou nem é oferecido; o que ela pôs vai como obrigatório).
+// Uma chamada por card (pedidos simultâneos esperam a mesma); falha não trava o documento — ele
+// sai com todos e a pessoa é avisada; a falha não se repete a cada clique na mesma sessão.
+const _escolhaCursosEmCurso=new Map(), _escolhaCursosFalhou=new Set();
+function montarPedidoEscolhaCursos(v){
+  const desc=String((v&&(v.jobDescription||v.descricao))||'');
+  const cabeca=[v&&v.cargo?'Cargo: '+v.cargo:'',v&&v.empresa?'Empresa: '+v.empresa:''].filter(Boolean).join('\n');
+  return {model:MODELOS.analise,max_tokens:300,
+    system:'Você monta o CV de uma pessoa para uma vaga e decide só uma coisa: quais cursos complementares entram nele. CURSOS COMPLEMENTARES: '+CRITERIO_CURSOS_CV+' Responda apenas com JSON, sem texto antes ou depois: {"cursos_no_cv":["<o número [cN] de cada curso escolhido, por exemplo c1; lista vazia se nenhum>"]}',
+    messages:[{role:'user',content:`VAGA:\n${cabeca}${cabeca?'\n\n':''}${desc}\n${_blocoCursosPrompt(v&&v.cvCursosFora,v&&v.cvCursosDentro)}`}]};
+}
+async function _escolherCursosAgora(chave,v,ofertados){
+  const marca=chave+'|'+(v.atsCVEm||'');
+  try{
+    const ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+    const tempo=ctrl?setTimeout(()=>ctrl.abort(),20000):null;
+    const _pedido=montarPedidoEscolhaCursos(v);
+    let data;
+    try{
+      const res=await fetch(WORKER_URL+'/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(_pedido),signal:ctrl?ctrl.signal:undefined});
+      data=await res.json();
+    }finally{ if(tempo) clearTimeout(tempo); }
+    const texto=(data&&data.content&&(data.content.find(b=>b.type==='text')||{}).text)||'';
+    const ini=texto.indexOf('{'), fim=texto.lastIndexOf('}');
+    let j=null; try{ j=(ini>=0&&fim>ini)?JSON.parse(texto.slice(ini,fim+1)):null; }catch(_){ }
+    const escolhidos=_cursosEscolhidosDe(j&&j.cursos_no_cv,ofertados);
+    if(!escolhidos) throw new Error('sem_escolha');
+    // Relê o card pelo id: durante a espera o objeto do card pode ter sido trocado (saveVaga).
+    const i=vagas.findIndex(x=>String(x.id)===chave);
+    if(i<0) return;
+    const alvo=vagas[i];
+    if((alvo.atsCVEm||'')!==(v.atsCVEm||'')) return;   // o CV mudou no meio: esta escolha era do outro
+    if(!alvo.atsPerfilTrad) alvo.atsPerfilTrad={exp:{},formacao:null,instituicoes:null,idiomas:null,cursos:null,cursosEscolhidos:null,recusados:[]};
+    alvo.atsPerfilTrad.cursosEscolhidos=escolhidos;
+    alvo.atsPerfilTrad.cursosOfertados=ofertados.map(_cursoChave);
+    saveVagas();
+    if(String(editingVagaId)===chave&&typeof mvRenderCursosCV==='function') mvRenderCursosCV();
+  }catch(e){
+    _escolhaCursosFalhou.add(marca);
+    if(typeof showToast==='function') showToast('Não consegui escolher os cursos desta vaga, então o CV leva todos. Desmarque no card o que não quiser.',9000);
+  }
+}
+async function garantirEscolhaCursos(vagaId){
+  const chave=String(vagaId);
+  const achar=()=>vagas.find(x=>String(x.id)===chave)||null;
+  const v=achar();
+  if(!v||!v.atsCV||_escolhaCursosVale(v)) return v;
+  const ofertados=cursosDaVaga(v.cvCursosFora);
+  if(!ofertados.length) return v;   // sem curso a escolher, sem chamada
+  if(_escolhaCursosFalhou.has(chave+'|'+(v.atsCVEm||''))) return v;
+  if(!_escolhaCursosEmCurso.has(chave))
+    _escolhaCursosEmCurso.set(chave,_escolherCursosAgora(chave,v,ofertados).finally(()=>_escolhaCursosEmCurso.delete(chave)));
+  await _escolhaCursosEmCurso.get(chave);
+  return achar();
 }
 window.__senovaCopilotoGerarCV=function(ref,formato){
   formato=(formato==='pdf')?'pdf':'docx';

@@ -106,6 +106,7 @@ const NUCLEO = [
   // A escolha da IA por vaga (22/out/2026): o documento lê os cursos por aqui.
   'function cursosDoDocumento(',
   'function _blocoCursosPrompt(',
+  'function _cursosEscolhidosDe(',
   // O contato tem DOIS leitores (prompt e cabeçalho do documento) e ainda alimenta o
   // reconhecedor da linha do nome, usado por _pdfCabecalhoCorpo e _cvParaPDF — mesma razão do topo.
   'function contatoSemente(',
