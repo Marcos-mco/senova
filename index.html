@@ -7183,6 +7183,12 @@ function loadCRM(){
       vagas.forEach(v=>{ if(v.fonte==='email_alerta'&&v.status==='lead'){ v.status='triagem'; } }); // [status-ok] migração one-shot do loadCRM (em massa, sem transição de usuário)
       localStorage.setItem('senova_migration_email_triagem_v1','1');
     }
+    if(!localStorage.getItem('senova_migration_meta_falsa_v1')){
+      // Tira "undefined"/"null" gravados como cidade, modelo, regime, jornada ou salário
+      // (ver _metaValida). Só o campo falso é esvaziado; nota, coluna e datas ficam intactas.
+      vagas.forEach(_limparMetaFalsa);
+      localStorage.setItem('senova_migration_meta_falsa_v1','1');
+    }
     Store.gravar();  // grava o resultado das migrações — e AVISA se o disco recusar (era um catch vazio)
     const sc=Store.lerContatos(); contatos=sc?JSON.parse(sc):[];
     // Migração suave: adiciona campos novos sem perder dados existentes
@@ -10857,10 +10863,37 @@ function mvRenderSofia(v){
 // ninguém além de edição manual — o card ficava com o chute errado da 1ª leitura travado para
 // sempre, mesmo com o dado certo disponível. Achado pelo senova-auditor, S47, auditando as
 // lacunas de captura da extensão (item 1, o mais grave dos 7 achados).
+// "Não encontrei" não é um lugar. Um valor ausente que foi convertido em texto no caminho
+// ("undefined", "null", "NaN") chegava aqui como palavra e era gravado como FATO de página:
+// 150 dos 163 processos ativos de Marcos tinham "undefined" escrito no lugar da cidade
+// (16/nov/2026), e a IA recebia "localização: undefined" como dado inquestionável. A recusa
+// mora aqui, no ponto único, para valer para todo campo e toda fonte — nenhum chamador
+// precisa lembrar de se proteger.
+function _metaCampos(){ return ['localizacao','modelo','regime','jornada','salario']; }
+function _metaValida(val){
+  if(val===undefined||val===null) return '';
+  const s=String(val).trim();
+  return /^(undefined|null|nan)$/i.test(s) ? '' : s;
+}
+// Limpa de um card os valores falsos já gravados. Devolve true se mexeu. Não toca em nota,
+// coluna, descrição nem updatedAt: tirar uma palavra errada não é atividade do usuário, não
+// pode mover card e não pode custar IA.
+function _limparMetaFalsa(v){
+  if(!v) return false;
+  let mexeu=false;
+  _metaCampos().forEach(campo=>{
+    if(v[campo]===undefined||v[campo]===null||v[campo]==='') return;
+    if(_metaValida(v[campo])) return;
+    v[campo]='';
+    if(v.metaInferida&&v.metaInferida[campo]){ v.metaInferida={...v.metaInferida}; delete v.metaInferida[campo]; }
+    mexeu=true;
+  });
+  return mexeu;
+}
 function _gravarMetaVaga(alvo, meta, fonte){
   if(!alvo||!meta) return alvo;
-  ['localizacao','modelo','regime','jornada','salario'].forEach(campo=>{
-    const val=meta[campo];
+  _metaCampos().forEach(campo=>{
+    const val=_metaValida(meta[campo]);
     if(!val) return;
     if(fonte==='pagina'){
       alvo[campo]=val;
@@ -14383,7 +14416,7 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   // Salva metadados adicionais vindos do LinkedIn (local, salario, modalidade, jornada) — fato
   // de página, sempre vence o que a IA tinha chutado antes (_gravarMetaVaga fonte:'pagina').
   if(extra){
-    const _loc=(extra.local+'').split('·')[0].split('•')[0].trim();
+    const _loc=_metaValida(extra.local).split('·')[0].split('•')[0].trim();
     const _antes={localizacao:vagas[idx].localizacao,salario:vagas[idx].salario,modelo:vagas[idx].modelo,jornada:vagas[idx].jornada};
     _gravarMetaVaga(vagas[idx], {localizacao:_loc, salario:extra.salario, modelo:extra.modalidade, jornada:extra.jornada}, 'pagina');
     if(vagas[idx].localizacao!==_antes.localizacao){const le=document.getElementById('mv-localizacao');if(le&&!le.value.trim())le.value=vagas[idx].localizacao;}

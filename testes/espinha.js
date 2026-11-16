@@ -15,7 +15,7 @@ function extrai(a) {
 
 const fontes = [
   'function _jobIdLinkedIn(', 'function dataAtualFormatada(', 'function _marcarCandidaturaEnviada(',
-  'function _acharVagaRef(', 'function _gravarMetaVaga(', 'window.__senovaCopilotoGarantirCard=function(',
+  'function _acharVagaRef(', 'function _metaCampos(', 'function _metaValida(', 'function _gravarMetaVaga(', 'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(', 'window.__senovaCopilotoSalvarCarta=function(',
   'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoSalvarCV=function(', 'window.__senovaCandidaturaEnviada=function(',

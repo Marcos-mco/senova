@@ -35,7 +35,7 @@ const fontes = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _acharVagaRef(',
-  'function _gravarMetaVaga(',
+  'function _metaCampos(', 'function _metaValida(', 'function _gravarMetaVaga(',
   'window.__senovaCopilotoGarantirCard=function(',
   'function _extrairSoCV(', 'function setCV(',
   'window.__senovaCopilotoGerarCV=function(',

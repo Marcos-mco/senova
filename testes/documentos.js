@@ -20,7 +20,7 @@ const fontes = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _acharVagaRef(',
-  'function _gravarMetaVaga(',
+  'function _metaCampos(', 'function _metaValida(', 'function _gravarMetaVaga(',
   'window.__senovaCopilotoGarantirCard=function(',
   'window.__senovaCopilotoGerarCarta=function(',
   'window.__senovaCopilotoSalvarCarta=function(',

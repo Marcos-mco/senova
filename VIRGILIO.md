@@ -1,5 +1,5 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 16/nov/2026 — **Cinco melhorias pedidas por Marcos, uma por vez. A 1ª (Início sem "Para Hoje") está publicada e aguarda o teste dele.***
+*Atualizado: 16/nov/2026 — **Cinco melhorias pedidas por Marcos, uma por vez. A 1ª (Início sem "Para Hoje") foi aprovada por ele. A 2ª (filtros) começou por um conserto: a cidade gravada como "undefined" — publicado, aguarda o teste dele.***
 
 ***16/nov — CINCO MELHORIAS, UMA DE CADA VEZ.*** *Pedido dele: (1) encerrar sozinho o card com CV enviado há mais de 21 dias; (2) tirar o "Para Hoje" do Início; (3) nota mínima para abrir processo, ajustável no Perfil; (4) desfazer exclusão de card (Ctrl+Z); (5) filtros dos Processos por Cidade, Cargo e Abertas. Desenho antes/depois das cinco aprovado em Artifact ("Aprovo, pode começar" — vale só para o Início). Ordem combinada: Início → filtros → desfazer exclusão → nota mínima → encerramento em 21 dias; cada uma publicada e testada por ele antes da seguinte.*
 
@@ -9,7 +9,11 @@
 
 ***DÍVIDA ACHADA, não mexida.*** *A janela antiga `#modal-revisao` nunca é aberta e seus botões chamam `fecharRevisao`, que não existe — listada como dívida no teste novo, para sair numa limpeza própria.*
 
-***PRÓXIMO PASSO EXATO.*** *Esperar o teste dele do Início. Depois: filtros (confirmar com ele que "Abertas" = anúncio ainda no ar; incluir "Parados"). O diagnóstico do `senova-auditor` para os itens 1, 3 e 4 está na memória da sessão: falta campo confiável de data de envio (`enviadoEm`), a régua de nota tem rótulo que não bate com número (70 vira 55 calado ao salvar), e há seis caminhos de exclusão sem ponto único.*
+***FEITO — a cidade "undefined" (pré-requisito dos filtros).*** *Ao medir o backup real para o filtro de Cidade: 150 dos 163 processos ativos tinham a palavra "undefined" gravada como cidade (295 no quente + 20 no arquivo). Origem única (`senova-auditor`): no enriquecimento vindo da extensão, o local ausente era convertido em texto e gravado como fato de página por `_gravarMetaVaga`. Corrigido no ponto único: `_metaValida` recusa "undefined"/"null"/"NaN" para todo campo e toda fonte; `_limparMetaFalsa` limpa os cards uma vez na abertura (`senova_migration_meta_falsa_v1`), sem tocar em nota, coluna nem `updatedAt` — medido no backup: 315 limpos, zero efeito colateral. Travado em `testes/meta_falsa_nao_vira_fato.js` (29 asserções). Suíte: 94 arquivos verdes.*
+
+***O QUE A LIMPEZA NÃO RESOLVE (fila, um por vez).*** *(a) A cidade continua sem chegar: o enriquecimento em segundo plano só lê o JSON-LD, que o LinkedIn removeu (S52) — `_enriquecerUma`/`_buscarDescricaoGuest` em `senova-extension/background.js` precisam ler o local do próprio HTML (`topcard__flavor--bullet`). Depois da limpeza, só 13 dos 163 ativos têm cidade. (b) As notas desses cards foram calculadas com "localização: undefined" enviada à IA como fato; reanalisar custa IA e é decisão de Marcos. (c) Cargo-lixo "Use a IA para avaliar a adequação do seu perfil" em 16 cards: vem de `extractLinkedIn` (`content.js`, âncora "Sobre a vaga" pega o banner de IA) e sobrescreve `cargo` no app; a lista de "título ruim" existe em duas cópias divergentes no `index.html`. (d) Filtros: 126 cargos distintos em 163 cards — lista de títulos é inútil; "Abertas" não tem dado guardado no card (o app apaga o lead morto e não confere CV Enviado).*
+
+***PRÓXIMO PASSO EXATO.*** *Esperar o teste dele da cidade. Depois, nesta ordem: extensão passa a trazer a cidade (a); então os filtros Cidade/Cargo/Abertas + Parados, levando a ele as decisões de (d) com recomendação. Seguem valendo os diagnósticos dos itens 1, 3 e 4: falta campo confiável de data de envio (`enviadoEm`), a régua de nota tem rótulo que não bate com número (70 vira 55 calado ao salvar), e há seis caminhos de exclusão sem ponto único.*
 
 ---
 

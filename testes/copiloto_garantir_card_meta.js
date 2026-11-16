@@ -35,7 +35,7 @@ const fontesTexto = [
   'function _jobIdLinkedIn(',
   'function dataAtualFormatada(',
   'function _acharVagaRef(',
-  'function _gravarMetaVaga(',
+  'function _metaCampos(', 'function _metaValida(', 'function _gravarMetaVaga(',
   'window.__senovaCopilotoGarantirCard=function(',
 ].map(extrai).join('\n;\n');
 
