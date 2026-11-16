@@ -3,13 +3,13 @@
 
 ***16/nov — CINCO MELHORIAS, UMA DE CADA VEZ.*** *Pedido dele: (1) encerrar sozinho o card com CV enviado há mais de 21 dias; (2) tirar o "Para Hoje" do Início; (3) nota mínima para abrir processo, ajustável no Perfil; (4) desfazer exclusão de card (Ctrl+Z); (5) filtros dos Processos por Cidade, Cargo e Abertas. Desenho antes/depois das cinco aprovado em Artifact ("Aprovo, pode começar" — vale só para o Início). Ordem combinada: Início → filtros → desfazer exclusão → nota mínima → encerramento em 21 dias; cada uma publicada e testada por ele antes da seguinte.*
 
-***FEITO — Início sem "Para Hoje".*** *O bloco saiu inteiro (tela, estilo, , , ) e "O que há de novo" ocupa a largura toda. Nada mais mudou de cor, fonte ou componente. Travado em  (21 asserções), que também passou a vigiar o app todo contra botão que chama função inexistente. Suíte: 93 arquivos verdes. Skills atualizadas: , , .*
+***FEITO — Início sem "Para Hoje".*** *O bloco saiu inteiro (tela, estilo, `renderHomeAcoes`, `_homeVerMais`, `_abrirAgendaEntrevista`) e "O que há de novo" ocupa a largura toda. Nada mais mudou de cor, fonte ou componente. Travado em `testes/inicio_sem_para_hoje.js` (21 asserções), que também passou a vigiar o app todo contra botão que chama função inexistente. Suíte: 93 arquivos verdes. Skills atualizadas: `skill_fluxo.md`, `skill_dev_senova.md`, `skill_ux_writing.md`.*
 
-***O QUE SAIU JUNTO, e precisa de porta nova nos filtros (item seguinte).*** *O "Para Hoje" era a única entrada para três coisas: o filtro "só processos parados" ( ficou sem chamador; a máquina  + faixa amarela continua no código, à espera do filtro), marcar data de entrevista de um card que já está em Entrevista, e o lembrete de próxima ação de CONTATOS. O sinal de parado continua no próprio card.*
+***O QUE SAIU JUNTO, e precisa de porta nova nos filtros (item seguinte).*** *O "Para Hoje" era a única entrada para três coisas: o filtro "só processos parados" (`irParaInativos` ficou sem chamador; a máquina `_crmFiltroInativo` + faixa amarela continua no código, à espera do filtro), marcar data de entrevista de um card que já está em Entrevista, e o lembrete de próxima ação de CONTATOS. O sinal de parado continua no próprio card.*
 
-***DÍVIDA ACHADA, não mexida.*** *A janela antiga  nunca é aberta e seus botões chamam , que não existe — listada como dívida no teste novo, para sair numa limpeza própria.*
+***DÍVIDA ACHADA, não mexida.*** *A janela antiga `#modal-revisao` nunca é aberta e seus botões chamam `fecharRevisao`, que não existe — listada como dívida no teste novo, para sair numa limpeza própria.*
 
-***PRÓXIMO PASSO EXATO.*** *Esperar o teste dele do Início. Depois: filtros (confirmar com ele que "Abertas" = anúncio ainda no ar; incluir "Parados"). O diagnóstico do  para os itens 1, 3 e 4 está na memória da sessão: falta campo confiável de data de envio (), a régua de nota tem rótulo que não bate com número (70 vira 55 calado ao salvar), e há seis caminhos de exclusão sem ponto único.*
+***PRÓXIMO PASSO EXATO.*** *Esperar o teste dele do Início. Depois: filtros (confirmar com ele que "Abertas" = anúncio ainda no ar; incluir "Parados"). O diagnóstico do `senova-auditor` para os itens 1, 3 e 4 está na memória da sessão: falta campo confiável de data de envio (`enviadoEm`), a régua de nota tem rótulo que não bate com número (70 vira 55 calado ao salvar), e há seis caminhos de exclusão sem ponto único.*
 
 ---
 
