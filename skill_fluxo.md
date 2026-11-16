@@ -109,16 +109,14 @@ Ao mover para coluna com status especial:
 
 ---
 
-## PARA HOJE — regras de exibição
+## INÍCIO — um bloco só
 
-Seção esquerda da Home. Mostra:
-1. **Processos**: cards com data de próxima ação ≤ hoje + entrevistas sem data agendada (urgência roxa)
-2. **Contatos**: contatos com próxima ação entre -7 e +3 dias
-3. **Atenção**: processos inativos há muito tempo
+Desde 16/nov/2026 o Início não tem mais "Para Hoje" (decisão de Marcos). O único bloco é
+**O que há de novo**, na largura toda: Oportunidades, Retornos, Novidades no mercado,
+Para Considerar (só quando há) e Indicações.
 
-Regra: "Entrevista — agendar data e horário" some quando:
-- `v.entrevistaData` foi preenchida, OU
-- `v.status` mudou de 'entrevista'
+O que o "Para Hoje" mostrava continua nos Processos: a próxima ação e o sinal de processo
+parado ficam no próprio card. A data da entrevista é pedida ao mover o card para Entrevista.
 
 ---
 

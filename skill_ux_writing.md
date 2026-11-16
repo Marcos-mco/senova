@@ -85,8 +85,6 @@ A única exceção é quando o sistema está em estado de carregamento (skeleton
 ### Empty states permitidos (apenas quando seção SEMPRE aparece)
 | Seção | Texto quando vazia |
 |-------|-------------------|
-| Para Hoje (processos) | "Tudo em dia. Sem ações urgentes." |
-| Para Hoje (contatos) | — (ocultar seção Contatos) |
 | Processos (kanban) | "Nenhum processo ativo. + Nova oportunidade" |
 | Contatos | "Nenhum contato cadastrado. + Adicionar" |
 

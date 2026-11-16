@@ -86,7 +86,7 @@ function montar(regime, comBackups = true) {
     _LOGO_CACHE_KEY: 'senova_logo_cache_v5',   // o cache atual; v1..v4 são restos
     document: fakeDOM(),
     exportarDados() { chamadas.exportar++; },
-    updateBadge() {}, atualizarStatsHome() {}, renderHomeAcoes() {},
+    updateBadge() {}, atualizarStatsHome() {},
     atualizarSinais() {}, renderIndicacoesHome() {},
     JSON, Object, Date, console, Error,
   };

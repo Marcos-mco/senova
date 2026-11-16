@@ -1,5 +1,19 @@
 # VIRGÍLIO — Instruções de Continuidade
-*Atualizado: 09/out/2026 — **Fonte única de carreira: o Perfil do Senova. O CV-origem passa a ser gerado dele.**.*
+*Atualizado: 16/nov/2026 — **Cinco melhorias pedidas por Marcos, uma por vez. A 1ª (Início sem "Para Hoje") está publicada e aguarda o teste dele.***
+
+***16/nov — CINCO MELHORIAS, UMA DE CADA VEZ.*** *Pedido dele: (1) encerrar sozinho o card com CV enviado há mais de 21 dias; (2) tirar o "Para Hoje" do Início; (3) nota mínima para abrir processo, ajustável no Perfil; (4) desfazer exclusão de card (Ctrl+Z); (5) filtros dos Processos por Cidade, Cargo e Abertas. Desenho antes/depois das cinco aprovado em Artifact ("Aprovo, pode começar" — vale só para o Início). Ordem combinada: Início → filtros → desfazer exclusão → nota mínima → encerramento em 21 dias; cada uma publicada e testada por ele antes da seguinte.*
+
+***FEITO — Início sem "Para Hoje".*** *O bloco saiu inteiro (tela, estilo, , , ) e "O que há de novo" ocupa a largura toda. Nada mais mudou de cor, fonte ou componente. Travado em  (21 asserções), que também passou a vigiar o app todo contra botão que chama função inexistente. Suíte: 93 arquivos verdes. Skills atualizadas: , , .*
+
+***O QUE SAIU JUNTO, e precisa de porta nova nos filtros (item seguinte).*** *O "Para Hoje" era a única entrada para três coisas: o filtro "só processos parados" ( ficou sem chamador; a máquina  + faixa amarela continua no código, à espera do filtro), marcar data de entrevista de um card que já está em Entrevista, e o lembrete de próxima ação de CONTATOS. O sinal de parado continua no próprio card.*
+
+***DÍVIDA ACHADA, não mexida.*** *A janela antiga  nunca é aberta e seus botões chamam , que não existe — listada como dívida no teste novo, para sair numa limpeza própria.*
+
+***PRÓXIMO PASSO EXATO.*** *Esperar o teste dele do Início. Depois: filtros (confirmar com ele que "Abertas" = anúncio ainda no ar; incluir "Parados"). O diagnóstico do  para os itens 1, 3 e 4 está na memória da sessão: falta campo confiável de data de envio (), a régua de nota tem rótulo que não bate com número (70 vira 55 calado ao salvar), e há seis caminhos de exclusão sem ponto único.*
+
+---
+
+*Atualizado antes: 09/out/2026 — **Fonte única de carreira: o Perfil do Senova. O CV-origem passa a ser gerado dele.**.*
 
 ***09/out — FONTE ÚNICA: o Perfil manda; o CV-origem é fotografia dele.*** *Uma sessão que preenchia formulário de candidatura achou fontes divergentes. Medido no KV: o Perfil (a fonte combinada) estava defasado — as correções de set/2026 tinham ido para a semente `PERFIL_MARCOS` no `index.html` e para o CV-origem, nunca para o Perfil. Corrigido, com aprovação de Marcos e backup + read-back nas duas chaves (dono e legado): RPC Gerente desde **08/2008**, EADCon até **07/2008**, Consigliere **"Consultor C-Level"**, startup de seguro-aluguel **09/2021–09/2023** como experiência própria, **Marcenaria Fina (Chippendale, 2020)** na formação. Os textos `cv_master_pt/en/es` do Perfil foram reescritos (ES traduzido do PT; o PDF ES de junho estava velho); Ribeiro Franco ficou **"Sócio-Fundador"**, adotado na minha recomendação — Marcos pode reverter. **Gerador versionado:** `node ferramentas/cv-origem/gerar.js` lê o Perfil do KV (só leitura) e gera `cvs/CV_MF_2026_{PT,EN,ES}.{pdf,docx}`, guardando os anteriores em `cvs/_anterior_<data>/`. `PERFIL_MARCOS.md` e `skill_cv.md` ganharam aviso "não é fonte"; os `.txt` de junho foram para `cvs/_anterior_09out/`. **Regra daqui em diante: correção de dado de carreira entra primeiro no Perfil; depois roda o gerador. Nunca o contrário.** **Seção única (commit 0436947, aprovado por Marcos e conferido por ele no PDF):** o título "Experiência Anterior" saiu do Perfil; os cargos de 1996–2008 seguem a RPC na mesma seção, compactos, como uma trajetória só — a divisão vinha do meu CV de 17/set, nunca foi decisão dele. Se o gerador acusar arquivo travado, é PDF aberto no leitor: pedir para fechar e rodar de novo. **O PDF para anexar em formulário é `cvs/CV_MF_2026_PT.pdf`.** Pendente: alinhar a semente `PERFIL_MARCOS` do `index.html` (Consigliere, startup) — só pesa para quem não tem Perfil salvo.*
 

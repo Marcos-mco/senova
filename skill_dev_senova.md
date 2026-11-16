@@ -62,7 +62,7 @@ NUNCA commitar sem rodar o checklist do skill_qa.md.
 | Análise de Vaga (Anti-ATS) | ✅ Funcional | CARTA_SYSTEM separado do ATS_SYSTEM |
 | Processos (Kanban) | ✅ Funcional | 5 colunas + arquivados |
 | Contatos (CRM) | ✅ Funcional | |
-| Home 2 colunas | ✅ Funcional | Para Hoje + O que há de novo |
+| Início (bloco único) | ✅ Funcional | Só "O que há de novo" — "Para Hoje" removido em 16/nov/2026 |
 | Busca automática (Adzuna+Jobicy) | ✅ Funcional | cron 07h BRT, vagas direto para Processos |
 | OAuth Outlook (Mail + Calendar) | ✅ Funcional | tenant=consumers (Hotmail) |
 | Sinais de mercado (Bing/Google RSS) | ✅ Funcional | Cache 4h |

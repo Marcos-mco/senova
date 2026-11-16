@@ -68,7 +68,7 @@ function montar(listaVagas, revisao) {
     _avisarGravacaoFalhou(m) { avisos.push(m); }, _limparAvisoGravacao() {},
     showToast(m) { toasts.push(m); },
     confirm: () => true,
-    updateBadge() {}, atualizarStatsHome() {}, renderHomeAcoes() {},
+    updateBadge() {}, atualizarStatsHome() {},
     atualizarSinais() {}, renderIndicacoesHome() {}, aplicarFiltros() {},
     renderWidgetRevisao() {},
     JSON, Object, Date, console, Error, String, Set, Array, RegExp,

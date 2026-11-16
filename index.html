@@ -216,9 +216,6 @@ select option { background: var(--bg2); }
 .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── HOME COCKPIT ── */
-.home-acao-item { background:transparent; border:none; border-bottom:1px solid var(--border); border-left:4px solid var(--border2); padding:11px 16px 11px 18px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:background 0.1s; }
-.home-acao-item:hover { background:var(--bg3); }
-.home-acao-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .home-stat-box { background: var(--bg2); border: 1px solid var(--border); border-top: 3px solid var(--navy); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow); }
 .home-stat-box:hover { border-top-color: var(--action); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .home-stat-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--navy); }
@@ -343,9 +340,8 @@ select option { background: var(--bg2); }
 @media (max-width:960px) { .home-grid { grid-template-columns:1fr; } }
 .home-right-col { display:flex; flex-direction:column; gap:14px; }
 
-/* ── HOME 2-COL: Para Hoje | O que há de novo ── */
-.sh-home-2col { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; margin-bottom:14px; }
-@media (max-width:720px) { .sh-home-2col { grid-template-columns:1fr; } }
+/* ── HOME: O que há de novo, na largura toda ── */
+.sh-home-novo { margin-bottom:14px; }
 .sh-bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; margin-bottom:14px; }
 @media (max-width:720px) { .sh-bottom-row { grid-template-columns:1fr; } }
 
@@ -372,21 +368,11 @@ select option { background: var(--bg2); }
 .sh-head-meta { font-size:11.5px; color:var(--text3); margin-left:auto; font-weight:400; }
 .sh-head-action { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--action); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
 
-/* ocultar filtros do Para Hoje */
-#hf-prioridade, #hf-canal { display:none; }
 /* topbar home: só saudação */
 #page-home .topbar-right { display:none; }
 #page-home #home-saudacao { font-family:'Cormorant Garamond',Georgia,serif; font-size:19px; font-weight:700; letter-spacing:-0.2px; }
 /* Sua Situação e Seu Painel visíveis na linha inferior */
 
-/* itens Para Hoje — sem borda esquerda, sem fundo colorido */
-.home-acao-item { border-left:none !important; background:transparent !important; padding:13px 24px; align-items:flex-start; }
-/* ocultar linha de badges (status, prioridade, vencido) */
-.home-acao-item > div:nth-child(2) > div:first-child { display:none !important; }
-/* nome em destaque */
-.home-acao-item > div:nth-child(2) > div:nth-child(2) { font-size:15px !important; font-weight:600 !important; margin-bottom:3px; }
-/* tarefa em cinza */
-.home-acao-item > div:nth-child(2) > div:nth-child(3) { font-size:13px !important; color:var(--text3) !important; }
 
 .sh-item { display:flex; align-items:center; gap:12px; padding:13px 24px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
 .sh-item:last-of-type { border-bottom:none; }
@@ -403,8 +389,6 @@ select option { background: var(--bg2); }
 .sh-kpi-num { font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--navy); line-height:1.1; }
 .sh-kpi-lbl { font-size:10.5px; color:var(--text3); margin-top:3px; line-height:1.35; }
 
-.sh-ver-mais { display:block; width:100%; padding:10px 24px; font-size:12px; color:var(--action); font-weight:600; cursor:pointer; border:none; border-top:1px solid var(--border); background:none; font-family:var(--font); text-align:left; transition:background 0.1s; letter-spacing:0.01em; }
-.sh-ver-mais:hover { background:var(--bg3); }
 .ctx-item { background:var(--bg3); border-radius:var(--radius); border:1px solid var(--border); padding:12px 14px; }
 .ctx-item-texto { font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:8px; }
 .ctx-item-footer { display:flex; align-items:center; justify-content:space-between; }
@@ -540,20 +524,10 @@ select option { background: var(--bg2); }
       <button id="esteira-aviso-acao" style="flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--action);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font);text-decoration:underline;"></button>
     </div>
 
-    <!-- 2 colunas principais: Para Hoje | O que há de novo -->
-    <div class="sh-home-2col">
+    <!-- O que há de novo — bloco único do Início -->
+    <div class="sh-home-novo">
 
-      <!-- ESQUERDA: Para Hoje -->
-      <div class="sh-card sh-card-accent">
-        <div class="sh-head">
-          <span class="sh-head-title">Para Hoje</span>
-          <span class="sh-head-meta" id="home-acoes-badge"></span>
-        </div>
-        <div id="home-acoes-list" style="max-height:360px;overflow:hidden;transition:max-height 0.3s ease;"></div>
-        <button class="sh-ver-mais" id="home-ver-mais" style="display:none;" onclick="_homeVerMais(this)"></button>
-      </div>
-
-      <!-- DIREITA: O que há de novo -->
+      <!-- O que há de novo -->
       <div class="sh-card">
         <div class="sh-head">
           <span class="sh-head-title">O que há de novo</span>
@@ -612,7 +586,7 @@ select option { background: var(--bg2); }
         <div id="indicacoes-inline-lista" style="display:none;flex-direction:column;gap:6px;padding:10px 22px 14px;background:var(--bg3);border-bottom:1px solid var(--border);"></div>
 
       </div>
-    </div><!-- /sh-home-2col -->
+    </div><!-- /sh-home-novo -->
 
 
     <!-- Oportunidades acumuladas (condicional) -->
@@ -3868,7 +3842,7 @@ function showPage(page) {
     if(nav) nav.classList.toggle('active', p===page);
   });
   if(page==='crm') { renderCRM(); document.getElementById('crm-filter-bar').style.display=crmCurrentTab==='vagas'?'flex':'none'; document.getElementById('crm-vagas').style.display=crmCurrentTab==='vagas'?'block':'none'; document.getElementById('crm-contatos').style.display=crmCurrentTab==='contatos'?'block':'none'; const btnLim=document.getElementById('btn-limpeza-lote'); if(btnLim) btnLim.style.display=crmCurrentTab==='vagas'?'inline-block':'none'; }
-  if(page==='home') { atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); const _syncCompleto=!sessionStorage.getItem('sn_session_sync');if(_syncCompleto)sessionStorage.setItem('sn_session_sync','1');carregarEmails(_syncCompleto); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
+  if(page==='home') { atualizarStatsHome(); atualizarSinais(); const _syncCompleto=!sessionStorage.getItem('sn_session_sync');if(_syncCompleto)sessionStorage.setItem('sn_session_sync','1');carregarEmails(_syncCompleto); renderWidgetRevisao(); renderIndicacoesHome(); carregarSinaisMercado(); verificarVagasVarredura(); _avaliarLimpezaCard(); }
   if(page==='relatorios') { renderDashboardPipeline(); _syncRelatoriosStats(); }
   if(page==='linkedin'){ carregarStatusVarredura(); carregarPerfil(); carregarDadosSensiveis(); inicializarToggleMoverEmails(); inicializarPadroes(); }
   if(page==='mercado'){ _renderMercadoSinais(); }
@@ -6148,7 +6122,7 @@ function salvarDiasInativo(val){
   const inp=document.getElementById('config-dias-inativo');
   if(inp&&inp.value!=n) inp.value=n;
   localStorage.setItem('senova_dias_inativo',n);
-  atualizarSinais(); renderHomeAcoes();
+  atualizarSinais();
 }
 
 // ═══════════════════════════════════════════════
@@ -8141,7 +8115,7 @@ function descartarTodasRejeitadas(){
   const anotou=Store.registrarDeletado(ids);
   if(anotou){ try{ localStorage.removeItem(_REVISAO_KEY); }catch{} }
 
-  updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome();
+  updateBadge(); atualizarStatsHome(); atualizarSinais(); renderIndicacoesHome();
   aplicarFiltros(); renderWidgetRevisao();
   showToast(anotou
     ? `${n} apagada${n===1?'':'s'} — ${mb} MB liberados · cópia salva nos seus downloads`
@@ -8316,7 +8290,7 @@ function _limparAvisoGravacao(){
 // É esta linha única que faz a mudança para o banco caber num objeto só.
 function saveVagas(){
   Store.gravar();
-  updateBadge(); atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); renderIndicacoesHome();
+  updateBadge(); atualizarStatsHome(); atualizarSinais(); renderIndicacoesHome();
 }
 function saveContatos(){ Store.gravarContatos(); }
 function updateBadge(){ const n=vagas.filter(v=>!['aceito','arquivado','triagem'].includes(v.status)).length; document.getElementById('crm-badge').textContent=n; }
@@ -8471,7 +8445,6 @@ function proximaSalvar(){
     vagas[_proximaIdx].updatedAt=Date.now();
     saveVagas();
     renderCRM();
-    renderHomeAcoes();
   }
   document.getElementById('modal-proxima').style.display='none';
   _proximaIdx=-1;
@@ -8557,7 +8530,6 @@ function arquivarSalvar(){
   v.updatedAt=Date.now();
   saveVagas();
   renderCRM();
-  renderHomeAcoes();
   document.getElementById('modal-arquivar').style.display='none';
   _arquivarIdx=-1; _arquivarStatus='';
   showToast(status==='aceito'?'Oferta registrada! 🎉':'Aprendizado registrado.');
@@ -8757,7 +8729,7 @@ function limpezaExpressa(){
     setStatus(v,'arquivado',{skipConfirm:true,texto:'Arquivado via Limpeza Expressa (60+ dias inativo)'});
   });
   saveVagas();
-  atualizarStatsHome(); renderHomeAcoes(); atualizarSinais(); _avaliarLimpezaCard();
+  atualizarStatsHome(); atualizarSinais(); _avaliarLimpezaCard();
   showToast(`${n} oportunidade${n>1?'s':''} arquivada${n>1?'s':''} — Processos atualizados`);
 }
 
@@ -12967,21 +12939,6 @@ function abrirModalAlerta(idx){
   renderAlertasInline();
   atualizarSinais();
 }
-function _homeVerMais(btn){
-  const list=document.getElementById('home-acoes-list');
-  if(!list) return;
-  const expanded=list.dataset.expanded==='1';
-  if(expanded){
-    list.style.maxHeight='198px';
-    list.dataset.expanded='0';
-    const total=list.children.length;
-    btn.textContent=`ver mais ${Math.max(0,total-3)} ${total-4===0?'item':'itens'} →`;
-  } else {
-    list.style.maxHeight=list.scrollHeight+'px';
-    list.dataset.expanded='1';
-    btn.textContent='↑ ver menos';
-  }
-}
 function _dispensarAlerta(idx){
   _sinaisAlertas.splice(idx,1);
   renderAlertasInline();
@@ -13108,7 +13065,7 @@ async function enviarRespostaEmailAvulso(btn){
     if(res.ok){
       btn.textContent='✓ Enviado!';btn.style.color='var(--green)';
       _removeEmailAtualFluxos();
-      renderHomeAcoes(); atualizarSinais();
+      atualizarSinais();
       setTimeout(()=>fecharModalEmailResponder(),1200);
     }else if(res.status===401&&json.reauth){
       btn.textContent='🔑 Conectar Outlook';btn.disabled=false;
@@ -13717,7 +13674,6 @@ async function carregarEmails(forcar){
     if(emailsVaga.length||_emailsMercado.length){ _emailsAvulsos=emailsVaga; _emailsNovosHoje=Math.max(_emailsNovosHoje,emailsVaga.length+_emailsMercado.length); }
     _emailsCarregados=true;
     atualizarSinais();
-    renderHomeAcoes(); // atualiza "Para Hoje" com retornos recebidos
     renderEmailsAvulsos();
     atualizarSinais();
     renderRetornos();
@@ -13844,169 +13800,6 @@ function renderDashboardPipeline(){
   } catch(e){}
 }
 
-function _abrirAgendaEntrevista(vagaId){
-  const idx=vagas.findIndex(v=>v.id===vagaId);
-  if(idx<0) return;
-  _proximaIdx=idx;
-  const v=vagas[idx];
-  document.getElementById('modal-proxima-titulo').textContent='🎤 Entrevista — agendar data e horário';
-  document.getElementById('modal-proxima-status').textContent='Entrevista';
-  document.getElementById('modal-proxima-acao').value=v.proxima||'Preparar para a entrevista';
-  document.getElementById('modal-proxima-data').value='';
-  const entSec=document.getElementById('modal-proxima-entrevista');
-  if(entSec) entSec.style.display='block';
-  const sel=document.getElementById('modal-proxima-canal'); if(sel) sel.value='';
-  const ed=document.getElementById('modal-proxima-ent-data'); if(ed) ed.value='';
-  const eh=document.getElementById('modal-proxima-ent-hora'); if(eh) eh.value='10:00';
-  const cc=document.getElementById('modal-proxima-criar-cal'); if(cc) cc.checked=true;
-  document.getElementById('modal-proxima').style.display='flex';
-}
-
-function renderHomeAcoes(){
-  const list=document.getElementById('home-acoes-list');
-  if(!list) return;
-  // detect specific next-action date (not creation timestamp or month-only)
-  function _getNextActionDate(v){
-    const d=v.data||'';
-    if(/\s\d{1,2}:\d{2}/.test(d)) return null; // has time = creation timestamp
-    if(/^[a-z]{3,}\/\d{4}$/i.test(d)) return null; // month-only (abr/2026)
-    return parseDateBR(d); // ms or null
-  }
-const corSt={entrevista:'#7C3AED',proposta:'#059669',contato:'#2563EB',aplicado:'#D97706',lead:'#9CA3AF'};
-  const lblSt={entrevista:'Entrevista',proposta:'Proposta',contato:'Em Contato',aplicado:'CV Enviado',lead:'Oportunidade'};
-  const corPriH={alta:'#CC0000',media:'#0066CC',baixa:'#008800'};
-  const priOrder={alta:0,media:1,baixa:2};
-  const stOrder={entrevista:0,proposta:1,contato:2,aplicado:3,lead:4};
-  const hfPri=document.getElementById('hf-prioridade')?.value||'all';
-  const hfCanal=document.getElementById('hf-canal')?.value||'all';
-  let base=vagas.filter(v=>v.status!=='arquivado'&&v.status!=='aceito'&&v.status!=='triagem');
-  if(hfPri!=='all') base=base.filter(v=>v.prioridade===hfPri);
-  if(hfCanal!=='all') base=base.filter(v=>v.canal===hfCanal);
-  const today=new Date(); today.setHours(0,0,0,0); const todayMs=today.getTime();
-  // entrevistas sem data agendada — urgência máxima
-  const entSemData=base.filter(v=>v.status==='entrevista'&&!v.entrevistaData&&!v.entrevistaRealizada&&!(v.timeline||[]).some(t=>t.texto&&t.texto!=='Card criado'&&t.texto.length>5));
-  const entSemDataIds=new Set(entSemData.map(v=>v.id));
-  // nível 3 sem data → surfacem no topo (excluindo já exibidos acima)
-  const nivel3SemData=base.filter(v=>!entSemDataIds.has(v.id)&&nivelInativo(v)===3&&_getNextActionDate(v)===null);
-  // cards com data específica definida no modal de drag
-  const nivel3Ids=new Set(nivel3SemData.map(v=>v.id));
-  const comData=base.filter(v=>!entSemDataIds.has(v.id)&&!nivel3Ids.has(v.id)).map(v=>({v,dt:_getNextActionDate(v)})).filter(x=>x.dt!==null);
-  // nível 3 com data sobe para antes dos outros; dentro do nível 3 ordena por data
-  comData.sort((a,b)=>{
-    const n3a=nivelInativo(a.v)===3, n3b=nivelInativo(b.v)===3;
-    if(n3a&&!n3b) return -1; if(!n3a&&n3b) return 1;
-    return a.dt-b.dt;
-  });
-  function _buildCardVaga(v,diff,bgColor){
-    const nv=nivelInativo(v);
-    const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
-    const acaoTxt=v.proxima||'';
-    let dotColor,dateTxt,dateColor;
-    if(nv>=3&&diff===null){
-      const d=Math.floor((Date.now()-v.updatedAt)/(24*3600*1000));
-      dotColor='var(--red)'; dateTxt=`há ${d}d`; dateColor='var(--red)';
-    } else if(diff!==null){
-      if(diff<0){ dotColor='var(--red)'; dateTxt=`há ${-diff}d`; dateColor='var(--red)'; }
-      else if(diff===0){ dotColor='var(--amber)'; dateTxt='Hoje'; dateColor='var(--amber)'; }
-      else{ dotColor='var(--text3)'; dateTxt=formatDataCard(v.data); dateColor='var(--text3)'; }
-    } else { dotColor='var(--text3)'; dateTxt=''; dateColor='var(--text3)'; }
-    const el=document.createElement('div');
-    el.className='home-acao-item';
-    el.onclick=()=>openVagaModal(v.id);
-    el.innerHTML=`<div class="home-acao-dot" style="background:${dotColor};margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>${acaoTxt?`<div style="font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acaoTxt}</div>`:''}</div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">${dateTxt?`<span style="font-size:11.5px;font-weight:500;color:${dateColor};white-space:nowrap;">${dateTxt}</span>`:''}<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
-    return el;
-  }
-  list.innerHTML='';
-  // Badge com contagem de prioridades
-  const badge=document.getElementById('home-acoes-badge');
-  const total=entSemData.length+nivel3SemData.length+comData.length;
-  if(badge) badge.textContent=total>0?`${total} ação${total===1?'':'ões'} agendada${total===1?'':'s'}`:'';
-  const _temProcessos=entSemData.length>0||nivel3SemData.length>0||comData.length>0;
-  if(_temProcessos){
-    const sepP=document.createElement('div');
-    sepP.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
-    sepP.textContent='Processos';
-    list.appendChild(sepP);
-    // Entrevistas sem data — urgência máxima, indicador roxo
-    entSemData.forEach(v=>{
-      const nome=(v.empresa||'—')+(v.cargo&&v.cargo!=='A definir'?' — '+v.cargo:'');
-      const el=document.createElement('div');
-      el.className='home-acao-item';
-      el.onclick=()=>_abrirAgendaEntrevista(v.id);
-      el.innerHTML=`<div class="home-acao-dot" style="background:#7C3AED;margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div><div style="font-size:13px;color:#7C3AED;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Entrevista — agendar data e horário</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></div>`;
-      list.appendChild(el);
-    });
-    nivel3SemData.forEach(v=>{ list.appendChild(_buildCardVaga(v,null,null)); });
-    comData.forEach(({v,dt})=>{
-      const diff=Math.round((dt-todayMs)/86400000);
-      list.appendChild(_buildCardVaga(v,diff,null));
-    });
-  } else {
-    const el=document.createElement('div');
-    el.style.cssText='padding:22px 20px;color:var(--text3);font-size:14px;text-align:center;';
-    el.textContent='Nenhuma ação agendada nos processos.';
-    list.appendChild(el);
-  }
-  // ── CRM Contatos ──
-  const todayCRM=new Date(); todayCRM.setHours(0,0,0,0);
-  const contatosAcao=(contatos||[]).filter(c=>c.next&&c.nextData).map(c=>{
-    const ms=new Date(c.nextData).setHours(0,0,0,0);
-    const diff=Math.round((ms-todayCRM.getTime())/86400000);
-    return {...c,_diff:diff};
-  }).filter(c=>c._diff>=-7&&c._diff<=3).sort((a,b)=>a._diff-b._diff).slice(0,5);
-  if(contatosAcao.length){
-    const sep=document.createElement('div');
-    sep.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
-    sep.textContent='Contatos';
-    list.appendChild(sep);
-    contatosAcao.forEach(c=>{
-      let badgeTxt='',badgeBg='',badgeColor='';
-      if(c._diff<0){badgeTxt='⚠ Atrasado';badgeBg='#FEF0EF';badgeColor='#CC0000';}
-      else if(c._diff===0){badgeTxt='Hoje';badgeBg='#EFF6FF';badgeColor='#1D4ED8';}
-      else{badgeTxt='⏰ Urgente';badgeBg='#FFF8EC';badgeColor='#B8670A';}
-      const dataFmt=c.nextData.split('-').reverse().join('/');
-      const bordaCRM=c._diff<0?'#CC0000':c._diff===0?'#1D4ED8':'#B8670A';
-      const el=document.createElement('div');
-      el.className='home-acao-item';
-      el.style.borderLeftColor=bordaCRM;
-      if(c._diff<0) el.style.background='#FEF0EF';
-      el.onclick=()=>openContatoModal(c.id);
-      el.innerHTML=`<div class="home-acao-dot" style="background:${bordaCRM};"></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Contato</span><span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;">${badgeTxt}</span><span style="font-size:11px;color:var(--text3);">📅 ${dataFmt}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nome}</div><div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.next}</div></div><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
-      list.appendChild(el);
-    });
-  }
-  // Processos sem atualização → item de atenção em Para Hoje
-  const niTotal=vagas.filter(v=>v.status!=='arquivado'&&v.status!=='aceito'&&v.status!=='triagem'&&isInativo(v)).length;
-  if(niTotal>0){
-    const sepAt=document.createElement('div');
-    sepAt.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:6px 24px 2px;';
-    sepAt.textContent='Atenção';
-    list.appendChild(sepAt);
-    const elAt=document.createElement('div');
-    elAt.className='home-acao-item';
-    elAt.onclick=irParaInativos;
-    elAt.innerHTML=`<div class="home-acao-dot" style="background:var(--red);margin-top:5px;"></div><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--red);">${niTotal} processo${niTotal===1?'':'s'} sem atualização</div><div style="font-size:13px;color:var(--text3);">há ${_diasInativo}+ dias — clique para revisar</div></div><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>`;
-    list.appendChild(elAt);
-  }
-
-  // Retornos de email → mostrados em "O que há de novo" (coluna direita), não duplicar aqui
-
-  // Ver mais — acionar após renderizar todos os itens
-  const verMaisBtn=document.getElementById('home-ver-mais');
-  const listEl=document.getElementById('home-acoes-list');
-  if(verMaisBtn&&listEl){
-    listEl.style.maxHeight='198px';
-    listEl.dataset.expanded='0';
-    const totalItens=listEl.children.length;
-    if(totalItens>3){
-      const hidden=totalItens-3;
-      verMaisBtn.style.display='block';
-      verMaisBtn.textContent=`ver mais ${hidden} ${hidden===1?'item':'itens'} →`;
-    } else {
-      verMaisBtn.style.display='none';
-    }
-  }
-}
 
 // ═══════════════════════════════════════════════
 //  FUNCOES DO MODAL DE VAGA
