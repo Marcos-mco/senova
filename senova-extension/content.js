@@ -159,7 +159,7 @@
     //     Busca "Sobre a vaga" em QUALQUER elemento (não só headings) para cobrir
     //     variações de marcação do LinkedIn. Inclui h4 e [role=heading].
     if (!cargo) {
-      const _SKIP = /(pessoas que você|people you may|sobre o|about the company|candidatura|avalie|candidate|conexão|connection|promovida|promoted)/i;
+      const _SKIP = /(pessoas que você|people you may|sobre o|about the company|candidatura|avalie|avaliar|seu perfil|your profile|candidate|conexão|connection|promovida|promoted)/i;
       const allH = Array.from(document.querySelectorAll('h1,h2,h3,h4,[role="heading"]'));
 
       // Tenta encontrar "Sobre a vaga" nos headings primeiro, depois em qualquer elemento

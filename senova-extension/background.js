@@ -808,6 +808,20 @@ async function enriquecerPendentes() {
     });
     pend = out?.[0]?.result || [];
   } catch { return; }
+  // Processos já em andamento cujo cargo gravado é um aviso da página, não um cargo: a página
+  // é relida SÓ para trazer o título. Têm chave própria na lista de tentativas ("|cargo"),
+  // senão a URL — já enriquecida antes — nunca seria relida; e, com a chave, uma página que
+  // não responde é abandonada pela mesma regra das outras, sem virar laço contra o portal.
+  let soCargo = new Set();
+  try {
+    const outC = await chrome.scripting.executeScript({
+      target: { tabId: senovaTab.id }, world: 'MAIN',
+      func: () => (typeof window.__senovaPendentesCargo === 'function') ? window.__senovaPendentesCargo() : [],
+    });
+    soCargo = new Set((outC?.[0]?.result || []).filter(u => !pend.includes(u)));
+  } catch {}
+  pend = pend.concat([...soCargo]);
+  const _chaveTentativa = u => soCargo.has(u) ? u + '|cargo' : u;
 
   const linkedinPend = pend.filter(u => /linkedin\.com\/.*jobs\/view\//i.test(u));
 
@@ -827,7 +841,7 @@ async function enriquecerPendentes() {
   const tentadas = await _tentadasGet();
   const pausas = await _pausasGet();
   const agora = Date.now();
-  const alvos = linkedinPend.filter(u => !tentadas.has(u) && !_emPausa(pausas, u, agora)).slice(0, 6);
+  const alvos = linkedinPend.filter(u => !tentadas.has(_chaveTentativa(u)) && !_emPausa(pausas, u, agora)).slice(0, 6);
   if (!alvos.length) return;
 
   _enriquecendo = true;
@@ -835,15 +849,15 @@ async function enriquecerPendentes() {
   try {
     for (const url of alvos) {
       let ok = false;
-      try { ok = await _enriquecerUma(url, senovaTab.id); }
+      try { ok = await _enriquecerUma(url, senovaTab.id, soCargo.has(url)); }
       catch (e) {
         // O portal pediu para parar: abandona a rodada INTEIRA, não só esta URL. Insistir
         // nas outras cinco é insistir no mesmo host que acabou de recusar.
         if (e && e.portalRecusou) { await _pausaRegistrar(_hostDe(url), e.esperarSeg); break; }
         ok = false;
       }
-      if (ok) { await _tentadasAdd(tentadas, url); await _pausaLimpar(_hostDe(url)); }
-      else if (await _falhaContar(url) >= _FALHAS_ATE_DESISTIR) await _tentadasAdd(tentadas, url);
+      if (ok) { await _tentadasAdd(tentadas, _chaveTentativa(url)); await _pausaLimpar(_hostDe(url)); }
+      else if (await _falhaContar(_chaveTentativa(url)) >= _FALHAS_ATE_DESISTIR) await _tentadasAdd(tentadas, _chaveTentativa(url));
       await new Promise(r => setTimeout(r, 1500)); // throttle leve entre buscas (anti rate-limit)
     }
   } finally { _enriquecendo = false; await _notificarProcessando(senovaTab.id, false); }
@@ -959,7 +973,7 @@ async function _buscarDescricaoGuest(url) {
 }
 
 // Retorna true se conseguiu enriquecer o card; false caso contrário (p/ reprocessar depois).
-async function _enriquecerUma(url, senovaTabId) {
+async function _enriquecerUma(url, senovaTabId, soCargo) {
   let dados = null;
   try { dados = await _buscarDescricaoGuest(url); }
   catch (e) { if (e && e.portalRecusou) throw e; return false; } // recusa sobe; o resto é falha comum
@@ -969,7 +983,7 @@ async function _enriquecerUma(url, senovaTabId) {
     const out = await chrome.scripting.executeScript({
       target: { tabId: senovaTabId }, world: 'MAIN',
       func: (u, d, extra) => (typeof window.__senovaAtualizarDesc === 'function') ? window.__senovaAtualizarDesc(u, d, extra) : false,
-      args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa, local: dados.localizacao, modalidade: dados.modalidade, jornada: dados.jornada, salario: dados.salario }],
+      args: [url, desc, { cargo: dados.cargo, empresa: dados.empresa, local: dados.localizacao, modalidade: dados.modalidade, jornada: dados.jornada, salario: dados.salario, soCargo: !!soCargo }],
     });
     const updated = out && out[0] && out[0].result === true;
     return updated; // só "queima" a tentativa quando o card realmente mudou

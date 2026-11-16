@@ -14393,6 +14393,19 @@ Store.carregarFrio().then(function(){
 });
 // Auto-import silencioso: vagas salvas pela extensão Chrome aparecem direto no Pipeline
 // Recebe descrição da extensão quando o usuário abre a vaga no LinkedIn (logado)
+// ── O QUE NÃO É CARGO ────────────────────────────────────────────────────────
+// Ponto ÚNICO da pergunta "este texto pode ser o título de uma vaga?". Havia duas listas
+// escritas à mão — uma em quem RECEBE o título da página, outra em quem decide o que precisa
+// ser buscado de novo — e elas já tinham divergido. Pior: nenhuma conhecia o aviso que a
+// página da vaga mostra ao candidato ("Use a IA para avaliar a adequação do seu perfil"), e
+// 16 processos ficaram com esse aviso gravado no lugar do cargo (16/nov/2026).
+// A regra que pega esse caso é geral, não uma frase decorada: um título de vaga nomeia uma
+// função; texto que fala COM o leitor sobre "seu perfil" é aviso da página, nunca cargo.
+function _cargoInaceitavel(t){
+  const s=(t||'').trim();
+  if(s.length<3||s.length>=160) return true;
+  return /vagas?\s+(semelhantes|similares|para você|recomendad)|jobs you may|pesquisa de emprego|mais outras|novas vagas|\bseu perfil\b|\byour profile\b/i.test(s);
+}
 window.__senovaAtualizarDesc=function(url,desc,extra){
   if(!desc||desc.length<=120) return false; // <=120 fica "pendente" p/ re-buscar — limiar único
   const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').toLowerCase().replace(/\/$/,'');
@@ -14403,6 +14416,22 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
   let idx=tgtId?vagas.findIndex(v=>_jobId(v.origemUrl)===tgtId):-1;
   if(idx<0){const vUrl=_norm(url);idx=vUrl?vagas.findIndex(v=>{const eu=_norm(v.origemUrl||'');return eu&&eu===vUrl;}):-1;}
   if(idx<0) return false;
+  // extra.soCargo: a página foi relida SÓ para recuperar o cargo verdadeiro de um processo cujo
+  // título gravado era um aviso da página. Descrição, nota, coluna e data de atividade ficam
+  // como estão — consertar um título não pode apagar a nota de um processo em andamento,
+  // nem custar IA, nem fazer um processo parado parecer movimentado.
+  if(extra&&extra.soCargo){
+    const _ctc=(extra.cargo||'').trim();
+    if(_cargoInaceitavel(_ctc)) return false;   // a página também não trouxe cargo que preste
+    if(!_cargoInaceitavel(vagas[idx].cargo)) return true;   // já está certo: nada a fazer
+    vagas[idx].cargo=_ctc;
+    const _etc=(extra.empresa||'').trim();
+    if(/^[—–-]*$/.test((vagas[idx].empresa||"").trim())&&_etc.length>1&&_etc.length<120&&!/^linkedin$/i.test(_etc)) vagas[idx].empresa=_etc;
+    saveVagas();
+    clearTimeout(window._enriqRenderT);
+    window._enriqRenderT=setTimeout(()=>{ try{ if(filtroAtivo) aplicarFiltros(); else renderCRM(); }catch{} }, 350);
+    return true;
+  }
   const _exDesc=vagas[idx].jobDescription||vagas[idx].descricao||'';
   const _descMudou=!_exDesc||desc.length>_exDesc.length+200||_exDesc.slice(0,120)!==desc.slice(0,120);
   if(_descMudou){
@@ -14427,7 +14456,7 @@ window.__senovaAtualizarDesc=function(url,desc,extra){
     // e-mail de digest ("…e vagas semelhantes", "…e mais outras"). Guarda: nunca
     // aceitar título de digest nem "LinkedIn" como empresa.
     const _ct=(extra.cargo||'').trim();
-    if(_ct.length>2&&_ct.length<160&&!/vagas?\s+(semelhantes|similares|para você|recomendad)|jobs you may|pesquisa de emprego|mais outras|seu perfil talvez/i.test(_ct)) vagas[idx].cargo=_ct;
+    if(!_cargoInaceitavel(_ct)) vagas[idx].cargo=_ct;
     const _et=(extra.empresa||'').trim();
     if(_et.length>1&&_et.length<120&&!/^linkedin$/i.test(_et)) vagas[idx].empresa=_et;
   }
@@ -15079,12 +15108,27 @@ window.__senovaPendentesDesc=function(){
     // Título de digest = veio de e-mail "X e vagas semelhantes / e mais outras".
     // Esses precisam de enriquecimento MESMO já tendo descrição (o texto é do e-mail,
     // não da vaga real), para trocar título feio + descrição + nota pelos corretos.
-    const _ehDigestTitulo=t=>/vagas?\s+(semelhantes|similares|para você|recomendad)|e mais outras|seu perfil talvez|novas vagas/i.test(t||'');
+    const _ehDigestTitulo=t=>!!(t||'').trim()&&_cargoInaceitavel(t);
     return (vagas||[]).filter(v=>(v.status==='lead'||v.status==='triagem')
         && /linkedin\.com\/.*jobs\/view\//i.test(v.origemUrl||'')
         && (!((v.jobDescription||v.descricao||'').trim().length>120) || _ehDigestTitulo(v.cargo)))
       .map(v=>_norm(v.origemUrl))
       .filter((u,i,a)=>u&&/\/jobs\/view\//.test(u)&&a.indexOf(u)===i)
+      .slice(0,20);
+  }catch{ return []; }
+};
+// Exposto para a extensão: processos JÁ EM ANDAMENTO cujo cargo gravado não é um cargo
+// (ver _cargoInaceitavel). A página é relida só para trazer o título verdadeiro — a extensão
+// devolve com extra.soCargo, e nada além do título é tocado. Oportunidades ainda não abertas
+// (lead/triagem) já são cobertas por __senovaPendentesDesc.
+window.__senovaPendentesCargo=function(){
+  try{
+    const _norm=u=>(u||'').split('?')[0].split('#')[0].replace('linkedin.com/comm/','linkedin.com/').replace(/\/$/,'');
+    return (vagas||[]).filter(v=>!['arquivado','lead','triagem'].includes(v.status)
+        && /\/jobs\/view\/\d+/i.test(v.origemUrl||'')
+        && (v.cargo||'').trim() && _cargoInaceitavel(v.cargo))
+      .map(v=>_norm(v.origemUrl))
+      .filter((u,i,a)=>u&&a.indexOf(u)===i)
       .slice(0,20);
   }catch{ return []; }
 };
@@ -15174,7 +15218,7 @@ window.__senovaImportar=async function(){
         // Cargo/empresa: a extensão extrai limpo da página da vaga → substitui o título
         // feio que veio do assunto do email. Guard: nunca aceitar título-digest.
         const _ct=(v.titulo||'').trim();
-        if(_ct.length>2 && _ct.length<160 && !/vagas?\s+(semelhantes|similares|para você|recomendad)|jobs you may|pesquisa de emprego/i.test(_ct)) vagas[idx].cargo=_ct;
+        if(!_cargoInaceitavel(_ct)) vagas[idx].cargo=_ct;
         const _et=(v.empresa||'').trim();
         if(_et.length>1 && _et.length<120) vagas[idx].empresa=_et;
         vagas[idx].updatedAt=agora;
